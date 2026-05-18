@@ -7,6 +7,7 @@ import { useParams } from "next/navigation"
 import { useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 import { FormSection } from "@/app/w/_components/form-section"
+import { AllModelsCombobox } from "@/components/all-models-combobox"
 import { ImagePicker } from "@/components/image-picker"
 import { PageHeader } from "@/components/page-header"
 import { Button } from "@/components/ui/button"
@@ -32,6 +33,7 @@ interface EmployeeDetailsFormValues {
   name: string
   description: string
   avatarUrl: string
+  model: string
   connectionIds: string[]
   skillIds: string[]
   triggers: TriggerConfig[]
@@ -82,6 +84,7 @@ export function EmployeeDetailsForm({ employee }: { employee: Employee }) {
   const description =
     useWatch({ control: form.control, name: "description" }) ?? ""
   const avatarUrl = useWatch({ control: form.control, name: "avatarUrl" }) ?? ""
+  const model = useWatch({ control: form.control, name: "model" }) ?? ""
   const connectionIds = useWatch({
     control: form.control,
     name: "connectionIds",
@@ -220,6 +223,7 @@ export function EmployeeDetailsForm({ employee }: { employee: Employee }) {
           name: values.name.trim(),
           description: values.description.trim(),
           avatar_url: values.avatarUrl.trim(),
+          model: values.model.trim() || undefined,
           connection_ids: values.connectionIds,
           skill_ids: values.skillIds,
           triggers: serializeTriggers(values.triggers),
@@ -328,6 +332,18 @@ export function EmployeeDetailsForm({ employee }: { employee: Employee }) {
             </div>
           </FormSection>
 
+          <FormSection
+            title="Model"
+            description="The model this employee runs on. Pick one that matches the employee's work."
+          >
+            <AllModelsCombobox
+              value={model || null}
+              onSelect={(value) =>
+                form.setValue("model", value, { shouldDirty: true })
+              }
+            />
+          </FormSection>
+
           <EmployeeConnectionsSection
             connections={connectionsQuery.data?.data ?? []}
             loading={connectionsQuery.isLoading}
@@ -378,6 +394,7 @@ function employeeFormValues(employee: Employee): EmployeeDetailsFormValues {
     name: employee.name ?? "",
     description: employee.description ?? "",
     avatarUrl: employee.avatar_url ?? "",
+    model: employee.model ?? "",
     connectionIds: connectionIDsFromEmployee(employee),
     skillIds: (employee.attached_skills ?? [])
       .map((skill) => skill.id)

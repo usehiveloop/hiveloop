@@ -6514,7 +6514,7 @@ const docTemplate = `{
         },
         "/v1/chats/{id}/stream": {
             "get": {
-                "description": "Opens an SSE stream to the sandbox, replays the conversation\nhistory through the employee runtime, and tees the response back to the\nbrowser while persisting the assistant message on completion.",
+                "description": "Opens an SSE stream to the sandbox, replays the conversation\nhistory through the employee sandbox sidecar, and tees the response back to the\nbrowser while persisting the assistant message on completion.",
                 "produces": [
                     "text/event-stream"
                 ],
@@ -8143,6 +8143,112 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/internal_handler.employeeSandboxUpgradeResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.errorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/employees/{id}/sessions": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns employee runtime sessions with optional trigger delivery metadata.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "employees"
+                ],
+                "summary": "List sessions for an employee",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Employee agent ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by status (active, completed, errored)",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Exact session ID filter",
+                        "name": "session_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Exact channel filter",
+                        "name": "channel",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Exact thread timestamp filter",
+                        "name": "thread_ts",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Exact agent session ID filter",
+                        "name": "agent_session_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Prefix search over session identifiers",
+                        "name": "q",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Pagination cursor",
+                        "name": "cursor",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.paginatedResponse-internal_handler_employeeSessionResponse"
                         }
                     },
                     "400": {
@@ -12351,6 +12457,9 @@ const docTemplate = `{
                 "num_members": {
                     "type": "integer"
                 },
+                "purpose": {
+                    "type": "string"
+                },
                 "topic": {
                     "type": "string"
                 }
@@ -15041,6 +15150,35 @@ const docTemplate = `{
                 }
             }
         },
+        "internal_handler.employeeSessionResponse": {
+            "type": "object",
+            "properties": {
+                "agent_session_id": {
+                    "type": "string"
+                },
+                "channel": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "last_activity_at": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "thread_ts": {
+                    "type": "string"
+                },
+                "trigger_delivery": {
+                    "$ref": "#/definitions/internal_handler.triggerDeliveryResponse"
+                }
+            }
+        },
         "internal_handler.employeeSubagentSummary": {
             "type": "object",
             "properties": {
@@ -16268,6 +16406,23 @@ const docTemplate = `{
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/internal_handler.employeeListItem"
+                    }
+                },
+                "has_more": {
+                    "type": "boolean"
+                },
+                "next_cursor": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_handler.paginatedResponse-internal_handler_employeeSessionResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/internal_handler.employeeSessionResponse"
                     }
                 },
                 "has_more": {
@@ -17865,6 +18020,59 @@ const docTemplate = `{
                 }
             }
         },
+        "internal_handler.triggerDeliveryResponse": {
+            "type": "object",
+            "properties": {
+                "agent_id": {
+                    "type": "string"
+                },
+                "connection_id": {
+                    "type": "string"
+                },
+                "conversation_id": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "delivery_id": {
+                    "type": "string"
+                },
+                "event_key": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "payload": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "resource_key": {
+                    "type": "string"
+                },
+                "runtime_conversation_id": {
+                    "type": "string"
+                },
+                "runtime_session_id": {
+                    "type": "string"
+                },
+                "runtime_stream_id": {
+                    "type": "string"
+                },
+                "runtime_trace_id": {
+                    "type": "string"
+                },
+                "runtime_turn_id": {
+                    "type": "string"
+                },
+                "trigger_id": {
+                    "type": "string"
+                }
+            }
+        },
         "internal_handler.triggerResponse": {
             "type": "object",
             "properties": {
@@ -18029,6 +18237,9 @@ const docTemplate = `{
                     }
                 },
                 "description": {
+                    "type": "string"
+                },
+                "model": {
                     "type": "string"
                 },
                 "name": {

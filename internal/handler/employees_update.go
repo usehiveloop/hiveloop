@@ -21,6 +21,7 @@ type updateEmployeeRequest struct {
 	Name          *string              `json:"name,omitempty"`
 	AvatarURL     *string              `json:"avatar_url,omitempty"`
 	Description   *string              `json:"description,omitempty"`
+	Model         *string              `json:"model,omitempty"`
 	ConnectionIDs *[]string            `json:"connection_ids,omitempty"`
 	SkillIDs      *[]string            `json:"skill_ids,omitempty"`
 	Triggers      *[]agentTriggerInput `json:"triggers,omitempty"`
@@ -124,6 +125,16 @@ func (h *EmployeeHandler) Update(w http.ResponseWriter, r *http.Request) {
 			}
 			updates["avatar_url"] = avatarURL
 		}
+	}
+	if req.Model != nil {
+		modelID := strings.TrimSpace(*req.Model)
+		cred, err := pickActiveSystemCredentialForModel(ctx, h.db, h.employeeModelRegistry(), modelID)
+		if err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+			return
+		}
+		updates["model"] = modelID
+		updates["credential_id"] = cred.ID
 	}
 
 	nextIntegrations := agent.Integrations

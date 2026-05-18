@@ -412,6 +412,28 @@ func TestCompile_ReferencesProxyEnvInsteadOfRawProviderKeys(t *testing.T) {
 	}
 }
 
+func TestCompile_UsesAgentModelWithDefaultFallback(t *testing.T) {
+	orgID := uuid.New()
+	agent := &model.Agent{ID: uuid.New(), OrgID: &orgID, Name: "Aria", Model: "deepseek/deepseek-v4-pro"}
+
+	def, err := Compile(context.Background(), CompileDeps{Cfg: &config.Config{}}, agent)
+	if err != nil {
+		t.Fatalf("compile custom model: %v", err)
+	}
+	if def.Model.ModelID != "deepseek/deepseek-v4-pro" {
+		t.Fatalf("model_id = %q, want deepseek/deepseek-v4-pro", def.Model.ModelID)
+	}
+
+	agent.Model = " "
+	def, err = Compile(context.Background(), CompileDeps{Cfg: &config.Config{}}, agent)
+	if err != nil {
+		t.Fatalf("compile blank model: %v", err)
+	}
+	if def.Model.ModelID != DefaultEmployeeModel {
+		t.Fatalf("blank model fallback = %q, want %q", def.Model.ModelID, DefaultEmployeeModel)
+	}
+}
+
 func containsString(values []string, want string) bool {
 	for _, value := range values {
 		if value == want {

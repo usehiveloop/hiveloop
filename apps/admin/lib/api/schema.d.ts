@@ -7524,7 +7524,7 @@ export interface paths {
         /**
          * Stream the assistant reply for the latest user message (SSE)
          * @description Opens an SSE stream to the sandbox, replays the conversation
-         *     history through the employee runtime, and tees the response back to the
+         *     history through the employee sandbox sidecar, and tees the response back to the
          *     browser while persisting the assistant message on completion.
          */
         get: {
@@ -9425,6 +9425,101 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["employeeSandboxUpgradeResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/employees/{id}/sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List sessions for an employee
+         * @description Returns employee runtime sessions with optional trigger delivery metadata.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Filter by status (active, completed, errored) */
+                    status?: string;
+                    /** @description Exact session ID filter */
+                    session_id?: string;
+                    /** @description Exact channel filter */
+                    channel?: string;
+                    /** @description Exact thread timestamp filter */
+                    thread_ts?: string;
+                    /** @description Exact agent session ID filter */
+                    agent_session_id?: string;
+                    /** @description Prefix search over session identifiers */
+                    q?: string;
+                    /** @description Page size */
+                    limit?: number;
+                    /** @description Pagination cursor */
+                    cursor?: string;
+                };
+                header?: never;
+                path: {
+                    /** @description Employee agent ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["paginatedResponse-employeeSessionResponse"];
                     };
                 };
                 /** @description Bad Request */
@@ -14068,6 +14163,7 @@ export interface components {
             is_private?: boolean;
             name?: string;
             num_members?: number;
+            purpose?: string;
             topic?: string;
         };
         Cost: {
@@ -14483,6 +14579,7 @@ export interface components {
         agentTriggerInput: {
             conditions?: components["schemas"]["TriggerMatch"];
             connection_id?: string;
+            id?: string;
             instructions?: string;
             /**
              * @description SecretKey is the optional plaintext shared secret for HTTP triggers.
@@ -14970,6 +15067,16 @@ export interface components {
             updated_at?: string;
             upgrade_id?: string;
         };
+        employeeSessionResponse: {
+            agent_session_id?: string;
+            channel?: string;
+            created_at?: string;
+            id?: string;
+            last_activity_at?: string;
+            status?: string;
+            thread_ts?: string;
+            trigger_delivery?: components["schemas"]["triggerDeliveryResponse"];
+        };
         employeeSubagentSummary: {
             avatar_url?: string;
             description?: string;
@@ -15371,6 +15478,11 @@ export interface components {
             has_more?: boolean;
             next_cursor?: string;
         };
+        "paginatedResponse-employeeSessionResponse": {
+            data?: components["schemas"]["employeeSessionResponse"][];
+            has_more?: boolean;
+            next_cursor?: string;
+        };
         "paginatedResponse-generationResponse": {
             data?: components["schemas"]["generationResponse"][];
             has_more?: boolean;
@@ -15446,6 +15558,7 @@ export interface components {
             provider_config_key?: string;
         };
         profileProviderAvailableResponse: {
+            custom_app_configured?: boolean;
             custom_app_integration_id?: string;
             display_name?: string;
             employee_profile?: components["schemas"]["EmployeeProfileCapability"];
@@ -15905,6 +16018,23 @@ export interface components {
             total_cost?: number;
             user_id?: string;
         };
+        triggerDeliveryResponse: {
+            agent_id?: string;
+            connection_id?: string;
+            conversation_id?: string;
+            created_at?: string;
+            delivery_id?: string;
+            event_key?: string;
+            id?: string;
+            payload?: number[];
+            resource_key?: string;
+            runtime_conversation_id?: string;
+            runtime_session_id?: string;
+            runtime_stream_id?: string;
+            runtime_trace_id?: string;
+            runtime_turn_id?: string;
+            trigger_id?: string;
+        };
         triggerResponse: {
             deduplicated?: boolean;
             source_id?: string;
@@ -15958,6 +16088,7 @@ export interface components {
             avatar_url?: string;
             connection_ids?: string[];
             description?: string;
+            model?: string;
             name?: string;
             skill_ids?: string[];
             triggers?: components["schemas"]["agentTriggerInput"][];

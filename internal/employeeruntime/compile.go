@@ -23,6 +23,7 @@ import (
 
 const (
 	DefaultEmployeeModel           = "deepseek/deepseek-v4-flash"
+	DefaultEmployeeSubagentModel   = "deepseek/deepseek-v4-pro"
 	DefaultEmployeeMultimodalModel = "google/gemini-3-flash-preview"
 	proxyTokenTTL                  = 24 * time.Hour
 )
@@ -194,13 +195,17 @@ func Compile(ctx context.Context, deps CompileDeps, agent *model.Agent) (*AgentD
 		"memory": buildMemoryContext(ctx, deps, agent),
 	}
 	slackConfig := buildSlackConfig(ctx, deps, agent)
+	modelID := strings.TrimSpace(agent.Model)
+	if modelID == "" {
+		modelID = DefaultEmployeeModel
+	}
 	return &AgentDefinition{
 		Agent: AgentMeta{
 			Name:        agent.Name,
 			Description: description,
 		},
 		PromptFragments:  fragments,
-		Model:            proxyModel(deps.Cfg, DefaultEmployeeModel),
+		Model:            proxyModel(deps.Cfg, modelID),
 		MultimodalModel:  ptrModel(proxyModel(deps.Cfg, DefaultEmployeeMultimodalModel)),
 		Limits:           defaultLimits(),
 		Context:          contextMap,

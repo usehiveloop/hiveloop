@@ -588,7 +588,7 @@ func TestIntegration_EmployeesCreate_SubagentSlug_AutoIncrementsOnCollision(t *t
 	}
 }
 
-func TestIntegration_EmployeesCreate_SubagentUsesOpenRouterDeepSeek(t *testing.T) {
+func TestIntegration_EmployeesCreate_SubagentUsesOpenRouterDeepSeekPro(t *testing.T) {
 	h := newEmployeeHarness(t)
 	org := h.createOrg(t)
 	or := h.seedSystemCred(t, "openrouter", false)
@@ -604,8 +604,8 @@ func TestIntegration_EmployeesCreate_SubagentUsesOpenRouterDeepSeek(t *testing.T
 		t.Fatalf("default subagent count = %d, want 2: %#v", len(subagents), subagents)
 	}
 	for typ, sub := range subagents {
-		if sub.Model != "deepseek/deepseek-v4-flash" {
-			t.Errorf("%s.model = %q, want deepseek/deepseek-v4-flash", typ, sub.Model)
+		if sub.Model != "deepseek/deepseek-v4-pro" {
+			t.Errorf("%s.model = %q, want deepseek/deepseek-v4-pro", typ, sub.Model)
 		}
 		if sub.CredentialID == nil || *sub.CredentialID != or.ID {
 			t.Errorf("%s.credential_id = %v, want %v (openrouter)", typ, sub.CredentialID, or.ID)

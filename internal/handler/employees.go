@@ -65,7 +65,7 @@ func pickEmployeeCredential(db *gorm.DB) (*employeeProviderChoice, error) {
 
 func pickEmployeeSubagentCredential(db *gorm.DB) (*employeeProviderChoice, error) {
 	return pickSystemCredential(db, []struct{ providerID, modelID string }{
-		{"openrouter", employeeruntime.DefaultEmployeeModel},
+		{"openrouter", employeeruntime.DefaultEmployeeSubagentModel},
 	})
 }
 

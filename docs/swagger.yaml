@@ -220,6 +220,8 @@ definitions:
         type: string
       num_members:
         type: integer
+      purpose:
+        type: string
       topic:
         type: string
     type: object
@@ -1989,6 +1991,25 @@ definitions:
       upgrade_id:
         type: string
     type: object
+  internal_handler.employeeSessionResponse:
+    properties:
+      agent_session_id:
+        type: string
+      channel:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: string
+      last_activity_at:
+        type: string
+      status:
+        type: string
+      thread_ts:
+        type: string
+      trigger_delivery:
+        $ref: '#/definitions/internal_handler.triggerDeliveryResponse'
+    type: object
   internal_handler.employeeSubagentSummary:
     properties:
       avatar_url:
@@ -2789,6 +2810,17 @@ definitions:
       data:
         items:
           $ref: '#/definitions/internal_handler.employeeListItem'
+        type: array
+      has_more:
+        type: boolean
+      next_cursor:
+        type: string
+    type: object
+  internal_handler.paginatedResponse-internal_handler_employeeSessionResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/internal_handler.employeeSessionResponse'
         type: array
       has_more:
         type: boolean
@@ -3833,6 +3865,41 @@ definitions:
       user_id:
         type: string
     type: object
+  internal_handler.triggerDeliveryResponse:
+    properties:
+      agent_id:
+        type: string
+      connection_id:
+        type: string
+      conversation_id:
+        type: string
+      created_at:
+        type: string
+      delivery_id:
+        type: string
+      event_key:
+        type: string
+      id:
+        type: string
+      payload:
+        items:
+          type: integer
+        type: array
+      resource_key:
+        type: string
+      runtime_conversation_id:
+        type: string
+      runtime_session_id:
+        type: string
+      runtime_stream_id:
+        type: string
+      runtime_trace_id:
+        type: string
+      runtime_turn_id:
+        type: string
+      trigger_id:
+        type: string
+    type: object
   internal_handler.triggerResponse:
     properties:
       deduplicated:
@@ -3941,6 +4008,8 @@ definitions:
           type: string
         type: array
       description:
+        type: string
+      model:
         type: string
       name:
         type: string
@@ -8350,7 +8419,7 @@ paths:
     get:
       description: |-
         Opens an SSE stream to the sandbox, replays the conversation
-        history through the employee runtime, and tees the response back to the
+        history through the employee sandbox sidecar, and tees the response back to the
         browser while persisting the assistant message on completion.
       parameters:
       - description: Chat session UUID
@@ -9449,6 +9518,76 @@ paths:
       security:
       - BearerAuth: []
       summary: Get an employee sandbox upgrade
+      tags:
+      - employees
+  /v1/employees/{id}/sessions:
+    get:
+      description: Returns employee runtime sessions with optional trigger delivery
+        metadata.
+      parameters:
+      - description: Employee agent ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Filter by status (active, completed, errored)
+        in: query
+        name: status
+        type: string
+      - description: Exact session ID filter
+        in: query
+        name: session_id
+        type: string
+      - description: Exact channel filter
+        in: query
+        name: channel
+        type: string
+      - description: Exact thread timestamp filter
+        in: query
+        name: thread_ts
+        type: string
+      - description: Exact agent session ID filter
+        in: query
+        name: agent_session_id
+        type: string
+      - description: Prefix search over session identifiers
+        in: query
+        name: q
+        type: string
+      - description: Page size
+        in: query
+        name: limit
+        type: integer
+      - description: Pagination cursor
+        in: query
+        name: cursor
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handler.paginatedResponse-internal_handler_employeeSessionResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: List sessions for an employee
       tags:
       - employees
   /v1/employees/{id}/sync:

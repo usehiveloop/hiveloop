@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
@@ -109,11 +110,14 @@ func (h *AgentHandler) Update(w http.ResponseWriter, r *http.Request) {
 		updates["credential_id"] = cred.ID
 	}
 	if req.Model != nil {
-		if err := validateAgentModel(h.registry, *req.Model); err != nil {
+		modelID := strings.TrimSpace(*req.Model)
+		cred, err := pickActiveSystemCredentialForModel(r.Context(), h.db, h.registry, modelID)
+		if err != nil {
 			writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 			return
 		}
-		updates["model"] = *req.Model
+		updates["model"] = modelID
+		updates["credential_id"] = cred.ID
 	}
 
 	if req.SandboxTemplateID != nil {

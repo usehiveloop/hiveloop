@@ -33,6 +33,7 @@ func newAgentCreateHarness(t *testing.T) *agentCreateHarness {
 	r.Route("/v1/agents", func(r chi.Router) {
 		r.Use(middleware.ResolveOrgFromHeader(db))
 		r.Post("/", agentHandler.Create)
+		r.Put("/{id}", agentHandler.Update)
 	})
 
 	return &agentCreateHarness{db: db, router: r}

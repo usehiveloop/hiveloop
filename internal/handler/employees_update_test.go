@@ -1,8 +1,10 @@
 package handler_test
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/go-chi/chi/v5"
@@ -44,6 +46,72 @@ func TestIntegration_EmployeeUpdate_EditsAllowedFieldsAndKeepsCategory(t *testin
 	}
 	if reloaded.Category == nil || *reloaded.Category != category {
 		t.Fatalf("category = %v, want unchanged engineering", reloaded.Category)
+	}
+}
+
+func TestIntegration_EmployeeUpdate_ModelUpdatesCredential(t *testing.T) {
+	h := newEmployeeHarness(t)
+	h.platformCredCleanup(t)
+	m := h.createOrg(t)
+	agent := h.seedEmployeeAgent(t, m)
+	googleCred := h.seedSystemCred(t, "google", false)
+
+	rr := h.putEmployee(t, m, agent.ID, map[string]any{
+		"model": " gemini-3-flash-preview ",
+	}, "admin")
+	if rr.Code != http.StatusOK {
+		t.Fatalf("update status = %d, want 200: %s", rr.Code, rr.Body.String())
+	}
+
+	var reloaded model.Agent
+	if err := h.db.Where("id = ?", agent.ID).First(&reloaded).Error; err != nil {
+		t.Fatalf("reload agent: %v", err)
+	}
+	if reloaded.Model != "gemini-3-flash-preview" {
+		t.Fatalf("model = %q, want gemini-3-flash-preview", reloaded.Model)
+	}
+	if reloaded.CredentialID == nil || *reloaded.CredentialID != googleCred.ID {
+		t.Fatalf("credential_id = %v, want %s", reloaded.CredentialID, googleCred.ID)
+	}
+}
+
+func TestIntegration_EmployeeUpdate_ModelRejectsInvalidValues(t *testing.T) {
+	tests := []struct {
+		name      string
+		model     string
+		wantError string
+	}{
+		{name: "empty", model: " ", wantError: "model is required"},
+		{name: "unknown", model: "does-not-exist", wantError: "not in the catalog"},
+		{name: "hidden", model: "openai/gpt-5-nano", wantError: "not selectable"},
+		{name: "unbacked", model: "gpt-5.4", wantError: "not backed by an active system credential"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			h := newEmployeeHarness(t)
+			h.platformCredCleanup(t)
+			m := h.createOrg(t)
+			agent := h.seedEmployeeAgent(t, m)
+
+			rr := h.putEmployee(t, m, agent.ID, map[string]any{
+				"model": tt.model,
+			}, "admin")
+			if rr.Code != http.StatusBadRequest {
+				t.Fatalf("status = %d, want 400: %s", rr.Code, rr.Body.String())
+			}
+			if !strings.Contains(rr.Body.String(), tt.wantError) {
+				t.Fatalf("error = %s, want substring %q", rr.Body.String(), tt.wantError)
+			}
+
+			var reloaded model.Agent
+			if err := h.db.Where("id = ?", agent.ID).First(&reloaded).Error; err != nil {
+				t.Fatalf("reload agent: %v", err)
+			}
+			if reloaded.Model != agent.Model {
+				t.Fatalf("model changed after rejected update: got %q want %q", reloaded.Model, agent.Model)
+			}
+		})
 	}
 }
 
@@ -191,5 +259,38 @@ func TestIntegration_EmployeeUpdate_SyncsWhenProfileExists(t *testing.T) {
 	afterCalls, _ := h.sidecar.snapshot()
 	if afterCalls != beforeCalls+1 {
 		t.Fatalf("sync calls = %d, want %d", afterCalls, beforeCalls+1)
+	}
+}
+
+func TestIntegration_EmployeeUpdate_ModelSyncsWhenProfileExists(t *testing.T) {
+	h := newEmployeeHarness(t)
+	h.platformCredCleanup(t)
+	m := h.createOrg(t)
+	agent := h.seedEmployeeAgent(t, m)
+	h.seedSandbox(t, m, agent.ID)
+	h.seedSlackProfile(t, m, agent.ID)
+
+	beforeCalls, _ := h.sidecar.snapshot()
+	rr := h.putEmployee(t, m, agent.ID, map[string]any{
+		"model": "deepseek/deepseek-v4-pro",
+	}, "admin")
+	if rr.Code != http.StatusOK {
+		t.Fatalf("update status = %d, want 200: %s", rr.Code, rr.Body.String())
+	}
+	afterCalls, _ := h.sidecar.snapshot()
+	if afterCalls != beforeCalls+1 {
+		t.Fatalf("sync calls = %d, want %d", afterCalls, beforeCalls+1)
+	}
+
+	var config struct {
+		Model struct {
+			ModelID string `json:"model_id"`
+		} `json:"model"`
+	}
+	if err := json.Unmarshal(h.sidecar.configBody(), &config); err != nil {
+		t.Fatalf("decode runtime config: %v", err)
+	}
+	if config.Model.ModelID != "deepseek/deepseek-v4-pro" {
+		t.Fatalf("runtime model_id = %q, want deepseek/deepseek-v4-pro", config.Model.ModelID)
 	}
 }
