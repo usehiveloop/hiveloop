@@ -31,6 +31,14 @@ Local ports: fake-nango `13004`, backend API `18080`, frontend `31112`, Redis `6
 
 ## Set up and run local repository
 
+The repository setup depends on your environment.
+
+### Sandbox instructions
+
+This environment gives you full control over the machine you are running on. 
+
+You cannot run docker commands and containers in this environment as you are most likely already running inside a docker container.
+
 Use only `make local-up`. Do not use `make dev`. It is not approved for agents.
 
 `make local-up` is required because it starts the real local stack: Postgres, Redis, fake-nango, Go backend, `apps/web`, env/log/pid files under `/tmp/agent-test`, and seeded test data via `make seed-test`.
@@ -44,6 +52,13 @@ Approved associated commands:
 - `make local-reset`: stops and restarts the local stack.
 - `make login-test`: creates a browser login session for `agent-test@example.com` using the OTP from `/tmp/agent-test/backend.log`.
 - `tail -f /tmp/agent-test/*.log`: watches local stack logs.
+
+### Developer's machine
+
+This is the developer's local machine. You want to run the docker compose containers using `make up`
+- Run local frontend application using `pnpm dev` in `apps/web` folder.
+
+## Local development
 
 ## Run tests
 
