@@ -124,6 +124,10 @@ func NewServeMux(deps *WorkerDeps) *asynq.ServeMux {
 			NewEmployeeSandboxUpgradeHandler(deps.DB, deps.Orchestrator, deps.S3Client, deps.EmployeeCompile, deps.Enqueuer).Handle)
 	}
 
+	if deps.Orchestrator != nil && deps.EmployeeCompile.EncKey != nil && deps.Enqueuer != nil {
+		mux.HandleFunc(TypeEmployeeProxyTokenRefresh,
+			NewEmployeeProxyTokenRefreshHandler(deps.DB, deps.Orchestrator, deps.EmployeeCompile, deps.Enqueuer).Handle)
+	}
 	if deps.Orchestrator != nil && deps.EmployeeCompile.EncKey != nil {
 		mux.HandleFunc(TypeEmployeeTriggerDispatch,
 			NewEmployeeTriggerDispatchHandler(deps.DB, deps.Orchestrator, deps.EmployeeCompile, deps.Enqueuer).Handle)

@@ -14,6 +14,7 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/employeeruntime"
 	"github.com/usehiveloop/hiveloop/internal/middleware"
 	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehiveloop/hiveloop/internal/tasks"
 )
 
 func (h *employeeHarness) postSync(t *testing.T, m orgWithMember, agentID string) *httptest.ResponseRecorder {
@@ -72,6 +73,7 @@ func TestIntegration_EmployeesSync_Slack_HappyPath(t *testing.T) {
 		t.Errorf("runtime env bearer header missing: %q", envBearer)
 	}
 	assertEmployeeRuntimeProxyEnv(t, h.sidecar.envBody(), agent.ID)
+	h.enqueuer.AssertEnqueued(t, tasks.TypeEmployeeProxyTokenRefresh)
 }
 
 func TestIntegration_EmployeesSync_EnvOnlyUpdateCallsRuntimeEnvEndpoint(t *testing.T) {

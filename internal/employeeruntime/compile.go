@@ -48,6 +48,12 @@ type StartupSecrets struct {
 	ProxyToken    string
 }
 
+type ProxyTokenResult struct {
+	Token     string
+	JTI       string
+	ExpiresAt time.Time
+}
+
 type AgentDefinition struct {
 	Agent            AgentMeta        `json:"agent"`
 	PromptFragments  PromptFragments  `json:"prompt_fragments,omitempty"`
@@ -141,11 +147,32 @@ func PrepareStartup(ctx context.Context, deps CompileDeps, agent *model.Agent) (
 	if err != nil {
 		return nil, err
 	}
+	proxyToken, err := MintProxyToken(ctx, deps, agent, uuid.Nil)
+	if err != nil {
+		return nil, err
+	}
+	return &StartupSecrets{
+		SlackBotToken: slack.BotToken,
+		SlackAppToken: slack.AppToken,
+		ProxyToken:    proxyToken.Token,
+	}, nil
+}
+
+func MintProxyToken(ctx context.Context, deps CompileDeps, agent *model.Agent, sandboxID uuid.UUID) (*ProxyTokenResult, error) {
+	if agent == nil || agent.OrgID == nil {
+		return nil, fmt.Errorf("employee runtime proxy token: agent must have org_id")
+	}
+	if deps.DB == nil {
+		return nil, fmt.Errorf("employee runtime proxy token: db is required")
+	}
+	if len(deps.SigningKey) == 0 {
+		return nil, fmt.Errorf("employee runtime proxy token: signing key is required")
+	}
 	cred, err := credentials.Resolve(ctx, deps.DB, deps.Picker, agent)
 	if err != nil {
 		return nil, fmt.Errorf("resolve credential: %w", err)
 	}
-	proxyToken, jti, err := token.Mint(
+	rawToken, jti, err := token.Mint(
 		deps.SigningKey,
 		agent.OrgID.String(),
 		cred.ID.String(),
@@ -155,23 +182,48 @@ func PrepareStartup(ctx context.Context, deps CompileDeps, agent *model.Agent) (
 	if err != nil {
 		return nil, fmt.Errorf("mint proxy token: %w", err)
 	}
-	now := time.Now()
+	now := time.Now().UTC()
+	meta := model.JSON{"agent_id": agent.ID.String(), "type": "agent_proxy", "harness": "employee-sandbox"}
+	if sandboxID != uuid.Nil {
+		meta["sandbox_id"] = sandboxID.String()
+	}
+	expiresAt := now.Add(proxyTokenTTL)
 	dbToken := model.Token{
 		OrgID:        *agent.OrgID,
 		CredentialID: cred.ID,
 		JTI:          jti,
-		ExpiresAt:    now.Add(proxyTokenTTL),
+		ExpiresAt:    expiresAt,
 		Scopes:       scopesFromIntegrations(agent.Integrations),
-		Meta:         model.JSON{"agent_id": agent.ID.String(), "type": "agent_proxy", "harness": "employee-sandbox"},
+		Meta:         meta,
 	}
 	if err := deps.DB.WithContext(ctx).Create(&dbToken).Error; err != nil {
 		return nil, fmt.Errorf("persist proxy token: %w", err)
 	}
-	return &StartupSecrets{
-		SlackBotToken: slack.BotToken,
-		SlackAppToken: slack.AppToken,
-		ProxyToken:    "ptok_" + proxyToken,
+	return &ProxyTokenResult{
+		Token:     "ptok_" + rawToken,
+		JTI:       jti,
+		ExpiresAt: expiresAt,
 	}, nil
+}
+
+func AttachLatestProxyTokenToSandbox(ctx context.Context, deps CompileDeps, agent *model.Agent, sandboxID uuid.UUID) error {
+	if agent == nil || agent.OrgID == nil || sandboxID == uuid.Nil || deps.DB == nil {
+		return nil
+	}
+	var tok model.Token
+	if err := deps.DB.WithContext(ctx).
+		Where("org_id = ? AND meta->>'agent_id' = ? AND meta->>'type' = ? AND meta->>'harness' = ?",
+			*agent.OrgID, agent.ID.String(), "agent_proxy", "employee-sandbox").
+		Order("created_at DESC").
+		First(&tok).Error; err != nil {
+		return nil
+	}
+	meta := tok.Meta
+	if meta == nil {
+		meta = model.JSON{}
+	}
+	meta["sandbox_id"] = sandboxID.String()
+	return deps.DB.WithContext(ctx).Model(&tok).Update("meta", meta).Error
 }
 
 func Compile(ctx context.Context, deps CompileDeps, agent *model.Agent) (*AgentDefinition, error) {

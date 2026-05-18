@@ -11,7 +11,9 @@ import (
 	"github.com/google/uuid"
 	"github.com/usehiveloop/hiveloop/internal/config"
 	"github.com/usehiveloop/hiveloop/internal/employeeruntime"
+	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehiveloop/hiveloop/internal/tasks"
 	"gorm.io/gorm"
 )
 
@@ -38,7 +40,14 @@ func (h *EmployeeHandler) ensureEmployeeSandbox(ctx context.Context, agent *mode
 	if prepErr != nil {
 		return nil, prepErr
 	}
-	return h.orchestrator.CreateEmployeeSandbox(ctx, agent, secrets)
+	created, err := h.orchestrator.CreateEmployeeSandbox(ctx, agent, secrets)
+	if err != nil {
+		return nil, err
+	}
+	if err := employeeruntime.AttachLatestProxyTokenToSandbox(ctx, h.compileDeps, agent, created.ID); err != nil {
+		return nil, fmt.Errorf("tag employee proxy token sandbox: %w", err)
+	}
+	return created, nil
 }
 
 func (h *EmployeeHandler) runEmployeeSync(ctx context.Context, agent *model.Agent, sb *model.Sandbox) (*employeeruntime.SyncResponse, error) {
@@ -79,6 +88,7 @@ func (h *EmployeeHandler) runEmployeeSync(ctx context.Context, agent *model.Agen
 	if err := client.Readyz(ctx); err != nil {
 		return nil, fmt.Errorf("employee runtime readyz: %w", err)
 	}
+	h.scheduleEmployeeProxyTokenRefresh(ctx, agent, sb)
 	if agent.Status != "active" {
 		if agent.OrgID == nil {
 			return nil, fmt.Errorf("mark employee active: missing org_id")
@@ -92,6 +102,29 @@ func (h *EmployeeHandler) runEmployeeSync(ctx context.Context, agent *model.Agen
 	}
 
 	return resp, nil
+}
+
+func (h *EmployeeHandler) scheduleExistingEmployeeProxyTokenRefresh(ctx context.Context, agent *model.Agent) {
+	if h == nil || h.db == nil || agent == nil || agent.OrgID == nil {
+		return
+	}
+	var sb model.Sandbox
+	err := h.db.WithContext(ctx).
+		Where("agent_id = ? AND org_id = ? AND status <> ?", agent.ID, *agent.OrgID, "error").
+		Order("created_at DESC").Limit(1).First(&sb).Error
+	if err != nil {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			logging.Capture(ctx, fmt.Errorf("load employee sandbox for proxy token refresh schedule: %w", err))
+		}
+		return
+	}
+	h.scheduleEmployeeProxyTokenRefresh(ctx, agent, &sb)
+}
+
+func (h *EmployeeHandler) scheduleEmployeeProxyTokenRefresh(ctx context.Context, agent *model.Agent, sb *model.Sandbox) {
+	if err := tasks.ScheduleEmployeeProxyTokenRefresh(ctx, h.db, h.enqueuer, agent, sb); err != nil {
+		logging.Capture(ctx, fmt.Errorf("schedule employee proxy token refresh: %w", err))
+	}
 }
 
 func (h *EmployeeHandler) loadRuntimeEnv(ctx context.Context, agent *model.Agent, runtimeSecret string) (map[string]string, error) {

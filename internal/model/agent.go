@@ -53,6 +53,8 @@ type Agent struct {
 	MemoryRefreshStatus   string     `gorm:"type:varchar(32);not null;default:''"` // queued, running, succeeded, failed
 	MemoryRefreshError    string     `gorm:"type:text;not null;default:''"`
 
+	LastProxyTokenRefreshedAt *time.Time `gorm:"type:timestamptz"`
+
 	// TODO(post-migration): drop agent.Tools column once data archived.
 	Harness   string `gorm:"type:varchar(32);not null;default:''"` // "claude" or "open_code"
 	CreatedAt time.Time

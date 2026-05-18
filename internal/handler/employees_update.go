@@ -259,6 +259,8 @@ func (h *EmployeeHandler) Update(w http.ResponseWriter, r *http.Request) {
 		dto := toSyncResponseDTO(resp)
 		syncResp = &dto
 		syncStatus = "synced"
+	} else {
+		h.scheduleExistingEmployeeProxyTokenRefresh(ctx, &agent)
 	}
 
 	writeJSON(w, http.StatusOK, updateEmployeeResponse{
