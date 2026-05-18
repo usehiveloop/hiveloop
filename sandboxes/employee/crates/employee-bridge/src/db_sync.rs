@@ -16,7 +16,7 @@ use tempfile::TempDir;
 use tokio::sync::mpsc;
 use tracing::{debug, info, warn};
 
-const DEFAULT_WRITE_THRESHOLD: u64 = 50;
+const DEFAULT_WRITE_THRESHOLD: u64 = 1000;
 const DEFAULT_INTERVAL_SECONDS: u64 = 900;
 
 #[derive(Clone)]
@@ -266,6 +266,11 @@ mod tests {
     use flate2::read::GzDecoder;
     use sqlx::SqlitePool;
     use std::io::Read;
+
+    #[test]
+    fn default_write_threshold_is_raised_for_production_backup_load() {
+        assert_eq!(DEFAULT_WRITE_THRESHOLD, 1000);
+    }
 
     #[tokio::test]
     async fn sqlite_snapshot_gzip_contains_recent_wal_writes() {

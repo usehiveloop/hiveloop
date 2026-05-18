@@ -1,11 +1,14 @@
 package handler
 
 import (
+	"context"
 	"crypto/subtle"
 	"errors"
 	"fmt"
+	"io"
 	"mime"
 	"net/http"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
@@ -14,19 +17,23 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/crypto"
 	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/model"
-	"github.com/usehiveloop/hiveloop/internal/storage"
 )
 
 const defaultEmployeeSQLiteBackupMaxBytes int64 = 5 * 1024 * 1024 * 1024
+const employeeSQLiteBackupReadTimeout = 10 * time.Minute
+
+type employeeSQLiteBackupStreamer interface {
+	Stream(ctx context.Context, key string, body io.Reader, contentType string) error
+}
 
 type EmployeeSQLiteBackupHandler struct {
 	db       *gorm.DB
-	storage  *storage.S3Client
+	storage  employeeSQLiteBackupStreamer
 	encKey   *crypto.SymmetricKey
 	maxBytes int64
 }
 
-func NewEmployeeSQLiteBackupHandler(db *gorm.DB, s3 *storage.S3Client, encKey *crypto.SymmetricKey, maxBytes int64) *EmployeeSQLiteBackupHandler {
+func NewEmployeeSQLiteBackupHandler(db *gorm.DB, s3 employeeSQLiteBackupStreamer, encKey *crypto.SymmetricKey, maxBytes int64) *EmployeeSQLiteBackupHandler {
 	if maxBytes <= 0 {
 		maxBytes = defaultEmployeeSQLiteBackupMaxBytes
 	}
@@ -37,6 +44,9 @@ func (h *EmployeeSQLiteBackupHandler) Upload(w http.ResponseWriter, r *http.Requ
 	if h.storage == nil || h.encKey == nil {
 		writeJSON(w, http.StatusServiceUnavailable, map[string]string{"error": "sqlite backup endpoint not configured"})
 		return
+	}
+	if setEmployeeSQLiteBackupReadDeadline(w, time.Now().Add(employeeSQLiteBackupReadTimeout)) {
+		defer setEmployeeSQLiteBackupReadDeadline(w, time.Time{})
 	}
 
 	employeeID, err := uuid.Parse(chi.URLParam(r, "employeeID"))
@@ -92,6 +102,10 @@ func (h *EmployeeSQLiteBackupHandler) Upload(w http.ResponseWriter, r *http.Requ
 	}
 
 	writeJSON(w, http.StatusOK, map[string]string{"status": "ok", "key": key})
+}
+
+func setEmployeeSQLiteBackupReadDeadline(w http.ResponseWriter, deadline time.Time) bool {
+	return http.NewResponseController(w).SetReadDeadline(deadline) == nil
 }
 
 func employeeSQLiteBackupKey(orgID, agentID uuid.UUID, upgradeID *uuid.UUID) string {
