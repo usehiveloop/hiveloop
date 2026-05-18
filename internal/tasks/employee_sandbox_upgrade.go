@@ -23,6 +23,7 @@ const employeeSandboxUpgradeCommandTimeout = 60 * time.Minute
 type employeeSandboxUpgradeBackupStore interface {
 	Head(ctx context.Context, key string) (*storage.S3ObjectInfo, error)
 	PresignedURL(ctx context.Context, key string, ttl time.Duration) (string, error)
+	PresignedPutURL(ctx context.Context, key string, ttl time.Duration) (string, error)
 }
 
 type EmployeeSandboxUpgradeHandler struct {

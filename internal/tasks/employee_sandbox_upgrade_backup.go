@@ -21,7 +21,12 @@ type employeeSandboxBackupMetadata struct {
 }
 
 func (h *EmployeeSandboxUpgradeHandler) runBackup(ctx context.Context, upgrade *model.EmployeeSandboxUpgrade, agent *model.Agent, sb *model.Sandbox) (*employeeSandboxBackupMetadata, error) {
-	cmd := buildEmployeeSandboxBackupCommand(upgrade.ID)
+	key := employeeSandboxUpgradeBackupKey(upgrade.OrgID, agent.ID, upgrade.ID)
+	uploadURL, err := h.store.PresignedPutURL(ctx, key, time.Hour)
+	if err != nil {
+		return nil, fmt.Errorf("presign backup upload: %w", err)
+	}
+	cmd := buildEmployeeSandboxBackupCommand(uploadURL)
 	output, err := h.orchestrator.ExecuteCommandWithTimeout(ctx, sb, cmd, employeeSandboxUpgradeCommandTimeout)
 	if err != nil {
 		return nil, fmt.Errorf("backup command failed: %w", err)
@@ -33,7 +38,7 @@ func (h *EmployeeSandboxUpgradeHandler) runBackup(ctx context.Context, upgrade *
 	if meta.SHA256 == "" || meta.Bytes <= 0 {
 		return nil, fmt.Errorf("backup metadata missing sha256 or bytes")
 	}
-	meta.Key = employeeSandboxUpgradeBackupKey(upgrade.OrgID, agent.ID, upgrade.ID)
+	meta.Key = key
 	return &meta, nil
 }
 
@@ -81,7 +86,7 @@ func employeeSandboxUpgradeBackupKey(orgID, agentID, upgradeID uuid.UUID) string
 	return fmt.Sprintf("employee-sqlite-backups/%s/%s/upgrades/%s.db.gz", orgID, agentID, upgradeID)
 }
 
-func buildEmployeeSandboxBackupCommand(upgradeID uuid.UUID) string {
+func buildEmployeeSandboxBackupCommand(uploadURL string) string {
 	return strings.Join([]string{
 		"set -eu",
 		`DB="${DB_PATH:-/app/data/employee-bridge.db}"`,
@@ -96,10 +101,8 @@ func buildEmployeeSandboxBackupCommand(upgradeID uuid.UUID) string {
 		`gzip -c "$SNAP" > "$GZ"`,
 		`SHA="$(sha256sum "$GZ" | awk '{print $1}')"`,
 		`BYTES="$(wc -c < "$GZ" | tr -d ' ')"`,
-		fmt.Sprintf(`UPLOAD_URL="${CLOUD_CONTROL_PLANE_URL%%/}/internal/employees/${EMPLOYEE_ID}/sqlite-backup?upgrade_id=%s"`, upgradeID),
-		`TOKEN="${BRIDGE_API_KEY:-${RUNTIME_SECRET:-}}"`,
-		`[ -n "$TOKEN" ] || { echo "missing bridge token" >&2; exit 3; }`,
-		`curl -fsS -X PUT -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/gzip" --data-binary "@$GZ" "$UPLOAD_URL" >/dev/null`,
+		fmt.Sprintf("UPLOAD_URL=%s", shellQuote(uploadURL)),
+		`curl -fsS -X PUT --data-binary "@$GZ" "$UPLOAD_URL" >/dev/null`,
 		`printf '{"sha256":"%s","bytes":%s}\n' "$SHA" "$BYTES"`,
 	}, "\n")
 }

@@ -131,3 +131,17 @@ func (sc *S3Client) PresignedURL(ctx context.Context, key string, ttl time.Durat
 	}
 	return result.URL, nil
 }
+
+// PresignedPutURL generates a time-limited PUT URL for uploading an object.
+func (sc *S3Client) PresignedPutURL(ctx context.Context, key string, ttl time.Duration) (string, error) {
+	presigner := s3.NewPresignClient(sc.client)
+	input := &s3.PutObjectInput{
+		Bucket: aws.String(sc.bucket),
+		Key:    aws.String(key),
+	}
+	result, err := presigner.PresignPutObject(ctx, input, s3.WithPresignExpires(ttl))
+	if err != nil {
+		return "", fmt.Errorf("s3 presign put %q: %w", key, err)
+	}
+	return result.URL, nil
+}

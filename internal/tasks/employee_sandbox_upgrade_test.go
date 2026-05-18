@@ -28,6 +28,16 @@ func TestEmployeeSandboxUpgradeWorker_SucceedsAndSchedulesOldRetirement(t *testi
 	if upgrade.BackupKey == nil || !strings.Contains(*upgrade.BackupKey, "/upgrades/"+f.upgrade.ID.String()+".db.gz") {
 		t.Fatalf("backup key not recorded: %#v", upgrade.BackupKey)
 	}
+	if len(f.provider.commands) == 0 {
+		t.Fatal("backup command was not executed")
+	}
+	backupCommand := f.provider.commands[0]
+	if !strings.Contains(backupCommand, "https://s3.example/upload.db.gz?signature=test") {
+		t.Fatalf("backup command did not use presigned upload url: %s", backupCommand)
+	}
+	if strings.Contains(backupCommand, "CLOUD_CONTROL_PLANE_URL") || strings.Contains(backupCommand, "Authorization: Bearer") {
+		t.Fatalf("backup command still routes upload through control plane: %s", backupCommand)
+	}
 	var old model.Sandbox
 	if err := f.db.First(&old, "id = ?", f.old.ID).Error; err != nil {
 		t.Fatalf("load old sandbox: %v", err)

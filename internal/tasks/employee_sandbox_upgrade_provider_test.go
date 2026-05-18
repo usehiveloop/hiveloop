@@ -125,3 +125,7 @@ func (s fakeEmployeeUpgradeStore) Head(context.Context, string) (*storage.S3Obje
 func (s fakeEmployeeUpgradeStore) PresignedURL(context.Context, string, time.Duration) (string, error) {
 	return "https://s3.example/backup.db.gz", nil
 }
+
+func (s fakeEmployeeUpgradeStore) PresignedPutURL(context.Context, string, time.Duration) (string, error) {
+	return "https://s3.example/upload.db.gz?signature=test", nil
+}
