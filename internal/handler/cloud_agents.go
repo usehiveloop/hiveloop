@@ -33,12 +33,13 @@ type CloudAgentBridgeClient interface {
 }
 
 type CloudAgentHandlerHooks struct {
-	CreateDedicatedSandbox func(ctx context.Context, agent *model.Agent, extraEnv map[string]string) (*model.Sandbox, error)
-	PushAgentToSandbox     func(ctx context.Context, agent *model.Agent, sb *model.Sandbox) error
-	GetBridgeClient        func(ctx context.Context, sb *model.Sandbox) (CloudAgentBridgeClient, error)
-	StopSandbox            func(ctx context.Context, sb *model.Sandbox) error
-	DeleteSandbox          func(ctx context.Context, sb *model.Sandbox) error
-	TaskDriveUploadURL     func(employeeID uuid.UUID, taskID uuid.UUID) string
+	CreateDedicatedSandbox  func(ctx context.Context, agent *model.Agent, extraEnv map[string]string) (*model.Sandbox, error)
+	PushAgentToSandbox      func(ctx context.Context, agent *model.Agent, sb *model.Sandbox) error
+	GetBridgeClient         func(ctx context.Context, sb *model.Sandbox) (CloudAgentBridgeClient, error)
+	StopSandbox             func(ctx context.Context, sb *model.Sandbox) error
+	DeleteSandbox           func(ctx context.Context, sb *model.Sandbox) error
+	TaskDriveUploadURL      func(employeeID uuid.UUID, taskID uuid.UUID) string
+	EmployeeCallbackRuntime employeeCallbackSandboxRuntime
 }
 
 type CloudAgentHandler struct {
@@ -57,6 +58,7 @@ func NewCloudAgentHandler(db *gorm.DB, encKey *crypto.SymmetricKey, orchestrator
 		hooks.StopSandbox = orchestrator.StopSandbox
 		hooks.DeleteSandbox = orchestrator.DeleteSandboxResource
 		hooks.TaskDriveUploadURL = orchestrator.EmployeeTaskDriveUploadURL
+		hooks.EmployeeCallbackRuntime = orchestrator
 	}
 	if pusher != nil {
 		hooks.PushAgentToSandbox = pusher.PushAgentToSandbox
@@ -1063,7 +1065,7 @@ func (h *CloudAgentHandler) ensureConversationEndedEvent(ctx context.Context, ta
 		return
 	}
 
-	if err := dispatchCloudAgentCallback(ctx, h.db, h.encKey, task, event); err != nil {
+	if err := dispatchCloudAgentCallback(ctx, h.db, h.encKey, h.hooks.EmployeeCallbackRuntime, task, event); err != nil {
 		logging.FromContext(ctx).WarnContext(ctx, "failed to forward cloud agent termination to employee bridge",
 			"task_id", task.ID,
 			"conversation_id", conv.ID,

@@ -16,6 +16,8 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
+const cloudAgentCallbackTimeout = 15 * time.Second
+
 type cloudAgentCallbackPayload struct {
 	TaskID    string          `json:"task_id"`
 	AgentID   string          `json:"agent_id"`
@@ -43,7 +45,13 @@ func cloudAgentCallbackPayloadFrom(task model.CloudAgentTask, event model.Conver
 	}
 }
 
-func dispatchCloudAgentCallback(ctx context.Context, db *gorm.DB, encKey *crypto.SymmetricKey, task model.CloudAgentTask, event model.ConversationEvent) error {
+type employeeCallbackSandboxRuntime interface {
+	NeedsURLRefresh(sb *model.Sandbox) bool
+	RefreshEmployeeSandboxURL(ctx context.Context, sb *model.Sandbox) error
+	StartEmployeeSandbox(ctx context.Context, sb *model.Sandbox) error
+}
+
+func dispatchCloudAgentCallback(ctx context.Context, db *gorm.DB, encKey *crypto.SymmetricKey, runtime employeeCallbackSandboxRuntime, task model.CloudAgentTask, event model.ConversationEvent) error {
 	if encKey == nil {
 		return fmt.Errorf("encryption key is not configured")
 	}
@@ -55,38 +63,86 @@ func dispatchCloudAgentCallback(ctx context.Context, db *gorm.DB, encKey *crypto
 		First(&employeeSandbox).Error; err != nil {
 		return fmt.Errorf("load employee sandbox: %w", err)
 	}
-	if strings.TrimSpace(employeeSandbox.BridgeURL) == "" {
-		return fmt.Errorf("employee sandbox bridge url is empty")
-	}
 
 	bridgeKey, err := encKey.DecryptString(employeeSandbox.EncryptedBridgeAPIKey)
 	if err != nil {
 		return fmt.Errorf("decrypt employee bridge api key: %w", err)
 	}
 
+	callbackCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), cloudAgentCallbackTimeout)
+	defer cancel()
+
+	if runtime != nil {
+		if err := prepareEmployeeSandboxForCallback(callbackCtx, runtime, &employeeSandbox); err != nil {
+			return err
+		}
+	}
 	body, err := json.Marshal(cloudAgentCallbackPayloadFrom(task, event))
 	if err != nil {
 		return fmt.Errorf("marshal cloud agent callback: %w", err)
 	}
 
-	url := strings.TrimRight(employeeSandbox.BridgeURL, "/") + "/gateway/cloud-agents/callback"
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(body))
-	if err != nil {
-		return fmt.Errorf("build callback request: %w", err)
-	}
-	req.Header.Set("Authorization", "Bearer "+bridgeKey)
-	req.Header.Set("Content-Type", "application/json")
-
-	client := &http.Client{Timeout: 10 * time.Second}
-	resp, err := client.Do(req)
+	resp, err := sendCloudAgentCallbackRequest(callbackCtx, employeeSandbox.BridgeURL, bridgeKey, body)
 	if err != nil {
 		return fmt.Errorf("send callback request: %w", err)
 	}
 	defer resp.Body.Close()
+
+	if isRedirectStatus(resp.StatusCode) && runtime != nil {
+		resp.Body.Close()
+		if err := runtime.RefreshEmployeeSandboxURL(callbackCtx, &employeeSandbox); err != nil {
+			return fmt.Errorf("refresh employee sandbox URL after callback redirect: %w", err)
+		}
+		resp, err = sendCloudAgentCallbackRequest(callbackCtx, employeeSandbox.BridgeURL, bridgeKey, body)
+		if err != nil {
+			return fmt.Errorf("send callback request after URL refresh: %w", err)
+		}
+		defer resp.Body.Close()
+	}
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		_, _ = io.Copy(io.Discard, io.LimitReader(resp.Body, 4096))
 		return fmt.Errorf("callback returned status %d", resp.StatusCode)
 	}
 	return nil
+}
+
+func prepareEmployeeSandboxForCallback(ctx context.Context, runtime employeeCallbackSandboxRuntime, sb *model.Sandbox) error {
+	if strings.EqualFold(sb.Status, "stopped") {
+		if err := runtime.StartEmployeeSandbox(ctx, sb); err != nil {
+			return fmt.Errorf("start employee sandbox for callback: %w", err)
+		}
+		return nil
+	}
+	if runtime.NeedsURLRefresh(sb) {
+		if err := runtime.RefreshEmployeeSandboxURL(ctx, sb); err != nil {
+			return fmt.Errorf("refresh employee sandbox URL for callback: %w", err)
+		}
+	}
+	return nil
+}
+
+func sendCloudAgentCallbackRequest(ctx context.Context, bridgeURL, bridgeKey string, body []byte) (*http.Response, error) {
+	if strings.TrimSpace(bridgeURL) == "" {
+		return nil, fmt.Errorf("employee sandbox bridge url is empty")
+	}
+	url := strings.TrimRight(bridgeURL, "/") + "/gateway/cloud-agents/callback"
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(body))
+	if err != nil {
+		return nil, fmt.Errorf("build callback request: %w", err)
+	}
+	req.Header.Set("Authorization", "Bearer "+bridgeKey)
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{
+		Timeout: 10 * time.Second,
+		CheckRedirect: func(*http.Request, []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
+	}
+	return client.Do(req)
+}
+
+func isRedirectStatus(status int) bool {
+	return status >= 300 && status < 400
 }

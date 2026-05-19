@@ -112,7 +112,7 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 		conversationHandler.SetCredits(deps.Credits)
 	}
 
-	bridgeWebhookHandler := handler.NewBridgeWebhookHandler(database, sandboxEncKey, eventBus, enqueuer)
+	bridgeWebhookHandler := handler.NewBridgeWebhookHandlerWithEmployeeRuntime(database, sandboxEncKey, eventBus, enqueuer, orchestrator)
 	employeeEventWriter := handler.NewEmployeeEventWriter(ctx, database, 20000)
 	employeeOutboundWebhookHandler := handler.NewEmployeeOutboundWebhookHandler(database, sandboxEncKey, enqueuer, employeeEventWriter)
 	nangoWebhookHandler := handler.NewNangoWebhookHandler(database, cfg.NangoSecretKey, sandboxEncKey, enqueuer)

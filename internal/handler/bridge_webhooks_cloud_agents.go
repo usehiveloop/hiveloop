@@ -52,7 +52,7 @@ func (h *BridgeWebhookHandler) forwardCloudAgentEvent(ctx context.Context, task 
 		SequenceNumber:        event.SequenceNumber,
 		Data:                  model.RawJSON(event.Data),
 	}
-	if err := dispatchCloudAgentCallback(ctx, h.db, h.encKey, task, dbEvent); err != nil {
+	if err := dispatchCloudAgentCallback(ctx, h.db, h.encKey, h.employeeCallbackRuntime, task, dbEvent); err != nil {
 		logging.FromContext(ctx).WarnContext(ctx, "webhook: failed to forward cloud agent event to employee bridge",
 			"task_id", task.ID,
 			"event_id", event.EventID,
