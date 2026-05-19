@@ -67,7 +67,7 @@ VALUES
      'webhook_url','https://fake-nango.local/webhook/in_railway-test',
      'webhook_secret','whsec_fake_in_railway-test','forward_webhooks',true),
    false, NOW(), NOW())
-ON CONFLICT (provider) DO UPDATE
+ON CONFLICT (unique_key) DO UPDATE
   SET unique_key          = EXCLUDED.unique_key,
       nango_config        = EXCLUDED.nango_config,
       display_name        = EXCLUDED.display_name,
