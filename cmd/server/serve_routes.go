@@ -130,6 +130,7 @@ func setupAuthRoutes(
 	r chi.Router,
 	ctx context.Context,
 	cfg *config.Config,
+	database *gorm.DB,
 	rsaPub *rsa.PublicKey,
 	authHandler *handler.AuthHandler,
 	oauthHandler *handler.OAuthHandler,
@@ -147,8 +148,11 @@ func setupAuthRoutes(
 		r.Post("/reset-password", authHandler.ResetPassword)
 		r.Group(func(r chi.Router) {
 			r.Use(middleware.RequireAuth(rsaPub, cfg.AuthIssuer, cfg.AuthAudience))
+			r.Use(middleware.ResolveUser(database))
 			r.Post("/logout", authHandler.Logout)
 			r.Get("/me", authHandler.Me)
+			r.Patch("/me", authHandler.UpdateMe)
+			r.Post("/me/confirm-email", authHandler.ConfirmEmailChange)
 			r.Post("/change-password", authHandler.ChangePassword)
 		})
 	})

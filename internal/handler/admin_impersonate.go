@@ -108,6 +108,11 @@ func (h *AdminHandler) Impersonate(w http.ResponseWriter, r *http.Request) {
 
 	logging.FromContext(r.Context()).InfoContext(r.Context(), "admin impersonating user", "admin_email", adminEmail, "target_user_id", targetUser.ID, "target_email", targetUser.Email)
 
+	var avatarURL *string
+	if targetUser.AvatarURL != nil && *targetUser.AvatarURL != "" {
+		avatarURL = targetUser.AvatarURL
+	}
+
 	writeJSON(w, http.StatusOK, authResponse{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
@@ -116,6 +121,7 @@ func (h *AdminHandler) Impersonate(w http.ResponseWriter, r *http.Request) {
 			ID:             targetUser.ID.String(),
 			Email:          targetUser.Email,
 			Name:           targetUser.Name,
+			AvatarURL:      avatarURL,
 			EmailConfirmed: targetUser.EmailConfirmedAt != nil,
 		},
 		Orgs: orgs,

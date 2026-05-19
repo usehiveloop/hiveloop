@@ -30,10 +30,21 @@ type authResponse struct {
 }
 
 type userResponse struct {
-	ID             string `json:"id"`
-	Email          string `json:"email"`
-	Name           string `json:"name"`
-	EmailConfirmed bool   `json:"email_confirmed"`
+	ID             string  `json:"id"`
+	Email          string  `json:"email"`
+	Name           string  `json:"name"`
+	AvatarURL      *string `json:"avatar_url,omitempty"`
+	EmailConfirmed bool    `json:"email_confirmed"`
+}
+
+type updateMeRequest struct {
+	Name      *string `json:"name,omitempty"`
+	AvatarURL *string `json:"avatar_url,omitempty"`
+	Email     *string `json:"email,omitempty"`
+}
+
+type confirmEmailChangeRequest struct {
+	Token string `json:"token"`
 }
 
 type orgMemberDTO struct {
@@ -64,6 +75,7 @@ type meResponse struct {
 	User            userResponse   `json:"user"`
 	Orgs            []orgMemberDTO `json:"orgs"`
 	IsPlatformAdmin bool           `json:"is_platform_admin"`
+	OAuthProviders  []string       `json:"oauth_providers,omitempty"`
 }
 
 type statusResponse struct {

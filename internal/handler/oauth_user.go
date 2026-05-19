@@ -54,6 +54,10 @@ func (h *OAuthHandler) issueTokensAndRespond(ctx context.Context, w http.Respons
 		})
 	}
 
+	var avatarURL *string
+	if user.AvatarURL != nil && *user.AvatarURL != "" {
+		avatarURL = user.AvatarURL
+	}
 	writeJSON(w, status, authResponse{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
@@ -62,6 +66,7 @@ func (h *OAuthHandler) issueTokensAndRespond(ctx context.Context, w http.Respons
 			ID:             user.ID.String(),
 			Email:          user.Email,
 			Name:           user.Name,
+			AvatarURL:      avatarURL,
 			EmailConfirmed: user.EmailConfirmedAt != nil,
 		},
 		Orgs: orgs,

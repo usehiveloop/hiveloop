@@ -3719,11 +3719,122 @@ export interface paths {
             };
         };
         put?: never;
-        post?: never;
+        /**
+         * Update current user profile
+         * @description Updates the authenticated user's name, avatar, and/or email.
+         */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Fields to update */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["updateUserRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["userResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        trace?: never;
+    };
+    "/auth/me/confirm-email": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Confirm email change
+         * @description Confirms a pending email change using a verification token.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["confirmEmailChangeRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["statusResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        get?: never;
         delete?: never;
         options?: never;
         head?: never;
-        patch?: never;
         trace?: never;
     };
     "/auth/otp/request": {
@@ -16110,6 +16221,14 @@ export interface components {
             status?: string;
             tags?: string[];
         };
+        updateUserRequest: {
+            avatar_url?: string;
+            email?: string;
+            name?: string;
+        };
+        confirmEmailChangeRequest: {
+            token?: string;
+        };
         updateOrgRequest: {
             logo_url?: string;
             name?: string;
@@ -16169,6 +16288,7 @@ export interface components {
             top_users?: components["schemas"]["topUser"][];
         };
         userResponse: {
+            avatar_url?: string;
             email?: string;
             email_confirmed?: boolean;
             id?: string;

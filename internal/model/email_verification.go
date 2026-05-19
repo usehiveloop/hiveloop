@@ -14,6 +14,7 @@ type EmailVerification struct {
 	ID        uuid.UUID  `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
 	UserID    uuid.UUID  `gorm:"type:uuid;not null;index"`
 	TokenHash string     `gorm:"not null;uniqueIndex"`
+	NewEmail  *string    `gorm:"type:text"` // set for email changes; nil for initial confirmation
 	ExpiresAt time.Time  `gorm:"not null"`
 	UsedAt    *time.Time
 	CreatedAt time.Time

@@ -218,7 +218,7 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 	}
 
 	r.Post("/incoming/triggers/{triggerID}", httpTriggerHandler.Handle)
-	setupAuthRoutes(r, ctx, cfg, rsaPub, authHandler, oauthHandler)
+	setupAuthRoutes(r, ctx, cfg, database, rsaPub, authHandler, oauthHandler)
 	ragSourceHandler, ragSearchHandler, err := setupRAGRuntime(cfg, database, enqueuer, mcpHandler)
 	if err != nil {
 		return err

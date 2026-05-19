@@ -32,6 +32,13 @@ func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 	var memberships []model.OrgMembership
 	h.db.Preload("Org").Where("user_id = ?", user.ID).Find(&memberships)
 
+	var oauthAccounts []model.OAuthAccount
+	h.db.Where("user_id = ?", user.ID).Find(&oauthAccounts)
+	oauthProviders := make([]string, 0, len(oauthAccounts))
+	for _, a := range oauthAccounts {
+		oauthProviders = append(oauthProviders, a.Provider)
+	}
+
 	plans := loadPlans(r.Context(), h.db, memberships)
 
 	orgs := make([]orgMemberDTO, 0, len(memberships))
@@ -58,15 +65,21 @@ func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 
 	isPlatformAdmin := len(h.platformAdminEmails) > 0 && h.platformAdminEmails[user.Email]
 
+	var avatarURL *string
+	if user.AvatarURL != nil && *user.AvatarURL != "" {
+		avatarURL = user.AvatarURL
+	}
 	writeJSON(w, http.StatusOK, meResponse{
 		User: userResponse{
 			ID:             user.ID.String(),
 			Email:          user.Email,
 			Name:           user.Name,
+			AvatarURL:      avatarURL,
 			EmailConfirmed: user.EmailConfirmedAt != nil,
 		},
 		Orgs:            orgs,
 		IsPlatformAdmin: isPlatformAdmin,
+		OAuthProviders:  oauthProviders,
 	})
 }
 

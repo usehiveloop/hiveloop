@@ -11,6 +11,7 @@ type User struct {
 	Email            string     `gorm:"not null;uniqueIndex"`
 	PasswordHash     string
 	Name             string
+	AvatarURL        *string    `gorm:"type:text"`
 	EmailConfirmedAt *time.Time
 	BannedAt         *time.Time
 	BanReason        string
