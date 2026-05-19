@@ -79,14 +79,14 @@ func (h *EmployeeHandler) Sync(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	hasProfile, err := h.employeeHasActiveSlackProfile(ctx, org.ID, agentID)
+	hasProfile, err := h.orgHasActiveSlackConnection(ctx, org.ID)
 	if err != nil {
-		log.ErrorContext(ctx, "count employee profiles", "error", err, "agent_id", agentID)
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to load employee profiles"})
+		log.ErrorContext(ctx, "count Slack org connections", "error", err, "agent_id", agentID)
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to load Slack connection"})
 		return
 	}
 	if !hasProfile {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "employee must have an active slack profile"})
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "organization must have an active Slack connection"})
 		return
 	}
 

@@ -2,108 +2,96 @@ package handler
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
-	"net/http"
-	"net/url"
 	"strings"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 
 	"github.com/usehiveloop/hiveloop/internal/employeeprompts"
+	"github.com/usehiveloop/hiveloop/internal/employeeruntime"
 	"github.com/usehiveloop/hiveloop/internal/logging"
-	"github.com/usehiveloop/hiveloop/internal/middleware"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
-// @Summary Create an AI employee
-// @Description Persists an Agent (is_employee=true). The employee sandbox is
-// @Description provisioned after an active channel profile exists, during onboarding
-// @Description completion or explicit sync.
-// @Tags employees
-// @Accept json
-// @Produce json
-// @Param body body createEmployeeRequest true "Employee definition"
-// @Success 201 {object} createEmployeeResponse
-// @Failure 400 {object} errorResponse
-// @Failure 401 {object} errorResponse
-// @Failure 409 {object} errorResponse
-// @Failure 500 {object} errorResponse
-// @Failure 503 {object} errorResponse
-// @Security BearerAuth
-// @Router /v1/employees [post]
-func (h *EmployeeHandler) Create(w http.ResponseWriter, r *http.Request) {
-	org, ok := middleware.OrgFromContext(r.Context())
-	if !ok {
-		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "missing org context"})
-		return
+func ensureHivyEmployee(ctx context.Context, db *gorm.DB, orgID uuid.UUID) (*model.Agent, error) {
+	var existing model.Agent
+	err := db.WithContext(ctx).
+		Where("org_id = ? AND is_employee = true AND is_system = false", orgID).
+		Order("created_at ASC").
+		First(&existing).Error
+	if err == nil {
+		return &existing, nil
+	}
+	if !errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, fmt.Errorf("lookup Hivy employee: %w", err)
 	}
 
-	var req createEmployeeRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid request body"})
-		return
+	var out *model.Agent
+	err = db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		agent, err := createHivyEmployeeWithDefaultsTx(ctx, tx, orgID)
+		if err != nil {
+			return err
+		}
+		out = agent
+		return nil
+	})
+	if err != nil {
+		if isDuplicateKeyError(err) || isUniqueViolation(err) {
+			if refetch := db.WithContext(ctx).
+				Where("org_id = ? AND is_employee = true AND is_system = false", orgID).
+				Order("created_at ASC").
+				First(&existing).Error; refetch == nil {
+				return &existing, nil
+			}
+		}
+		return nil, err
 	}
-	req.Name = strings.TrimSpace(req.Name)
-	req.Category = strings.TrimSpace(req.Category)
-	req.AvatarURL = strings.TrimSpace(req.AvatarURL)
-	req.Description = strings.TrimSpace(req.Description)
+	return out, nil
+}
 
-	if req.Name == "" {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "name is required"})
-		return
+func createHivyEmployeeWithDefaultsTx(ctx context.Context, tx *gorm.DB, orgID uuid.UUID) (*model.Agent, error) {
+	agent, subagents, err := createHivyEmployeeTx(ctx, tx, orgID)
+	if err != nil {
+		return nil, err
 	}
-	if req.Description == "" {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "description is required"})
-		return
+	if err := attachPublishedGlobalSkillsTx(ctx, tx, agent.ID, defaultEmployeeSkills); err != nil {
+		return nil, err
 	}
-	if req.Category == "" {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "category is required"})
-		return
-	}
-	if !isValidAgentCategory(req.Category) {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": fmt.Sprintf("invalid category %q", req.Category)})
-		return
-	}
-	if req.Category != employeeCategoryEngineering {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": fmt.Sprintf("category %q is not yet supported for employees", req.Category)})
-		return
-	}
-	if req.AvatarURL != "" {
-		u, err := url.Parse(req.AvatarURL)
-		if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" {
-			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "avatar_url must be an absolute http(s) URL"})
-			return
+	for _, subagent := range subagents {
+		template := employeeAgentTemplateForSubagent(subagent)
+		if template == nil {
+			continue
+		}
+		if err := attachPublishedGlobalSkillsTx(ctx, tx, subagent.ID, template.DefaultSkillNames); err != nil {
+			return nil, err
 		}
 	}
+	return agent, nil
+}
 
-	choice, err := pickEmployeeCredential(h.db)
+func createHivyEmployeeTx(ctx context.Context, tx *gorm.DB, orgID uuid.UUID) (*model.Agent, []*model.Agent, error) {
+	team, err := ensureEngineeringTeam(tx, orgID)
 	if err != nil {
-		logging.FromContext(r.Context()).ErrorContext(r.Context(), "pick employee credential", "error", err, "org_id", org.ID)
-		writeJSON(w, http.StatusServiceUnavailable, map[string]string{"error": "no provider credential available for new employees"})
-		return
+		return nil, nil, err
 	}
 
-	team, err := ensureEngineeringTeam(h.db, org.ID)
+	choice, err := pickEmployeeCredential(tx)
 	if err != nil {
-		logging.FromContext(r.Context()).ErrorContext(r.Context(), "ensure engineering team", "error", err, "org_id", org.ID)
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to set up team for employee"})
-		return
+		logging.FromContext(ctx).WarnContext(ctx, "no provider credential available for Hivy employee", "error", err, "org_id", orgID)
+		choice = &employeeProviderChoice{model: employeeruntime.DefaultEmployeeModel}
 	}
 
-	desc := req.Description
-	cat := req.Category
+	desc := hivyEmployeeDescription
 	agent := model.Agent{
-		OrgID:          &org.ID,
-		Name:           req.Name,
+		OrgID:          &orgID,
+		Name:           hivyEmployeeName,
 		Description:    &desc,
-		Category:       &cat,
 		SystemPrompt:   "",
 		IdentityPrompt: employeeprompts.EngineeringIdentityPrompt,
 		Model:          choice.model,
-		CredentialID:   &choice.cred.ID,
 		TeamID:         &team.ID,
 		Team:           team.Name,
 		Harness:        employeeHarness,
@@ -117,42 +105,42 @@ func (h *EmployeeHandler) Create(w http.ResponseWriter, r *http.Request) {
 		AgentConfig:    model.JSON{},
 		Permissions:    model.JSON{},
 	}
-	if req.AvatarURL != "" {
-		avatar := req.AvatarURL
-		agent.AvatarURL = &avatar
+	if choice.cred != nil {
+		agent.CredentialID = &choice.cred.ID
+	}
+	if err := tx.WithContext(ctx).Create(&agent).Error; err != nil {
+		return nil, nil, fmt.Errorf("create Hivy employee: %w", err)
 	}
 
-	var subagents []*model.Agent
-
-	err = h.db.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Create(&agent).Error; err != nil {
-			return err
-		}
-		created, err := h.ensureEmployeeAgentTemplatesTx(r.Context(), tx, &agent, team)
-		if err != nil {
-			return err
-		}
-		subagents = append(subagents, created...)
-		return nil
-	})
+	h := &EmployeeHandler{db: tx}
+	subagents, err := h.ensureEmployeeAgentTemplatesTx(ctx, tx, &agent, team)
 	if err != nil {
-		if isDuplicateKeyError(err) {
-			writeJSON(w, http.StatusConflict, map[string]string{"error": fmt.Sprintf("employee with name %q already exists", req.Name)})
-			return
-		}
-		logging.FromContext(r.Context()).ErrorContext(r.Context(), "create employee + subagents", "error", err, "org_id", org.ID)
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to create employee"})
-		return
+		return nil, nil, err
 	}
+	return &agent, subagents, nil
+}
 
-	h.attachGlobalSkills(r.Context(), agent.ID, defaultEmployeeSkills[req.Category])
-	h.attachEmployeeAgentTemplateSkills(r.Context(), subagents...)
-
-	writeJSON(w, http.StatusCreated, createEmployeeResponse{
-		AgentID:   agent.ID.String(),
-		SandboxID: "",
-		Status:    "pending_profile",
-	})
+func attachPublishedGlobalSkillsTx(ctx context.Context, tx *gorm.DB, agentID uuid.UUID, names []string) error {
+	required := make(map[string]bool, len(names))
+	for _, name := range names {
+		required[name] = true
+	}
+	skills, err := loadPublishedGlobalSkillsByName(ctx, tx, required)
+	if err != nil {
+		return err
+	}
+	for _, name := range names {
+		skill, ok := skills[name]
+		if !ok {
+			logging.FromContext(ctx).WarnContext(ctx, "global skill not attached to Hivy", "skill_name", name, "agent_id", agentID)
+			continue
+		}
+		link := model.AgentSkill{AgentID: agentID, SkillID: skill.ID}
+		if err := tx.WithContext(ctx).Clauses(clause.OnConflict{DoNothing: true}).Create(&link).Error; err != nil {
+			return fmt.Errorf("attach global skill %q: %w", name, err)
+		}
+	}
+	return nil
 }
 
 func ensureEngineeringTeam(db *gorm.DB, orgID uuid.UUID) (*model.Team, error) {

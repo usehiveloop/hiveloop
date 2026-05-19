@@ -47,14 +47,17 @@ func TestIntegration_EmployeeAgentTemplates_ListShowsInstalledDefaults(t *testin
 	h.platformCredCleanup(t)
 	m := h.createOrg(t)
 	h.seedSystemCred(t, "openrouter", false)
+	agent := h.seedEmployeeAgent(t, m)
+	h.seedSlackProfile(t, m, agent.ID)
 
-	rr := h.post(t, m, validEmployeeBody())
-	if rr.Code != http.StatusCreated {
-		t.Fatalf("create status = %d, want 201: %s", rr.Code, rr.Body.String())
+	for _, slug := range []string{"business-research-specialist", "software-engineering-specialist"} {
+		rr := h.postAgentTemplateInstall(t, m, agent.ID, slug, "admin")
+		if rr.Code != http.StatusOK {
+			t.Fatalf("install %s status = %d, want 200: %s", slug, rr.Code, rr.Body.String())
+		}
 	}
-	agentID := uuid.MustParse(decodeEmployeeResp(t, rr)["agent_id"])
 
-	rr = h.listAgentTemplates(t, m, agentID, "admin")
+	rr := h.listAgentTemplates(t, m, agent.ID, "admin")
 	if rr.Code != http.StatusOK {
 		t.Fatalf("list status = %d, want 200: %s", rr.Code, rr.Body.String())
 	}
@@ -73,12 +76,12 @@ func TestIntegration_EmployeeAgentTemplates_ListShowsInstalledDefaults(t *testin
 		if template.SubagentID == nil || *template.SubagentID == "" {
 			t.Fatalf("template %s subagent_id missing", slug)
 		}
-		if template.Category != "engineering" {
-			t.Fatalf("template %s category = %q, want engineering", slug, template.Category)
+		if template.Category != "" {
+			t.Fatalf("template %s exposed removed category = %q", slug, template.Category)
 		}
 	}
 
-	rr = h.getEmployee(t, m, agentID.String())
+	rr = h.getEmployee(t, m, agent.ID.String())
 	if rr.Code != http.StatusOK {
 		t.Fatalf("get employee status = %d, want 200: %s", rr.Code, rr.Body.String())
 	}

@@ -1,8 +1,8 @@
 package handler
 
 import (
-	"gorm.io/gorm"
 	chi "github.com/go-chi/chi/v5"
+	"gorm.io/gorm"
 	"net/http"
 
 	"github.com/google/uuid"
@@ -64,11 +64,9 @@ func (h *AgentHandler) List(w http.ResponseWriter, r *http.Request) {
 
 	triggersMap := h.loadAgentTriggers(agentIDs...)
 	skillsMap := h.loadAgentSkills(agentIDs...)
-	profilesMap := h.loadAgentProfiles(agentIDs...)
 	for index, agent := range agents {
 		resp[index].Triggers = triggersMap[agent.ID]
 		resp[index].AttachedSkills = skillsMap[agent.ID]
-		resp[index].Profiles = profilesMap[agent.ID]
 	}
 
 	result := paginatedResponse[agentResponse]{Data: resp, HasMore: hasMore}
@@ -112,7 +110,6 @@ func (h *AgentHandler) Get(w http.ResponseWriter, r *http.Request) {
 	resp := toAgentResponse(agent)
 	resp.Triggers = h.loadAgentTriggers(agent.ID)[agent.ID]
 	resp.AttachedSkills = h.loadAgentSkills(agent.ID)[agent.ID]
-	resp.Profiles = h.loadAgentProfiles(agent.ID)[agent.ID]
 
 	writeJSON(w, http.StatusOK, resp)
 }

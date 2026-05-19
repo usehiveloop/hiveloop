@@ -74,10 +74,46 @@ func seedSignupUser(t *testing.T, db *gorm.DB) *model.User {
 func cleanupOrgAndLedger(t *testing.T, db *gorm.DB, orgID uuid.UUID) {
 	t.Helper()
 	t.Cleanup(func() {
+		db.Unscoped().Where("org_id = ?", orgID).Delete(&model.Agent{})
 		db.Unscoped().Where("org_id = ?", orgID).Delete(&model.CreditLedgerEntry{})
 		db.Unscoped().Where("org_id = ?", orgID).Delete(&model.OrgMembership{})
 		db.Unscoped().Where("id = ?", orgID).Delete(&model.Org{})
 	})
+}
+
+func TestCreateUserDefaultOrg_CreatesHivyWithAllSpecialists(t *testing.T) {
+	db := connectInternalTestDB(t)
+	user := seedSignupUser(t, db)
+
+	var org model.Org
+	err := db.Transaction(func(tx *gorm.DB) error {
+		var e error
+		org, e = createUserDefaultOrg(tx, nil, user)
+		return e
+	})
+	if err != nil {
+		t.Fatalf("createUserDefaultOrg: %v", err)
+	}
+	cleanupOrgAndLedger(t, db, org.ID)
+
+	var employee model.Agent
+	if err := db.Where("org_id = ? AND is_employee = true", org.ID).First(&employee).Error; err != nil {
+		t.Fatalf("load Hivy employee: %v", err)
+	}
+	if employee.Name != "Hivy" {
+		t.Fatalf("employee name = %q, want Hivy", employee.Name)
+	}
+	if employee.Category != nil {
+		t.Fatalf("employee category = %v, want nil", *employee.Category)
+	}
+
+	var links []model.AgentSubagent
+	if err := db.Where("agent_id = ?", employee.ID).Find(&links).Error; err != nil {
+		t.Fatalf("load Hivy specialists: %v", err)
+	}
+	if len(links) != len(employeeAgentTemplates) {
+		t.Fatalf("specialist links = %d, want %d", len(links), len(employeeAgentTemplates))
+	}
 }
 
 func TestCreateUserDefaultOrg_GrantsWelcomeCredits(t *testing.T) {

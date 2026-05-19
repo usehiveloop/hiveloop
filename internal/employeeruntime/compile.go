@@ -17,6 +17,7 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/employeeprompts"
 	"github.com/usehiveloop/hiveloop/internal/hindsight"
 	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehiveloop/hiveloop/internal/nango"
 	slackprov "github.com/usehiveloop/hiveloop/internal/profiles/slack"
 	"github.com/usehiveloop/hiveloop/internal/token"
 )
@@ -35,6 +36,7 @@ type CompileDeps struct {
 	EncKey     *crypto.SymmetricKey
 	SigningKey []byte
 	Cfg        *config.Config
+	Nango      *nango.Client
 	Hindsight  HindsightRecallClient
 }
 
@@ -139,21 +141,24 @@ func PrepareStartup(ctx context.Context, deps CompileDeps, agent *model.Agent) (
 	if agent == nil || agent.OrgID == nil {
 		return nil, fmt.Errorf("employee runtime startup: agent must have org_id")
 	}
-	profile, err := loadActiveSlackProfile(ctx, deps.DB, agent.ID)
+	botToken, err := loadSlackBotToken(ctx, deps, *agent.OrgID)
 	if err != nil {
 		return nil, err
 	}
-	slack, err := decryptSlackSecrets(ctx, deps.KMS, profile)
-	if err != nil {
-		return nil, err
+	appToken := ""
+	if deps.Cfg != nil {
+		appToken = strings.TrimSpace(deps.Cfg.SlackAppToken)
+	}
+	if appToken == "" {
+		return nil, fmt.Errorf("employee runtime startup: SLACK_APP_TOKEN is required")
 	}
 	proxyToken, err := MintProxyToken(ctx, deps, agent, uuid.Nil)
 	if err != nil {
 		return nil, err
 	}
 	return &StartupSecrets{
-		SlackBotToken: slack.BotToken,
-		SlackAppToken: slack.AppToken,
+		SlackBotToken: botToken,
+		SlackAppToken: appToken,
 		ProxyToken:    proxyToken.Token,
 	}, nil
 }
@@ -602,20 +607,16 @@ func defaultTools() []map[string]any {
 
 func buildSlackConfig(ctx context.Context, deps CompileDeps, agent *model.Agent) SlackConfig {
 	cfg := SlackConfig{PostableChannels: []SlackChannelSpec{}}
-	if deps.DB == nil || deps.KMS == nil || agent == nil {
+	if deps.DB == nil || deps.Nango == nil || agent == nil || agent.OrgID == nil {
 		return cfg
 	}
-	profile, err := loadActiveSlackProfile(ctx, deps.DB, agent.ID)
-	if err != nil {
-		return cfg
-	}
-	secrets, err := decryptSlackSecrets(ctx, deps.KMS, profile)
+	botToken, err := loadSlackBotToken(ctx, deps, *agent.OrgID)
 	if err != nil {
 		return cfg
 	}
 	channelCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
-	channels, err := slackprov.ListBotChannels(channelCtx, secrets.BotToken)
+	channels, err := slackprov.ListBotChannels(channelCtx, botToken)
 	if err != nil {
 		return cfg
 	}
@@ -668,44 +669,30 @@ func slackConfigMap(cfg SlackConfig) map[string]any {
 	return out
 }
 
-func loadActiveSlackProfile(ctx context.Context, db *gorm.DB, agentID uuid.UUID) (*model.AgentProfile, error) {
-	var profile model.AgentProfile
-	err := db.WithContext(ctx).
-		Where("agent_id = ? AND provider = ? AND status = ? AND deleted_at IS NULL", agentID, slackprov.Provider, "active").
-		First(&profile).Error
+func loadSlackBotToken(ctx context.Context, deps CompileDeps, orgID uuid.UUID) (string, error) {
+	if deps.DB == nil || deps.Nango == nil {
+		return "", fmt.Errorf("employee runtime startup: db and nango client are required")
+	}
+	var conn model.InConnection
+	if err := deps.DB.WithContext(ctx).
+		Preload("InIntegration").
+		Joins("JOIN in_integrations ON in_integrations.id = in_connections.in_integration_id AND in_integrations.deleted_at IS NULL").
+		Where("in_connections.org_id = ? AND in_connections.revoked_at IS NULL AND in_integrations.provider = ?", orgID, slackprov.Provider).
+		Order("in_connections.created_at ASC").
+		First(&conn).Error; err != nil {
+		return "", fmt.Errorf("active Slack connection required for employee sandbox startup: %w", err)
+	}
+	nangoConn, err := deps.Nango.GetConnection(ctx, conn.NangoConnectionID, "in_"+conn.InIntegration.UniqueKey)
 	if err != nil {
-		return nil, fmt.Errorf("active slack profile required for employee sandbox startup: %w", err)
+		return "", fmt.Errorf("load Slack connection credentials: %w", err)
 	}
-	return &profile, nil
-}
-
-func decryptSlackSecrets(ctx context.Context, kms *crypto.KeyWrapper, profile *model.AgentProfile) (*slackprov.Secrets, error) {
-	if kms == nil || len(profile.EncryptedSecrets) == 0 || len(profile.WrappedDEK) == 0 {
-		return nil, fmt.Errorf("slack profile has no encrypted secrets")
+	creds, _ := nangoConn["credentials"].(map[string]any)
+	for _, key := range []string{"bot_token", "access_token"} {
+		if token, _ := creds[key].(string); strings.TrimSpace(token) != "" {
+			return strings.TrimSpace(token), nil
+		}
 	}
-	dek, err := kms.Unwrap(ctx, profile.WrappedDEK)
-	if err != nil {
-		return nil, fmt.Errorf("unwrap slack DEK: %w", err)
-	}
-	defer wipe(dek)
-	plaintext, err := crypto.DecryptCredential(profile.EncryptedSecrets, dek)
-	if err != nil {
-		return nil, fmt.Errorf("decrypt slack secrets: %w", err)
-	}
-	var secrets slackprov.Secrets
-	if err := json.Unmarshal(plaintext, &secrets); err != nil {
-		return nil, fmt.Errorf("parse slack secrets: %w", err)
-	}
-	if secrets.BotToken == "" || secrets.AppToken == "" {
-		return nil, fmt.Errorf("slack bot token and app token are required")
-	}
-	return &secrets, nil
-}
-
-func wipe(b []byte) {
-	for i := range b {
-		b[i] = 0
-	}
+	return "", fmt.Errorf("Slack connection credentials do not include a bot token")
 }
 
 func scopesFromIntegrations(integrations model.JSON) model.JSON {

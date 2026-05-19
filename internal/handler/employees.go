@@ -13,15 +13,14 @@ import (
 )
 
 const (
-	employeeHarness             = "employee-sandbox"
-	employeeCloudAgentHarness   = "open_code"
-	employeeCategoryEngineering = "engineering"
-	engineeringTeamName         = "Engineering"
+	employeeHarness           = "employee-sandbox"
+	employeeCloudAgentHarness = "open_code"
+	engineeringTeamName       = "Engineering"
+	hivyEmployeeName          = "Hivy"
+	hivyEmployeeDescription   = "Hivy is the organization's managed AI employee."
 )
 
-var defaultEmployeeSkills = map[string][]string{
-	employeeCategoryEngineering: {"git-github", "asset-uploads"},
-}
+var defaultEmployeeSkills = []string{"git-github", "asset-uploads"}
 
 type EmployeeHandler struct {
 	db           *gorm.DB
@@ -41,19 +40,6 @@ func (h *EmployeeHandler) SetEnqueuer(enq enqueue.TaskEnqueuer) {
 	if cleaner, ok := enq.(enqueue.TaskCleaner); ok {
 		h.taskCleaner = cleaner
 	}
-}
-
-type createEmployeeRequest struct {
-	Category    string `json:"category"`
-	Name        string `json:"name"`
-	AvatarURL   string `json:"avatar_url"`
-	Description string `json:"description"`
-}
-
-type createEmployeeResponse struct {
-	AgentID   string `json:"agent_id"`
-	SandboxID string `json:"sandbox_id"`
-	Status    string `json:"status"`
 }
 
 type employeeProviderChoice struct {

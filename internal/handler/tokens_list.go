@@ -3,7 +3,6 @@ package handler
 import (
 	"net/http"
 
-
 	"github.com/usehiveloop/hiveloop/internal/middleware"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
@@ -70,4 +69,3 @@ func (h *TokenHandler) List(w http.ResponseWriter, r *http.Request) {
 
 	writeJSON(w, http.StatusOK, result)
 }
-

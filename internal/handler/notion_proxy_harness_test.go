@@ -25,7 +25,6 @@ type notionProxyHarness struct {
 	employeeID   uuid.UUID
 	subagentID   uuid.UUID
 	standaloneID uuid.UUID
-	profileID    uuid.UUID
 	connectionID uuid.UUID
 	bridgeKey    string
 	providerKey  string
@@ -55,7 +54,6 @@ func newNotionProxyHarness(t *testing.T, nangoHandler http.Handler) *notionProxy
 	employeeID := uuid.New()
 	subagentID := uuid.New()
 	standaloneID := uuid.New()
-	profileID := uuid.New()
 	connectionID := uuid.New()
 
 	if err := database.Create(&model.Org{ID: orgID, Name: "notion-proxy-" + uuid.NewString()[:8], RateLimit: 1000, Active: true}).Error; err != nil {
@@ -64,7 +62,7 @@ func newNotionProxyHarness(t *testing.T, nangoHandler http.Handler) *notionProxy
 	if err := database.Create(&model.User{ID: userID, Email: fmt.Sprintf("notion-proxy-%s@example.com", uuid.NewString()[:8]), Name: "Proxy Tester"}).Error; err != nil {
 		t.Fatalf("create user: %v", err)
 	}
-	integration := createTestInIntegration(t, database, "notion-profile")
+	integration := createTestInIntegration(t, database, "notion")
 	providerKey := "in_" + integration.UniqueKey
 	if err := database.Create(&model.InConnection{ID: connectionID, OrgID: orgID, UserID: userID, InIntegrationID: integration.ID, NangoConnectionID: "notion-nango-1"}).Error; err != nil {
 		t.Fatalf("create connection: %v", err)
@@ -79,21 +77,6 @@ func newNotionProxyHarness(t *testing.T, nangoHandler http.Handler) *notionProxy
 	}
 	if err := database.Create(&employee).Error; err != nil {
 		t.Fatalf("create employee: %v", err)
-	}
-	if err := database.Create(&model.AgentProfile{
-		ID:         profileID,
-		OrgID:      orgID,
-		AgentID:    employeeID,
-		Provider:   "notion-profile",
-		ExternalID: "notion-nango-1",
-		Label:      "Notion Profile",
-		Status:     "active",
-		Config: model.JSON{
-			"in_connection_id":    connectionID.String(),
-			"provider_config_key": providerKey,
-		},
-	}).Error; err != nil {
-		t.Fatalf("create profile: %v", err)
 	}
 	subagent := model.Agent{ID: subagentID, OrgID: &orgID, Name: "Notion Subagent " + uuid.NewString()[:8], Status: "active"}
 	if err := database.Create(&subagent).Error; err != nil {
@@ -121,7 +104,6 @@ func newNotionProxyHarness(t *testing.T, nangoHandler http.Handler) *notionProxy
 
 	t.Cleanup(func() {
 		database.Where("org_id = ?", orgID).Delete(&model.Sandbox{})
-		database.Where("org_id = ?", orgID).Delete(&model.AgentProfile{})
 		database.Where("agent_id = ? OR subagent_id = ?", employeeID, subagentID).Delete(&model.AgentSubagent{})
 		database.Where("org_id = ?", orgID).Delete(&model.Agent{})
 		database.Where("org_id = ?", orgID).Delete(&model.InConnection{})
@@ -141,7 +123,6 @@ func newNotionProxyHarness(t *testing.T, nangoHandler http.Handler) *notionProxy
 		employeeID:   employeeID,
 		subagentID:   subagentID,
 		standaloneID: standaloneID,
-		profileID:    profileID,
 		connectionID: connectionID,
 		bridgeKey:    bridgeKey,
 		providerKey:  providerKey,

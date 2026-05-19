@@ -1,99 +1,70 @@
 "use client"
 
-import { AnimatePresence, motion } from "motion/react"
+import { useMemo } from "react"
+import { useRouter } from "next/navigation"
+import { useQueryClient } from "@tanstack/react-query"
+import { HugeiconsIcon } from "@hugeicons/react"
+import { Plug01Icon } from "@hugeicons/core-free-icons"
+import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
+import { $api } from "@/lib/api/hooks"
 import { OnboardingShell } from "./_components/onboarding-shell"
-import { StepIndicator } from "./_components/step-indicator"
-import { EmployeeStep } from "./_components/employee-step"
-import { ProvisioningStep } from "./_components/provisioning-step"
-import { ChannelStep } from "./_components/channel-step"
-import { ConfigureSlackStep } from "./_components/configure-slack-step"
-import { ConfigureWhatsappStep } from "./_components/configure-whatsapp-step"
-import { GithubStep } from "./_components/github-step"
-import { BusinessStep } from "./_components/business-step"
-import { OnboardingProvider, useOnboarding } from "./_components/context"
-
-const stepVariants = {
-  initial: { opacity: 0, y: 12 },
-  animate: { opacity: 1, y: 0 },
-  exit: { opacity: 0, y: -12 },
-}
+import { useConnectIntegration } from "@/app/w/connections/_hooks/use-connect-integration"
 
 export default function OnboardingPage() {
-  return (
-    <OnboardingProvider>
-      <OnboardingShell>
-        <div className="mx-auto flex w-full max-w-xl flex-col items-center gap-10">
-          <Wizard />
-        </div>
-      </OnboardingShell>
-    </OnboardingProvider>
+  const router = useRouter()
+  const queryClient = useQueryClient()
+  const integrationsQuery = $api.useQuery("get", "/v1/in/integrations/available")
+  const { connect, connectingId } = useConnectIntegration()
+
+  const slackIntegration = useMemo(
+    () =>
+      (integrationsQuery.data ?? []).find(
+        (integration) => integration.provider === "slack"
+      ),
+    [integrationsQuery.data]
   )
-}
 
-function Wizard() {
-  const { step, stepIndex, totalSteps, form, bootstrapping } = useOnboarding()
-  const channel = form.watch("channel")
-
-  if (bootstrapping) {
-    return <OnboardingSkeleton />
+  function handleInstallSlack() {
+    if (!slackIntegration?.id) return
+    connect(slackIntegration.id, {
+      onSuccess: async () => {
+        await queryClient.invalidateQueries({ queryKey: ["get", "/auth/me"] })
+        router.replace("/w")
+      },
+    })
   }
 
   return (
-    <>
-      <StepIndicator total={totalSteps} currentIndex={stepIndex} />
-
-      <div className="w-full">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={step}
-            variants={stepVariants}
-            initial="initial"
-            animate="animate"
-            exit="exit"
-            transition={{ duration: 0.18 }}
-            className="w-full"
-          >
-            {step === "employee" && <EmployeeStep />}
-            {step === "provisioning" && <ProvisioningStep />}
-            {step === "channel" && <ChannelStep />}
-            {step === "configure" && channel === "slack" && <ConfigureSlackStep />}
-            {step === "configure" && channel === "whatsapp" && <ConfigureWhatsappStep />}
-            {step === "github" && <GithubStep />}
-            {step === "business" && <BusinessStep />}
-          </motion.div>
-        </AnimatePresence>
-      </div>
-    </>
-  )
-}
-
-function OnboardingSkeleton() {
-  return (
-    <div
-      role="status"
-      aria-live="polite"
-      aria-busy="true"
-      className="mx-auto flex w-full max-w-xl flex-col items-center gap-10"
-    >
-      <span className="sr-only">Loading…</span>
-      <div className="flex items-center gap-1.5">
-        <Skeleton className="size-1.5 rounded-full" />
-        <Skeleton className="size-1.5 rounded-full" />
-        <Skeleton className="size-1.5 rounded-full" />
-        <Skeleton className="size-1.5 rounded-full" />
-        <Skeleton className="size-1.5 rounded-full" />
-        <Skeleton className="size-1.5 rounded-full" />
-      </div>
-      <div className="flex w-full flex-col items-center gap-6">
-        <Skeleton className="size-24 rounded-md" />
-        <div className="flex w-full flex-col items-center gap-2">
-          <Skeleton className="h-8 w-48 rounded-md" />
-          <Skeleton className="h-4 w-72 rounded-md" />
-          <Skeleton className="h-4 w-56 rounded-md" />
+    <OnboardingShell>
+      <main className="mx-auto flex min-h-[calc(100vh-4rem)] w-full max-w-md flex-col justify-center px-6 py-16">
+        <div className="flex flex-col items-center gap-7 text-center">
+          <div className="flex size-14 items-center justify-center rounded-lg border border-border bg-muted/40">
+            <HugeiconsIcon icon={Plug01Icon} className="size-6 text-foreground" aria-hidden />
+          </div>
+          <div className="space-y-2">
+            <h1 className="text-2xl font-semibold tracking-normal">
+              Connect Slack
+            </h1>
+            <p className="text-sm leading-6 text-muted-foreground">
+              Hivy is already set up for your workspace. Install the Slack app
+              to finish onboarding.
+            </p>
+          </div>
+          {integrationsQuery.isLoading ? (
+            <Skeleton className="h-10 w-44 rounded-md" />
+          ) : (
+            <Button
+              className="w-full"
+              onClick={handleInstallSlack}
+              disabled={!slackIntegration?.id}
+              loading={connectingId === slackIntegration?.id}
+            >
+              Install Slack app
+            </Button>
+          )}
         </div>
-        <Skeleton className="mt-4 h-11 w-64 rounded-md" />
-      </div>
-    </div>
+      </main>
+    </OnboardingShell>
   )
 }

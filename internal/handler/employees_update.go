@@ -34,25 +34,6 @@ type updateEmployeeResponse struct {
 	Warnings   []string              `json:"warnings,omitempty"`
 }
 
-// Update handles PUT /v1/employees/{id}.
-// @Summary Update an AI employee
-// @Description Updates employee creation fields, assigned org connections, and optional skills.
-// @Description Category is read-only. Required backend-managed employee skills are preserved.
-// @Tags employees
-// @Accept json
-// @Produce json
-// @Param id path string true "Employee agent ID"
-// @Param body body updateEmployeeRequest true "Fields to update"
-// @Success 200 {object} updateEmployeeResponse
-// @Failure 400 {object} errorResponse
-// @Failure 401 {object} errorResponse
-// @Failure 403 {object} errorResponse
-// @Failure 404 {object} errorResponse
-// @Failure 409 {object} errorResponse
-// @Failure 500 {object} errorResponse
-// @Failure 502 {object} errorResponse
-// @Security BearerAuth
-// @Router /v1/employees/{id} [put]
 func (h *EmployeeHandler) Update(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	log := logging.FromContext(ctx)
@@ -181,7 +162,7 @@ func (h *EmployeeHandler) Update(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
-		requiredNames, connectionWarnings, err := employeeRequiredSkillNames(ctx, tx, org.ID, agent.ID, agent.Category, nextIntegrations)
+		requiredNames, connectionWarnings, err := employeeRequiredSkillNames(ctx, tx, org.ID)
 		if err != nil {
 			return err
 		}
@@ -231,10 +212,10 @@ func (h *EmployeeHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 	syncStatus := "pending_profile"
 	var syncResp *syncEmployeeResponse
-	hasProfile, err := h.employeeHasActiveSlackProfile(ctx, org.ID, agent.ID)
+	hasProfile, err := h.orgHasActiveSlackConnection(ctx, org.ID)
 	if err != nil {
-		log.ErrorContext(ctx, "count employee profiles", "error", err, "agent_id", agent.ID)
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to load employee profiles"})
+		log.ErrorContext(ctx, "count Slack org connections", "error", err, "agent_id", agent.ID)
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to load Slack connection"})
 		return
 	}
 	if hasProfile {

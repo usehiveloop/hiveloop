@@ -75,6 +75,55 @@ func TestInConnectionHandler_Create_Success(t *testing.T) {
 	}
 }
 
+func TestInConnectionHandler_CreateSlackMarksOrgOnboardedAndEnsuresHivy(t *testing.T) {
+	db := connectTestDB(t)
+	t.Cleanup(func() {
+		db.Where("1=1").Delete(&model.InConnection{})
+		db.Where("1=1").Delete(&model.InIntegration{})
+	})
+
+	nangoSrv := httptest.NewServer(newNangoConnMock(&nangoConnMockConfig{}))
+	t.Cleanup(nangoSrv.Close)
+	nangoClient := nango.NewClient(nangoSrv.URL, "test-secret-key")
+	_ = nangoClient.FetchProviders(context.Background())
+
+	h := handler.NewInConnectionHandler(db, nangoClient, catalog.Global())
+	r := chi.NewRouter()
+	r.Post("/v1/in/integrations/{id}/connections", h.Create)
+
+	user := createTestUser(t, db, fmt.Sprintf("slack-conn-%s@test.com", uuid.New().String()[:8]))
+	org := createTestOrg(t, db)
+	integ := createTestInIntegration(t, db, "slack")
+
+	body, _ := json.Marshal(map[string]any{"nango_connection_id": "slack-conn-123"})
+	req := httptest.NewRequest(http.MethodPost, "/v1/in/integrations/"+integ.ID.String()+"/connections", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req = middleware.WithUser(req, &user)
+	req = middleware.WithOrg(req, &org)
+	rr := httptest.NewRecorder()
+	r.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusCreated {
+		t.Fatalf("expected 201, got %d: %s", rr.Code, rr.Body.String())
+	}
+
+	var reloaded model.Org
+	if err := db.First(&reloaded, "id = ?", org.ID).Error; err != nil {
+		t.Fatalf("reload org: %v", err)
+	}
+	if !reloaded.Onboarded {
+		t.Fatal("org onboarded = false, want true")
+	}
+
+	var employee model.Agent
+	if err := db.Where("org_id = ? AND is_employee = true", org.ID).First(&employee).Error; err != nil {
+		t.Fatalf("load Hivy employee: %v", err)
+	}
+	if employee.Name != "Hivy" {
+		t.Fatalf("employee name = %q, want Hivy", employee.Name)
+	}
+}
+
 func TestInConnectionHandler_Create_DuplicateUserIntegration(t *testing.T) {
 	db := connectTestDB(t)
 	t.Cleanup(func() {
@@ -162,38 +211,5 @@ func TestInConnectionHandler_Create_WithMeta(t *testing.T) {
 	meta, ok := resp["meta"].(map[string]any)
 	if !ok || meta["resources"] == nil {
 		t.Fatalf("expected meta.resources to be set, got %v", resp["meta"])
-	}
-}
-
-func TestInConnectionHandler_Create_RejectsProfileProvider(t *testing.T) {
-	db := connectTestDB(t)
-	t.Cleanup(func() {
-		db.Where("1=1").Delete(&model.InConnection{})
-		db.Where("1=1").Delete(&model.InIntegration{})
-	})
-
-	nangoSrv := httptest.NewServer(newNangoConnMock(&nangoConnMockConfig{}))
-	t.Cleanup(nangoSrv.Close)
-	nangoClient := nango.NewClient(nangoSrv.URL, "test-secret-key")
-	_ = nangoClient.FetchProviders(context.Background())
-
-	h := handler.NewInConnectionHandler(db, nangoClient, catalog.Global())
-	r := chi.NewRouter()
-	r.Post("/v1/in/integrations/{id}/connections", h.Create)
-
-	user := createTestUser(t, db, fmt.Sprintf("conn-%s@test.com", uuid.New().String()[:8]))
-	org := createTestOrg(t, db)
-	integ := createTestInIntegration(t, db, "linear-profile")
-
-	body, _ := json.Marshal(map[string]any{"nango_connection_id": "nango-profile-conn"})
-	req := httptest.NewRequest(http.MethodPost, "/v1/in/integrations/"+integ.ID.String()+"/connections", bytes.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	req = middleware.WithUser(req, &user)
-	req = middleware.WithOrg(req, &org)
-	rr := httptest.NewRecorder()
-	r.ServeHTTP(rr, req)
-
-	if rr.Code != http.StatusBadRequest {
-		t.Fatalf("expected 400, got %d: %s", rr.Code, rr.Body.String())
 	}
 }

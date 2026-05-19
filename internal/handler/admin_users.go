@@ -3,7 +3,6 @@ package handler
 import (
 	"net/http"
 
-
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
 

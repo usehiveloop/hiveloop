@@ -2,7 +2,6 @@ package sandbox
 
 import (
 	"strings"
-
 )
 
 func defaultMaxTokens(providerID, modelName string) int32 {

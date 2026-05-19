@@ -167,44 +167,6 @@ func (h *GitCredentialsHandler) Handle(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *GitCredentialsHandler) resolveGitHubTokenConnection(ctx context.Context, orgID uuid.UUID, agent model.Agent) (gitHubTokenConnection, error) {
-	profileAgentID, err := h.resolveGitHubProfileAgentID(ctx, orgID, agent)
-	if err != nil {
-		return gitHubTokenConnection{}, err
-	}
-
-	var profile model.AgentProfile
-	err = h.db.WithContext(ctx).
-		Where("agent_id = ? AND provider = ? AND status = ? AND deleted_at IS NULL AND revoked_at IS NULL", profileAgentID, githubProfileProvider, "active").
-		First(&profile).Error
-	if err == nil {
-		connectionID, parseErr := uuid.Parse(stringFromJSON(profile.Config, "in_connection_id"))
-		if parseErr != nil {
-			return gitHubTokenConnection{}, fmt.Errorf("github profile is missing its connection: %w", parseErr)
-		}
-		var conn model.InConnection
-		if loadErr := h.db.WithContext(ctx).
-			Preload("InIntegration").
-			Where("id = ? AND org_id = ? AND revoked_at IS NULL", connectionID, orgID).
-			First(&conn).Error; loadErr != nil {
-			return gitHubTokenConnection{}, loadErr
-		}
-		if conn.InIntegration.Provider != githubProfileProvider {
-			return gitHubTokenConnection{}, fmt.Errorf("github profile connection uses provider %q", conn.InIntegration.Provider)
-		}
-		providerConfigKey := stringFromJSON(profile.Config, "provider_config_key")
-		if providerConfigKey == "" {
-			providerConfigKey = inNangoKey(conn.InIntegration.UniqueKey)
-		}
-		return gitHubTokenConnection{
-			conn:              conn,
-			providerConfigKey: providerConfigKey,
-			cacheKey:          gitTokenCacheKey{agentID: agent.ID, providerConfigKey: providerConfigKey, nangoConnectionID: conn.NangoConnectionID},
-		}, nil
-	}
-	if !errors.Is(err, gorm.ErrRecordNotFound) {
-		return gitHubTokenConnection{}, err
-	}
-
 	var conn model.InConnection
 	if err := h.db.WithContext(ctx).
 		Preload("InIntegration").
@@ -220,25 +182,6 @@ func (h *GitCredentialsHandler) resolveGitHubTokenConnection(ctx context.Context
 		providerConfigKey: providerConfigKey,
 		cacheKey:          gitTokenCacheKey{agentID: agent.ID, providerConfigKey: providerConfigKey, nangoConnectionID: conn.NangoConnectionID},
 	}, nil
-}
-
-func (h *GitCredentialsHandler) resolveGitHubProfileAgentID(ctx context.Context, orgID uuid.UUID, agent model.Agent) (uuid.UUID, error) {
-	if agent.IsEmployee {
-		return agent.ID, nil
-	}
-	var employee model.Agent
-	err := h.db.WithContext(ctx).
-		Joins("JOIN agent_subagents ON agent_subagents.agent_id = agents.id").
-		Where("agent_subagents.subagent_id = ? AND agents.org_id = ? AND agents.is_employee = ?", agent.ID, orgID, true).
-		Order("agent_subagents.created_at ASC").
-		First(&employee).Error
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return agent.ID, nil
-		}
-		return uuid.Nil, err
-	}
-	return employee.ID, nil
 }
 
 // writeGitCredentials writes a response in git credential helper protocol format.

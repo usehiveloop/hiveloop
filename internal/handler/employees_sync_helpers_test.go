@@ -1,7 +1,6 @@
 package handler_test
 
 import (
-	"context"
 	"encoding/json"
 	"sync"
 	"testing"
@@ -9,9 +8,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/usehiveloop/hiveloop/internal/credentials"
-	"github.com/usehiveloop/hiveloop/internal/crypto"
 	"github.com/usehiveloop/hiveloop/internal/model"
-	slackprov "github.com/usehiveloop/hiveloop/internal/profiles/slack"
 )
 
 type sidecarStub struct {
@@ -93,7 +90,6 @@ func (h *employeeHarness) seedEmployeeAgent(t *testing.T, m orgWithMember) model
 	}
 	agentID := agent.ID
 	t.Cleanup(func() {
-		h.db.Where("agent_id = ?", agentID).Delete(&model.AgentProfile{})
 		h.db.Where("agent_id = ?", agentID).Delete(&model.Sandbox{})
 		h.db.Where("meta->>'agent_id' = ?", agentID.String()).Delete(&model.Token{})
 		h.db.Where("id = ?", agentID).Delete(&model.Agent{})
@@ -136,32 +132,30 @@ func (h *employeeHarness) setSandboxSnapshot(t *testing.T, sandboxID uuid.UUID, 
 	}
 }
 
-func (h *employeeHarness) seedSlackProfile(t *testing.T, m orgWithMember, agentID uuid.UUID) model.AgentProfile {
+func (h *employeeHarness) seedSlackProfile(t *testing.T, m orgWithMember, agentID uuid.UUID) model.InConnection {
 	t.Helper()
-	dek, err := crypto.GenerateDEK()
-	if err != nil {
-		t.Fatalf("dek: %v", err)
+	integ := model.InIntegration{
+		ID:          uuid.New(),
+		UniqueKey:   "slack-test-" + uuid.NewString()[:8],
+		Provider:    "slack",
+		DisplayName: "Slack",
 	}
-	wrappedDEK, err := h.kms.Wrap(context.Background(), dek)
-	if err != nil {
-		t.Fatalf("wrap: %v", err)
+	if err := h.db.Create(&integ).Error; err != nil {
+		t.Fatalf("create slack integration: %v", err)
 	}
-	plain, _ := json.Marshal(slackprov.Secrets{
-		BotToken: "xoxb-test", AppToken: "xapp-test",
-	})
-	enc, err := crypto.EncryptCredential(plain, dek)
-	if err != nil {
-		t.Fatalf("encrypt secrets: %v", err)
+	conn := model.InConnection{
+		ID:                uuid.New(),
+		OrgID:             m.org.ID,
+		UserID:            m.user.ID,
+		InIntegrationID:   integ.ID,
+		NangoConnectionID: "slack-conn-test",
+		Meta:              model.JSON{},
 	}
-	p := model.AgentProfile{
-		OrgID: m.org.ID, AgentID: agentID,
-		Provider: slackprov.Provider, Status: "active",
-		EncryptedSecrets: enc, WrappedDEK: wrappedDEK,
+	if err := h.db.Create(&conn).Error; err != nil {
+		t.Fatalf("create slack connection: %v", err)
 	}
-	if err := h.db.Create(&p).Error; err != nil {
-		t.Fatalf("create slack profile: %v", err)
-	}
-	return p
+	conn.InIntegration = integ
+	return conn
 }
 
 func (h *employeeHarness) setRuntimeEnvVars(t *testing.T, agentID uuid.UUID, vars map[string]string) {
@@ -182,18 +176,30 @@ func (h *employeeHarness) setRuntimeEnvVars(t *testing.T, agentID uuid.UUID, var
 	}
 }
 
-// Whatsapp encrypted secrets are intentionally empty; compile.go doesn't
-// decrypt them yet — we only need the row to satisfy the profile-gate.
-func (h *employeeHarness) seedWhatsappProfile(t *testing.T, m orgWithMember, agentID uuid.UUID) model.AgentProfile {
+func (h *employeeHarness) seedWhatsappProfile(t *testing.T, m orgWithMember, agentID uuid.UUID) model.InConnection {
 	t.Helper()
-	p := model.AgentProfile{
-		OrgID: m.org.ID, AgentID: agentID,
-		Provider: "whatsapp", Status: "active",
+	integ := model.InIntegration{
+		ID:          uuid.New(),
+		UniqueKey:   "whatsapp-test-" + uuid.NewString()[:8],
+		Provider:    "whatsapp",
+		DisplayName: "WhatsApp",
 	}
-	if err := h.db.Create(&p).Error; err != nil {
-		t.Fatalf("create whatsapp profile: %v", err)
+	if err := h.db.Create(&integ).Error; err != nil {
+		t.Fatalf("create whatsapp integration: %v", err)
 	}
-	return p
+	conn := model.InConnection{
+		ID:                uuid.New(),
+		OrgID:             m.org.ID,
+		UserID:            m.user.ID,
+		InIntegrationID:   integ.ID,
+		NangoConnectionID: "whatsapp-conn-test",
+		Meta:              model.JSON{},
+	}
+	if err := h.db.Create(&conn).Error; err != nil {
+		t.Fatalf("create whatsapp connection: %v", err)
+	}
+	conn.InIntegration = integ
+	return conn
 }
 
 func (h *employeeHarness) platformCredCleanup(t *testing.T) {

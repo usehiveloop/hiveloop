@@ -85,12 +85,12 @@ func newStreamHarness(t *testing.T) *streamHarness {
 
 	convID := uuid.New()
 	if err := db.Create(&model.AgentConversation{
-		ID:                   convID,
-		OrgID:                orgID,
-		AgentID:              agentID,
-		SandboxID:            sandboxID,
+		ID:                    convID,
+		OrgID:                 orgID,
+		AgentID:               agentID,
+		SandboxID:             sandboxID,
 		RuntimeConversationID: "bridge-conv-" + uuid.New().String()[:8],
-		Status:               "active",
+		Status:                "active",
 	}).Error; err != nil {
 		t.Fatalf("create conversation: %v", err)
 	}

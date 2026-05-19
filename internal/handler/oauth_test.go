@@ -170,4 +170,3 @@ func createOAuthTestUser(t *testing.T, db *gorm.DB, email, name, provider, provi
 // ---------------------------------------------------------------------------
 // Login endpoint tests
 // ---------------------------------------------------------------------------
-

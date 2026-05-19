@@ -23,7 +23,6 @@ type linearProxyHarness struct {
 	employeeID   uuid.UUID
 	subagentID   uuid.UUID
 	standaloneID uuid.UUID
-	profileID    uuid.UUID
 	connectionID uuid.UUID
 	bridgeKey    string
 	providerKey  string
@@ -54,7 +53,6 @@ func newLinearProxyHarness(t *testing.T, nangoHandler http.Handler) *linearProxy
 	subagentID := uuid.New()
 	standaloneID := uuid.New()
 	connectionID := uuid.New()
-	profileID := uuid.New()
 
 	if err := database.Create(&model.Org{ID: orgID, Name: "linear-proxy-" + uuid.NewString()[:8], RateLimit: 1000, Active: true}).Error; err != nil {
 		t.Fatalf("create org: %v", err)
@@ -62,7 +60,7 @@ func newLinearProxyHarness(t *testing.T, nangoHandler http.Handler) *linearProxy
 	if err := database.Create(&model.User{ID: userID, Email: "linear-proxy-" + uuid.NewString()[:8] + "@example.com", Name: "Proxy Tester"}).Error; err != nil {
 		t.Fatalf("create user: %v", err)
 	}
-	integration := createTestInIntegration(t, database, "linear-profile")
+	integration := createTestInIntegration(t, database, "linear")
 	providerKey := "in_" + integration.UniqueKey
 	if err := database.Create(&model.InConnection{ID: connectionID, OrgID: orgID, UserID: userID, InIntegrationID: integration.ID, NangoConnectionID: "linear-nango-1"}).Error; err != nil {
 		t.Fatalf("create connection: %v", err)
@@ -72,22 +70,6 @@ func newLinearProxyHarness(t *testing.T, nangoHandler http.Handler) *linearProxy
 	if err := database.Create(&employee).Error; err != nil {
 		t.Fatalf("create employee: %v", err)
 	}
-	if err := database.Create(&model.AgentProfile{
-		ID:         profileID,
-		OrgID:      orgID,
-		AgentID:    employeeID,
-		Provider:   "linear-profile",
-		ExternalID: "linear-nango-1",
-		Label:      "Linear Profile",
-		Status:     "active",
-		Config: model.JSON{
-			"in_connection_id":    connectionID.String(),
-			"provider_config_key": providerKey,
-		},
-	}).Error; err != nil {
-		t.Fatalf("create profile: %v", err)
-	}
-
 	subagent := model.Agent{ID: subagentID, OrgID: &orgID, Name: "Linear Subagent " + uuid.NewString()[:8], Status: "active"}
 	if err := database.Create(&subagent).Error; err != nil {
 		t.Fatalf("create subagent: %v", err)
@@ -114,7 +96,6 @@ func newLinearProxyHarness(t *testing.T, nangoHandler http.Handler) *linearProxy
 
 	t.Cleanup(func() {
 		database.Where("org_id = ?", orgID).Delete(&model.Sandbox{})
-		database.Where("org_id = ?", orgID).Delete(&model.AgentProfile{})
 		database.Where("agent_id = ? OR subagent_id = ?", employeeID, subagentID).Delete(&model.AgentSubagent{})
 		database.Where("org_id = ?", orgID).Delete(&model.Agent{})
 		database.Where("org_id = ?", orgID).Delete(&model.InConnection{})
@@ -133,7 +114,6 @@ func newLinearProxyHarness(t *testing.T, nangoHandler http.Handler) *linearProxy
 		employeeID:   employeeID,
 		subagentID:   subagentID,
 		standaloneID: standaloneID,
-		profileID:    profileID,
 		connectionID: connectionID,
 		bridgeKey:    bridgeKey,
 		providerKey:  providerKey,

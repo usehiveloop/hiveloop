@@ -99,9 +99,6 @@ func (h *InIntegrationHandler) ListAvailable(w http.ResponseWriter, r *http.Requ
 
 	resp := make([]inIntegrationAvailableResponse, 0, len(integrations))
 	for _, integ := range integrations {
-		if integrationEmployeeProfileCapability(integ.Provider) != nil {
-			continue
-		}
 		resp = append(resp, toInIntegrationAvailableResponse(integ))
 	}
 

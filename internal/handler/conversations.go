@@ -53,15 +53,15 @@ type conversationResponse struct {
 }
 
 type conversationEventResponse struct {
-	ID                   string          `json:"id"`
-	EventID              string          `json:"event_id"`
-	EventType            string          `json:"event_type"`
-	AgentID              string          `json:"agent_id"`
+	ID                    string          `json:"id"`
+	EventID               string          `json:"event_id"`
+	EventType             string          `json:"event_type"`
+	AgentID               string          `json:"agent_id"`
 	RuntimeConversationID string          `json:"runtime_conversation_id"`
-	Timestamp            string          `json:"timestamp"`
-	SequenceNumber       int64           `json:"sequence_number"`
-	Data                 json.RawMessage `json:"data"`
-	CreatedAt            string          `json:"created_at"`
+	Timestamp             string          `json:"timestamp"`
+	SequenceNumber        int64           `json:"sequence_number"`
+	Data                  json.RawMessage `json:"data"`
+	CreatedAt             string          `json:"created_at"`
 }
 
 // conversationHistoryResponse is the payload shape for GET /conversations/{id}/history.
@@ -189,11 +189,11 @@ func (h *ConversationHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	conv := model.AgentConversation{
-		OrgID:                org.ID,
-		AgentID:              agent.ID,
-		SandboxID:            sb.ID,
+		OrgID:                 org.ID,
+		AgentID:               agent.ID,
+		SandboxID:             sb.ID,
 		RuntimeConversationID: bridgeResp.ConversationId,
-		Status:               "active",
+		Status:                "active",
 	}
 	if err := h.db.Create(&conv).Error; err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to save conversation"})

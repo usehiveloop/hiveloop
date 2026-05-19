@@ -27,6 +27,7 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/handler"
 	"github.com/usehiveloop/hiveloop/internal/middleware"
 	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehiveloop/hiveloop/internal/nango"
 	"github.com/usehiveloop/hiveloop/internal/registry"
 	"github.com/usehiveloop/hiveloop/internal/sandbox"
 )
@@ -209,14 +210,18 @@ func newEmployeeHarness(t *testing.T) *employeeHarness {
 		EmployeeSandboxBaseImagePrefix: "hiveloop-employee-sandbox-test-small-v1",
 		BridgeHost:                     "cp.hiveloop.test",
 		ProxyHost:                      "proxy.hiveloop.test",
+		SlackAppToken:                  "xapp-test-token",
 	}
 	orch := sandbox.NewOrchestrator(db, provider, nil, encKey, cfg)
+	nangoSrv := httptest.NewServer(newNangoConnMock(&nangoConnMockConfig{}))
+	t.Cleanup(nangoSrv.Close)
 
 	compileDeps := employeeruntime.CompileDeps{
 		DB:         db,
 		Picker:     credentials.NewPickerWithRegistry(db, registry.Global()),
 		KMS:        kms,
 		EncKey:     encKey,
+		Nango:      nango.NewClient(nangoSrv.URL, "test-secret-key"),
 		SigningKey: []byte("test-signing-key-32-bytes-long!!"),
 		Cfg:        cfg,
 	}
@@ -234,18 +239,11 @@ func newEmployeeHarness(t *testing.T) *employeeHarness {
 		r.Get("/{id}/connections/available", h.ListAvailableConnections)
 		r.Group(func(r chi.Router) {
 			r.Use(middleware.RequireOrgAdmin(db))
-			r.Post("/", h.Create)
-			r.Put("/{id}", h.Update)
 			r.Post("/{id}/sync", h.Sync)
 			r.Post("/{id}/agent-templates/{slug}/install", h.InstallAgentTemplate)
 			r.Post("/{id}/sandbox/upgrade", h.StartSandboxUpgrade)
 			r.Get("/{id}/sandbox/upgrades/{upgradeID}", h.GetSandboxUpgrade)
 		})
-	})
-	r.Route("/v1/orgs/current/onboarding", func(r chi.Router) {
-		r.Use(middleware.ResolveOrgFromHeader(db))
-		r.Use(middleware.RequireOrgAdmin(db))
-		r.Post("/complete", h.CompleteOnboarding)
 	})
 
 	return &employeeHarness{

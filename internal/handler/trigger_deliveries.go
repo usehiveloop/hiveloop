@@ -25,7 +25,7 @@ type triggerDeliveryResponse struct {
 	ID                    string          `json:"id"`
 	AgentID               string          `json:"agent_id"`
 	TriggerID             string          `json:"trigger_id"`
-	ConnectionID           string          `json:"connection_id,omitempty"`
+	ConnectionID          string          `json:"connection_id,omitempty"`
 	DeliveryID            string          `json:"delivery_id"`
 	EventKey              string          `json:"event_key"`
 	ResourceKey           string          `json:"resource_key"`
@@ -136,7 +136,7 @@ func triggerDeliveryToResponse(row model.AgentTriggerDelivery) triggerDeliveryRe
 		ID:                    row.ID.String(),
 		AgentID:               row.AgentID.String(),
 		TriggerID:             row.TriggerID.String(),
-		ConnectionID:           connectionID,
+		ConnectionID:          connectionID,
 		DeliveryID:            row.DeliveryID,
 		EventKey:              row.EventKey,
 		ResourceKey:           row.ResourceKey,

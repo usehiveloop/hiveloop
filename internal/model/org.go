@@ -62,6 +62,7 @@ func AutoMigrate(db *gorm.DB) (err error) {
 		"router_triggers",
 		"routers",
 		"conversation_subscriptions",
+		"agent_profiles",
 	); err != nil {
 		return err
 	}
@@ -127,7 +128,6 @@ func AutoMigrate(db *gorm.DB) (err error) {
 		&SkillVersion{},
 		&AgentSkill{},
 		&AgentSubagent{},
-		&AgentProfile{},
 		&FailedEvent{},
 		&Team{},
 		&EmployeeAsset{},

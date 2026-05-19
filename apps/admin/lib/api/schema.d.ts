@@ -4854,1009 +4854,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/agents/{agentID}/profiles/available": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List available employee profile providers
-         * @description Returns profile-capable providers for an employee, including dynamic custom app setup metadata.
-         */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description Agent ID (must be an AI employee) */
-                    agentID: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["profileProviderAvailableResponse"][];
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Unauthorized */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/agents/{agentID}/profiles/github": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Attach a GitHub profile to an AI employee
-         * @description Verifies an org GitHub connection through Nango and stores it as the employee's single GitHub profile.
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description Agent ID (must be an AI employee) */
-                    agentID: string;
-                };
-                cookie?: never;
-            };
-            /** @description GitHub connection */
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["createGitHubProfileRequest"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["createGitHubProfileResponse"];
-                    };
-                };
-                /** @description Created */
-                201: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["createGitHubProfileResponse"];
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Unauthorized */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Bad Gateway */
-                502: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/agents/{agentID}/profiles/github/repositories": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List repositories for an employee GitHub profile
-         * @description Lists repositories visible to the employee's attached GitHub profile and returns any selected repositories.
-         */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description Agent ID (must be an AI employee) */
-                    agentID: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["gitHubProfileRepositoriesResponse"];
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Unauthorized */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Conflict */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Bad Gateway */
-                502: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /**
-         * Update selected repositories for an employee GitHub profile
-         * @description Stores the repositories this employee may access from its attached GitHub profile.
-         */
-        patch: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description Agent ID (must be an AI employee) */
-                    agentID: string;
-                };
-                cookie?: never;
-            };
-            /** @description Selected repositories */
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["updateGitHubRepositoriesRequest"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["gitHubProfileRepositoriesResponse"];
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Unauthorized */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Conflict */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Internal Server Error */
-                500: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-            };
-        };
-        trace?: never;
-    };
-    "/v1/agents/{agentID}/profiles/slack": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Create a Slack profile for an AI employee
-         * @description Validates Slack bot+app tokens, stores them encrypted, and returns the profile plus public channels.
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description Agent ID (must be an AI employee) */
-                    agentID: string;
-                };
-                cookie?: never;
-            };
-            /** @description Slack tokens */
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["createSlackProfileRequest"];
-                };
-            };
-            responses: {
-                /** @description Created */
-                201: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["createSlackProfileResponse"];
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Unauthorized */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Conflict */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Internal Server Error */
-                500: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/agents/{agentID}/profiles/slack/channels": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List Slack public channels for an AI employee's profile
-         * @description Returns public channels visible to the bot of the agent's Slack profile.
-         */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description Agent ID (must be an AI employee) */
-                    agentID: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["listSlackChannelsResponse"];
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Unauthorized */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Bad Gateway */
-                502: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/agents/{agentID}/profiles/slack/config": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /**
-         * Update an AI employee's Slack profile config
-         * @description Sets the home channel for the agent and auto-joins the bot to that channel.
-         */
-        patch: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description Agent ID (must be an AI employee) */
-                    agentID: string;
-                };
-                cookie?: never;
-            };
-            /** @description Slack profile config */
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["updateSlackConfigRequest"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["updateSlackConfigResponse"];
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Unauthorized */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Internal Server Error */
-                500: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Bad Gateway */
-                502: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-            };
-        };
-        trace?: never;
-    };
-    "/v1/agents/{agentID}/profiles/{provider}/complete": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Complete a profile connection
-         * @description Stores the Nango connection and attaches it as an employee profile.
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description Agent ID (must be an AI employee) */
-                    agentID: string;
-                    /** @description Profile provider */
-                    provider: string;
-                };
-                cookie?: never;
-            };
-            /** @description Nango connection */
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["completeAgentProfileRequest"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["completeAgentProfileResponse"];
-                    };
-                };
-                /** @description Created */
-                201: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["completeAgentProfileResponse"];
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Unauthorized */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Bad Gateway */
-                502: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/agents/{agentID}/profiles/{provider}/connect-session": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Create a profile connect session
-         * @description Creates a Nango connect session for an employee profile provider.
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description Agent ID (must be an AI employee) */
-                    agentID: string;
-                    /** @description Profile provider */
-                    provider: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Created */
-                201: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["inConnectSessionResponse"];
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Unauthorized */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Bad Gateway */
-                502: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/agents/{agentID}/profiles/{provider}/custom-app": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        /**
-         * Update a custom app integration for an employee profile
-         * @description Updates the employee-scoped Nango integration credentials after the user has created the provider app with the placeholder webhook values.
-         */
-        put: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description Agent ID (must be an AI employee) */
-                    agentID: string;
-                    /** @description Profile provider */
-                    provider: string;
-                };
-                cookie?: never;
-            };
-            /** @description Custom app credentials */
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["updateProfileCustomAppRequest"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["profileCustomAppResponse"];
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Unauthorized */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Bad Gateway */
-                502: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-            };
-        };
-        /**
-         * Create a custom app integration for an employee profile
-         * @description Creates one employee-scoped placeholder Nango integration for a custom-app profile provider.
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description Agent ID (must be an AI employee) */
-                    agentID: string;
-                    /** @description Profile provider */
-                    provider: string;
-                };
-                cookie?: never;
-            };
-            /** @description Optional custom app metadata */
-            requestBody?: {
-                content: {
-                    "application/json": components["schemas"]["profileCustomAppRequest"];
-                };
-            };
-            responses: {
-                /** @description Created */
-                201: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["profileCustomAppResponse"];
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Unauthorized */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Conflict */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Bad Gateway */
-                502: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/agents/{agentID}/profiles/{provider}/reconnect-session": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Create a profile reconnect session
-         * @description Creates a Nango reconnect session for the existing employee profile provider.
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description Agent ID (must be an AI employee) */
-                    agentID: string;
-                    /** @description Profile provider */
-                    provider: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Created */
-                201: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["inConnectSessionResponse"];
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Unauthorized */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Bad Gateway */
-                502: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/v1/agents/{agentID}/skills": {
         parameters: {
             query?: never;
@@ -8635,7 +7632,7 @@ export interface paths {
         /**
          * List AI employees
          * @description Returns all employee agents in the org with sub-agents,
-         *     skills (metadata only — no bundle content), profiles,
+         *     skills (metadata only — no bundle content),
          *     triggers, and the latest sandbox row.
          */
         get: {
@@ -8684,82 +7681,7 @@ export interface paths {
             };
         };
         put?: never;
-        /**
-         * Create an AI employee
-         * @description Persists an Agent (is_employee=true). The employee sandbox is
-         *     provisioned after an active channel profile exists, during onboarding
-         *     completion or explicit sync.
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            /** @description Employee definition */
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["createEmployeeRequest"];
-                };
-            };
-            responses: {
-                /** @description Created */
-                201: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["createEmployeeResponse"];
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Unauthorized */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Conflict */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Internal Server Error */
-                500: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Service Unavailable */
-                503: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-            };
-        };
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -8776,7 +7698,7 @@ export interface paths {
         /**
          * Get an AI employee
          * @description Returns one employee agent in the org with sub-agents,
-         *     skills (metadata only — no bundle content), profiles,
+         *     skills (metadata only — no bundle content),
          *     triggers, and the latest sandbox row.
          */
         get: {
@@ -8838,102 +7760,7 @@ export interface paths {
                 };
             };
         };
-        /**
-         * Update an AI employee
-         * @description Updates employee creation fields, assigned org connections, and optional skills.
-         *     Category is read-only. Required backend-managed employee skills are preserved.
-         */
-        put: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description Employee agent ID */
-                    id: string;
-                };
-                cookie?: never;
-            };
-            /** @description Fields to update */
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["updateEmployeeRequest"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["updateEmployeeResponse"];
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Unauthorized */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Forbidden */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Conflict */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Internal Server Error */
-                500: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Bad Gateway */
-                502: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-            };
-        };
+        put?: never;
         post?: never;
         delete?: never;
         options?: never;
@@ -8950,7 +7777,7 @@ export interface paths {
         };
         /**
          * List employee agent templates
-         * @description Returns category-scoped employee subagent templates and whether each one is already installed on the employee.
+         * @description Returns employee subagent templates and whether each one is already installed on the employee.
          */
         get: {
             parameters: {
@@ -9220,7 +8047,7 @@ export interface paths {
         };
         /**
          * List assignable employee connections
-         * @description Returns non-revoked org connections that may be attached to an employee as tool capabilities. Connections used as employee profiles, such as Slack and GitHub identity profiles, are excluded.
+         * @description Returns non-revoked org connections available to the managed employee.
          */
         get: {
             parameters: {
@@ -11189,107 +10016,6 @@ export interface paths {
         };
         put?: never;
         post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/orgs/current/onboarding/complete": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Complete onboarding
-         * @description Saves the org's business info, validates the org has at least
-         *     one employee with an active Slack profile, then runs
-         *     the same compile + sandbox-sync as POST /v1/employees/{id}/sync
-         *     on the org's first employee. On success Org.onboarded is set.
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            /** @description Business info */
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["completeOnboardingRequest"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["completeOnboardingResponse"];
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Unauthorized */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Forbidden */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Conflict */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Internal Server Error */
-                500: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Bad Gateway */
-                502: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-            };
-        };
         delete?: never;
         options?: never;
         head?: never;
@@ -14048,11 +12774,6 @@ export interface components {
             display_name?: string;
             key?: string;
         };
-        EmployeeProfileCapability: {
-            custom_app?: boolean;
-            scopes?: string[];
-            supported?: boolean;
-        };
         SchemaDefinition: {
             /** @description for array types */
             items?: components["schemas"]["SchemaRef"];
@@ -14155,16 +12876,6 @@ export interface components {
             /** @description INSTALL_PLUGIN fields */
             username?: string;
             webhook_secret?: string;
-        };
-        "github_com_usehiveloop_hiveloop_internal_profiles_slack.Channel": {
-            id?: string;
-            is_archived?: boolean;
-            is_member?: boolean;
-            is_private?: boolean;
-            name?: string;
-            num_members?: number;
-            purpose?: string;
-            topic?: string;
         };
         Cost: {
             input?: number;
@@ -14320,7 +13031,6 @@ export interface components {
             created_at?: string;
             custom_app?: boolean;
             display_name?: string;
-            employee_profile?: components["schemas"]["EmployeeProfileCapability"];
             id?: string;
             meta?: components["schemas"]["JSON"];
             nango_config?: components["schemas"]["JSON"];
@@ -14507,21 +13217,6 @@ export interface components {
             id?: string;
             name?: string;
         };
-        agentProfileResponse: {
-            agent_id?: string;
-            config?: components["schemas"]["JSON"];
-            created_at?: string;
-            external_id?: string;
-            id?: string;
-            identity?: components["schemas"]["JSON"];
-            label?: string;
-            last_verified_at?: string;
-            org_id?: string;
-            provider?: string;
-            status?: string;
-            status_reason?: string;
-            updated_at?: string;
-        };
         agentResponse: {
             agent_config?: components["schemas"]["JSON"];
             attached_skills?: components["schemas"]["agentSkillSummary"][];
@@ -14543,7 +13238,6 @@ export interface components {
             model?: string;
             name?: string;
             permissions?: components["schemas"]["JSON"];
-            profiles?: components["schemas"]["agentProfileResponse"][];
             prompt_operating_principles?: string;
             provider_id?: string;
             provider_prompts?: components["schemas"]["ProviderPromptsMap"];
@@ -14703,25 +13397,6 @@ export interface components {
             exit_code?: number;
             output?: string;
         };
-        completeAgentProfileRequest: {
-            label?: string;
-            meta?: components["schemas"]["JSON"];
-            nango_connection_id?: string;
-        };
-        completeAgentProfileResponse: {
-            connection?: components["schemas"]["inConnectionResponse"];
-            profile?: components["schemas"]["agentProfileResponse"];
-        };
-        completeOnboardingRequest: {
-            description?: string;
-            logo_url?: string;
-            name?: string;
-            website?: string;
-        };
-        completeOnboardingResponse: {
-            agent_id?: string;
-            sync?: components["schemas"]["syncEmployeeResponse"];
-        };
         confirmEmailRequest: {
             token?: string;
         };
@@ -14869,24 +13544,6 @@ export interface components {
             verified?: boolean;
             verified_at?: string;
         };
-        createEmployeeRequest: {
-            avatar_url?: string;
-            category?: string;
-            description?: string;
-            name?: string;
-        };
-        createEmployeeResponse: {
-            agent_id?: string;
-            sandbox_id?: string;
-            status?: string;
-        };
-        createGitHubProfileRequest: {
-            connection_id?: string;
-            label?: string;
-        };
-        createGitHubProfileResponse: {
-            profile?: components["schemas"]["agentProfileResponse"];
-        };
         createInConnectionRequest: {
             meta?: components["schemas"]["JSON"];
             nango_connection_id?: string;
@@ -14932,15 +13589,6 @@ export interface components {
             source_type?: string;
             tags?: string[];
         };
-        createSlackProfileRequest: {
-            app_token?: string;
-            bot_token?: string;
-            label?: string;
-        };
-        createSlackProfileResponse: {
-            channels?: components["schemas"]["github_com_usehiveloop_hiveloop_internal_profiles_slack.Channel"][];
-            profile?: components["schemas"]["agentProfileResponse"];
-        };
         createSystemCredentialRequest: {
             api_key?: string;
             auth_scheme?: string;
@@ -14984,7 +13632,6 @@ export interface components {
         };
         employeeAgentTemplateResponse: {
             agent_type?: string;
-            category?: string;
             description?: string;
             installed?: boolean;
             name?: string;
@@ -14995,7 +13642,6 @@ export interface components {
         employeeConnectionResponse: {
             created_at?: string;
             display_name?: string;
-            employee_profile?: components["schemas"]["EmployeeProfileCapability"];
             id?: string;
             in_integration_id?: string;
             meta?: components["schemas"]["JSON"];
@@ -15025,7 +13671,6 @@ export interface components {
             model?: string;
             name?: string;
             permissions?: components["schemas"]["JSON"];
-            profiles?: components["schemas"]["agentProfileResponse"][];
             prompt_operating_principles?: string;
             provider_id?: string;
             provider_prompts?: components["schemas"]["ProviderPromptsMap"];
@@ -15131,22 +13776,6 @@ export interface components {
             upstream_status?: number;
             user_id?: string;
         };
-        gitHubProfileRepositoriesResponse: {
-            profile?: components["schemas"]["agentProfileResponse"];
-            repositories?: components["schemas"]["gitHubRepository"][];
-            selected_repositories?: components["schemas"]["gitHubRepository"][];
-        };
-        gitHubRepository: {
-            description?: string;
-            full_name?: string;
-            html_url?: string;
-            id?: string;
-            name?: string;
-            node_id?: string;
-            owner?: string;
-            permissions?: components["schemas"]["JSON"];
-            private?: boolean;
-        };
         inConnectSessionResponse: {
             provider_config_key?: string;
             token?: string;
@@ -15156,7 +13785,6 @@ export interface components {
             configurable_resources?: components["schemas"]["ConfigurableResourceSummary"][];
             created_at?: string;
             display_name?: string;
-            employee_profile?: components["schemas"]["EmployeeProfileCapability"];
             id?: string;
             in_integration_id?: string;
             meta?: components["schemas"]["JSON"];
@@ -15171,25 +13799,10 @@ export interface components {
         inIntegrationAvailableResponse: {
             created_at?: string;
             display_name?: string;
-            employee_profile?: components["schemas"]["EmployeeProfileCapability"];
             id?: string;
             meta?: components["schemas"]["JSON"];
             nango_config?: components["schemas"]["NangoConfig"];
             provider?: string;
-        };
-        inIntegrationResponse: {
-            agent_id?: string;
-            created_at?: string;
-            custom_app?: boolean;
-            display_name?: string;
-            employee_profile?: components["schemas"]["EmployeeProfileCapability"];
-            id?: string;
-            meta?: components["schemas"]["JSON"];
-            nango_config?: components["schemas"]["NangoConfig"];
-            org_id?: string;
-            provider?: string;
-            unique_key?: string;
-            updated_at?: string;
         };
         initUpgradeRequest: {
             quote_id?: string;
@@ -15234,9 +13847,6 @@ export interface components {
         };
         listOrgMembersResponse: {
             data?: components["schemas"]["orgMemberResponse"][];
-        };
-        listSlackChannelsResponse: {
-            channels?: components["schemas"]["github_com_usehiveloop_hiveloop_internal_profiles_slack.Channel"][];
         };
         loginRequest: {
             email?: string;
@@ -15547,25 +14157,6 @@ export interface components {
             quote_id?: string;
             requires_payment_now?: boolean;
             to_plan_slug?: string;
-        };
-        profileCustomAppRequest: {
-            credentials?: components["schemas"]["github_com_usehiveloop_hiveloop_internal_nango.Credentials"];
-            display_name?: string;
-            meta?: components["schemas"]["JSON"];
-        };
-        profileCustomAppResponse: {
-            integration?: components["schemas"]["inIntegrationResponse"];
-            provider_config_key?: string;
-        };
-        profileProviderAvailableResponse: {
-            custom_app_configured?: boolean;
-            custom_app_integration_id?: string;
-            display_name?: string;
-            employee_profile?: components["schemas"]["EmployeeProfileCapability"];
-            nango_config?: components["schemas"]["NangoConfig"];
-            profile?: components["schemas"]["agentProfileResponse"];
-            provider?: string;
-            provider_config_key?: string;
         };
         providerDetail: {
             api?: string;
@@ -16084,24 +14675,6 @@ export interface components {
         updateContentRequest: {
             bundle?: components["schemas"]["github_com_usehiveloop_hiveloop_internal_skills.Bundle"];
         };
-        updateEmployeeRequest: {
-            avatar_url?: string;
-            connection_ids?: string[];
-            description?: string;
-            model?: string;
-            name?: string;
-            skill_ids?: string[];
-            triggers?: components["schemas"]["agentTriggerInput"][];
-        };
-        updateEmployeeResponse: {
-            employee?: components["schemas"]["employeeListItem"];
-            sync?: components["schemas"]["syncEmployeeResponse"];
-            sync_status?: string;
-            warnings?: string[];
-        };
-        updateGitHubRepositoriesRequest: {
-            repositories?: components["schemas"]["gitHubRepository"][];
-        };
         updateMarketplaceAgentRequest: {
             avatar?: string;
             description?: string;
@@ -16114,11 +14687,6 @@ export interface components {
             logo_url?: string;
             name?: string;
             prompt_company?: string;
-        };
-        updateProfileCustomAppRequest: {
-            credentials?: components["schemas"]["github_com_usehiveloop_hiveloop_internal_nango.Credentials"];
-            display_name?: string;
-            meta?: components["schemas"]["JSON"];
         };
         updateRAGSourceRequest: {
             config?: components["schemas"]["JSON"];
@@ -16141,13 +14709,6 @@ export interface components {
             repo_ref?: string;
             status?: string;
             tags?: string[];
-        };
-        updateSlackConfigRequest: {
-            home_channel_id?: string;
-        };
-        updateSlackConfigResponse: {
-            channel?: components["schemas"]["github_com_usehiveloop_hiveloop_internal_profiles_slack.Channel"];
-            profile?: components["schemas"]["agentProfileResponse"];
         };
         updateTeamRequest: {
             description?: string;

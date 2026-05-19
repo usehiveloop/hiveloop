@@ -125,7 +125,9 @@ func TestIntegration_ChatStream_RejectsTokenForDifferentSession(t *testing.T) {
 	h.router.ServeHTTP(rr2, h.authedReq(t, m, "POST",
 		"/v1/employees/"+m.agent.ID.String()+"/chats",
 		map[string]string{"message": "second"}))
-	var second struct{ SessionID string `json:"session_id"` }
+	var second struct {
+		SessionID string `json:"session_id"`
+	}
 	_ = json.Unmarshal(rr2.Body.Bytes(), &second)
 
 	tokenIdx := strings.Index(first.StreamURL, "token=")

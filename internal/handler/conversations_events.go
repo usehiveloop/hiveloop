@@ -74,15 +74,15 @@ func (h *ConversationHandler) ListEvents(w http.ResponseWriter, r *http.Request)
 	resp := make([]conversationEventResponse, len(events))
 	for i, e := range events {
 		resp[i] = conversationEventResponse{
-			ID:                   e.ID.String(),
-			EventID:              e.EventID,
-			EventType:            e.EventType,
-			AgentID:              e.AgentID,
+			ID:                    e.ID.String(),
+			EventID:               e.EventID,
+			EventType:             e.EventType,
+			AgentID:               e.AgentID,
 			RuntimeConversationID: e.RuntimeConversationID,
-			Timestamp:            e.Timestamp.Format("2006-01-02T15:04:05Z07:00"),
-			SequenceNumber:       e.SequenceNumber,
-			Data:                 json.RawMessage(e.Data),
-			CreatedAt:            e.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+			Timestamp:             e.Timestamp.Format("2006-01-02T15:04:05Z07:00"),
+			SequenceNumber:        e.SequenceNumber,
+			Data:                  json.RawMessage(e.Data),
+			CreatedAt:             e.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 		}
 	}
 
@@ -187,15 +187,15 @@ func (h *ConversationHandler) History(w http.ResponseWriter, r *http.Request) {
 	}
 	for i, e := range events {
 		resp.Events[i] = conversationEventResponse{
-			ID:                   e.ID.String(),
-			EventID:              e.EventID,
-			EventType:            e.EventType,
-			AgentID:              e.AgentID,
+			ID:                    e.ID.String(),
+			EventID:               e.EventID,
+			EventType:             e.EventType,
+			AgentID:               e.AgentID,
 			RuntimeConversationID: e.RuntimeConversationID,
-			Timestamp:            e.Timestamp.Format("2006-01-02T15:04:05Z07:00"),
-			SequenceNumber:       e.SequenceNumber,
-			Data:                 json.RawMessage(e.Data),
-			CreatedAt:            e.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+			Timestamp:             e.Timestamp.Format("2006-01-02T15:04:05Z07:00"),
+			SequenceNumber:        e.SequenceNumber,
+			Data:                  json.RawMessage(e.Data),
+			CreatedAt:             e.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 		}
 	}
 	if len(events) > 0 {

@@ -10,7 +10,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/model"
-	githubprofile "github.com/usehiveloop/hiveloop/internal/profiles/github"
 	"gorm.io/gorm"
 )
 
@@ -159,20 +158,16 @@ func loadSelectedGitHubRepositoriesForAgent(ctx context.Context, db *gorm.DB, ag
 	if db == nil {
 		return nil, nil
 	}
-
-	var profile model.AgentProfile
-	err := db.WithContext(ctx).
-		Where("agent_id = ? AND provider = ? AND status = ? AND deleted_at IS NULL AND revoked_at IS NULL",
-			agentID, githubprofile.Provider, "active").
-		First(&profile).Error
+	var agent model.Agent
+	err := db.WithContext(ctx).Where("id = ?", agentID).First(&agent).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
 		}
-		return nil, fmt.Errorf("load employee github profile: %w", err)
+		return nil, fmt.Errorf("load employee github resources: %w", err)
 	}
 
-	raw := profile.Config["selected_repositories"]
+	raw := selectedRepositoriesFromResources(agent.Resources)
 	if raw == nil {
 		return nil, nil
 	}
@@ -198,6 +193,19 @@ func loadSelectedGitHubRepositoriesForAgent(ctx context.Context, db *gorm.DB, ag
 		repos = append(repos, repoResource{ID: fullName, Name: name})
 	}
 	return repos, nil
+}
+
+func selectedRepositoriesFromResources(resources model.JSON) any {
+	for _, resourceTypes := range resources {
+		typesMap, ok := resourceTypes.(map[string]any)
+		if !ok {
+			continue
+		}
+		if repos := typesMap["repository"]; repos != nil {
+			return repos
+		}
+	}
+	return nil
 }
 
 func (o *Orchestrator) cloneRepositories(ctx context.Context, sb *model.Sandbox, repos []repoResource, baseDir string) error {

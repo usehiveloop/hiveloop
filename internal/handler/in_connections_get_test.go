@@ -248,38 +248,3 @@ func TestInConnectionHandler_Get_NangoFailure(t *testing.T) {
 		t.Fatalf("expected connection id, got %v", resp["id"])
 	}
 }
-
-func TestInConnectionHandler_Get_RejectsProfileProvider(t *testing.T) {
-	db := connectTestDB(t)
-	t.Cleanup(func() {
-		db.Where("1=1").Delete(&model.InConnection{})
-		db.Where("1=1").Delete(&model.InIntegration{})
-	})
-
-	nangoSrv := httptest.NewServer(newNangoConnMock(&nangoConnMockConfig{}))
-	t.Cleanup(nangoSrv.Close)
-	nangoClient := nango.NewClient(nangoSrv.URL, "test-secret-key")
-	_ = nangoClient.FetchProviders(context.Background())
-
-	h := handler.NewInConnectionHandler(db, nangoClient, catalog.Global())
-	r := chi.NewRouter()
-	r.Get("/v1/in/connections/{id}", h.Get)
-
-	user := createTestUser(t, db, fmt.Sprintf("conn-%s@test.com", uuid.New().String()[:8]))
-	org := createTestOrg(t, db)
-	integ := createTestInIntegration(t, db, "linear-profile")
-	connID := uuid.New()
-	db.Create(&model.InConnection{
-		ID: connID, OrgID: org.ID, UserID: user.ID, InIntegrationID: integ.ID, NangoConnectionID: "profile-conn",
-	})
-
-	req := httptest.NewRequest(http.MethodGet, "/v1/in/connections/"+connID.String(), nil)
-	req = middleware.WithUser(req, &user)
-	req = middleware.WithOrg(req, &org)
-	rr := httptest.NewRecorder()
-	r.ServeHTTP(rr, req)
-
-	if rr.Code != http.StatusBadRequest {
-		t.Fatalf("expected 400, got %d: %s", rr.Code, rr.Body.String())
-	}
-}

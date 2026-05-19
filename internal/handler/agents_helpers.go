@@ -10,7 +10,6 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/usehiveloop/hiveloop/internal/model"
-	githubprofile "github.com/usehiveloop/hiveloop/internal/profiles/github"
 	"github.com/usehiveloop/hiveloop/internal/registry"
 )
 
@@ -131,36 +130,6 @@ func (h *AgentHandler) loadAgentSkills(agentIDs ...uuid.UUID) map[uuid.UUID][]ag
 			Description: skill.Description,
 			SourceType:  skill.SourceType,
 		})
-	}
-	return result
-}
-
-func (h *AgentHandler) loadAgentProfiles(agentIDs ...uuid.UUID) map[uuid.UUID][]agentProfileResponse {
-	if len(agentIDs) == 0 {
-		return nil
-	}
-	var profiles []model.AgentProfile
-	if err := h.db.
-		Where("agent_id IN ? AND deleted_at IS NULL AND revoked_at IS NULL", agentIDs).
-		Order("created_at ASC").
-		Find(&profiles).Error; err != nil {
-		return nil
-	}
-	if len(profiles) == 0 {
-		return nil
-	}
-	result := make(map[uuid.UUID][]agentProfileResponse, len(agentIDs))
-	for _, p := range profiles {
-		identity := p.Identity
-		if len(p.EncryptedIdentity) > 0 {
-			decrypted, err := githubprofile.DecryptIdentity(h.encKey, p)
-			if err == nil {
-				identity = decrypted
-			} else {
-				identity = model.JSON{}
-			}
-		}
-		result[p.AgentID] = append(result[p.AgentID], toAgentProfileResponseWithIdentity(p, identity))
 	}
 	return result
 }

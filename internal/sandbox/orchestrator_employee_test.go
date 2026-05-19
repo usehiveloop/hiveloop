@@ -9,11 +9,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/google/uuid"
-
 	"github.com/usehiveloop/hiveloop/internal/employeeruntime"
 	"github.com/usehiveloop/hiveloop/internal/model"
-	githubprofile "github.com/usehiveloop/hiveloop/internal/profiles/github"
 )
 
 func TestCreateEmployeeSandbox_ClonesSelectedGitHubProfileRepositories(t *testing.T) {
@@ -25,26 +22,16 @@ func TestCreateEmployeeSandbox_ClonesSelectedGitHubProfileRepositories(t *testin
 	cred := createTestCred(t, db, org.ID)
 	agent := createTestAgent(t, db, org.ID, cred.ID)
 	agent.IsEmployee = true
-	if err := db.Save(&agent).Error; err != nil {
-		t.Fatalf("save employee: %v", err)
-	}
-	profile := model.AgentProfile{
-		ID:         uuid.New(),
-		OrgID:      org.ID,
-		AgentID:    agent.ID,
-		Provider:   githubprofile.Provider,
-		ExternalID: "octocat",
-		Label:      "octocat",
-		Config: model.JSON{
-			"selected_repositories": []any{
+	agent.Resources = model.JSON{
+		"github": map[string]any{
+			"repository": []any{
 				map[string]any{"id": "123456", "name": "api", "full_name": "octo-org/api"},
 				map[string]any{"id": "789012", "name": "web", "full_name": "octo-org/web"},
 			},
 		},
-		Status: "active",
 	}
-	if err := db.Create(&profile).Error; err != nil {
-		t.Fatalf("create github profile: %v", err)
+	if err := db.Save(&agent).Error; err != nil {
+		t.Fatalf("save employee: %v", err)
 	}
 
 	var commands []string
@@ -76,12 +63,11 @@ func TestCreateEmployeeSandbox_ClonesSelectedGitHubProfileRepositories(t *testin
 
 func TestCreateEmployeeSandbox_NoGitHubSelectionSkipsRepositoryClone(t *testing.T) {
 	tests := []struct {
-		name        string
-		seedProfile bool
-		config      model.JSON
+		name      string
+		resources model.JSON
 	}{
-		{name: "no profile"},
-		{name: "empty selection", seedProfile: true, config: model.JSON{"selected_repositories": []any{}}},
+		{name: "no resources"},
+		{name: "empty selection", resources: model.JSON{"github": map[string]any{"repository": []any{}}}},
 	}
 
 	for _, tt := range tests {
@@ -97,20 +83,9 @@ func TestCreateEmployeeSandbox_NoGitHubSelectionSkipsRepositoryClone(t *testing.
 			if err := db.Save(&agent).Error; err != nil {
 				t.Fatalf("save employee: %v", err)
 			}
-			if tt.seedProfile {
-				profile := model.AgentProfile{
-					ID:         uuid.New(),
-					OrgID:      org.ID,
-					AgentID:    agent.ID,
-					Provider:   githubprofile.Provider,
-					ExternalID: "octocat",
-					Label:      "octocat",
-					Config:     tt.config,
-					Status:     "active",
-				}
-				if err := db.Create(&profile).Error; err != nil {
-					t.Fatalf("create github profile: %v", err)
-				}
+			agent.Resources = tt.resources
+			if err := db.Save(&agent).Error; err != nil {
+				t.Fatalf("save employee resources: %v", err)
 			}
 
 			var commands []string
@@ -141,25 +116,15 @@ func TestCreateEmployeeSandbox_RepositoryCloneFailureMarksSandboxError(t *testin
 	cred := createTestCred(t, db, org.ID)
 	agent := createTestAgent(t, db, org.ID, cred.ID)
 	agent.IsEmployee = true
-	if err := db.Save(&agent).Error; err != nil {
-		t.Fatalf("save employee: %v", err)
-	}
-	profile := model.AgentProfile{
-		ID:         uuid.New(),
-		OrgID:      org.ID,
-		AgentID:    agent.ID,
-		Provider:   githubprofile.Provider,
-		ExternalID: "octocat",
-		Label:      "octocat",
-		Config: model.JSON{
-			"selected_repositories": []any{
+	agent.Resources = model.JSON{
+		"github": map[string]any{
+			"repository": []any{
 				map[string]any{"id": "123456", "name": "api", "full_name": "octo-org/api"},
 			},
 		},
-		Status: "active",
 	}
-	if err := db.Create(&profile).Error; err != nil {
-		t.Fatalf("create github profile: %v", err)
+	if err := db.Save(&agent).Error; err != nil {
+		t.Fatalf("save employee: %v", err)
 	}
 
 	provider.executeCommandFn = func(_ context.Context, _ string, command string) (string, error) {

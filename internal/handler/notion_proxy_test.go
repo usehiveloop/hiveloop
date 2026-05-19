@@ -131,13 +131,14 @@ func TestNotionProxy_RejectsInvalidAndUnattachedRequests(t *testing.T) {
 	}
 }
 
-func TestNotionProxy_RequiresActiveProfile(t *testing.T) {
+func TestNotionProxy_RequiresActiveConnection(t *testing.T) {
 	var nangoCalls atomic.Int64
 	harness := newNotionProxyHarness(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		nangoCalls.Add(1)
 	}))
-	if err := harness.db.Model(&model.AgentProfile{}).Where("id = ?", harness.profileID).Update("status", "revoked").Error; err != nil {
-		t.Fatalf("revoke profile: %v", err)
+	revokedAt := mustParseTime(t, "2026-05-17T00:00:00Z")
+	if err := harness.db.Model(&model.InConnection{}).Where("id = ?", harness.connectionID).Update("revoked_at", revokedAt).Error; err != nil {
+		t.Fatalf("revoke connection: %v", err)
 	}
 
 	req := httptest.NewRequest(http.MethodGet, "/internal/notion-proxy/"+harness.employeeID.String()+"/v1/users/me", nil)
@@ -149,39 +150,8 @@ func TestNotionProxy_RequiresActiveProfile(t *testing.T) {
 	if rec.Code != http.StatusNotFound {
 		t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
 	}
-	if !strings.Contains(rec.Body.String(), "no notion profile") {
+	if !strings.Contains(rec.Body.String(), "no notion connection") {
 		t.Fatalf("body = %s", rec.Body.String())
-	}
-	if got := nangoCalls.Load(); got != 0 {
-		t.Fatalf("nango calls = %d", got)
-	}
-}
-
-func TestNotionProxy_RegularNotionConnectionDoesNotSatisfyProfile(t *testing.T) {
-	var nangoCalls atomic.Int64
-	harness := newNotionProxyHarness(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		nangoCalls.Add(1)
-	}))
-	if err := harness.db.Delete(&model.AgentProfile{}, "id = ?", harness.profileID).Error; err != nil {
-		t.Fatalf("delete profile: %v", err)
-	}
-	regularIntegration := createTestInIntegration(t, harness.db, "notion")
-	regularConnectionID := uuid.New()
-	if err := harness.db.Create(&model.InConnection{ID: regularConnectionID, OrgID: harness.orgID, UserID: harness.userID, InIntegrationID: regularIntegration.ID, NangoConnectionID: "regular-notion-nango"}).Error; err != nil {
-		t.Fatalf("create regular notion connection: %v", err)
-	}
-	if err := harness.db.Model(&model.Agent{}).Where("id = ?", harness.employeeID).Update("integrations", model.JSON{regularConnectionID.String(): map[string]any{"actions": []string{}}}).Error; err != nil {
-		t.Fatalf("attach regular notion connection: %v", err)
-	}
-
-	req := httptest.NewRequest(http.MethodGet, "/internal/notion-proxy/"+harness.employeeID.String()+"/v1/users/me", nil)
-	req.Header.Set("Authorization", "Bearer "+harness.bridgeKey)
-	req.Header.Set("Notion-Version", "2022-06-28")
-	rec := httptest.NewRecorder()
-	harness.router.ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusNotFound {
-		t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
 	}
 	if got := nangoCalls.Load(); got != 0 {
 		t.Fatalf("nango calls = %d", got)

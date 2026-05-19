@@ -14,7 +14,7 @@ import (
 )
 
 // @Summary List employee agent templates
-// @Description Returns category-scoped employee subagent templates and whether each one is already installed on the employee.
+// @Description Returns employee subagent templates and whether each one is already installed on the employee.
 // @Tags employees
 // @Produce json
 // @Param id path string true "Employee agent ID"
@@ -45,7 +45,7 @@ func (h *EmployeeHandler) ListAgentTemplates(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	writeJSON(w, http.StatusOK, employeeAgentTemplateResponses(employeeCategory(employee), installed))
+	writeJSON(w, http.StatusOK, employeeAgentTemplateResponses(installed))
 }
 
 // @Summary Install an employee agent template
@@ -88,19 +88,19 @@ func (h *EmployeeHandler) InstallAgentTemplate(w http.ResponseWriter, r *http.Re
 	}
 
 	template := employeeAgentTemplateBySlug(chi.URLParam(r, "slug"))
-	if template == nil || template.Category != employeeCategory(employee) {
+	if template == nil {
 		writeJSON(w, http.StatusNotFound, map[string]string{"error": "agent template not found"})
 		return
 	}
 
-	hasProfile, err := h.employeeHasActiveSlackProfile(ctx, org.ID, employee.ID)
+	hasProfile, err := h.orgHasActiveSlackConnection(ctx, org.ID)
 	if err != nil {
-		log.ErrorContext(ctx, "count employee profiles", "error", err, "agent_id", employee.ID)
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to load employee profiles"})
+		log.ErrorContext(ctx, "count slack org connections", "error", err, "agent_id", employee.ID)
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to load Slack connection"})
 		return
 	}
 	if !hasProfile {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "employee must have an active slack profile"})
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "organization must have an active Slack connection"})
 		return
 	}
 

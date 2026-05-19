@@ -5,10 +5,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/google/uuid"
-
 	"github.com/usehiveloop/hiveloop/internal/model"
-	githubprofile "github.com/usehiveloop/hiveloop/internal/profiles/github"
 )
 
 func TestCreateDedicatedSandbox(t *testing.T) {
@@ -162,7 +159,7 @@ func TestCreateDedicatedSandbox_InheritsEmployeeResourcesForRepositoryClone(t *t
 	assertCommandContains(t, commands, "git clone --depth=1 https://github.com/octo-org/worker.git /home/daytona/repos/worker")
 }
 
-func TestCreateDedicatedSandbox_InheritsGitIdentityFromEmployeeProfile(t *testing.T) {
+func TestCreateDedicatedSandbox_InheritsGitIdentityFromEmployee(t *testing.T) {
 	orch, provider, db := setupOrchestrator(t)
 	org := createTestOrg(t, db)
 	cred := createTestCred(t, db, org.ID)
@@ -182,31 +179,6 @@ func TestCreateDedicatedSandbox_InheritsGitIdentityFromEmployeeProfile(t *testin
 		db.Where("agent_id = ? AND subagent_id = ?", employee.ID, subagent.ID).Delete(&model.AgentSubagent{})
 	})
 
-	encryptedIdentity, err := githubprofile.EncryptIdentity(orch.encKey, model.JSON{
-		"name":  "The Octocat",
-		"login": "octocat",
-		"email": "octocat@example.com",
-	})
-	if err != nil {
-		t.Fatalf("encrypt identity: %v", err)
-	}
-	profile := model.AgentProfile{
-		ID:                uuid.New(),
-		OrgID:             org.ID,
-		AgentID:           employee.ID,
-		Provider:          "github",
-		ExternalID:        "octocat",
-		Label:             "octocat",
-		Identity:          model.JSON{},
-		EncryptedIdentity: encryptedIdentity,
-		Config:            model.JSON{},
-		Status:            "active",
-	}
-	if err := db.Create(&profile).Error; err != nil {
-		t.Fatalf("create github profile: %v", err)
-	}
-	t.Cleanup(func() { db.Where("id = ?", profile.ID).Delete(&model.AgentProfile{}) })
-
 	sb, err := orch.CreateDedicatedSandbox(context.Background(), &subagent)
 	if err != nil {
 		t.Fatalf("CreateDedicatedSandbox: %v", err)
@@ -217,11 +189,11 @@ func TestCreateDedicatedSandbox_InheritsGitIdentityFromEmployeeProfile(t *testin
 	})
 
 	env := provider.createCalls[len(provider.createCalls)-1].EnvVars
-	if env["HIVELOOP_GIT_USERNAME"] != "The Octocat" {
-		t.Fatalf("HIVELOOP_GIT_USERNAME = %q, want The Octocat", env["HIVELOOP_GIT_USERNAME"])
+	if env["HIVELOOP_GIT_USERNAME"] != "employeeowner" {
+		t.Fatalf("HIVELOOP_GIT_USERNAME = %q, want employeeowner", env["HIVELOOP_GIT_USERNAME"])
 	}
-	if env["HIVELOOP_GIT_EMAIL"] != "octocat@example.com" {
-		t.Fatalf("HIVELOOP_GIT_EMAIL = %q, want octocat@example.com", env["HIVELOOP_GIT_EMAIL"])
+	if env["HIVELOOP_GIT_EMAIL"] != "employeeowner@users.noreply.github.com" {
+		t.Fatalf("HIVELOOP_GIT_EMAIL = %q, want employeeowner@users.noreply.github.com", env["HIVELOOP_GIT_EMAIL"])
 	}
 }
 

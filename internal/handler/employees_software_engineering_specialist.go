@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
+	"github.com/usehiveloop/hiveloop/internal/employeeruntime"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
@@ -23,18 +24,15 @@ func (h *EmployeeHandler) ensureSoftwareEngineeringSpecialistTx(ctx context.Cont
 
 	choice, err := pickEmployeeSubagentCredential(tx)
 	if err != nil {
-		return nil, err
+		choice = &employeeProviderChoice{model: employeeruntime.DefaultEmployeeSubagentModel}
 	}
 	desc := fmt.Sprintf("Software Engineering Specialist for %s. Handles implementation, debugging, codebase changes, and verification artifacts.", employee.Name)
-	category := employeeCategory(employee)
 	subagent := model.Agent{
 		OrgID:          employee.OrgID,
 		Description:    &desc,
-		Category:       &category,
 		SystemPrompt:   softwareEngineeringSpecialistSystemPrompt,
 		IdentityPrompt: softwareEngineeringSpecialistSystemPrompt,
 		Model:          choice.model,
-		CredentialID:   &choice.cred.ID,
 		TeamID:         &team.ID,
 		Team:           team.Name,
 		Harness:        employeeCloudAgentHarness,
@@ -48,7 +46,10 @@ func (h *EmployeeHandler) ensureSoftwareEngineeringSpecialistTx(ctx context.Cont
 		AgentConfig:    softwareEngineeringSpecialistAgentConfig(),
 		Permissions:    model.JSON{},
 	}
-	baseSlug := employeeSoftwareEngineeringSpecialistBaseSlug(employee.Name, category)
+	if choice.cred != nil {
+		subagent.CredentialID = &choice.cred.ID
+	}
+	baseSlug := employeeSoftwareEngineeringSpecialistBaseSlug(employee.Name)
 	if err := createWithUniqueNameSlug(tx, &subagent, baseSlug); err != nil {
 		return nil, err
 	}
@@ -103,10 +104,9 @@ func isSoftwareEngineeringSpecialist(agent *model.Agent) bool {
 
 func updateSoftwareEngineeringSpecialist(ctx context.Context, tx *gorm.DB, subagent *model.Agent, employee *model.Agent, team *model.Team) error {
 	desc := fmt.Sprintf("Software Engineering Specialist for %s. Handles implementation, debugging, codebase changes, and verification artifacts.", employee.Name)
-	category := employeeCategory(employee)
 	updates := map[string]any{
 		"description":     desc,
-		"category":        category,
+		"category":        nil,
 		"system_prompt":   softwareEngineeringSpecialistSystemPrompt,
 		"identity_prompt": softwareEngineeringSpecialistSystemPrompt,
 		"team_id":         team.ID,
@@ -120,7 +120,7 @@ func updateSoftwareEngineeringSpecialist(ctx context.Context, tx *gorm.DB, subag
 		return err
 	}
 	subagent.Description = &desc
-	subagent.Category = &category
+	subagent.Category = nil
 	subagent.SystemPrompt = softwareEngineeringSpecialistSystemPrompt
 	subagent.IdentityPrompt = softwareEngineeringSpecialistSystemPrompt
 	subagent.TeamID = &team.ID
@@ -139,10 +139,10 @@ func softwareEngineeringSpecialistAgentConfig() model.JSON {
 	}
 }
 
-func employeeSoftwareEngineeringSpecialistBaseSlug(employeeName, category string) string {
+func employeeSoftwareEngineeringSpecialistBaseSlug(employeeName string) string {
 	s := slugifyAgentName(employeeName)
 	if s == "" {
-		s = category
+		s = "hivy"
 	}
 	return s + "-software-engineering-specialist"
 }

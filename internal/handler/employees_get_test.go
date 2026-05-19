@@ -27,33 +27,12 @@ func (h *employeeHarness) getEmployee(t *testing.T, m orgWithMember, agentID str
 	return rr
 }
 
-func TestIntegration_EmployeesGet_HappyPath_LoadsProfilesSubagentsAndSandbox(t *testing.T) {
+func TestIntegration_EmployeesGet_HappyPath_LoadsSubagentsAndSandbox(t *testing.T) {
 	h := newEmployeeHarness(t)
 	h.platformCredCleanup(t)
 	m := h.createOrg(t)
 	emp := h.seedEmployeeAgent(t, m)
 	h.seedSandbox(t, m, emp.ID)
-
-	profile := model.AgentProfile{
-		OrgID:      m.org.ID,
-		AgentID:    emp.ID,
-		Provider:   "github",
-		ExternalID: "conn-github",
-		Label:      "GitHub",
-		Status:     "active",
-		Config: model.JSON{
-			"selected_repositories": []any{
-				map[string]any{
-					"id":        "repo-1",
-					"full_name": "usehiveloop/hiveloop.com",
-				},
-			},
-		},
-	}
-	if err := h.db.Create(&profile).Error; err != nil {
-		t.Fatalf("create github profile: %v", err)
-	}
-	t.Cleanup(func() { h.db.Where("id = ?", profile.ID).Delete(&model.AgentProfile{}) })
 
 	subagent := model.Agent{
 		OrgID: &m.org.ID, Name: "research-" + uuid.NewString()[:6],
@@ -80,18 +59,8 @@ func TestIntegration_EmployeesGet_HappyPath_LoadsProfilesSubagentsAndSandbox(t *
 	if item["id"] != emp.ID.String() {
 		t.Fatalf("id = %v, want %s", item["id"], emp.ID)
 	}
-	profiles := item["profiles"].([]any)
-	if len(profiles) != 1 {
-		t.Fatalf("profiles len = %d, want 1", len(profiles))
-	}
-	github := profiles[0].(map[string]any)
-	if github["provider"] != "github" || github["status"] != "active" {
-		t.Fatalf("github profile = %#v", github)
-	}
-	config := github["config"].(map[string]any)
-	selected := config["selected_repositories"].([]any)
-	if len(selected) != 1 {
-		t.Fatalf("selected repositories len = %d, want 1", len(selected))
+	if _, exposed := item["profiles"]; exposed {
+		t.Fatalf("employee response exposed removed profiles field: %#v", item["profiles"])
 	}
 	if _, ok := item["sandbox"].(map[string]any); !ok {
 		t.Fatalf("sandbox missing: %#v", item["sandbox"])

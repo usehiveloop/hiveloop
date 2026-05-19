@@ -56,9 +56,9 @@ func TestAdminListInIntegrationProvidersIncludesCatalogBackedVariants(t *testing
 		displayName string
 		authMode    string
 	}{
-		"bugsink":        {"Bugsink", "API_KEY"},
-		"linear-profile": {"Linear Profile", "OAUTH2"},
-		"notion-profile": {"Notion Profile", "OAUTH2"},
+		"bugsink": {"Bugsink", "API_KEY"},
+		"linear":  {"Linear", "OAUTH2"},
+		"notion":  {"Notion", "OAUTH2"},
 	}
 	for _, provider := range providers {
 		name, _ := provider["name"].(string)
@@ -125,37 +125,5 @@ func TestAdminCreateInIntegrationBugsink(t *testing.T) {
 	}
 	if !createdInNango {
 		t.Fatal("expected Bugsink integration to be created in Nango")
-	}
-}
-
-func TestAdminCreateInIntegrationLinearProfileUsesCatalogVariant(t *testing.T) {
-	router, _ := newAdminInIntegrationHarness(t)
-
-	body := strings.NewReader(`{"provider":"linear-profile","display_name":"Linear Profile","credentials":{"type":"OAUTH2","client_id":"linear-client","client_secret":"linear-secret"}}`)
-	req := httptest.NewRequest(http.MethodPost, "/admin/v1/in-integrations", body)
-	req.Header.Set("Content-Type", "application/json")
-	rr := httptest.NewRecorder()
-	router.ServeHTTP(rr, req)
-
-	if rr.Code != http.StatusCreated {
-		t.Fatalf("expected 201, got %d: %s", rr.Code, rr.Body.String())
-	}
-
-	var resp map[string]any
-	if err := json.NewDecoder(rr.Body).Decode(&resp); err != nil {
-		t.Fatalf("decode response: %v", err)
-	}
-	if resp["provider"] != "linear-profile" {
-		t.Fatalf("provider = %v, want linear-profile", resp["provider"])
-	}
-	profile, ok := resp["employee_profile"].(map[string]any)
-	if !ok {
-		t.Fatalf("expected employee_profile object, got %#v", resp["employee_profile"])
-	}
-	if profile["supported"] != true {
-		t.Fatalf("employee_profile.supported = %v, want true", profile["supported"])
-	}
-	if uniqueKey, _ := resp["unique_key"].(string); !strings.HasPrefix(uniqueKey, "linear-profile-") {
-		t.Fatalf("unique_key = %q, want linear-profile-*", uniqueKey)
 	}
 }

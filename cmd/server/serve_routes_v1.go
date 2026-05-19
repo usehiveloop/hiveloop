@@ -36,7 +36,6 @@ func setupV1Routes(
 	sandboxTemplateHandler *handler.SandboxTemplateHandler,
 	skillHandler *handler.SkillHandler,
 	agentHandler *handler.AgentHandler,
-	agentProfileHandler *handler.AgentProfileHandler,
 	marketplaceHandler *handler.MarketplaceHandler,
 	conversationHandler *handler.ConversationHandler,
 	customDomainHandler *handler.CustomDomainHandler,
@@ -176,23 +175,6 @@ func setupV1Routes(
 					}
 					r.Get("/{agentID}/trigger-deliveries", triggerDeliveryHandler.List)
 					r.Get("/{agentID}/trigger-deliveries/{deliveryID}", triggerDeliveryHandler.Get)
-					if agentProfileHandler != nil {
-						r.Get("/{agentID}/profiles/available", agentProfileHandler.ListAvailableProfiles)
-						r.Post("/{agentID}/profiles/slack", agentProfileHandler.CreateSlack)
-						r.Get("/{agentID}/profiles/slack/channels", agentProfileHandler.ListSlackChannels)
-						r.Patch("/{agentID}/profiles/slack/config", agentProfileHandler.UpdateSlackConfig)
-						r.Post("/{agentID}/profiles/{provider}/custom-app", agentProfileHandler.CreateProfileCustomApp)
-						r.Put("/{agentID}/profiles/{provider}/custom-app", agentProfileHandler.UpdateProfileCustomApp)
-						r.Group(func(r chi.Router) {
-							r.Use(middleware.ResolveUser(database))
-							r.Post("/{agentID}/profiles/{provider}/connect-session", agentProfileHandler.CreateProfileConnectSession)
-							r.Post("/{agentID}/profiles/{provider}/complete", agentProfileHandler.CompleteProfileConnection)
-							r.Post("/{agentID}/profiles/{provider}/reconnect-session", agentProfileHandler.CreateProfileReconnectSession)
-						})
-						r.Post("/{agentID}/profiles/github", agentProfileHandler.CreateGitHub)
-						r.Get("/{agentID}/profiles/github/repositories", agentProfileHandler.ListGitHubRepositories)
-						r.Patch("/{agentID}/profiles/github/repositories", agentProfileHandler.UpdateGitHubRepositories)
-					}
 				})
 				if employeeHandler != nil {
 					r.Get("/employees", employeeHandler.List)
@@ -202,13 +184,10 @@ func setupV1Routes(
 					r.Get("/employees/{id}/connections/available", employeeHandler.ListAvailableConnections)
 					r.Group(func(r chi.Router) {
 						r.Use(middleware.RequireOrgAdmin(database))
-						r.Post("/employees", employeeHandler.Create)
-						r.Put("/employees/{id}", employeeHandler.Update)
 						r.Post("/employees/{id}/sync", employeeHandler.Sync)
 						r.Post("/employees/{id}/agent-templates/{slug}/install", employeeHandler.InstallAgentTemplate)
 						r.Post("/employees/{id}/sandbox/upgrade", employeeHandler.StartSandboxUpgrade)
 						r.Get("/employees/{id}/sandbox/upgrades/{upgradeID}", employeeHandler.GetSandboxUpgrade)
-						r.Post("/orgs/current/onboarding/complete", employeeHandler.CompleteOnboarding)
 					})
 				}
 				if chatHandler != nil {

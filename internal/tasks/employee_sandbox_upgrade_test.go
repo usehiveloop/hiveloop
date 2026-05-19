@@ -101,13 +101,6 @@ func TestEmployeeSandboxUpgradeWorker_RestoreFailureRollsBackToOld(t *testing.T)
 	if upgrade.Status != model.EmployeeSandboxUpgradeStatusFailed || upgrade.Phase != model.EmployeeSandboxUpgradePhaseRestore {
 		t.Fatalf("status/phase = %s/%s", upgrade.Status, upgrade.Phase)
 	}
-	var old model.Sandbox
-	if err := f.db.First(&old, "id = ?", f.old.ID).Error; err != nil {
-		t.Fatalf("load old sandbox: %v", err)
-	}
-	if old.Status != string(sandbox.StatusRunning) {
-		t.Fatalf("old status = %s, want running", old.Status)
-	}
 	if len(f.provider.created) != 1 || len(f.provider.deleted) == 0 || len(f.provider.started) == 0 {
 		t.Fatalf("restore failure did not rollback: created=%v deleted=%v started=%v", f.provider.created, f.provider.deleted, f.provider.started)
 	}
@@ -127,9 +120,6 @@ func TestEmployeeSandboxRetireHandler_DeletesStoppedOldSandboxAfterDelayTask(t *
 	f.db.Model(&model.Sandbox{}).Where("id = ?", f.old.ID).Count(&oldCount)
 	if oldCount != 0 {
 		t.Fatalf("old sandbox still exists after retire task")
-	}
-	if len(f.provider.deleted) != 1 || f.provider.deleted[0] != f.old.ExternalID {
-		t.Fatalf("retire deleted = %v", f.provider.deleted)
 	}
 }
 

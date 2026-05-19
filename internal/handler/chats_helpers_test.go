@@ -36,13 +36,13 @@ func (s *chatStub) snapshot() (calls int, body []byte) {
 }
 
 type chatHarness struct {
-	db        *gorm.DB
-	router    *chi.Mux
-	encKey    *struct{ k []byte }
-	signKey   []byte
-	stub      *chatStub
+	db         *gorm.DB
+	router     *chi.Mux
+	encKey     *struct{ k []byte }
+	signKey    []byte
+	stub       *chatStub
 	sidecarSrv *httptest.Server
-	orgID     uuid.UUID
+	orgID      uuid.UUID
 }
 
 func newChatHarness(t *testing.T) (*chatHarness, *handler.ChatHandler) {

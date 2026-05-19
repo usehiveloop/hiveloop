@@ -127,9 +127,8 @@ func TestIntegration_EmployeesList_HappyPath_LoadsAllRelations(t *testing.T) {
 		}
 	}
 
-	profiles := item["profiles"].([]any)
-	if len(profiles) != 1 {
-		t.Errorf("profiles len = %d, want 1", len(profiles))
+	if _, exposed := item["profiles"]; exposed {
+		t.Fatalf("employee list response exposed removed profiles field: %#v", item["profiles"])
 	}
 
 	sb := item["sandbox"].(map[string]any)

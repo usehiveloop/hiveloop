@@ -29,7 +29,6 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { useSandboxTemplates } from "@/hooks/use-sandbox-template"
 import { $api } from "@/lib/api/hooks"
 import { extractErrorMessage } from "@/lib/api/error"
-import { formatCategoryLabel } from "@/lib/format-label"
 import type { components } from "@/lib/api/schema"
 
 type AgentTemplate = components["schemas"]["employeeAgentTemplateResponse"]
@@ -69,7 +68,7 @@ export function EmployeeAgentTemplatesSection({
     <>
       <FormSection
         title="Specialists"
-        description="Install category specialists for this employee."
+        description="Manage Hivy's specialist agents."
       >
         <div className="flex flex-col gap-2">
           {templatesQuery.isLoading ? (
@@ -202,7 +201,7 @@ function EmployeeAgentTemplatesDialog({
         <DialogHeader>
           <DialogTitle>Manage specialists</DialogTitle>
           <DialogDescription>
-            Add category specialists to {employeeName}.
+            Add specialists to {employeeName}.
           </DialogDescription>
         </DialogHeader>
 
@@ -232,7 +231,7 @@ function EmployeeAgentTemplatesDialog({
                   No specialists available
                 </p>
                 <p className="mt-1 max-w-[260px] text-xs text-muted-foreground">
-                  This employee category has no installable specialists yet.
+                  There are no installable specialists yet.
                 </p>
               </div>
             </div>
@@ -328,7 +327,7 @@ function InstalledTemplateRow({
             {template.name}
           </p>
           <p className="truncate text-xs text-muted-foreground">
-            {formatCategoryLabel(template.category)}
+            {template.agent_type}
           </p>
         </div>
       </div>

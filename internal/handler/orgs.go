@@ -120,6 +120,10 @@ func (h *OrgHandler) Create(w http.ResponseWriter, r *http.Request) {
 			return fmt.Errorf("creating membership: %w", err)
 		}
 
+		if _, err := createHivyEmployeeWithDefaultsTx(r.Context(), tx, org.ID); err != nil {
+			return fmt.Errorf("creating Hivy employee: %w", err)
+		}
+
 		return nil
 	})
 	if err != nil {

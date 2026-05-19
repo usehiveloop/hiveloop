@@ -14,7 +14,6 @@ type employeeAgentTemplate struct {
 	Slug              string
 	Name              string
 	Description       string
-	Category          string
 	AgentType         string
 	Version           int
 	DefaultSkillNames []string
@@ -26,7 +25,6 @@ type employeeAgentTemplateResponse struct {
 	Slug        string  `json:"slug"`
 	Name        string  `json:"name"`
 	Description string  `json:"description"`
-	Category    string  `json:"category"`
 	AgentType   string  `json:"agent_type"`
 	Version     int     `json:"version"`
 	Installed   bool    `json:"installed"`
@@ -47,7 +45,6 @@ var (
 			Slug:              "business-research-specialist",
 			Name:              "Business Research Specialist",
 			Description:       "Runs source-grounded research, market scans, and report generation for the employee.",
-			Category:          employeeCategoryEngineering,
 			AgentType:         defaultBusinessResearchSpecialistType,
 			Version:           defaultBusinessResearchSpecialistVersion,
 			DefaultSkillNames: defaultEmployeeTemplateSkillNames,
@@ -60,7 +57,6 @@ var (
 			Slug:              "software-engineering-specialist",
 			Name:              "Software Engineering Specialist",
 			Description:       "Handles implementation, debugging, codebase changes, verification, and PR-ready engineering work.",
-			Category:          employeeCategoryEngineering,
 			AgentType:         defaultSoftwareEngineeringSpecialistType,
 			Version:           defaultSoftwareEngineeringSpecialistVersion,
 			DefaultSkillNames: defaultEmployeeTemplateSkillNames,
@@ -72,12 +68,10 @@ var (
 	}
 )
 
-func employeeAgentTemplatesForCategory(category string) []*employeeAgentTemplate {
+func employeeAgentTemplatesForEmployee() []*employeeAgentTemplate {
 	out := make([]*employeeAgentTemplate, 0, len(employeeAgentTemplates))
 	for i := range employeeAgentTemplates {
-		if employeeAgentTemplates[i].Category == category {
-			out = append(out, &employeeAgentTemplates[i])
-		}
+		out = append(out, &employeeAgentTemplates[i])
 	}
 	return out
 }
@@ -107,7 +101,7 @@ func (h *EmployeeHandler) ensureEmployeeAgentTemplates(ctx context.Context, empl
 }
 
 func (h *EmployeeHandler) ensureEmployeeAgentTemplatesTx(ctx context.Context, tx *gorm.DB, employee *model.Agent, team *model.Team) ([]*model.Agent, error) {
-	templates := employeeAgentTemplatesForCategory(employeeCategory(employee))
+	templates := employeeAgentTemplatesForEmployee()
 	out := make([]*model.Agent, 0, len(templates))
 	for _, template := range templates {
 		subagent, err := template.EnsureTx(ctx, h, tx, employee, team)
@@ -132,13 +126,10 @@ func (h *EmployeeHandler) attachEmployeeAgentTemplateSkills(ctx context.Context,
 	}
 }
 
-func employeeAgentTemplateResponses(category string, installed map[string]*model.Agent) []employeeAgentTemplateResponse {
+func employeeAgentTemplateResponses(installed map[string]*model.Agent) []employeeAgentTemplateResponse {
 	out := make([]employeeAgentTemplateResponse, 0, len(employeeAgentTemplates))
 	for i := range employeeAgentTemplates {
 		t := &employeeAgentTemplates[i]
-		if t.Category != category {
-			continue
-		}
 		out = append(out, t.toResponse(installed))
 	}
 	return out
@@ -149,7 +140,6 @@ func (t *employeeAgentTemplate) toResponse(installed map[string]*model.Agent) em
 		Slug:        t.Slug,
 		Name:        t.Name,
 		Description: t.Description,
-		Category:    t.Category,
 		AgentType:   t.AgentType,
 		Version:     t.Version,
 	}

@@ -42,7 +42,7 @@ type employeeListItem struct {
 
 // @Summary List AI employees
 // @Description Returns all employee agents in the org with sub-agents,
-// @Description skills (metadata only — no bundle content), profiles,
+// @Description skills (metadata only — no bundle content),
 // @Description triggers, and the latest sandbox row.
 // @Tags employees
 // @Produce json
@@ -96,7 +96,6 @@ func (h *EmployeeHandler) List(w http.ResponseWriter, r *http.Request) {
 
 	triggers := h.agents.loadAgentTriggers(agentIDs...)
 	skills := h.agents.loadAgentSkills(agentIDs...)
-	profiles := h.agents.loadAgentProfiles(agentIDs...)
 	subagents := loadEmployeeSubagents(h.db, agentIDs)
 	sandboxes := loadLatestSandboxPerAgent(h.db, org.ID, agentIDs)
 	currentSnapshotID := h.currentEmployeeSandboxSnapshotID()
@@ -106,7 +105,6 @@ func (h *EmployeeHandler) List(w http.ResponseWriter, r *http.Request) {
 		base := toAgentResponse(a)
 		base.Triggers = triggers[a.ID]
 		base.AttachedSkills = h.markEmployeeSkillLocks(r.Context(), org.ID, &a, skills[a.ID])
-		base.Profiles = profiles[a.ID]
 		subs := subagents[a.ID]
 		base.SubagentIDs = make([]string, len(subs))
 		for j, s := range subs {
@@ -132,7 +130,7 @@ func (h *EmployeeHandler) List(w http.ResponseWriter, r *http.Request) {
 // Get handles GET /v1/employees/{id}.
 // @Summary Get an AI employee
 // @Description Returns one employee agent in the org with sub-agents,
-// @Description skills (metadata only — no bundle content), profiles,
+// @Description skills (metadata only — no bundle content),
 // @Description triggers, and the latest sandbox row.
 // @Tags employees
 // @Produce json
@@ -174,7 +172,6 @@ func (h *EmployeeHandler) Get(w http.ResponseWriter, r *http.Request) {
 	base := toAgentResponse(agent)
 	base.Triggers = h.agents.loadAgentTriggers(agent.ID)[agent.ID]
 	base.AttachedSkills = h.markEmployeeSkillLocks(r.Context(), org.ID, &agent, h.agents.loadAgentSkills(agent.ID)[agent.ID])
-	base.Profiles = h.agents.loadAgentProfiles(agent.ID)[agent.ID]
 	subagents := loadEmployeeSubagents(h.db, []uuid.UUID{agent.ID})[agent.ID]
 	base.SubagentIDs = make([]string, len(subagents))
 	for i, subagent := range subagents {
@@ -202,7 +199,6 @@ func (h *EmployeeHandler) employeeListItem(ctx context.Context, orgID uuid.UUID,
 	base := toAgentResponse(agent)
 	base.Triggers = h.agents.loadAgentTriggers(agent.ID)[agent.ID]
 	base.AttachedSkills = h.markEmployeeSkillLocks(ctx, orgID, &agent, h.agents.loadAgentSkills(agent.ID)[agent.ID])
-	base.Profiles = h.agents.loadAgentProfiles(agent.ID)[agent.ID]
 	subagents := loadEmployeeSubagents(h.db, []uuid.UUID{agent.ID})[agent.ID]
 	base.SubagentIDs = make([]string, len(subagents))
 	for i, subagent := range subagents {

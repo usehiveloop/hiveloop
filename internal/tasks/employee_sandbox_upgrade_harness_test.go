@@ -3,9 +3,9 @@ package tasks
 import (
 	"context"
 	"encoding/base64"
-	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/google/uuid"
@@ -17,7 +17,7 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/employeeruntime"
 	"github.com/usehiveloop/hiveloop/internal/enqueue"
 	"github.com/usehiveloop/hiveloop/internal/model"
-	slackprov "github.com/usehiveloop/hiveloop/internal/profiles/slack"
+	"github.com/usehiveloop/hiveloop/internal/nango"
 	"github.com/usehiveloop/hiveloop/internal/sandbox"
 )
 
@@ -42,6 +42,7 @@ func newEmployeeUpgradeFixture(t *testing.T) *employeeUpgradeFixture {
 		EmployeeSandboxBaseImagePrefix: "employee-runtime-test-v2",
 		BridgeHost:                     "cp.hiveloop.test",
 		ProxyHost:                      "proxy.hiveloop.test",
+		SlackAppToken:                  "xapp-test-token",
 	}
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
@@ -66,6 +67,15 @@ func newEmployeeUpgradeFixture(t *testing.T) *employeeUpgradeFixture {
 		}
 	}))
 	t.Cleanup(server.Close)
+	nangoServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasPrefix(r.URL.Path, "/connection/") && r.Method == http.MethodGet {
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"credentials":{"bot_token":"xoxb-test-token"}}`))
+			return
+		}
+		w.WriteHeader(http.StatusNotFound)
+	}))
+	t.Cleanup(nangoServer.Close)
 
 	provider := &employeeUpgradeProvider{endpoint: server.URL}
 	enqueuer := &enqueue.MockClient{}
@@ -73,6 +83,10 @@ func newEmployeeUpgradeFixture(t *testing.T) *employeeUpgradeFixture {
 	org := model.Org{Name: "upgrade-org-" + uuid.NewString()[:8], Active: true}
 	if err := db.Create(&org).Error; err != nil {
 		t.Fatalf("create org: %v", err)
+	}
+	user := model.User{Email: "upgrade-" + uuid.NewString()[:8] + "@test.com", Name: "Upgrade User"}
+	if err := db.Create(&user).Error; err != nil {
+		t.Fatalf("create user: %v", err)
 	}
 	cred := model.Credential{
 		OrgID:        org.ID,
@@ -106,7 +120,7 @@ func newEmployeeUpgradeFixture(t *testing.T) *employeeUpgradeFixture {
 	if err := db.Create(&agent).Error; err != nil {
 		t.Fatalf("create agent: %v", err)
 	}
-	seedEmployeeUpgradeSlackProfile(t, db, kms, org.ID, agent.ID)
+	seedEmployeeUpgradeSlackProfile(t, db, kms, org.ID, user.ID, agent.ID)
 	bridgeKey := "runtime-secret-" + uuid.NewString()
 	encryptedKey, err := encKey.EncryptString(bridgeKey)
 	if err != nil {
@@ -138,16 +152,18 @@ func newEmployeeUpgradeFixture(t *testing.T) *employeeUpgradeFixture {
 		DB:         db,
 		KMS:        kms,
 		EncKey:     encKey,
+		Nango:      nango.NewClient(nangoServer.URL, "test-secret-key"),
 		SigningKey: []byte("test-signing-key-32-bytes-long!!"),
 		Cfg:        cfg,
 	}, enqueuer)
 	t.Cleanup(func() {
 		db.Where("org_id = ?", org.ID).Delete(&model.EmployeeSandboxUpgrade{})
 		db.Where("org_id = ?", org.ID).Delete(&model.Sandbox{})
-		db.Where("org_id = ?", org.ID).Delete(&model.AgentProfile{})
+		db.Where("org_id = ?", org.ID).Delete(&model.InConnection{})
 		db.Where("org_id = ?", org.ID).Delete(&model.Agent{})
 		db.Where("org_id = ?", org.ID).Delete(&model.Credential{})
 		db.Where("id = ?", org.ID).Delete(&model.Org{})
+		db.Where("id = ?", user.ID).Delete(&model.User{})
 	})
 	return &employeeUpgradeFixture{
 		db: db, server: server, provider: provider, enqueuer: enqueuer, handler: handler,
@@ -155,31 +171,17 @@ func newEmployeeUpgradeFixture(t *testing.T) *employeeUpgradeFixture {
 	}
 }
 
-func seedEmployeeUpgradeSlackProfile(t *testing.T, db *gorm.DB, kms *crypto.KeyWrapper, orgID, agentID uuid.UUID) {
+func seedEmployeeUpgradeSlackProfile(t *testing.T, db *gorm.DB, kms *crypto.KeyWrapper, orgID, userID, agentID uuid.UUID) {
 	t.Helper()
-	dek, err := crypto.GenerateDEK()
-	if err != nil {
-		t.Fatalf("generate dek: %v", err)
+	_ = kms
+	_ = agentID
+	integ := model.InIntegration{ID: uuid.New(), UniqueKey: "slack-test-" + uuid.NewString()[:8], Provider: "slack", DisplayName: "Slack"}
+	if err := db.Create(&integ).Error; err != nil {
+		t.Fatalf("create slack integration: %v", err)
 	}
-	wrapped, err := kms.Wrap(context.Background(), dek)
-	if err != nil {
-		t.Fatalf("wrap dek: %v", err)
-	}
-	plain, _ := json.Marshal(slackprov.Secrets{BotToken: "xoxb-test", AppToken: "xapp-test"})
-	encrypted, err := crypto.EncryptCredential(plain, dek)
-	if err != nil {
-		t.Fatalf("encrypt slack secrets: %v", err)
-	}
-	profile := model.AgentProfile{
-		OrgID:            orgID,
-		AgentID:          agentID,
-		Provider:         slackprov.Provider,
-		Status:           "active",
-		EncryptedSecrets: encrypted,
-		WrappedDEK:       wrapped,
-	}
-	if err := db.Create(&profile).Error; err != nil {
-		t.Fatalf("create slack profile: %v", err)
+	conn := model.InConnection{ID: uuid.New(), OrgID: orgID, UserID: userID, InIntegrationID: integ.ID, NangoConnectionID: "slack-conn-test", Meta: model.JSON{}}
+	if err := db.Create(&conn).Error; err != nil {
+		t.Fatalf("create slack connection: %v", err)
 	}
 }
 

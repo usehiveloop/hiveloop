@@ -20,13 +20,13 @@ type loginAttempt struct {
 }
 
 type AuthHandler struct {
-	db          *gorm.DB
-	privateKey  *rsa.PrivateKey
-	signingKey  []byte // HMAC key for refresh tokens (JWT_SIGNING_KEY)
-	issuer      string
-	audience    string
-	accessTTL   time.Duration
-	refreshTTL  time.Duration
+	db               *gorm.DB
+	privateKey       *rsa.PrivateKey
+	signingKey       []byte // HMAC key for refresh tokens (JWT_SIGNING_KEY)
+	issuer           string
+	audience         string
+	accessTTL        time.Duration
+	refreshTTL       time.Duration
 	emailSender      email.Sender
 	frontendURL      string
 	autoConfirmEmail bool
@@ -34,7 +34,7 @@ type AuthHandler struct {
 
 	// Admin mode: when true, login is restricted to platform admin emails only.
 	// Used by the admin panel deployment to prevent non-admin users from logging in.
-	adminMode          bool
+	adminMode           bool
 	platformAdminEmails map[string]bool
 
 	loginMu       sync.Mutex

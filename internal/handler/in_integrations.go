@@ -34,28 +34,26 @@ type updateInIntegrationRequest struct {
 }
 
 type inIntegrationResponse struct {
-	ID              string                             `json:"id"`
-	UniqueKey       string                             `json:"unique_key"`
-	Provider        string                             `json:"provider"`
-	DisplayName     string                             `json:"display_name"`
-	OrgID           *string                            `json:"org_id,omitempty"`
-	AgentID         *string                            `json:"agent_id,omitempty"`
-	CustomApp       bool                               `json:"custom_app"`
-	Meta            model.JSON                         `json:"meta,omitempty"`
-	NangoConfig     *model.NangoConfig                 `json:"nango_config,omitempty"`
-	EmployeeProfile *catalog.EmployeeProfileCapability `json:"employee_profile,omitempty"`
-	CreatedAt       string                             `json:"created_at"`
-	UpdatedAt       string                             `json:"updated_at"`
+	ID          string             `json:"id"`
+	UniqueKey   string             `json:"unique_key"`
+	Provider    string             `json:"provider"`
+	DisplayName string             `json:"display_name"`
+	OrgID       *string            `json:"org_id,omitempty"`
+	AgentID     *string            `json:"agent_id,omitempty"`
+	CustomApp   bool               `json:"custom_app"`
+	Meta        model.JSON         `json:"meta,omitempty"`
+	NangoConfig *model.NangoConfig `json:"nango_config,omitempty"`
+	CreatedAt   string             `json:"created_at"`
+	UpdatedAt   string             `json:"updated_at"`
 }
 
 type inIntegrationAvailableResponse struct {
-	ID              string                             `json:"id"`
-	Provider        string                             `json:"provider"`
-	DisplayName     string                             `json:"display_name"`
-	Meta            model.JSON                         `json:"meta,omitempty"`
-	NangoConfig     *model.NangoConfig                 `json:"nango_config,omitempty"`
-	EmployeeProfile *catalog.EmployeeProfileCapability `json:"employee_profile,omitempty"`
-	CreatedAt       string                             `json:"created_at"`
+	ID          string             `json:"id"`
+	Provider    string             `json:"provider"`
+	DisplayName string             `json:"display_name"`
+	Meta        model.JSON         `json:"meta,omitempty"`
+	NangoConfig *model.NangoConfig `json:"nango_config,omitempty"`
+	CreatedAt   string             `json:"created_at"`
 }
 
 func parseNangoConfig(raw model.JSON) *model.NangoConfig {
@@ -85,18 +83,17 @@ func toInIntegrationResponse(integ model.InIntegration) inIntegrationResponse {
 		agentID = &s
 	}
 	return inIntegrationResponse{
-		ID:              integ.ID.String(),
-		UniqueKey:       integ.UniqueKey,
-		Provider:        integ.Provider,
-		DisplayName:     integ.DisplayName,
-		OrgID:           orgID,
-		AgentID:         agentID,
-		CustomApp:       integ.CustomApp,
-		Meta:            integ.Meta,
-		NangoConfig:     parseNangoConfig(integ.NangoConfig),
-		EmployeeProfile: integrationEmployeeProfileCapability(integ.Provider),
-		CreatedAt:       integ.CreatedAt.Format(time.RFC3339),
-		UpdatedAt:       integ.UpdatedAt.Format(time.RFC3339),
+		ID:          integ.ID.String(),
+		UniqueKey:   integ.UniqueKey,
+		Provider:    integ.Provider,
+		DisplayName: integ.DisplayName,
+		OrgID:       orgID,
+		AgentID:     agentID,
+		CustomApp:   integ.CustomApp,
+		Meta:        integ.Meta,
+		NangoConfig: parseNangoConfig(integ.NangoConfig),
+		CreatedAt:   integ.CreatedAt.Format(time.RFC3339),
+		UpdatedAt:   integ.UpdatedAt.Format(time.RFC3339),
 	}
 }
 
@@ -110,13 +107,12 @@ func toInIntegrationAvailableResponse(integ model.InIntegration) inIntegrationAv
 		cfg.WebhookUserDefinedSecret = false
 	}
 	return inIntegrationAvailableResponse{
-		ID:              integ.ID.String(),
-		Provider:        integ.Provider,
-		DisplayName:     integ.DisplayName,
-		Meta:            integ.Meta,
-		NangoConfig:     cfg,
-		EmployeeProfile: integrationEmployeeProfileCapability(integ.Provider),
-		CreatedAt:       integ.CreatedAt.Format(time.RFC3339),
+		ID:          integ.ID.String(),
+		Provider:    integ.Provider,
+		DisplayName: integ.DisplayName,
+		Meta:        integ.Meta,
+		NangoConfig: cfg,
+		CreatedAt:   integ.CreatedAt.Format(time.RFC3339),
 	}
 }
 
@@ -125,17 +121,11 @@ func inNangoKey(uniqueKey string) string {
 }
 
 // nangoProviderName maps our internal provider key to the Nango catalog
-// provider name. Most providers map 1:1; profile/specialized variants are
-// differentiated by integration unique_key while using the canonical Nango
-// provider.
+// provider name.
 func nangoProviderName(provider string) string {
 	switch provider {
 	case "github-app-code-reviews":
 		return "github-app"
-	case "linear-profile":
-		return "linear"
-	case "notion-profile":
-		return "notion"
 	}
 	return provider
 }

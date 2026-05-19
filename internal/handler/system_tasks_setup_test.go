@@ -236,7 +236,7 @@ func (h *systemTaskHarness) post(t *testing.T, taskName string, body any, opts .
 
 func withoutAuth(req *http.Request) { req.Header.Del("Authorization") }
 
-func sysShortID() string           { return uuid.New().String()[:8] }
+func sysShortID() string          { return uuid.New().String()[:8] }
 func tptr(t time.Time) *time.Time { return &t }
 
 // validArgs returns the canonical request body for prompt_writer.
@@ -293,4 +293,3 @@ func freshTask(name string) system.Task {
 	t.MaxOutputTokens = 256
 	return t
 }
-

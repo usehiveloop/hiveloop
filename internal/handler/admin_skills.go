@@ -9,8 +9,6 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
-
-
 // ListSkills handles GET /admin/v1/skills.
 // @Summary List skills
 // @Description Lists all skills with optional filters.
@@ -99,4 +97,3 @@ func (h *AdminHandler) GetSkill(w http.ResponseWriter, r *http.Request) {
 
 	writeJSON(w, http.StatusOK, toAdminSkillResponse(skill))
 }
-

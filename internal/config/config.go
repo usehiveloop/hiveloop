@@ -83,6 +83,9 @@ type Config struct {
 	NangoEndpoint  string `env:"NANGO_ENDPOINT"`   // e.g. http://localhost:3004
 	NangoSecretKey string `env:"NANGO_SECRET_KEY"` // Nango secret key for API auth
 
+	// Slack app-level token used by employee sandboxes for Socket Mode.
+	SlackAppToken string `env:"SLACK_APP_TOKEN"`
+
 	// GitHub API token used by the skill hydrator. Optional — raises the
 	// anonymous rate limit from 60 req/hr to 5000 req/hr per token.
 	GitHubToken string `env:"GITHUB_TOKEN"`

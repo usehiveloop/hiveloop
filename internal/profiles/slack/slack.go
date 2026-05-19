@@ -1,4 +1,4 @@
-// Package slack implements the Slack provider for AgentProfile.
+// Package slack contains Slack Web API helpers used by employee runtime code.
 package slack
 
 import (
@@ -10,12 +10,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/google/uuid"
 	slacksdk "github.com/slack-go/slack"
-	"gorm.io/gorm"
-
-	"github.com/usehiveloop/hiveloop/internal/crypto"
-	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
 const Provider = "slack"
@@ -365,46 +360,4 @@ func DecodeSecrets(b []byte) (Secrets, error) {
 		return s, fmt.Errorf("decode slack secrets: %w", err)
 	}
 	return s, nil
-}
-
-func LoadProfileSecrets(ctx context.Context, db *gorm.DB, kms *crypto.KeyWrapper, orgID, profileID uuid.UUID) (Secrets, Identity, error) {
-	if db == nil || kms == nil {
-		return Secrets{}, Identity{}, errors.New("slack profile secret resolver is not configured")
-	}
-	var profile model.AgentProfile
-	if err := db.WithContext(ctx).
-		Where("id = ? AND org_id = ? AND provider = ? AND status = ? AND deleted_at IS NULL AND revoked_at IS NULL", profileID, orgID, Provider, "active").
-		First(&profile).Error; err != nil {
-		return Secrets{}, Identity{}, fmt.Errorf("load slack profile: %w", err)
-	}
-	dek, err := kms.Unwrap(ctx, profile.WrappedDEK)
-	if err != nil {
-		return Secrets{}, Identity{}, fmt.Errorf("unwrap slack profile DEK: %w", err)
-	}
-	defer wipe(dek)
-	plaintext, err := crypto.DecryptCredential(profile.EncryptedSecrets, dek)
-	if err != nil {
-		return Secrets{}, Identity{}, fmt.Errorf("decrypt slack profile secrets: %w", err)
-	}
-	secrets, err := DecodeSecrets(plaintext)
-	if err != nil {
-		return Secrets{}, Identity{}, err
-	}
-	var identity Identity
-	if len(profile.Identity) > 0 {
-		raw, err := json.Marshal(profile.Identity)
-		if err != nil {
-			return Secrets{}, Identity{}, fmt.Errorf("marshal slack profile identity: %w", err)
-		}
-		if err := json.Unmarshal(raw, &identity); err != nil {
-			return Secrets{}, Identity{}, fmt.Errorf("decode slack profile identity: %w", err)
-		}
-	}
-	return secrets, identity, nil
-}
-
-func wipe(b []byte) {
-	for i := range b {
-		b[i] = 0
-	}
 }

@@ -11,7 +11,6 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
-	"github.com/usehiveloop/hiveloop/internal/mcp/catalog"
 	"github.com/usehiveloop/hiveloop/internal/middleware"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
@@ -25,27 +24,21 @@ var employeeConnectionSkillNames = map[string][]string{
 	"notion":                  {"notion"},
 }
 
-var employeeProfileSkillNames = map[string][]string{
-	"linear-profile": {"linear"},
-	"notion-profile": {"notion"},
-}
-
 type employeeConnectionResponse struct {
-	ID                string                             `json:"id"`
-	OrgID             string                             `json:"org_id"`
-	InIntegrationID   string                             `json:"in_integration_id"`
-	Provider          string                             `json:"provider"`
-	DisplayName       string                             `json:"display_name"`
-	NangoConnectionID string                             `json:"nango_connection_id"`
-	Meta              model.JSON                         `json:"meta,omitempty"`
-	EmployeeProfile   *catalog.EmployeeProfileCapability `json:"employee_profile,omitempty"`
-	CreatedAt         string                             `json:"created_at"`
-	UpdatedAt         string                             `json:"updated_at"`
+	ID                string     `json:"id"`
+	OrgID             string     `json:"org_id"`
+	InIntegrationID   string     `json:"in_integration_id"`
+	Provider          string     `json:"provider"`
+	DisplayName       string     `json:"display_name"`
+	NangoConnectionID string     `json:"nango_connection_id"`
+	Meta              model.JSON `json:"meta,omitempty"`
+	CreatedAt         string     `json:"created_at"`
+	UpdatedAt         string     `json:"updated_at"`
 }
 
 // ListAvailableConnections handles GET /v1/employees/{id}/connections/available.
 // @Summary List assignable employee connections
-// @Description Returns non-revoked org connections that may be attached to an employee as tool capabilities. Connections used as employee profiles, such as Slack and GitHub identity profiles, are excluded.
+// @Description Returns non-revoked org connections available to the managed employee.
 // @Tags employees
 // @Produce json
 // @Param id path string true "Employee agent ID"
@@ -95,9 +88,6 @@ func (h *EmployeeHandler) ListAvailableConnections(w http.ResponseWriter, r *htt
 
 	resp := make([]employeeConnectionResponse, 0, len(connections))
 	for _, conn := range connections {
-		if employeeProfileConnectionProvider(employeeConnectionProvider(conn)) {
-			continue
-		}
 		resp = append(resp, toEmployeeConnectionResponse(conn))
 	}
 
@@ -162,15 +152,6 @@ func validateEmployeeConnectionIDs(ctx context.Context, db *gorm.DB, orgID uuid.
 	if len(connections) != len(ids) {
 		return nil, nil, fmt.Errorf("connection not found or revoked")
 	}
-	for _, conn := range connections {
-		if employeeProfileConnectionProvider(employeeConnectionProvider(conn)) {
-			display := conn.InIntegration.DisplayName
-			if display == "" {
-				display = employeeConnectionProvider(conn)
-			}
-			return nil, nil, fmt.Errorf("%s connections must be connected as employee profiles", display)
-		}
-	}
 	return ids, connections, nil
 }
 
@@ -179,10 +160,6 @@ func employeeConnectionProvider(conn model.InConnection) string {
 		return conn.InIntegration.Provider
 	}
 	return conn.InIntegration.UniqueKey
-}
-
-func employeeProfileConnectionProvider(provider string) bool {
-	return integrationEmployeeProfileCapability(provider) != nil
 }
 
 func toEmployeeConnectionResponse(conn model.InConnection) employeeConnectionResponse {
@@ -194,7 +171,6 @@ func toEmployeeConnectionResponse(conn model.InConnection) employeeConnectionRes
 		DisplayName:       conn.InIntegration.DisplayName,
 		NangoConnectionID: conn.NangoConnectionID,
 		Meta:              conn.Meta,
-		EmployeeProfile:   integrationEmployeeProfileCapability(employeeConnectionProvider(conn)),
 		CreatedAt:         conn.CreatedAt.Format(time.RFC3339),
 		UpdatedAt:         conn.UpdatedAt.Format(time.RFC3339),
 	}

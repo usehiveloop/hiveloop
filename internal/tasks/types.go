@@ -11,7 +11,6 @@ const (
 	TypeEmailSend                    = "email:send"
 	TypeEmailSendTemplate            = "email:send_template"
 	TypeAgentCleanup                 = "agent:cleanup"
-	TypeAgentProfileNangoCleanup     = "agent_profile:nango_cleanup"
 	TypeSandboxTemplateBuild         = "sandbox_template:build"
 	TypeSandboxTemplateRetryBuild    = "sandbox_template:retry"
 	TypeSkillHydrate                 = "skill:hydrate"

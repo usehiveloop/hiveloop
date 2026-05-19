@@ -75,7 +75,7 @@ func TestLinearProxy_EmployeeForwardsGraphQLRequest(t *testing.T) {
 	}
 }
 
-func TestLinearProxy_SubagentUsesOwningEmployeeProfile(t *testing.T) {
+func TestLinearProxy_SubagentUsesOwningEmployeeConnection(t *testing.T) {
 	var connectionID string
 	harness := newLinearProxyHarness(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		connectionID = r.Header.Get("Connection-Id")
@@ -129,13 +129,14 @@ func TestLinearProxy_RejectsInvalidAndUnattachedRequests(t *testing.T) {
 	}
 }
 
-func TestLinearProxy_RequiresActiveLinearProfile(t *testing.T) {
+func TestLinearProxy_RequiresActiveLinearConnection(t *testing.T) {
 	var nangoCalls atomic.Int64
 	harness := newLinearProxyHarness(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		nangoCalls.Add(1)
 	}))
-	if err := harness.db.Model(&model.AgentProfile{}).Where("id = ?", harness.profileID).Update("status", "pending").Error; err != nil {
-		t.Fatalf("disable profile: %v", err)
+	revokedAt := mustParseTime(t, "2026-05-17T00:00:00Z")
+	if err := harness.db.Model(&model.InConnection{}).Where("id = ?", harness.connectionID).Update("revoked_at", revokedAt).Error; err != nil {
+		t.Fatalf("revoke connection: %v", err)
 	}
 
 	req := httptest.NewRequest(http.MethodPost, "/internal/linear-proxy/"+harness.employeeID.String(), bytes.NewReader([]byte(`{"query":"query { viewer { id } }"}`)))

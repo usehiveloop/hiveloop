@@ -85,12 +85,12 @@ func (h *AuditHandler) List(w http.ResponseWriter, r *http.Request) {
 	q = q.Order("id DESC").Limit(limit + 1)
 
 	type row struct {
-		ID           int64      `gorm:"column:id"`
-		Action       string     `gorm:"column:action"`
-		CredentialID *string    `gorm:"column:credential_id"`
-		IPAddress    *string    `gorm:"column:ip_address"`
-		Metadata     []byte     `gorm:"column:metadata"`
-		CreatedAt    time.Time  `gorm:"column:created_at"`
+		ID           int64     `gorm:"column:id"`
+		Action       string    `gorm:"column:action"`
+		CredentialID *string   `gorm:"column:credential_id"`
+		IPAddress    *string   `gorm:"column:ip_address"`
+		Metadata     []byte    `gorm:"column:metadata"`
+		CreatedAt    time.Time `gorm:"column:created_at"`
 	}
 
 	var rows []row

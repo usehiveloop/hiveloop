@@ -108,12 +108,12 @@ func newAssetsListHarness(t *testing.T) *assetsListHarness {
 	mkConv := func(orgID, agentID, sandboxID uuid.UUID) uuid.UUID {
 		id := uuid.New()
 		if err := db.Create(&model.AgentConversation{
-			ID:                   id,
-			OrgID:                orgID,
-			AgentID:              agentID,
-			SandboxID:            sandboxID,
+			ID:                    id,
+			OrgID:                 orgID,
+			AgentID:               agentID,
+			SandboxID:             sandboxID,
 			RuntimeConversationID: "bridge-" + uuid.New().String()[:8],
-			Status:               "active",
+			Status:                "active",
 		}).Error; err != nil {
 			t.Fatalf("create conversation: %v", err)
 		}

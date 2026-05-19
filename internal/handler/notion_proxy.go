@@ -19,14 +19,13 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/nango"
 )
 
-const notionProfileProvider = "notion-profile"
+const notionProvider = "notion"
 
 type notionProxyContext struct {
 	OrgID         uuid.UUID
 	CallerAgentID uuid.UUID
 	EmployeeID    uuid.UUID
 	ConnectionID  uuid.UUID
-	ProfileID     uuid.UUID
 	Method        string
 	Path          string
 	StatusCode    int
@@ -98,18 +97,17 @@ func (h *NotionProxyHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	}
 	eventCtx.EmployeeID = employee.ID
 
-	profile, conn, providerConfigKey, err := h.resolveNotionProfileConnection(ctx, employee)
+	conn, providerConfigKey, err := h.resolveNotionConnection(ctx, employee)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			h.captureProxyFailure(ctx, eventCtx, http.StatusNotFound, "no notion profile connected to employee")
-			writeJSON(w, http.StatusNotFound, map[string]string{"error": "no notion profile connected to employee"})
+			h.captureProxyFailure(ctx, eventCtx, http.StatusNotFound, "no notion connection for org")
+			writeJSON(w, http.StatusNotFound, map[string]string{"error": "no notion connection for org"})
 			return
 		}
-		h.captureProxyFailure(ctx, eventCtx, http.StatusInternalServerError, "failed to look up notion profile")
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to look up notion profile"})
+		h.captureProxyFailure(ctx, eventCtx, http.StatusInternalServerError, "failed to look up notion connection")
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to look up notion connection"})
 		return
 	}
-	eventCtx.ProfileID = profile.ID
 	eventCtx.ConnectionID = conn.ID
 
 	resp, err := h.nango.RawProxyRequestWithHeaders(ctx, r.Method, providerConfigKey, conn.NangoConnectionID, path, r.URL.RawQuery, proxyRequestBody(r), notionProxyHeaders(r))
@@ -117,7 +115,6 @@ func (h *NotionProxyHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		logging.FromContext(ctx).ErrorContext(ctx, "notion-proxy: nango proxy failed",
 			"agent_id", agentID,
 			"employee_id", employee.ID,
-			"profile_id", profile.ID,
 			"connection_id", conn.ID,
 			"path", path,
 			"method", r.Method,
@@ -184,35 +181,23 @@ func (h *NotionProxyHandler) resolveOwningEmployee(ctx context.Context, orgID uu
 	return employee, nil
 }
 
-func (h *NotionProxyHandler) resolveNotionProfileConnection(ctx context.Context, employee model.Agent) (model.AgentProfile, model.InConnection, string, error) {
+func (h *NotionProxyHandler) resolveNotionConnection(ctx context.Context, employee model.Agent) (model.InConnection, string, error) {
 	if employee.OrgID == nil {
-		return model.AgentProfile{}, model.InConnection{}, "", gorm.ErrRecordNotFound
-	}
-	var profile model.AgentProfile
-	if err := h.db.WithContext(ctx).
-		Where("agent_id = ? AND org_id = ? AND provider = ? AND status = ? AND revoked_at IS NULL AND deleted_at IS NULL", employee.ID, *employee.OrgID, notionProfileProvider, "active").
-		First(&profile).Error; err != nil {
-		return model.AgentProfile{}, model.InConnection{}, "", err
-	}
-	providerConfigKey := stringFromJSON(profile.Config, "provider_config_key")
-	connectionID, err := uuid.Parse(stringFromJSON(profile.Config, "in_connection_id"))
-	if err != nil || providerConfigKey == "" {
-		return model.AgentProfile{}, model.InConnection{}, "", fmt.Errorf("notion profile is missing connection metadata")
+		return model.InConnection{}, "", gorm.ErrRecordNotFound
 	}
 	var conn model.InConnection
 	if err := h.db.WithContext(ctx).
 		Preload("InIntegration").
-		Where("id = ? AND org_id = ? AND revoked_at IS NULL", connectionID, *employee.OrgID).
+		Joins("JOIN in_integrations ON in_integrations.id = in_connections.in_integration_id AND in_integrations.deleted_at IS NULL").
+		Where("in_connections.org_id = ? AND in_connections.revoked_at IS NULL AND in_integrations.provider = ?", *employee.OrgID, notionProvider).
+		Order("in_connections.created_at ASC").
 		First(&conn).Error; err != nil {
-		return model.AgentProfile{}, model.InConnection{}, "", err
-	}
-	if conn.InIntegration.Provider != notionProfileProvider {
-		return model.AgentProfile{}, model.InConnection{}, "", fmt.Errorf("notion profile connection provider mismatch")
+		return model.InConnection{}, "", err
 	}
 	if conn.NangoConnectionID == "" {
-		return model.AgentProfile{}, model.InConnection{}, "", fmt.Errorf("notion profile connection missing nango connection id")
+		return model.InConnection{}, "", fmt.Errorf("notion connection missing nango connection id")
 	}
-	return profile, conn, providerConfigKey, nil
+	return conn, inNangoKey(conn.InIntegration.UniqueKey), nil
 }
 
 func (h *NotionProxyHandler) captureProxyFailure(ctx context.Context, eventCtx notionProxyContext, status int, reason string) {
@@ -235,9 +220,6 @@ func (h *NotionProxyHandler) captureProxyFailure(ctx context.Context, eventCtx n
 		}
 		if eventCtx.EmployeeID != uuid.Nil {
 			scope.SetTag("employee_id", eventCtx.EmployeeID.String())
-		}
-		if eventCtx.ProfileID != uuid.Nil {
-			scope.SetTag("profile_id", eventCtx.ProfileID.String())
 		}
 		if eventCtx.ConnectionID != uuid.Nil {
 			scope.SetTag("connection_id", eventCtx.ConnectionID.String())

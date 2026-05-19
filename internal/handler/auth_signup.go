@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
@@ -48,6 +49,9 @@ func createUserDefaultOrg(tx *gorm.DB, credits *billing.CreditsService, user *mo
 
 	if err := grantWelcomeCredits(tx, credits, org.ID, user.ID); err != nil {
 		return org, err
+	}
+	if _, err := createHivyEmployeeWithDefaultsTx(context.TODO(), tx, org.ID); err != nil {
+		return org, fmt.Errorf("creating Hivy employee: %w", err)
 	}
 	return org, nil
 }

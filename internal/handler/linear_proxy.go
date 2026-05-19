@@ -19,15 +19,14 @@ import (
 )
 
 const (
-	linearProfileProvider = "linear-profile"
-	linearGraphQLPath     = "/graphql"
+	linearProvider    = "linear"
+	linearGraphQLPath = "/graphql"
 )
 
 type linearProxyContext struct {
 	OrgID         uuid.UUID
 	CallerAgentID uuid.UUID
 	EmployeeID    uuid.UUID
-	ProfileID     uuid.UUID
 	ConnectionID  uuid.UUID
 	Method        string
 	StatusCode    int
@@ -44,7 +43,7 @@ func NewLinearProxyHandler(db *gorm.DB, encKey *crypto.SymmetricKey, nangoClient
 }
 
 // Handle proxies POST /internal/linear-proxy/{agentID} to Linear GraphQL
-// through the employee's active linear-profile Nango connection.
+// through the org's active Linear Nango connection.
 func (h *LinearProxyHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	eventCtx := linearProxyContext{Method: r.Method}
@@ -105,18 +104,17 @@ func (h *LinearProxyHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	}
 	eventCtx.EmployeeID = employee.ID
 
-	profile, conn, providerConfigKey, err := h.resolveLinearProfileConnection(ctx, employee)
+	conn, providerConfigKey, err := h.resolveLinearConnection(ctx, employee)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			h.captureProxyFailure(ctx, eventCtx, http.StatusNotFound, "no linear profile connected to employee")
-			writeJSON(w, http.StatusNotFound, map[string]string{"error": "no linear profile connected to employee"})
+			h.captureProxyFailure(ctx, eventCtx, http.StatusNotFound, "no linear connection for org")
+			writeJSON(w, http.StatusNotFound, map[string]string{"error": "no linear connection for org"})
 			return
 		}
-		h.captureProxyFailure(ctx, eventCtx, http.StatusInternalServerError, "failed to look up linear profile")
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to look up linear profile"})
+		h.captureProxyFailure(ctx, eventCtx, http.StatusInternalServerError, "failed to look up linear connection")
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to look up linear connection"})
 		return
 	}
-	eventCtx.ProfileID = profile.ID
 	eventCtx.ConnectionID = conn.ID
 
 	resp, err := h.nango.RawProxyRequest(ctx, r.Method, providerConfigKey, conn.NangoConnectionID, linearGraphQLPath, "", proxyRequestBody(r), r.Header.Get("Content-Type"))
@@ -124,7 +122,6 @@ func (h *LinearProxyHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		logging.FromContext(ctx).ErrorContext(ctx, "linear-proxy: nango proxy failed",
 			"agent_id", agentID,
 			"employee_id", employee.ID,
-			"profile_id", profile.ID,
 			"connection_id", conn.ID,
 			"method", r.Method,
 			"error", err,
@@ -175,36 +172,24 @@ func (h *LinearProxyHandler) resolveOwningEmployee(ctx context.Context, orgID uu
 	return employee, nil
 }
 
-func (h *LinearProxyHandler) resolveLinearProfileConnection(ctx context.Context, employee model.Agent) (model.AgentProfile, model.InConnection, string, error) {
+func (h *LinearProxyHandler) resolveLinearConnection(ctx context.Context, employee model.Agent) (model.InConnection, string, error) {
 	if employee.OrgID == nil {
-		return model.AgentProfile{}, model.InConnection{}, "", gorm.ErrRecordNotFound
-	}
-	var profile model.AgentProfile
-	if err := h.db.WithContext(ctx).
-		Where("agent_id = ? AND org_id = ? AND provider = ? AND status = ? AND revoked_at IS NULL AND deleted_at IS NULL", employee.ID, *employee.OrgID, linearProfileProvider, "active").
-		First(&profile).Error; err != nil {
-		return model.AgentProfile{}, model.InConnection{}, "", err
-	}
-	providerConfigKey := stringFromJSON(profile.Config, "provider_config_key")
-	connectionID, err := uuid.Parse(stringFromJSON(profile.Config, "in_connection_id"))
-	if err != nil || providerConfigKey == "" {
-		return model.AgentProfile{}, model.InConnection{}, "", fmt.Errorf("linear profile is missing connection metadata")
+		return model.InConnection{}, "", gorm.ErrRecordNotFound
 	}
 
 	var conn model.InConnection
 	if err := h.db.WithContext(ctx).
 		Preload("InIntegration").
-		Where("id = ? AND org_id = ? AND revoked_at IS NULL", connectionID, *employee.OrgID).
+		Joins("JOIN in_integrations ON in_integrations.id = in_connections.in_integration_id AND in_integrations.deleted_at IS NULL").
+		Where("in_connections.org_id = ? AND in_connections.revoked_at IS NULL AND in_integrations.provider = ?", *employee.OrgID, linearProvider).
+		Order("in_connections.created_at ASC").
 		First(&conn).Error; err != nil {
-		return model.AgentProfile{}, model.InConnection{}, "", err
-	}
-	if conn.InIntegration.Provider != linearProfileProvider {
-		return model.AgentProfile{}, model.InConnection{}, "", fmt.Errorf("linear profile connection provider mismatch")
+		return model.InConnection{}, "", err
 	}
 	if conn.NangoConnectionID == "" {
-		return model.AgentProfile{}, model.InConnection{}, "", fmt.Errorf("linear profile connection missing nango connection id")
+		return model.InConnection{}, "", fmt.Errorf("linear connection missing nango connection id")
 	}
-	return profile, conn, providerConfigKey, nil
+	return conn, inNangoKey(conn.InIntegration.UniqueKey), nil
 }
 
 func (h *LinearProxyHandler) captureProxyFailure(ctx context.Context, eventCtx linearProxyContext, status int, reason string) {
@@ -224,9 +209,6 @@ func (h *LinearProxyHandler) captureProxyFailure(ctx context.Context, eventCtx l
 		}
 		if eventCtx.EmployeeID != uuid.Nil {
 			scope.SetTag("employee_id", eventCtx.EmployeeID.String())
-		}
-		if eventCtx.ProfileID != uuid.Nil {
-			scope.SetTag("profile_id", eventCtx.ProfileID.String())
 		}
 		if eventCtx.ConnectionID != uuid.Nil {
 			scope.SetTag("connection_id", eventCtx.ConnectionID.String())

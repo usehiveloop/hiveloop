@@ -28,7 +28,7 @@ type EmployeeTriggerStoreDeliveryPayload struct {
 	OrgID                 uuid.UUID  `json:"org_id"`
 	AgentID               uuid.UUID  `json:"agent_id"`
 	TriggerID             uuid.UUID  `json:"trigger_id"`
-	ConnectionID           *uuid.UUID `json:"connection_id,omitempty"`
+	ConnectionID          *uuid.UUID `json:"connection_id,omitempty"`
 	DeliveryID            string     `json:"delivery_id"`
 	EventKey              string     `json:"event_key"`
 	ResourceKey           string     `json:"resource_key"`
@@ -78,7 +78,7 @@ func (h *EmployeeTriggerStoreDeliveryHandler) Handle(ctx context.Context, task *
 		OrgID:                 payload.OrgID,
 		AgentID:               payload.AgentID,
 		TriggerID:             payload.TriggerID,
-		ConnectionID:           payload.ConnectionID,
+		ConnectionID:          payload.ConnectionID,
 		DeliveryID:            payload.DeliveryID,
 		EventKey:              payload.EventKey,
 		ResourceKey:           payload.ResourceKey,

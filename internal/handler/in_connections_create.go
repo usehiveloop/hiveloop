@@ -58,10 +58,6 @@ func (h *InConnectionHandler) Create(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to find integration"})
 		return
 	}
-	if integrationEmployeeProfileCapability(integ.Provider) != nil {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "profile integrations must be connected directly to an employee"})
-		return
-	}
 
 	var req createInConnectionRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -99,7 +95,21 @@ func (h *InConnectionHandler) Create(w http.ResponseWriter, r *http.Request) {
 		WebhookConfigured: boolPtr(!providerRequiresWebhookConfig(integ.Provider)),
 	}
 
-	if err := h.db.Create(&conn).Error; err != nil {
+	err = h.db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Create(&conn).Error; err != nil {
+			return err
+		}
+		if integ.Provider == "slack" {
+			if _, err := ensureHivyEmployee(r.Context(), tx, org.ID); err != nil {
+				return err
+			}
+			if err := tx.Model(&model.Org{}).Where("id = ?", org.ID).Update("onboarded", true).Error; err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+	if err != nil {
 		logging.FromContext(r.Context()).ErrorContext(r.Context(), "failed to create in-connection", "error", err, "org_id", org.ID, "user_id", user.ID, "integration_id", integ.ID)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to create connection"})
 		return

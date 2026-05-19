@@ -62,26 +62,17 @@ type ResourceDef struct {
 
 // ProviderActions describes a provider and its available actions.
 type ProviderActions struct {
-	DisplayName     string                      `json:"display_name"`
-	PushToMCP       *bool                       `json:"push_to_mcp,omitempty"` // nil or true = expose via MCP; false = accessed via proxy instead
-	EmployeeProfile *EmployeeProfileCapability  `json:"employee_profile,omitempty"`
-	Resources       map[string]ResourceDef      `json:"resources"`
-	Actions         map[string]ActionDef        `json:"actions"`
-	Schemas         map[string]SchemaDefinition `json:"schemas,omitempty"`
+	DisplayName string                      `json:"display_name"`
+	PushToMCP   *bool                       `json:"push_to_mcp,omitempty"` // nil or true = expose via MCP; false = accessed via proxy instead
+	Resources   map[string]ResourceDef      `json:"resources"`
+	Actions     map[string]ActionDef        `json:"actions"`
+	Schemas     map[string]SchemaDefinition `json:"schemas,omitempty"`
 }
 
 // ShouldPushToMCP returns whether this provider's actions should be exposed
 // via the MCP server. Defaults to true when not explicitly set.
 func (pa *ProviderActions) ShouldPushToMCP() bool {
 	return pa.PushToMCP == nil || *pa.PushToMCP
-}
-
-// EmployeeProfileCapability describes whether an integration connection can be
-// attached to an employee as an identity/profile instead of a tool capability.
-type EmployeeProfileCapability struct {
-	Supported bool     `json:"supported"`
-	CustomApp bool     `json:"custom_app,omitempty"`
-	Scopes    []string `json:"scopes,omitempty"`
 }
 
 // ExecutionConfig defines how to execute an action against a provider's API via Nango proxy.
@@ -445,18 +436,6 @@ func (c *Catalog) GetResourceDef(provider, resourceType string) (*ResourceDef, b
 // resource with configurable: true.
 func (c *Catalog) HasConfigurableResources(provider string) bool {
 	return len(c.GetConfigurableResources(provider)) > 0
-}
-
-// EmployeeProfileCapability returns provider metadata for employee identity
-// profiles. Nil means the provider should be treated as a regular tool
-// connection.
-func (c *Catalog) EmployeeProfileCapability(provider string) *EmployeeProfileCapability {
-	p, ok := c.providers[provider]
-	if !ok || p.EmployeeProfile == nil || !p.EmployeeProfile.Supported {
-		return nil
-	}
-	capability := *p.EmployeeProfile
-	return &capability
 }
 
 // ConfigurableResourceSummary is a lightweight descriptor returned to frontends

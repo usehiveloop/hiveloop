@@ -91,7 +91,9 @@ func TestIntegration_ChatSend_AppendsToExistingSession(t *testing.T) {
 	if rr.Code != http.StatusCreated {
 		t.Fatalf("create: %d %s", rr.Code, rr.Body.String())
 	}
-	var first struct{ SessionID string `json:"session_id"` }
+	var first struct {
+		SessionID string `json:"session_id"`
+	}
 	_ = json.Unmarshal(rr.Body.Bytes(), &first)
 
 	rr2 := httptest.NewRecorder()
@@ -126,7 +128,9 @@ func TestIntegration_ChatSend_RejectsOtherUsersSession(t *testing.T) {
 	if rr.Code != http.StatusCreated {
 		t.Fatalf("create: %d", rr.Code)
 	}
-	var first struct{ SessionID string `json:"session_id"` }
+	var first struct {
+		SessionID string `json:"session_id"`
+	}
 	_ = json.Unmarshal(rr.Body.Bytes(), &first)
 
 	rr2 := httptest.NewRecorder()

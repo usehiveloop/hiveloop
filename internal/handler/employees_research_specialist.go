@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
+	"github.com/usehiveloop/hiveloop/internal/employeeruntime"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
@@ -57,18 +58,15 @@ func (h *EmployeeHandler) ensureBusinessResearchSpecialistTx(ctx context.Context
 
 	choice, err := pickEmployeeSubagentCredential(tx)
 	if err != nil {
-		return nil, err
+		choice = &employeeProviderChoice{model: employeeruntime.DefaultEmployeeSubagentModel}
 	}
 	desc := fmt.Sprintf("Business Research Specialist for %s. Handles broad research and writes source-grounded reports to employee assets.", employee.Name)
-	category := employeeCategory(employee)
 	subagent := model.Agent{
 		OrgID:          employee.OrgID,
 		Description:    &desc,
-		Category:       &category,
 		SystemPrompt:   researchSpecialistSystemPrompt,
 		IdentityPrompt: researchSpecialistSystemPrompt,
 		Model:          choice.model,
-		CredentialID:   &choice.cred.ID,
 		TeamID:         &team.ID,
 		Team:           team.Name,
 		Harness:        employeeCloudAgentHarness,
@@ -82,7 +80,10 @@ func (h *EmployeeHandler) ensureBusinessResearchSpecialistTx(ctx context.Context
 		AgentConfig:    businessResearchSpecialistAgentConfig(),
 		Permissions:    model.JSON{},
 	}
-	baseSlug := employeeBusinessResearchSpecialistBaseSlug(employee.Name, category)
+	if choice.cred != nil {
+		subagent.CredentialID = &choice.cred.ID
+	}
+	baseSlug := employeeBusinessResearchSpecialistBaseSlug(employee.Name)
 	if err := createWithUniqueNameSlug(tx, &subagent, baseSlug); err != nil {
 		return nil, err
 	}
@@ -137,10 +138,9 @@ func isBusinessResearchSpecialist(agent *model.Agent) bool {
 
 func updateBusinessResearchSpecialist(ctx context.Context, tx *gorm.DB, subagent *model.Agent, employee *model.Agent, team *model.Team) error {
 	desc := fmt.Sprintf("Business Research Specialist for %s. Handles broad research and writes source-grounded reports to employee assets.", employee.Name)
-	category := employeeCategory(employee)
 	updates := map[string]any{
 		"description":     desc,
-		"category":        category,
+		"category":        nil,
 		"system_prompt":   researchSpecialistSystemPrompt,
 		"identity_prompt": researchSpecialistSystemPrompt,
 		"team_id":         team.ID,
@@ -154,7 +154,7 @@ func updateBusinessResearchSpecialist(ctx context.Context, tx *gorm.DB, subagent
 		return err
 	}
 	subagent.Description = &desc
-	subagent.Category = &category
+	subagent.Category = nil
 	subagent.SystemPrompt = researchSpecialistSystemPrompt
 	subagent.IdentityPrompt = researchSpecialistSystemPrompt
 	subagent.TeamID = &team.ID
@@ -185,17 +185,10 @@ func mergeAgentConfig(existing model.JSON, next model.JSON) model.JSON {
 	return out
 }
 
-func employeeCategory(agent *model.Agent) string {
-	if agent != nil && agent.Category != nil && strings.TrimSpace(*agent.Category) != "" {
-		return strings.TrimSpace(*agent.Category)
-	}
-	return employeeCategoryEngineering
-}
-
-func employeeBusinessResearchSpecialistBaseSlug(employeeName, category string) string {
+func employeeBusinessResearchSpecialistBaseSlug(employeeName string) string {
 	s := slugifyAgentName(employeeName)
 	if s == "" {
-		s = category
+		s = "hivy"
 	}
 	return s + "-business-research-specialist"
 }

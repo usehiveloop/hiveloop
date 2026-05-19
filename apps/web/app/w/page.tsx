@@ -7,7 +7,6 @@ import { useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
-  Add01Icon,
   ArrowRight01Icon,
   Delete02Icon,
   Loading03Icon,
@@ -185,7 +184,6 @@ function EmployeeActions({
   onDelete: () => void
   onUpgrade: () => void
 }) {
-  const router = useRouter()
   const isDraft = normalizeStatus(employee.status) === "draft"
   const canUpgrade = Boolean(
     employee.upgrade_available && employee.id && !isDraft
@@ -203,20 +201,6 @@ function EmployeeActions({
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" sideOffset={4} className="w-44">
         <DropdownMenuGroup>
-          {isDraft && employee.id ? (
-            <DropdownMenuItem
-              onClick={() =>
-                router.push(`/w/employees/new?employee_id=${employee.id}`)
-              }
-            >
-              <HugeiconsIcon
-                icon={ArrowRight01Icon}
-                className="size-4"
-                strokeWidth={2}
-              />
-              Continue onboarding
-            </DropdownMenuItem>
-          ) : null}
           {canUpgrade ? (
             <DropdownMenuItem onClick={onUpgrade}>
               <HugeiconsIcon
@@ -442,14 +426,6 @@ function EmployeesHeader({
       </div>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <FilterField value={filter} onChange={onFilterChange} />
-        <Button render={<Link href="/w/employees/new" />}>
-          <HugeiconsIcon
-            icon={Add01Icon}
-            strokeWidth={2.25}
-            data-icon="inline-start"
-          />
-          New employee
-        </Button>
       </div>
     </section>
   )
@@ -606,8 +582,7 @@ function EmployeesEmpty() {
         No employees yet
       </h3>
       <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground">
-        Complete onboarding to create your coordinator employee and connect it
-        to a channel.
+        Install the Slack app to finish setting up Hivy for this workspace.
       </p>
     </div>
   )

@@ -103,9 +103,9 @@ func newRenewalHarness(t *testing.T) *renewalHarness {
 		db: db, provider: provider, enqueuer: enqueuer, service: service,
 		sweep: tasks.NewBillingRenewSweepHandler(db, enqueuer),
 		renew: tasks.NewBillingRenewSubscriptionHandler(service),
-		now:  now,
+		now:   now,
 		orgID: org.ID,
-		plan: plan,
+		plan:  plan,
 	}
 }
 

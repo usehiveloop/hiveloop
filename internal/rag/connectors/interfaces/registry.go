@@ -27,7 +27,7 @@ type BuildDeps struct {
 }
 
 func (d BuildDeps) ResolveSlackProfileSecrets(ctx context.Context, orgID, profileID uuid.UUID) (slackprofile.Secrets, slackprofile.Identity, error) {
-	return slackprofile.LoadProfileSecrets(ctx, d.DB, d.KMS, orgID, profileID)
+	return slackprofile.Secrets{}, slackprofile.Identity{}, errors.New("slack profile RAG sources are no longer supported")
 }
 
 // Factory constructs a Connector instance bound to a specific Source

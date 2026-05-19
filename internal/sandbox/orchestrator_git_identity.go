@@ -5,11 +5,9 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/google/uuid"
 	"gorm.io/gorm"
 
 	"github.com/usehiveloop/hiveloop/internal/model"
-	githubprofile "github.com/usehiveloop/hiveloop/internal/profiles/github"
 )
 
 type employeeGitIdentity struct {
@@ -26,11 +24,7 @@ func (o *Orchestrator) loadAgentGitIdentity(ctx context.Context, agent *model.Ag
 		return nil, nil
 	}
 
-	identity, err := o.loadGitHubProfileIdentity(ctx, identityAgent.ID)
-	if err != nil {
-		return nil, err
-	}
-	return gitIdentityFromProfile(identityAgent, identity), nil
+	return gitIdentityFromProfile(identityAgent), nil
 }
 
 func (o *Orchestrator) loadEmployeeGitIdentity(ctx context.Context, agent *model.Agent) (*employeeGitIdentity, error) {
@@ -62,28 +56,9 @@ func (o *Orchestrator) resolveGitIdentityAgent(ctx context.Context, agent *model
 	return &employee, nil
 }
 
-func (o *Orchestrator) loadGitHubProfileIdentity(ctx context.Context, agentID uuid.UUID) (model.JSON, error) {
-	var profile model.AgentProfile
-	err := o.db.WithContext(ctx).
-		Where("agent_id = ? AND provider = ? AND status = ? AND deleted_at IS NULL AND revoked_at IS NULL", agentID, githubprofile.Provider, "active").
-		First(&profile).Error
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return model.JSON{}, nil
-		}
-		return nil, err
-	}
-	return githubprofile.DecryptIdentity(o.encKey, profile)
-}
-
-func gitIdentityFromProfile(agent *model.Agent, identity model.JSON) *employeeGitIdentity {
-	username, email := githubprofile.GitAuthor(identity, "")
-	if strings.TrimSpace(username) == "" {
-		username = fallbackGitUsername(agent)
-	}
-	if strings.TrimSpace(email) == "" {
-		email = fallbackGitEmail(agent)
-	}
+func gitIdentityFromProfile(agent *model.Agent) *employeeGitIdentity {
+	username := fallbackGitUsername(agent)
+	email := fallbackGitEmail(agent)
 	return &employeeGitIdentity{
 		Username: strings.TrimSpace(username),
 		Email:    strings.TrimSpace(email),

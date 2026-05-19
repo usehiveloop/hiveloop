@@ -495,24 +495,6 @@ func TestIntegration_EmployeesSync_NoActiveProfile_400(t *testing.T) {
 	}
 }
 
-func TestIntegration_EmployeesSync_RevokedProfile_400(t *testing.T) {
-	h := newEmployeeHarness(t)
-	h.platformCredCleanup(t)
-	m := h.createOrg(t)
-	agent := h.seedEmployeeAgent(t, m)
-	h.seedSandbox(t, m, agent.ID)
-	p := h.seedSlackProfile(t, m, agent.ID)
-	if err := h.db.Model(&p).Update("status", "revoked").Error; err != nil {
-		t.Fatalf("revoke profile: %v", err)
-	}
-
-	rr := h.postSync(t, m, agent.ID.String())
-	if rr.Code != http.StatusBadRequest {
-		t.Fatalf("status = %d, want 400 (revoked profile must not satisfy gate): %s",
-			rr.Code, rr.Body.String())
-	}
-}
-
 func TestIntegration_EmployeesSync_NoSandbox_Provisions(t *testing.T) {
 	h := newEmployeeHarness(t)
 	h.cfg.Environment = "production"

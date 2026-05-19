@@ -24,17 +24,6 @@ definitions:
       key:
         type: string
     type: object
-  github_com_usehiveloop_hiveloop_internal_mcp_catalog.EmployeeProfileCapability:
-    properties:
-      custom_app:
-        type: boolean
-      scopes:
-        items:
-          type: string
-        type: array
-      supported:
-        type: boolean
-    type: object
   github_com_usehiveloop_hiveloop_internal_mcp_catalog.SchemaDefinition:
     properties:
       items:
@@ -204,25 +193,6 @@ definitions:
         description: INSTALL_PLUGIN fields
         type: string
       webhook_secret:
-        type: string
-    type: object
-  github_com_usehiveloop_hiveloop_internal_profiles_slack.Channel:
-    properties:
-      id:
-        type: string
-      is_archived:
-        type: boolean
-      is_member:
-        type: boolean
-      is_private:
-        type: boolean
-      name:
-        type: string
-      num_members:
-        type: integer
-      purpose:
-        type: string
-      topic:
         type: string
     type: object
   github_com_usehiveloop_hiveloop_internal_registry.Cost:
@@ -532,8 +502,6 @@ definitions:
         type: boolean
       display_name:
         type: string
-      employee_profile:
-        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_mcp_catalog.EmployeeProfileCapability'
       id:
         type: string
       meta:
@@ -898,35 +866,6 @@ definitions:
       name:
         type: string
     type: object
-  internal_handler.agentProfileResponse:
-    properties:
-      agent_id:
-        type: string
-      config:
-        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
-      created_at:
-        type: string
-      external_id:
-        type: string
-      id:
-        type: string
-      identity:
-        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
-      label:
-        type: string
-      last_verified_at:
-        type: string
-      org_id:
-        type: string
-      provider:
-        type: string
-      status:
-        type: string
-      status_reason:
-        type: string
-      updated_at:
-        type: string
-    type: object
   internal_handler.agentResponse:
     properties:
       agent_config:
@@ -971,10 +910,6 @@ definitions:
         type: string
       permissions:
         $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
-      profiles:
-        items:
-          $ref: '#/definitions/internal_handler.agentProfileResponse'
-        type: array
       prompt_operating_principles:
         type: string
       provider_id:
@@ -1275,40 +1210,6 @@ definitions:
       output:
         type: string
     type: object
-  internal_handler.completeAgentProfileRequest:
-    properties:
-      label:
-        type: string
-      meta:
-        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
-      nango_connection_id:
-        type: string
-    type: object
-  internal_handler.completeAgentProfileResponse:
-    properties:
-      connection:
-        $ref: '#/definitions/internal_handler.inConnectionResponse'
-      profile:
-        $ref: '#/definitions/internal_handler.agentProfileResponse'
-    type: object
-  internal_handler.completeOnboardingRequest:
-    properties:
-      description:
-        type: string
-      logo_url:
-        type: string
-      name:
-        type: string
-      website:
-        type: string
-    type: object
-  internal_handler.completeOnboardingResponse:
-    properties:
-      agent_id:
-        type: string
-      sync:
-        $ref: '#/definitions/internal_handler.syncEmployeeResponse'
-    type: object
   internal_handler.confirmEmailRequest:
     properties:
       token:
@@ -1603,38 +1504,6 @@ definitions:
       verified_at:
         type: string
     type: object
-  internal_handler.createEmployeeRequest:
-    properties:
-      avatar_url:
-        type: string
-      category:
-        type: string
-      description:
-        type: string
-      name:
-        type: string
-    type: object
-  internal_handler.createEmployeeResponse:
-    properties:
-      agent_id:
-        type: string
-      sandbox_id:
-        type: string
-      status:
-        type: string
-    type: object
-  internal_handler.createGitHubProfileRequest:
-    properties:
-      connection_id:
-        type: string
-      label:
-        type: string
-    type: object
-  internal_handler.createGitHubProfileResponse:
-    properties:
-      profile:
-        $ref: '#/definitions/internal_handler.agentProfileResponse'
-    type: object
   internal_handler.createInConnectionRequest:
     properties:
       meta:
@@ -1720,24 +1589,6 @@ definitions:
           type: string
         type: array
     type: object
-  internal_handler.createSlackProfileRequest:
-    properties:
-      app_token:
-        type: string
-      bot_token:
-        type: string
-      label:
-        type: string
-    type: object
-  internal_handler.createSlackProfileResponse:
-    properties:
-      channels:
-        items:
-          $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_profiles_slack.Channel'
-        type: array
-      profile:
-        $ref: '#/definitions/internal_handler.agentProfileResponse'
-    type: object
   internal_handler.createSystemCredentialRequest:
     properties:
       api_key:
@@ -1818,8 +1669,6 @@ definitions:
     properties:
       agent_type:
         type: string
-      category:
-        type: string
       description:
         type: string
       installed:
@@ -1839,8 +1688,6 @@ definitions:
         type: string
       display_name:
         type: string
-      employee_profile:
-        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_mcp_catalog.EmployeeProfileCapability'
       id:
         type: string
       in_integration_id:
@@ -1900,10 +1747,6 @@ definitions:
         type: string
       permissions:
         $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
-      profiles:
-        items:
-          $ref: '#/definitions/internal_handler.agentProfileResponse'
-        type: array
       prompt_operating_principles:
         type: string
       provider_id:
@@ -2116,40 +1959,6 @@ definitions:
       user_id:
         type: string
     type: object
-  internal_handler.gitHubProfileRepositoriesResponse:
-    properties:
-      profile:
-        $ref: '#/definitions/internal_handler.agentProfileResponse'
-      repositories:
-        items:
-          $ref: '#/definitions/internal_handler.gitHubRepository'
-        type: array
-      selected_repositories:
-        items:
-          $ref: '#/definitions/internal_handler.gitHubRepository'
-        type: array
-    type: object
-  internal_handler.gitHubRepository:
-    properties:
-      description:
-        type: string
-      full_name:
-        type: string
-      html_url:
-        type: string
-      id:
-        type: string
-      name:
-        type: string
-      node_id:
-        type: string
-      owner:
-        type: string
-      permissions:
-        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
-      private:
-        type: boolean
-    type: object
   internal_handler.inConnectSessionResponse:
     properties:
       provider_config_key:
@@ -2169,8 +1978,6 @@ definitions:
         type: string
       display_name:
         type: string
-      employee_profile:
-        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_mcp_catalog.EmployeeProfileCapability'
       id:
         type: string
       in_integration_id:
@@ -2198,8 +2005,6 @@ definitions:
         type: string
       display_name:
         type: string
-      employee_profile:
-        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_mcp_catalog.EmployeeProfileCapability'
       id:
         type: string
       meta:
@@ -2207,33 +2012,6 @@ definitions:
       nango_config:
         $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.NangoConfig'
       provider:
-        type: string
-    type: object
-  internal_handler.inIntegrationResponse:
-    properties:
-      agent_id:
-        type: string
-      created_at:
-        type: string
-      custom_app:
-        type: boolean
-      display_name:
-        type: string
-      employee_profile:
-        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_mcp_catalog.EmployeeProfileCapability'
-      id:
-        type: string
-      meta:
-        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
-      nango_config:
-        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.NangoConfig'
-      org_id:
-        type: string
-      provider:
-        type: string
-      unique_key:
-        type: string
-      updated_at:
         type: string
     type: object
   internal_handler.initUpgradeRequest:
@@ -2316,13 +2094,6 @@ definitions:
       data:
         items:
           $ref: '#/definitions/internal_handler.orgMemberResponse'
-        type: array
-    type: object
-  internal_handler.listSlackChannelsResponse:
-    properties:
-      channels:
-        items:
-          $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_profiles_slack.Channel'
         type: array
     type: object
   internal_handler.loginRequest:
@@ -2962,41 +2733,6 @@ definitions:
       requires_payment_now:
         type: boolean
       to_plan_slug:
-        type: string
-    type: object
-  internal_handler.profileCustomAppRequest:
-    properties:
-      credentials:
-        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_nango.Credentials'
-      display_name:
-        type: string
-      meta:
-        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
-    type: object
-  internal_handler.profileCustomAppResponse:
-    properties:
-      integration:
-        $ref: '#/definitions/internal_handler.inIntegrationResponse'
-      provider_config_key:
-        type: string
-    type: object
-  internal_handler.profileProviderAvailableResponse:
-    properties:
-      custom_app_configured:
-        type: boolean
-      custom_app_integration_id:
-        type: string
-      display_name:
-        type: string
-      employee_profile:
-        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_mcp_catalog.EmployeeProfileCapability'
-      nango_config:
-        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.NangoConfig'
-      profile:
-        $ref: '#/definitions/internal_handler.agentProfileResponse'
-      provider:
-        type: string
-      provider_config_key:
         type: string
     type: object
   internal_handler.providerDetail:
@@ -3999,49 +3735,6 @@ definitions:
       bundle:
         $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_skills.Bundle'
     type: object
-  internal_handler.updateEmployeeRequest:
-    properties:
-      avatar_url:
-        type: string
-      connection_ids:
-        items:
-          type: string
-        type: array
-      description:
-        type: string
-      model:
-        type: string
-      name:
-        type: string
-      skill_ids:
-        items:
-          type: string
-        type: array
-      triggers:
-        items:
-          $ref: '#/definitions/internal_handler.agentTriggerInput'
-        type: array
-    type: object
-  internal_handler.updateEmployeeResponse:
-    properties:
-      employee:
-        $ref: '#/definitions/internal_handler.employeeListItem'
-      sync:
-        $ref: '#/definitions/internal_handler.syncEmployeeResponse'
-      sync_status:
-        type: string
-      warnings:
-        items:
-          type: string
-        type: array
-    type: object
-  internal_handler.updateGitHubRepositoriesRequest:
-    properties:
-      repositories:
-        items:
-          $ref: '#/definitions/internal_handler.gitHubRepository'
-        type: array
-    type: object
   internal_handler.updateMarketplaceAgentRequest:
     properties:
       avatar:
@@ -4067,15 +3760,6 @@ definitions:
         type: string
       prompt_company:
         type: string
-    type: object
-  internal_handler.updateProfileCustomAppRequest:
-    properties:
-      credentials:
-        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_nango.Credentials'
-      display_name:
-        type: string
-      meta:
-        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_model.JSON'
     type: object
   internal_handler.updateRAGSourceRequest:
     properties:
@@ -4121,18 +3805,6 @@ definitions:
         items:
           type: string
         type: array
-    type: object
-  internal_handler.updateSlackConfigRequest:
-    properties:
-      home_channel_id:
-        type: string
-    type: object
-  internal_handler.updateSlackConfigResponse:
-    properties:
-      channel:
-        $ref: '#/definitions/github_com_usehiveloop_hiveloop_internal_profiles_slack.Channel'
-      profile:
-        $ref: '#/definitions/internal_handler.agentProfileResponse'
     type: object
   internal_handler.updateTeamRequest:
     properties:
@@ -6908,564 +6580,6 @@ paths:
       summary: Create a conversation
       tags:
       - conversations
-  /v1/agents/{agentID}/profiles/{provider}/complete:
-    post:
-      consumes:
-      - application/json
-      description: Stores the Nango connection and attaches it as an employee profile.
-      parameters:
-      - description: Agent ID (must be an AI employee)
-        in: path
-        name: agentID
-        required: true
-        type: string
-      - description: Profile provider
-        in: path
-        name: provider
-        required: true
-        type: string
-      - description: Nango connection
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/internal_handler.completeAgentProfileRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/internal_handler.completeAgentProfileResponse'
-        "201":
-          description: Created
-          schema:
-            $ref: '#/definitions/internal_handler.completeAgentProfileResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-        "502":
-          description: Bad Gateway
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-      security:
-      - BearerAuth: []
-      summary: Complete a profile connection
-      tags:
-      - agent-profiles
-  /v1/agents/{agentID}/profiles/{provider}/connect-session:
-    post:
-      description: Creates a Nango connect session for an employee profile provider.
-      parameters:
-      - description: Agent ID (must be an AI employee)
-        in: path
-        name: agentID
-        required: true
-        type: string
-      - description: Profile provider
-        in: path
-        name: provider
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            $ref: '#/definitions/internal_handler.inConnectSessionResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-        "502":
-          description: Bad Gateway
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-      security:
-      - BearerAuth: []
-      summary: Create a profile connect session
-      tags:
-      - agent-profiles
-  /v1/agents/{agentID}/profiles/{provider}/custom-app:
-    post:
-      consumes:
-      - application/json
-      description: Creates one employee-scoped placeholder Nango integration for a
-        custom-app profile provider.
-      parameters:
-      - description: Agent ID (must be an AI employee)
-        in: path
-        name: agentID
-        required: true
-        type: string
-      - description: Profile provider
-        in: path
-        name: provider
-        required: true
-        type: string
-      - description: Optional custom app metadata
-        in: body
-        name: body
-        schema:
-          $ref: '#/definitions/internal_handler.profileCustomAppRequest'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            $ref: '#/definitions/internal_handler.profileCustomAppResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-        "409":
-          description: Conflict
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-        "502":
-          description: Bad Gateway
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-      security:
-      - BearerAuth: []
-      summary: Create a custom app integration for an employee profile
-      tags:
-      - agent-profiles
-    put:
-      consumes:
-      - application/json
-      description: Updates the employee-scoped Nango integration credentials after
-        the user has created the provider app with the placeholder webhook values.
-      parameters:
-      - description: Agent ID (must be an AI employee)
-        in: path
-        name: agentID
-        required: true
-        type: string
-      - description: Profile provider
-        in: path
-        name: provider
-        required: true
-        type: string
-      - description: Custom app credentials
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/internal_handler.updateProfileCustomAppRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/internal_handler.profileCustomAppResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-        "502":
-          description: Bad Gateway
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-      security:
-      - BearerAuth: []
-      summary: Update a custom app integration for an employee profile
-      tags:
-      - agent-profiles
-  /v1/agents/{agentID}/profiles/{provider}/reconnect-session:
-    post:
-      description: Creates a Nango reconnect session for the existing employee profile
-        provider.
-      parameters:
-      - description: Agent ID (must be an AI employee)
-        in: path
-        name: agentID
-        required: true
-        type: string
-      - description: Profile provider
-        in: path
-        name: provider
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            $ref: '#/definitions/internal_handler.inConnectSessionResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-        "502":
-          description: Bad Gateway
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-      security:
-      - BearerAuth: []
-      summary: Create a profile reconnect session
-      tags:
-      - agent-profiles
-  /v1/agents/{agentID}/profiles/available:
-    get:
-      description: Returns profile-capable providers for an employee, including dynamic
-        custom app setup metadata.
-      parameters:
-      - description: Agent ID (must be an AI employee)
-        in: path
-        name: agentID
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            items:
-              $ref: '#/definitions/internal_handler.profileProviderAvailableResponse'
-            type: array
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-      security:
-      - BearerAuth: []
-      summary: List available employee profile providers
-      tags:
-      - agent-profiles
-  /v1/agents/{agentID}/profiles/github:
-    post:
-      consumes:
-      - application/json
-      description: Verifies an org GitHub connection through Nango and stores it as
-        the employee's single GitHub profile.
-      parameters:
-      - description: Agent ID (must be an AI employee)
-        in: path
-        name: agentID
-        required: true
-        type: string
-      - description: GitHub connection
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/internal_handler.createGitHubProfileRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/internal_handler.createGitHubProfileResponse'
-        "201":
-          description: Created
-          schema:
-            $ref: '#/definitions/internal_handler.createGitHubProfileResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-        "502":
-          description: Bad Gateway
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-      security:
-      - BearerAuth: []
-      summary: Attach a GitHub profile to an AI employee
-      tags:
-      - agent-profiles
-  /v1/agents/{agentID}/profiles/github/repositories:
-    get:
-      description: Lists repositories visible to the employee's attached GitHub profile
-        and returns any selected repositories.
-      parameters:
-      - description: Agent ID (must be an AI employee)
-        in: path
-        name: agentID
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/internal_handler.gitHubProfileRepositoriesResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-        "409":
-          description: Conflict
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-        "502":
-          description: Bad Gateway
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-      security:
-      - BearerAuth: []
-      summary: List repositories for an employee GitHub profile
-      tags:
-      - agent-profiles
-    patch:
-      consumes:
-      - application/json
-      description: Stores the repositories this employee may access from its attached
-        GitHub profile.
-      parameters:
-      - description: Agent ID (must be an AI employee)
-        in: path
-        name: agentID
-        required: true
-        type: string
-      - description: Selected repositories
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/internal_handler.updateGitHubRepositoriesRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/internal_handler.gitHubProfileRepositoriesResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-        "409":
-          description: Conflict
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-      security:
-      - BearerAuth: []
-      summary: Update selected repositories for an employee GitHub profile
-      tags:
-      - agent-profiles
-  /v1/agents/{agentID}/profiles/slack:
-    post:
-      consumes:
-      - application/json
-      description: Validates Slack bot+app tokens, stores them encrypted, and returns
-        the profile plus public channels.
-      parameters:
-      - description: Agent ID (must be an AI employee)
-        in: path
-        name: agentID
-        required: true
-        type: string
-      - description: Slack tokens
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/internal_handler.createSlackProfileRequest'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            $ref: '#/definitions/internal_handler.createSlackProfileResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-        "409":
-          description: Conflict
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-      security:
-      - BearerAuth: []
-      summary: Create a Slack profile for an AI employee
-      tags:
-      - agent-profiles
-  /v1/agents/{agentID}/profiles/slack/channels:
-    get:
-      description: Returns public channels visible to the bot of the agent's Slack
-        profile.
-      parameters:
-      - description: Agent ID (must be an AI employee)
-        in: path
-        name: agentID
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/internal_handler.listSlackChannelsResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-        "502":
-          description: Bad Gateway
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-      security:
-      - BearerAuth: []
-      summary: List Slack public channels for an AI employee's profile
-      tags:
-      - agent-profiles
-  /v1/agents/{agentID}/profiles/slack/config:
-    patch:
-      consumes:
-      - application/json
-      description: Sets the home channel for the agent and auto-joins the bot to that
-        channel.
-      parameters:
-      - description: Agent ID (must be an AI employee)
-        in: path
-        name: agentID
-        required: true
-        type: string
-      - description: Slack profile config
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/internal_handler.updateSlackConfigRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/internal_handler.updateSlackConfigResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-        "502":
-          description: Bad Gateway
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-      security:
-      - BearerAuth: []
-      summary: Update an AI employee's Slack profile config
-      tags:
-      - agent-profiles
   /v1/agents/{agentID}/skills:
     get:
       parameters:
@@ -9061,7 +8175,7 @@ paths:
     get:
       description: |-
         Returns all employee agents in the org with sub-agents,
-        skills (metadata only — no bundle content), profiles,
+        skills (metadata only — no bundle content),
         triggers, and the latest sandbox row.
       parameters:
       - description: Filter by status (draft, active, archived)
@@ -9096,57 +8210,11 @@ paths:
       summary: List AI employees
       tags:
       - employees
-    post:
-      consumes:
-      - application/json
-      description: |-
-        Persists an Agent (is_employee=true). The employee sandbox is
-        provisioned after an active channel profile exists, during onboarding
-        completion or explicit sync.
-      parameters:
-      - description: Employee definition
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/internal_handler.createEmployeeRequest'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            $ref: '#/definitions/internal_handler.createEmployeeResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-        "409":
-          description: Conflict
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-        "503":
-          description: Service Unavailable
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-      security:
-      - BearerAuth: []
-      summary: Create an AI employee
-      tags:
-      - employees
   /v1/employees/{id}:
     get:
       description: |-
         Returns one employee agent in the org with sub-agents,
-        skills (metadata only — no bundle content), profiles,
+        skills (metadata only — no bundle content),
         triggers, and the latest sandbox row.
       parameters:
       - description: Employee agent ID
@@ -9182,68 +8250,10 @@ paths:
       summary: Get an AI employee
       tags:
       - employees
-    put:
-      consumes:
-      - application/json
-      description: |-
-        Updates employee creation fields, assigned org connections, and optional skills.
-        Category is read-only. Required backend-managed employee skills are preserved.
-      parameters:
-      - description: Employee agent ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: Fields to update
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/internal_handler.updateEmployeeRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/internal_handler.updateEmployeeResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-        "403":
-          description: Forbidden
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-        "409":
-          description: Conflict
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-        "502":
-          description: Bad Gateway
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-      security:
-      - BearerAuth: []
-      summary: Update an AI employee
-      tags:
-      - employees
   /v1/employees/{id}/agent-templates:
     get:
-      description: Returns category-scoped employee subagent templates and whether
-        each one is already installed on the employee.
+      description: Returns employee subagent templates and whether each one is already
+        installed on the employee.
       parameters:
       - description: Employee agent ID
         in: path
@@ -9385,9 +8395,7 @@ paths:
       - chats
   /v1/employees/{id}/connections/available:
     get:
-      description: Returns non-revoked org connections that may be attached to an
-        employee as tool capabilities. Connections used as employee profiles, such
-        as Slack and GitHub identity profiles, are excluded.
+      description: Returns non-revoked org connections available to the managed employee.
       parameters:
       - description: Employee agent ID
         in: path
@@ -10461,58 +9469,6 @@ paths:
       summary: List members of the current organization
       tags:
       - org-invites
-  /v1/orgs/current/onboarding/complete:
-    post:
-      consumes:
-      - application/json
-      description: |-
-        Saves the org's business info, validates the org has at least
-        one employee with an active Slack profile, then runs
-        the same compile + sandbox-sync as POST /v1/employees/{id}/sync
-        on the org's first employee. On success Org.onboarded is set.
-      parameters:
-      - description: Business info
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/internal_handler.completeOnboardingRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/internal_handler.completeOnboardingResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-        "403":
-          description: Forbidden
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-        "409":
-          description: Conflict
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-        "502":
-          description: Bad Gateway
-          schema:
-            $ref: '#/definitions/internal_handler.errorResponse'
-      security:
-      - BearerAuth: []
-      summary: Complete onboarding
-      tags:
-      - onboarding
   /v1/plans:
     get:
       description: |-

@@ -139,12 +139,12 @@ func (h *employeeStreamHarness) seedSubagentTaskSandbox(t *testing.T, employeeID
 	}
 	convID := uuid.New()
 	if err := h.db.Create(&model.AgentConversation{
-		ID:                   convID,
-		OrgID:                h.orgID,
-		AgentID:              cloudAgentID,
-		SandboxID:            sandboxID,
+		ID:                    convID,
+		OrgID:                 h.orgID,
+		AgentID:               cloudAgentID,
+		SandboxID:             sandboxID,
 		RuntimeConversationID: "bridge-" + uuid.New().String(),
-		Status:               "active",
+		Status:                "active",
 	}).Error; err != nil {
 		t.Fatalf("create cloud conversation: %v", err)
 	}

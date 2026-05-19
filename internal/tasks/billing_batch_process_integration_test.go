@@ -504,4 +504,3 @@ func TestBatch_RegisteredAsPeriodicTask(t *testing.T) {
 	}
 	t.Fatal("billing batch process not registered as a periodic task")
 }
-

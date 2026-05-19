@@ -86,12 +86,12 @@ func newMessagesListHarness(t *testing.T) *messagesListHarness {
 	}
 
 	conv := model.AgentConversation{
-		ID:                   uuid.New(),
-		OrgID:                org.ID,
-		AgentID:              agent.ID,
-		SandboxID:            sb.ID,
+		ID:                    uuid.New(),
+		OrgID:                 org.ID,
+		AgentID:               agent.ID,
+		SandboxID:             sb.ID,
 		RuntimeConversationID: "ses_test",
-		Status:               "active",
+		Status:                "active",
 	}
 	if err := db.Create(&conv).Error; err != nil {
 		t.Fatalf("create conv: %v", err)

@@ -18,7 +18,6 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/employeeruntime"
 	"github.com/usehiveloop/hiveloop/internal/logging"
 	"github.com/usehiveloop/hiveloop/internal/model"
-	slackprov "github.com/usehiveloop/hiveloop/internal/profiles/slack"
 	"github.com/usehiveloop/hiveloop/internal/sandbox"
 )
 
@@ -65,11 +64,11 @@ func (h *EmployeeSandboxUpgradeHandler) loadAndStart(ctx context.Context, payloa
 		h.markFailed(ctx, &upgrade, model.EmployeeSandboxUpgradePhaseBackup, "employee missing org")
 		return nil, nil, nil, fmt.Errorf("employee missing org")
 	}
-	if ok, err := h.hasActiveSlackProfile(ctx, upgrade.OrgID, upgrade.AgentID); err != nil {
+	if ok, err := h.hasActiveSlackConnection(ctx, upgrade.OrgID); err != nil {
 		h.markFailed(ctx, &upgrade, model.EmployeeSandboxUpgradePhaseBackup, err.Error())
 		return nil, nil, nil, err
 	} else if !ok {
-		err := fmt.Errorf("employee must have an active slack profile")
+		err := fmt.Errorf("organization must have an active Slack connection")
 		h.markFailed(ctx, &upgrade, model.EmployeeSandboxUpgradePhaseBackup, err.Error())
 		return nil, nil, nil, err
 	}
@@ -92,11 +91,12 @@ func (h *EmployeeSandboxUpgradeHandler) loadAndStart(ctx context.Context, payloa
 	return &upgrade, &agent, &oldSandbox, nil
 }
 
-func (h *EmployeeSandboxUpgradeHandler) hasActiveSlackProfile(ctx context.Context, orgID, agentID uuid.UUID) (bool, error) {
+func (h *EmployeeSandboxUpgradeHandler) hasActiveSlackConnection(ctx context.Context, orgID uuid.UUID) (bool, error) {
 	var count int64
-	err := h.db.WithContext(ctx).Model(&model.AgentProfile{}).
-		Where("org_id = ? AND agent_id = ? AND status = ? AND deleted_at IS NULL AND provider = ?",
-			orgID, agentID, "active", slackprov.Provider).
+	err := h.db.WithContext(ctx).Model(&model.InConnection{}).
+		Joins("JOIN in_integrations ON in_integrations.id = in_connections.in_integration_id AND in_integrations.deleted_at IS NULL").
+		Where("in_connections.org_id = ? AND in_connections.revoked_at IS NULL AND in_integrations.provider = ?",
+			orgID, "slack").
 		Count(&count).Error
 	return count > 0, err
 }
