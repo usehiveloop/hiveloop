@@ -60,7 +60,6 @@ type fakeCloudAgentBridge struct {
 type fakeEmployeeCallbackRuntime struct {
 	refreshURL     string
 	refreshes      int
-	starts         int
 	forceRefresh   bool
 	needsRefresh   func(*model.Sandbox) bool
 	refreshSandbox func(*model.Sandbox)
@@ -82,11 +81,6 @@ func (f *fakeEmployeeCallbackRuntime) RefreshEmployeeSandboxURL(_ context.Contex
 		f.refreshSandbox(sb)
 	}
 	return nil
-}
-
-func (f *fakeEmployeeCallbackRuntime) StartEmployeeSandbox(ctx context.Context, sb *model.Sandbox) error {
-	f.starts++
-	return f.RefreshEmployeeSandboxURL(ctx, sb)
 }
 
 func (f *fakeCloudAgentBridge) CreateConversation(_ context.Context, agentID string) (*bridge.CreateConversationResponse, error) {
