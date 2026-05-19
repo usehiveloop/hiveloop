@@ -55,7 +55,6 @@ internal/handler/employees_sync_test.go
 internal/handler/agent_profiles_github_test.go
 internal/handler/employees_create_test.go
 internal/handler/employees_helpers_test.go
-internal/handler/chats_stream.go
 internal/handler/employee_uploads_stream_test.go
 internal/handler/teams_test.go
 internal/handler/teams.go
