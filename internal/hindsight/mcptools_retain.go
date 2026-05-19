@@ -12,6 +12,7 @@ import (
 
 type memoryRetainToolResponse struct {
 	Success     bool   `json:"success"`
+	Message     string `json:"message"`
 	BankID      string `json:"bank_id"`
 	ItemsCount  int    `json:"items_count"`
 	Async       bool   `json:"async"`
@@ -100,7 +101,11 @@ Write the content as a clear, specific factual statement. Bad: "User talked abou
 }
 
 func memoryRetainResponse(bankID, documentID string, result *RetainResponse) memoryRetainToolResponse {
-	out := memoryRetainToolResponse{BankID: bankID, DocumentID: documentID}
+	out := memoryRetainToolResponse{
+		Message:    "Memory retain has been accepted and will be processed in the background. It may take a little while before memory_recall reflects this new memory.",
+		BankID:     bankID,
+		DocumentID: documentID,
+	}
 	if result == nil {
 		return out
 	}

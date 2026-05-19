@@ -161,7 +161,7 @@ func TestEmployeeMemoryRetainHandler_CallsHindsight(t *testing.T) {
 			if err := json.NewDecoder(r.Body).Decode(&retained); err != nil {
 				t.Fatalf("decode retain: %v", err)
 			}
-			_ = json.NewEncoder(w).Encode(map[string]any{"success": true, "items_count": 1, "async": false})
+			_ = json.NewEncoder(w).Encode(map[string]any{"success": true, "items_count": 1, "async": true, "operation_id": "retain-op-1"})
 		default:
 			t.Fatalf("unexpected hindsight path: %s", r.URL.Path)
 		}
@@ -201,7 +201,7 @@ func TestEmployeeMemoryRetainHandler_CallsHindsight(t *testing.T) {
 	if err := handler.Handle(context.Background(), task); err != nil {
 		t.Fatalf("handle: %v", err)
 	}
-	if len(retained.Items) != 1 || retained.Async {
+	if len(retained.Items) != 1 || !retained.Async {
 		t.Fatalf("unexpected retain request: %#v", retained)
 	}
 	var count int64

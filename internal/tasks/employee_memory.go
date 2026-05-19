@@ -103,7 +103,7 @@ func (h *EmployeeMemoryRetainHandler) Handle(ctx context.Context, task *asynq.Ta
 	}
 	retainCtx, cancel := context.WithTimeout(ctx, employeeMemoryRetainTimeout)
 	defer cancel()
-	if _, err := h.memory.Retain(retainCtx, bankID, &hindsight.RetainRequest{Items: []hindsight.RetainItem{item}, Async: false}); err != nil {
+	if _, err := h.memory.Retain(retainCtx, bankID, &hindsight.RetainRequest{Items: []hindsight.RetainItem{item}, Async: true}); err != nil {
 		logging.Capture(ctx, fmt.Errorf("employee memory retain: retain bank_id=%s agent_id=%s: %w", bankID, agent.ID, err))
 		return fmt.Errorf("retain employee memory: %w", err)
 	}
