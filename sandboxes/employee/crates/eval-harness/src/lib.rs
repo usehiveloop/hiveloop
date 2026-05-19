@@ -250,6 +250,7 @@ impl FakeGatewayServer {
             None,
             None,
             None,
+            None,
         );
         state.mark_config_loaded();
         state.mark_gateway_ready();

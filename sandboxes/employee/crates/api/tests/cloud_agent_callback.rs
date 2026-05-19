@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
-use agent::cloud_agents::{CloudTaskIndex, TaskIndexEntry};
+use agent::cloud_agents::CloudTaskIndex;
 use async_trait::async_trait;
 use axum::{
     body::{to_bytes, Body},
@@ -12,7 +12,7 @@ use domain::{
     AgentDefinition, AgentMeta, ConfigStore, EventKind, Limits, ModelConfig, OutboundChannelKind,
     OutboundChannelSpec, Session, SessionEvent, SessionId, SessionStatus,
 };
-use serde_json::{json, Map, Value};
+use serde_json::{json, Value};
 use skills::SkillWriter;
 use storage::{ConfigRepo, EventRepo, SessionRepo};
 use tokio::sync::mpsc;
@@ -40,6 +40,7 @@ async fn put_config_reloads_outbound_channels() {
         }),
         None,
         Some(reloader.clone()),
+        None,
         None,
     );
     let router = api::build_router(state);
@@ -89,15 +90,11 @@ async fn callback_requires_bearer_auth() {
 #[tokio::test]
 async fn callback_persists_event_and_publishes_to_active_stream() {
     let fixture = Fixture::new(None).await;
-    let stream_id = fixture.broker.create_stream().await;
-    fixture
-        .broker
-        .register_session("http-conversation", &stream_id)
-        .await;
 
     let body = json!({
         "task_id": "task-1",
         "agent_id": "agent-1",
+        "session_id": "http-conversation",
         "event_type": "ProgressUpdate",
         "event_id": "event-1",
         "timestamp": "2026-05-10T09:00:00Z",
@@ -122,7 +119,7 @@ async fn callback_persists_event_and_publishes_to_active_stream() {
 
     let (history, _) = fixture
         .broker
-        .subscribe(&stream_id)
+        .subscribe(&fixture.http_stream_id)
         .await
         .expect("stream exists");
     assert_eq!(history.len(), 1);
@@ -136,6 +133,7 @@ async fn callback_is_idempotent_by_event_id() {
     let body = json!({
         "task_id": "task-1",
         "agent_id": "agent-1",
+        "session_id": "http-conversation",
         "event_type": "ProgressUpdate",
         "event_id": "event-dup",
         "timestamp": "2026-05-10T09:00:00Z",
@@ -162,28 +160,17 @@ async fn callback_is_idempotent_by_event_id() {
     assert_eq!(duplicate_response["accepted"], false);
     assert_eq!(duplicate_response["duplicate"], true);
     assert_eq!(fixture.events.events.lock().unwrap().len(), 1);
+    let (history, _) = fixture
+        .broker
+        .subscribe(&fixture.http_stream_id)
+        .await
+        .expect("stream exists");
+    assert_eq!(history.len(), 1);
 }
 
 #[tokio::test]
-async fn callback_routes_by_task_index_when_metadata_has_no_session_id() {
-    let index = Arc::new(CloudTaskIndex::default());
-    let mut metadata = Map::new();
-    metadata.insert(
-        "session_id".to_string(),
-        Value::String("http-conversation".to_string()),
-    );
-    index
-        .upsert_task(TaskIndexEntry {
-            task_id: "task-indexed".to_string(),
-            agent_id: "agent-1".to_string(),
-            agent_name: Some("Code Agent".to_string()),
-            description: Some("test".to_string()),
-            created_at: None,
-            recent_events: Vec::new(),
-            metadata,
-        })
-        .await;
-    let fixture = Fixture::new(Some(index)).await;
+async fn callback_rejects_metadata_only_session_routing() {
+    let fixture = Fixture::new(None).await;
 
     let response = fixture
         .router
@@ -192,20 +179,79 @@ async fn callback_routes_by_task_index_when_metadata_has_no_session_id() {
             json!({
                 "task_id": "task-indexed",
                 "agent_id": "agent-1",
+                "session_id": "",
                 "event_type": "ProgressUpdate",
                 "event_id": "event-indexed",
                 "timestamp": "2026-05-10T09:00:00Z",
-                "metadata": {},
+                "metadata": {"session_id": "http-conversation"},
                 "data": {"summary": "found by index"}
             }),
         ))
         .await
         .expect("response");
 
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    assert!(fixture.events.events.lock().unwrap().is_empty());
+}
+
+#[tokio::test]
+async fn callback_returns_not_found_for_unknown_session_id() {
+    let fixture = Fixture::new(None).await;
+
+    let response = fixture
+        .router
+        .oneshot(callback_request(
+            Some("secret"),
+            json!({
+                "task_id": "task-unknown",
+                "agent_id": "agent-1",
+                "session_id": "http-missing",
+                "event_type": "ProgressUpdate",
+                "event_id": "event-unknown",
+                "timestamp": "2026-05-10T09:00:00Z",
+                "metadata": {"session_id": "http-conversation"},
+                "data": {"summary": "missing"}
+            }),
+        ))
+        .await
+        .expect("response");
+
+    assert_eq!(response.status(), StatusCode::NOT_FOUND);
+    assert!(fixture.events.events.lock().unwrap().is_empty());
+}
+
+#[tokio::test]
+async fn callback_delivers_to_existing_slack_session() {
+    let deliverer = Arc::new(RecordingCallbackDeliverer::default());
+    let callback_deliverer: Arc<dyn api::CloudAgentCallbackDeliverer> = deliverer.clone();
+    let fixture = Fixture::new_with_deliverer(None, Some(callback_deliverer)).await;
+    fixture
+        .sessions
+        .insert(slack_session("C123-1770000000.000100"));
+
+    let response = fixture
+        .router
+        .oneshot(callback_request(
+            Some("secret"),
+            json!({
+                "task_id": "task-slack",
+                "agent_id": "agent-1",
+                "session_id": "C123-1770000000.000100",
+                "event_type": "todo_updated",
+                "event_id": "event-slack",
+                "timestamp": "2026-05-10T09:00:00Z",
+                "metadata": {"session_id": "http-conversation"},
+                "data": {"summary": "todo changed"}
+            }),
+        ))
+        .await
+        .expect("response");
+
     assert_eq!(response.status(), StatusCode::ACCEPTED);
-    let events = fixture.events.events.lock().unwrap();
-    assert_eq!(events.len(), 1);
-    assert_eq!(events[0].session_id.as_str(), "http-conversation");
+    let deliveries = deliverer.deliveries.lock().unwrap();
+    assert_eq!(deliveries.len(), 1);
+    assert_eq!(deliveries[0].0, "C123-1770000000.000100");
+    assert_eq!(deliveries[0].1["event_id"], "event-slack");
 }
 
 #[tokio::test]
@@ -220,6 +266,7 @@ async fn terminal_and_error_callbacks_update_session_status() {
             json!({
                 "task_id": "task-1",
                 "agent_id": "agent-1",
+                "session_id": "http-conversation",
                 "event_type": "ConversationEnded",
                 "event_id": "event-complete",
                 "timestamp": "2026-05-10T09:00:00Z",
@@ -243,6 +290,7 @@ async fn terminal_and_error_callbacks_update_session_status() {
             json!({
                 "task_id": "task-1",
                 "agent_id": "agent-1",
+                "session_id": "http-conversation",
                 "event_type": "AgentError",
                 "event_id": "event-error",
                 "timestamp": "2026-05-10T09:01:00Z",
@@ -267,10 +315,18 @@ struct Fixture {
     sessions: Arc<MemorySessionRepo>,
     events: Arc<MemoryEventRepo>,
     broker: Arc<api::HttpStreamBroker>,
+    http_stream_id: String,
 }
 
 impl Fixture {
     async fn new(cloud_task_index: Option<Arc<CloudTaskIndex>>) -> Self {
+        Self::new_with_deliverer(cloud_task_index, None).await
+    }
+
+    async fn new_with_deliverer(
+        cloud_task_index: Option<Arc<CloudTaskIndex>>,
+        callback_deliverer: Option<Arc<dyn api::CloudAgentCallbackDeliverer>>,
+    ) -> Self {
         let config = ConfigStore::new(test_definition());
         let config_repo = Arc::new(MemoryConfigRepo::default());
         let sessions = Arc::new(MemorySessionRepo::default());
@@ -278,6 +334,10 @@ impl Fixture {
         let events = Arc::new(MemoryEventRepo::default());
         let (tx, _rx) = mpsc::channel(1);
         let broker = Arc::new(api::HttpStreamBroker::new());
+        let http_stream_id = broker.create_stream().await;
+        broker
+            .register_session("http-conversation", &http_stream_id)
+            .await;
         let state = api::ApiState::new(
             config,
             config_repo,
@@ -292,12 +352,14 @@ impl Fixture {
             None,
             None,
             cloud_task_index,
+            callback_deliverer,
         );
         Self {
             router: api::build_router(state),
             sessions,
             events,
             broker,
+            http_stream_id,
         }
     }
 
@@ -339,6 +401,39 @@ fn session(id: &str) -> Session {
         status: SessionStatus::Active,
         created_at: now,
         last_activity_at: now,
+    }
+}
+
+fn slack_session(id: &str) -> Session {
+    let now = Utc::now();
+    Session {
+        id: SessionId::from(id),
+        channel: "C123".to_string(),
+        thread_ts: "1770000000.000100".to_string(),
+        agent_session_id: id.to_string(),
+        status: SessionStatus::Active,
+        created_at: now,
+        last_activity_at: now,
+    }
+}
+
+#[derive(Default)]
+struct RecordingCallbackDeliverer {
+    deliveries: Mutex<Vec<(String, Value)>>,
+}
+
+#[async_trait]
+impl api::CloudAgentCallbackDeliverer for RecordingCallbackDeliverer {
+    async fn deliver_cloud_agent_callback(
+        &self,
+        session_id: &SessionId,
+        payload: Value,
+    ) -> anyhow::Result<()> {
+        self.deliveries
+            .lock()
+            .unwrap()
+            .push((session_id.as_str().to_string(), payload));
+        Ok(())
     }
 }
 

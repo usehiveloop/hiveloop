@@ -21,6 +21,7 @@ const cloudAgentCallbackTimeout = 15 * time.Second
 type cloudAgentCallbackPayload struct {
 	TaskID    string          `json:"task_id"`
 	AgentID   string          `json:"agent_id"`
+	SessionID string          `json:"session_id"`
 	EventID   string          `json:"event_id"`
 	EventType string          `json:"event_type"`
 	Timestamp string          `json:"timestamp"`
@@ -37,6 +38,7 @@ func cloudAgentCallbackPayloadFrom(task model.CloudAgentTask, event model.Conver
 	return cloudAgentCallbackPayload{
 		TaskID:    task.ID.String(),
 		AgentID:   task.CloudAgentID.String(),
+		SessionID: strings.TrimSpace(task.ParentConversationID),
 		EventID:   event.EventID,
 		EventType: event.EventType,
 		Timestamp: event.Timestamp.UTC().Format(time.RFC3339),
@@ -53,6 +55,9 @@ type employeeCallbackSandboxRuntime interface {
 func dispatchCloudAgentCallback(ctx context.Context, db *gorm.DB, encKey *crypto.SymmetricKey, runtime employeeCallbackSandboxRuntime, task model.CloudAgentTask, event model.ConversationEvent) error {
 	if encKey == nil {
 		return fmt.Errorf("encryption key is not configured")
+	}
+	if strings.TrimSpace(task.ParentConversationID) == "" {
+		return fmt.Errorf("cloud agent task parent conversation id is empty")
 	}
 
 	var employeeSandbox model.Sandbox

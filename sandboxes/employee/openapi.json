@@ -121,7 +121,7 @@
     "/gateway/cloud-agents/callback": {
       "post": {
         "tags": [
-          "crate::handlers"
+          "crate::cloud_agent_callbacks"
         ],
         "operationId": "post_cloud_agent_callback",
         "requestBody": {
@@ -163,6 +163,9 @@
           },
           "500": {
             "description": "Failed to persist callback"
+          },
+          "502": {
+            "description": "Failed to deliver callback"
           }
         },
         "security": [
@@ -686,6 +689,7 @@
         "required": [
           "task_id",
           "agent_id",
+          "session_id",
           "event_type",
           "event_id",
           "timestamp",
@@ -707,6 +711,9 @@
           },
           "metadata": {
             "type": "object"
+          },
+          "session_id": {
+            "type": "string"
           },
           "task_id": {
             "type": "string"

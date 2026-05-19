@@ -3,9 +3,10 @@ use std::sync::Arc;
 
 use agent::cloud_agents::CloudTaskIndex;
 use async_trait::async_trait;
-use domain::{ConfigStore, OutboundChannelSpec};
+use domain::{ConfigStore, OutboundChannelSpec, SessionId};
 use mcp::McpRegistry;
 use observability::ObservabilityRecorder;
+use serde_json::Value;
 use skills::SkillWriter;
 use storage::{ConfigRepo, EventRepo, SessionRepo};
 use tokio::sync::Notify;
@@ -27,12 +28,22 @@ pub struct ApiState {
     pub mcp_registry: Option<Arc<McpRegistry>>,
     pub outbound_reloader: Option<Arc<dyn OutboundConfigReloader>>,
     pub cloud_task_index: Option<Arc<CloudTaskIndex>>,
+    pub cloud_agent_callback_deliverer: Option<Arc<dyn CloudAgentCallbackDeliverer>>,
     pub observability: ObservabilityRecorder,
 }
 
 #[async_trait]
 pub trait OutboundConfigReloader: Send + Sync {
     async fn reload_outbound_channels(&self, specs: &[OutboundChannelSpec]) -> anyhow::Result<()>;
+}
+
+#[async_trait]
+pub trait CloudAgentCallbackDeliverer: Send + Sync {
+    async fn deliver_cloud_agent_callback(
+        &self,
+        session_id: &SessionId,
+        payload: Value,
+    ) -> anyhow::Result<()>;
 }
 
 impl ApiState {
@@ -47,6 +58,7 @@ impl ApiState {
         mcp_registry: Option<Arc<McpRegistry>>,
         outbound_reloader: Option<Arc<dyn OutboundConfigReloader>>,
         cloud_task_index: Option<Arc<CloudTaskIndex>>,
+        cloud_agent_callback_deliverer: Option<Arc<dyn CloudAgentCallbackDeliverer>>,
     ) -> Self {
         let observability = http_gateway
             .as_ref()
@@ -66,6 +78,7 @@ impl ApiState {
             mcp_registry,
             outbound_reloader,
             cloud_task_index,
+            cloud_agent_callback_deliverer,
             observability,
         }
     }

@@ -612,6 +612,7 @@ type CloudAgentCallbackRequest struct {
 	EventId   string                 `json:"event_id"`
 	EventType string                 `json:"event_type"`
 	Metadata  map[string]interface{} `json:"metadata"`
+	SessionId string                 `json:"session_id"`
 	TaskId    string                 `json:"task_id"`
 	Timestamp time.Time              `json:"timestamp"`
 }

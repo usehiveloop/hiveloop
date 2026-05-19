@@ -1,4 +1,5 @@
 mod bridge_gateway;
+mod cloud_agent_callback_delivery;
 mod db_sync;
 mod handler;
 mod scheduler;
@@ -6,6 +7,7 @@ mod sentry_support;
 mod session_coordinator;
 
 use bridge_gateway::BridgeGateway;
+use cloud_agent_callback_delivery::GatewayCloudAgentCallbackDeliverer;
 use scheduler::CronScheduler;
 use session_coordinator::SessionCoordinator;
 
@@ -54,8 +56,6 @@ async fn main() -> Result<()> {
         info!("sentry reporting disabled; set SENTRY_DSN or SENTRY_SPOTLIGHT=true to enable");
     }
 
-    let slack_bot_token = required_env("SLACK_BOT_TOKEN", "<slack-bot-token>")?;
-    let slack_app_token = required_env("SLACK_APP_TOKEN", "<slack-app-token>")?;
     let runtime_secret = required_env("RUNTIME_SECRET", "shared bearer token")?;
     let bind_addr_text =
         std::env::var("RUNTIME_BIND_ADDR").unwrap_or_else(|_| "0.0.0.0:7080".into());
@@ -201,6 +201,20 @@ async fn main() -> Result<()> {
     let config = ConfigStore::new(initial_definition.clone());
     let http_stream_broker = Arc::new(api::HttpStreamBroker::new());
     let (inbound_sink, mut inbound_events) = mpsc::channel::<InboundEvent>(256);
+    let slack_bot_token = required_env("SLACK_BOT_TOKEN", "Slack bot token")?;
+    let slack_app_token = required_env("SLACK_APP_TOKEN", "Slack app token")?;
+    let slack_gateway = Arc::new(SlackGateway::new(
+        slack_bot_token,
+        slack_app_token,
+        config.clone(),
+    )?);
+    let bridge_gateway: Arc<dyn ChannelGateway> = Arc::new(BridgeGateway::new(
+        slack_gateway.clone(),
+        http_stream_broker.clone(),
+    ));
+    let cloud_agent_callback_deliverer = Arc::new(GatewayCloudAgentCallbackDeliverer::new(
+        bridge_gateway.clone(),
+    ));
 
     let api_state = ApiState::new(
         config.clone(),
@@ -216,6 +230,7 @@ async fn main() -> Result<()> {
         Some(mcp_registry.clone()),
         Some(outbound_reloader),
         cloud_agent_service.as_ref().map(|service| service.index()),
+        Some(cloud_agent_callback_deliverer),
     );
     let (api_handle, api_cancel) = api::serve(bind_addr, api_state.clone()).await;
 
@@ -227,16 +242,6 @@ async fn main() -> Result<()> {
         outbound_channels = active_definition.outbound_channels.len(),
         "first control-plane config loaded; starting employee services"
     );
-
-    let slack_gateway: Arc<dyn ChannelGateway> = Arc::new(SlackGateway::new(
-        slack_bot_token,
-        slack_app_token,
-        config.clone(),
-    )?);
-    let bridge_gateway: Arc<dyn ChannelGateway> = Arc::new(BridgeGateway::new(
-        slack_gateway.clone(),
-        http_stream_broker.clone(),
-    ));
 
     let mut rig_runner = RigAgentRunner::new(config.clone(), workspace_root.clone())
         .with_outbound_emitter(emitter.clone())

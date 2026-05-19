@@ -1,4 +1,6 @@
 mod auth;
+mod cloud_agent_callback_payload;
+mod cloud_agent_callbacks;
 mod handlers;
 mod http_gateway;
 mod observability_handlers;
@@ -14,7 +16,7 @@ use tokio::sync::oneshot;
 use tracing::{info, warn};
 
 pub use http_gateway::{HttpGatewayState, HttpStreamBroker, HttpStreamEvent};
-pub use state::{ApiState, OutboundConfigReloader};
+pub use state::{ApiState, CloudAgentCallbackDeliverer, OutboundConfigReloader};
 
 #[cfg(feature = "openapi")]
 mod openapi {
@@ -33,7 +35,7 @@ mod openapi {
             crate::handlers::readyz,
             crate::handlers::post_http_message,
             crate::handlers::get_http_stream,
-            crate::handlers::post_cloud_agent_callback,
+            crate::cloud_agent_callbacks::post_cloud_agent_callback,
             crate::observability_handlers::get_trace_events,
             crate::observability_handlers::get_trace_summary,
         ),
@@ -88,8 +90,8 @@ mod openapi {
             crate::handlers::ListSessionsParams,
             crate::handlers::ListSessionsResponse,
             crate::handlers::SessionDetailResponse,
-            crate::handlers::CloudAgentCallbackRequest,
-            crate::handlers::CloudAgentCallbackResponse,
+            crate::cloud_agent_callbacks::CloudAgentCallbackRequest,
+            crate::cloud_agent_callbacks::CloudAgentCallbackResponse,
             crate::http_gateway::HttpStreamEvent,
             crate::http_gateway::HttpMessageRequest,
             crate::http_gateway::HttpMessageResponse,
@@ -140,7 +142,7 @@ pub fn build_router(state: ApiState) -> Router {
         .route("/gateway/http/messages", post(handlers::post_http_message))
         .route(
             "/gateway/cloud-agents/callback",
-            post(handlers::post_cloud_agent_callback),
+            post(cloud_agent_callbacks::post_cloud_agent_callback),
         )
         .route(
             "/gateway/http/streams/:stream_id",

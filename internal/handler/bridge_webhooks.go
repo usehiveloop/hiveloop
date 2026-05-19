@@ -271,7 +271,12 @@ func shouldStoreConversationEvent(eventType string) bool {
 }
 
 func shouldForwardCloudAgentEvent(eventType string) bool {
-	return shouldStoreConversationEvent(eventType)
+	switch bridgeevents.NormalizeEventType(eventType) {
+	case bridgeevents.EventConversationEnded, bridgeevents.EventDone, bridgeevents.EventTodoUpdated:
+		return true
+	default:
+		return false
+	}
 }
 
 // verifyWebhookSignature verifies the HMAC-SHA256 signature.
