@@ -39,7 +39,7 @@ func ensureHivyEmployee(ctx context.Context, db *gorm.DB, orgID uuid.UUID) (*mod
 		return nil
 	})
 	if err != nil {
-		if isDuplicateKeyError(err) || isUniqueViolation(err) {
+		if isDuplicateKeyError(err) {
 			if refetch := db.WithContext(ctx).
 				Where("org_id = ? AND is_employee = true AND is_system = false", orgID).
 				Order("created_at ASC").
@@ -73,11 +73,6 @@ func createHivyEmployeeWithDefaultsTx(ctx context.Context, tx *gorm.DB, orgID uu
 }
 
 func createHivyEmployeeTx(ctx context.Context, tx *gorm.DB, orgID uuid.UUID) (*model.Agent, []*model.Agent, error) {
-	team, err := ensureEngineeringTeam(tx, orgID)
-	if err != nil {
-		return nil, nil, err
-	}
-
 	choice, err := pickEmployeeCredential(tx)
 	if err != nil {
 		logging.FromContext(ctx).WarnContext(ctx, "no provider credential available for Hivy employee", "error", err, "org_id", orgID)
@@ -92,8 +87,6 @@ func createHivyEmployeeTx(ctx context.Context, tx *gorm.DB, orgID uuid.UUID) (*m
 		SystemPrompt:   "",
 		IdentityPrompt: employeeprompts.EngineeringIdentityPrompt,
 		Model:          choice.model,
-		TeamID:         &team.ID,
-		Team:           team.Name,
 		Harness:        employeeHarness,
 		IsEmployee:     true,
 		Status:         "draft",
@@ -113,7 +106,7 @@ func createHivyEmployeeTx(ctx context.Context, tx *gorm.DB, orgID uuid.UUID) (*m
 	}
 
 	h := &EmployeeHandler{db: tx}
-	subagents, err := h.ensureEmployeeAgentTemplatesTx(ctx, tx, &agent, team)
+	subagents, err := h.ensureEmployeeAgentTemplatesTx(ctx, tx, &agent)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -141,35 +134,6 @@ func attachPublishedGlobalSkillsTx(ctx context.Context, tx *gorm.DB, agentID uui
 		}
 	}
 	return nil
-}
-
-func ensureEngineeringTeam(db *gorm.DB, orgID uuid.UUID) (*model.Team, error) {
-	var team model.Team
-	err := db.Where("org_id = ? AND name = ? AND deleted_at IS NULL", orgID, engineeringTeamName).
-		First(&team).Error
-	if err == nil {
-		return &team, nil
-	}
-	if !errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, fmt.Errorf("lookup engineering team: %w", err)
-	}
-
-	team = model.Team{
-		OrgID:       orgID,
-		Name:        engineeringTeamName,
-		Description: "AI engineering team.",
-	}
-	if err := db.Create(&team).Error; err != nil {
-		if isUniqueViolation(err) {
-			if err := db.Where("org_id = ? AND name = ? AND deleted_at IS NULL", orgID, engineeringTeamName).
-				First(&team).Error; err != nil {
-				return nil, fmt.Errorf("refetch engineering team after race: %w", err)
-			}
-			return &team, nil
-		}
-		return nil, fmt.Errorf("create engineering team: %w", err)
-	}
-	return &team, nil
 }
 
 func (h *EmployeeHandler) attachGlobalSkills(ctx context.Context, agentID uuid.UUID, names []string) {

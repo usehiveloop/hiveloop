@@ -163,9 +163,6 @@ func handleConnectorBuildError(ctx context.Context, db *gorm.DB, src *ragmodel.R
 }
 
 func isPermanentConnectorBuildError(src *ragmodel.RAGSource, err error) bool {
-	if src.KindValue == ragmodel.RAGSourceKindSlackBotProfile && errors.Is(err, gorm.ErrRecordNotFound) {
-		return true
-	}
 	return false
 }
 

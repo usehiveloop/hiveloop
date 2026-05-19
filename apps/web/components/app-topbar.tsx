@@ -26,7 +26,6 @@ import { cn } from "@/lib/utils"
 
 const PRIMARY_NAV = [
   { label: "Employees", href: "/w", match: "/w" },
-  { label: "Teams", href: "/w/teams", match: "/w/teams" },
   { label: "Knowledge", href: "/w/knowledge", match: "/w/knowledge" },
 ]
 

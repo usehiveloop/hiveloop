@@ -2,7 +2,6 @@ package handler
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strings"
 
@@ -22,35 +21,11 @@ const (
 	defaultSoftwareEngineeringSpecialistVersion = 1
 )
 
-func (h *EmployeeHandler) ensureEmployeeTeam(ctx context.Context, employee *model.Agent) (*model.Team, error) {
-	if employee.TeamID != nil {
-		var team model.Team
-		if err := h.db.WithContext(ctx).Where("id = ? AND org_id = ?", *employee.TeamID, *employee.OrgID).First(&team).Error; err == nil {
-			return &team, nil
-		} else if !errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, fmt.Errorf("lookup employee team: %w", err)
-		}
-	}
-	team, err := ensureEngineeringTeam(h.db.WithContext(ctx), *employee.OrgID)
-	if err != nil {
-		return nil, err
-	}
-	if employee.TeamID == nil || *employee.TeamID != team.ID || employee.Team == "" {
-		updates := map[string]any{"team_id": team.ID, "team": team.Name}
-		if err := h.db.WithContext(ctx).Model(employee).Updates(updates).Error; err != nil {
-			return nil, fmt.Errorf("update employee team: %w", err)
-		}
-		employee.TeamID = &team.ID
-		employee.Team = team.Name
-	}
-	return team, nil
-}
-
-func (h *EmployeeHandler) ensureBusinessResearchSpecialistTx(ctx context.Context, tx *gorm.DB, employee *model.Agent, team *model.Team) (*model.Agent, error) {
+func (h *EmployeeHandler) ensureBusinessResearchSpecialistTx(ctx context.Context, tx *gorm.DB, employee *model.Agent) (*model.Agent, error) {
 	if existing, err := findBusinessResearchSpecialist(ctx, tx, employee.ID); err != nil {
 		return nil, err
 	} else if existing != nil {
-		if err := updateBusinessResearchSpecialist(ctx, tx, existing, employee, team); err != nil {
+		if err := updateBusinessResearchSpecialist(ctx, tx, existing, employee); err != nil {
 			return nil, err
 		}
 		return existing, nil
@@ -67,8 +42,6 @@ func (h *EmployeeHandler) ensureBusinessResearchSpecialistTx(ctx context.Context
 		SystemPrompt:   researchSpecialistSystemPrompt,
 		IdentityPrompt: researchSpecialistSystemPrompt,
 		Model:          choice.model,
-		TeamID:         &team.ID,
-		Team:           team.Name,
 		Harness:        employeeCloudAgentHarness,
 		IsEmployee:     false,
 		Status:         "active",
@@ -136,15 +109,13 @@ func isBusinessResearchSpecialist(agent *model.Agent) bool {
 	return strings.Contains(agent.SystemPrompt, "Research Specialist") || strings.Contains(agent.IdentityPrompt, "Research Specialist")
 }
 
-func updateBusinessResearchSpecialist(ctx context.Context, tx *gorm.DB, subagent *model.Agent, employee *model.Agent, team *model.Team) error {
+func updateBusinessResearchSpecialist(ctx context.Context, tx *gorm.DB, subagent *model.Agent, employee *model.Agent) error {
 	desc := fmt.Sprintf("Business Research Specialist for %s. Handles broad research and writes source-grounded reports to employee assets.", employee.Name)
 	updates := map[string]any{
 		"description":     desc,
 		"category":        nil,
 		"system_prompt":   researchSpecialistSystemPrompt,
 		"identity_prompt": researchSpecialistSystemPrompt,
-		"team_id":         team.ID,
-		"team":            team.Name,
 		"harness":         employeeCloudAgentHarness,
 		"is_employee":     false,
 		"status":          "active",
@@ -157,8 +128,6 @@ func updateBusinessResearchSpecialist(ctx context.Context, tx *gorm.DB, subagent
 	subagent.Category = nil
 	subagent.SystemPrompt = researchSpecialistSystemPrompt
 	subagent.IdentityPrompt = researchSpecialistSystemPrompt
-	subagent.TeamID = &team.ID
-	subagent.Team = team.Name
 	subagent.Harness = employeeCloudAgentHarness
 	subagent.IsEmployee = false
 	subagent.Status = "active"

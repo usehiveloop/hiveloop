@@ -78,7 +78,6 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 		emailSender = email.NewAsynqSender(enqueuer)
 	}
 	orgInviteHandler := handler.NewOrgInviteHandler(database, emailSender, cfg.FrontendURL)
-	teamHandler := handler.NewTeamHandler(database)
 	authHandler := handler.NewAuthHandler(database, rsaKey, signingKey,
 		cfg.AuthIssuer, cfg.AuthAudience, cfg.AuthAccessTokenTTL, cfg.AuthRefreshTokenTTL,
 		emailSender, cfg.FrontendURL, cfg.AutoConfirmEmail, deps.Credits)
@@ -221,7 +220,7 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 		return err
 	}
 	systemTaskHandler := buildSystemTaskHandler(database, deps, redisClient)
-	setupV1Routes(r, cfg, rsaPub, database, apiKeyCache, enqueuer, orgHandler, orgInviteHandler, teamHandler, usageHandler, auditHandler, reportingHandler, generationHandler, apiKeyHandler, billingHandler, subscriptionHandler, credHandler, tokenHandler, sandboxTemplateHandler, skillHandler, agentHandler, marketplaceHandler, conversationHandler, customDomainHandler, ragSourceHandler, ragSearchHandler, uploadsHandler, systemTaskHandler, employeeHandler, chatHandler, orchestrator, auditWriter)
+	setupV1Routes(r, cfg, rsaPub, database, apiKeyCache, enqueuer, orgHandler, orgInviteHandler, usageHandler, auditHandler, reportingHandler, generationHandler, apiKeyHandler, billingHandler, subscriptionHandler, credHandler, tokenHandler, sandboxTemplateHandler, skillHandler, agentHandler, marketplaceHandler, conversationHandler, customDomainHandler, ragSourceHandler, ragSearchHandler, uploadsHandler, systemTaskHandler, employeeHandler, chatHandler, orchestrator, auditWriter)
 
 	var platformAdminEmails []string
 	if cfg.PlatformAdminEmails != "" {

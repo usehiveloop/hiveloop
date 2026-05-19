@@ -191,15 +191,8 @@ func (r *Retainer) retainConversation(ctx context.Context, convID uuid.UUID) {
 	agentContext += " agent conversation"
 
 	tags := baseMemoryTags(&agent, "manual")
-	if memoryTeamTag(&agent) != "" {
-		tags = append(tags, "memory_type:team_context")
-	} else {
-		tags = append(tags, "memory_type:company_context")
-	}
+	tags = append(tags, "memory_type:company_context")
 	observationScopes := [][]string{{"company:" + agent.OrgID.String()}}
-	if teamTag := memoryTeamTag(&agent); teamTag != "" {
-		observationScopes = append(observationScopes, []string{"company:" + agent.OrgID.String(), teamTag})
-	}
 
 	_, err = r.client.Retain(ctx, bankID, &RetainRequest{
 		Items: []RetainItem{{

@@ -859,7 +859,6 @@ type PromptFragments struct {
 	Company             *PromptFragment `json:"company,omitempty"`
 	Identity            *PromptFragment `json:"identity,omitempty"`
 	OperatingPrinciples *PromptFragment `json:"operating_principles,omitempty"`
-	Team                *PromptFragment `json:"team,omitempty"`
 }
 
 // ReadFileConfig defines model for ReadFileConfig.

@@ -31,7 +31,6 @@ type adminUpdateAgentRequest struct {
 	Integrations      model.JSON `json:"integrations,omitempty"`
 	AgentConfig       model.JSON `json:"agent_config,omitempty"`
 	Permissions       model.JSON `json:"permissions,omitempty"`
-	Team              *string    `json:"team,omitempty"`
 	SharedMemory      *bool      `json:"shared_memory,omitempty"`
 	Status            *string    `json:"status,omitempty"`
 }

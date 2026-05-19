@@ -190,15 +190,11 @@ func (h *BugsinkProxyHandler) resolveAttachedBugsinkConnection(ctx context.Conte
 	if employee.OrgID == nil {
 		return model.InConnection{}, gorm.ErrRecordNotFound
 	}
-	connectionIDs := employeeConnectionIDsFromIntegrations(employee.Integrations)
-	if len(connectionIDs) == 0 {
-		return model.InConnection{}, gorm.ErrRecordNotFound
-	}
 	var conn model.InConnection
 	if err := h.db.WithContext(ctx).
 		Preload("InIntegration").
 		Joins("JOIN in_integrations ON in_integrations.id = in_connections.in_integration_id AND in_integrations.deleted_at IS NULL").
-		Where("in_connections.id IN ? AND in_connections.org_id = ? AND in_connections.revoked_at IS NULL AND in_integrations.provider = ?", connectionIDs, *employee.OrgID, bugsinkProvider).
+		Where("in_connections.org_id = ? AND in_connections.revoked_at IS NULL AND in_integrations.provider = ?", *employee.OrgID, bugsinkProvider).
 		Order("in_connections.created_at ASC").
 		First(&conn).Error; err != nil {
 		return model.InConnection{}, err

@@ -140,14 +140,6 @@ func TestCompile_EmitsTypedPromptFragmentsWithoutRawSystemPrompt(t *testing.T) {
 		t.Fatalf("create org: %v", err)
 	}
 	t.Cleanup(func() { db.Where("id = ?", org.ID).Delete(&model.Org{}) })
-	team := model.Team{
-		OrgID:      org.ID,
-		Name:       "Platform",
-		PromptTeam: "The Platform team owns reliability, deployment, and developer experience.",
-	}
-	if err := db.Create(&team).Error; err != nil {
-		t.Fatalf("create team: %v", err)
-	}
 	description := "Coordinates platform engineering work."
 	category := "engineering"
 	agent := model.Agent{
@@ -156,8 +148,6 @@ func TestCompile_EmitsTypedPromptFragmentsWithoutRawSystemPrompt(t *testing.T) {
 		Name:                      "Aria",
 		Description:               &description,
 		Category:                  &category,
-		TeamID:                    &team.ID,
-		Team:                      team.Name,
 		SystemPrompt:              "raw system prompt must not be forwarded",
 		IdentityPrompt:            "Act like the Platform team's coordinator.",
 		PromptOperatingPrinciples: "Prefer dispatching cloud agents for implementation.",
@@ -188,14 +178,11 @@ func TestCompile_EmitsTypedPromptFragmentsWithoutRawSystemPrompt(t *testing.T) {
 	if def.PromptFragments.Identity.Title != "Your identity" {
 		t.Fatalf("identity title = %q", def.PromptFragments.Identity.Title)
 	}
-	if !strings.Contains(def.PromptFragments.Identity.Content, "You are a "+orgName+" employee working on the Platform team.") {
-		t.Fatalf("identity content missing company/team sentence: %q", def.PromptFragments.Identity.Content)
+	if !strings.Contains(def.PromptFragments.Identity.Content, "You are a "+orgName+" employee.") {
+		t.Fatalf("identity content missing company sentence: %q", def.PromptFragments.Identity.Content)
 	}
 	if def.PromptFragments.Company.Title != "About the company" {
 		t.Fatalf("company title = %q", def.PromptFragments.Company.Title)
-	}
-	if def.PromptFragments.Team.Title != "About your team" {
-		t.Fatalf("team title = %q", def.PromptFragments.Team.Title)
 	}
 	if def.PromptFragments.OperatingPrinciples.Title != "Operating principles" {
 		t.Fatalf("operating principles title = %q", def.PromptFragments.OperatingPrinciples.Title)
@@ -347,13 +334,11 @@ func TestCompile_PreservesSkillRequiredEnvironmentVariables(t *testing.T) {
 
 func TestCompile_PopulatesMemoryContextFromHindsight(t *testing.T) {
 	orgID := uuid.New()
-	teamID := uuid.New()
 	agent := model.Agent{
-		ID:     uuid.New(),
-		OrgID:  &orgID,
-		TeamID: &teamID,
-		Name:   "Aria",
-		Model:  DefaultEmployeeModel,
+		ID:    uuid.New(),
+		OrgID: &orgID,
+		Name:  "Aria",
+		Model: DefaultEmployeeModel,
 	}
 	fake := &fakeMemoryRecall{response: &hindsight.RecallResponse{
 		Results: []any{
@@ -361,7 +346,7 @@ func TestCompile_PopulatesMemoryContextFromHindsight(t *testing.T) {
 				"content":     "The Platform team requires integration tests for employee-runtime changes.",
 				"source":      "manual",
 				"memory_type": "technical_context",
-				"tags":        []any{"company:" + orgID.String(), "team:" + teamID.String()},
+				"tags":        []any{"company:" + orgID.String()},
 			},
 		},
 	}}
@@ -374,7 +359,7 @@ func TestCompile_PopulatesMemoryContextFromHindsight(t *testing.T) {
 		t.Fatalf("bank id = %q", fake.bankID)
 	}
 	if len(fake.request.TagGroups) != 1 {
-		t.Fatalf("expected strict org/team tag group, got %#v", fake.request.TagGroups)
+		t.Fatalf("expected strict org tag group, got %#v", fake.request.TagGroups)
 	}
 	memory, ok := def.Context["memory"].(MemoryContext)
 	if !ok {

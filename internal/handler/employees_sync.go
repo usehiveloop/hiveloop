@@ -24,7 +24,7 @@ type syncEmployeeResponse struct {
 // @Summary Push compiled config to an employee sandbox
 // @Description Compiles the employee config, provisions an employee sandbox if
 // @Description needed, pushes it to the runtime, and verifies readiness.
-// @Description Requires the agent be an employee with an active Slack profile.
+// @Description Requires the org to have an active Slack connection.
 // @Tags employees
 // @Produce json
 // @Param id path string true "Agent UUID"

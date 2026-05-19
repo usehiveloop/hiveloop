@@ -1,15 +1,11 @@
 package handler
 
 import (
-	"context"
-	"fmt"
 	"net/http"
-	"sort"
 	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
-	"gorm.io/gorm"
 
 	"github.com/usehiveloop/hiveloop/internal/middleware"
 	"github.com/usehiveloop/hiveloop/internal/model"
@@ -95,64 +91,6 @@ func (h *EmployeeHandler) ListAvailableConnections(w http.ResponseWriter, r *htt
 		Data:    resp,
 		HasMore: false,
 	})
-}
-
-func employeeIntegrationsFromConnectionIDs(ids []uuid.UUID) model.JSON {
-	out := model.JSON{}
-	for _, id := range ids {
-		out[id.String()] = map[string]any{"actions": []string{}}
-	}
-	return out
-}
-
-func employeeConnectionIDsFromIntegrations(integrations model.JSON) []uuid.UUID {
-	if len(integrations) == 0 {
-		return nil
-	}
-	ids := make([]uuid.UUID, 0, len(integrations))
-	for rawID := range integrations {
-		id, err := uuid.Parse(rawID)
-		if err == nil {
-			ids = append(ids, id)
-		}
-	}
-	sort.Slice(ids, func(i, j int) bool {
-		return ids[i].String() < ids[j].String()
-	})
-	return ids
-}
-
-func validateEmployeeConnectionIDs(ctx context.Context, db *gorm.DB, orgID uuid.UUID, rawIDs []string) ([]uuid.UUID, []model.InConnection, error) {
-	if len(rawIDs) == 0 {
-		return nil, nil, nil
-	}
-	seen := map[uuid.UUID]bool{}
-	ids := make([]uuid.UUID, 0, len(rawIDs))
-	for _, rawID := range rawIDs {
-		id, err := uuid.Parse(rawID)
-		if err != nil {
-			return nil, nil, fmt.Errorf("invalid connection_id %q", rawID)
-		}
-		if seen[id] {
-			continue
-		}
-		seen[id] = true
-		ids = append(ids, id)
-	}
-	if len(ids) == 0 {
-		return nil, nil, nil
-	}
-	var connections []model.InConnection
-	if err := db.WithContext(ctx).
-		Preload("InIntegration").
-		Where("id IN ? AND org_id = ? AND revoked_at IS NULL", ids, orgID).
-		Find(&connections).Error; err != nil {
-		return nil, nil, fmt.Errorf("load employee connections: %w", err)
-	}
-	if len(connections) != len(ids) {
-		return nil, nil, fmt.Errorf("connection not found or revoked")
-	}
-	return ids, connections, nil
 }
 
 func employeeConnectionProvider(conn model.InConnection) string {

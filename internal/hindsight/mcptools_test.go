@@ -11,20 +11,17 @@ import (
 
 func TestBaseMemoryTags(t *testing.T) {
 	orgID := uuid.New()
-	teamID := uuid.New()
 	agentID := uuid.New()
 	agent := &model.Agent{
-		ID:     agentID,
-		OrgID:  &orgID,
-		TeamID: &teamID,
+		ID:    agentID,
+		OrgID: &orgID,
 	}
 
 	tags := baseMemoryTags(agent, "manual")
 	want := map[string]bool{
 		"company:" + orgID.String(): false,
-		"team:" + teamID.String():   false,
 		"source:manual":             false,
-		"visibility:team":           false,
+		"visibility:company":        false,
 	}
 	for _, tag := range tags {
 		if tag == "employee:"+agentID.String() {

@@ -121,7 +121,6 @@ func (h *AdminHandler) UpdateAgent(w http.ResponseWriter, r *http.Request) {
 		Integrations      model.JSON `json:"integrations,omitempty"`
 		AgentConfig       model.JSON `json:"agent_config,omitempty"`
 		Permissions       model.JSON `json:"permissions,omitempty"`
-		Team              *string    `json:"team,omitempty"`
 		SharedMemory      *bool      `json:"shared_memory,omitempty"`
 		Status            *string    `json:"status,omitempty"`
 	}
@@ -211,9 +210,6 @@ func (h *AdminHandler) UpdateAgent(w http.ResponseWriter, r *http.Request) {
 	if req.Permissions != nil {
 		updates["permissions"] = req.Permissions
 	}
-	if req.Team != nil {
-		updates["team"] = *req.Team
-	}
 	if req.SharedMemory != nil {
 		updates["shared_memory"] = *req.SharedMemory
 	}
@@ -226,7 +222,7 @@ func (h *AdminHandler) UpdateAgent(w http.ResponseWriter, r *http.Request) {
 	old := map[string]any{
 		"name": agent.Name, "description": agent.Description, "model": agent.Model,
 		"system_prompt": agent.SystemPrompt, "status": agent.Status,
-		"credential_id": agent.CredentialID.String(), "team": agent.Team, "shared_memory": agent.SharedMemory,
+		"credential_id": agent.CredentialID.String(), "shared_memory": agent.SharedMemory,
 	}
 	setAuditDiff(r, old, updates)
 

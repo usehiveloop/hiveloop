@@ -29,7 +29,6 @@ type marketplaceAgentResponse struct {
 	Integrations         model.JSON `json:"integrations"`
 	AgentConfig          model.JSON `json:"agent_config"`
 	Permissions          model.JSON `json:"permissions"`
-	Team                 string     `json:"team"`
 	SharedMemory         bool       `json:"shared_memory"`
 	RequiredIntegrations []string   `json:"required_integrations"`
 	Tags                 []string   `json:"tags"`

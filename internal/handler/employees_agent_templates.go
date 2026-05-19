@@ -93,27 +93,20 @@ func (h *EmployeeHandler) InstallAgentTemplate(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	hasProfile, err := h.orgHasActiveSlackConnection(ctx, org.ID)
+	hasSlackConnection, err := h.orgHasActiveSlackConnection(ctx, org.ID)
 	if err != nil {
 		log.ErrorContext(ctx, "count slack org connections", "error", err, "agent_id", employee.ID)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to load Slack connection"})
 		return
 	}
-	if !hasProfile {
+	if !hasSlackConnection {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "organization must have an active Slack connection"})
-		return
-	}
-
-	team, err := h.ensureEmployeeTeam(ctx, employee)
-	if err != nil {
-		log.ErrorContext(ctx, "ensure employee team for template install", "error", err, "agent_id", employee.ID, "org_id", org.ID)
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to set up employee team"})
 		return
 	}
 
 	var subagent *model.Agent
 	err = h.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		created, err := template.EnsureTx(ctx, h, tx, employee, team)
+		created, err := template.EnsureTx(ctx, h, tx, employee)
 		if err != nil {
 			return err
 		}

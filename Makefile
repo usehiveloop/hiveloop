@@ -26,7 +26,7 @@ fetch-actions-graphql:
 
 # Regenerate OpenAPI spec from handler annotations (Swagger 2.0 → OpenAPI 3.0, clean schema names)
 openapi:
-	swag init -g cmd/server/main.go -o docs --parseDependency --parseInternal
+	swag init -g main.go -d cmd/server,internal -o docs --parseDependency --parseInternal --useStructName
 	npx swagger2openapi docs/swagger.json -o docs/openapi.json
 	@python3 -c "\
 	import json, re; \

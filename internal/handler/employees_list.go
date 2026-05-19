@@ -69,7 +69,6 @@ func (h *EmployeeHandler) List(w http.ResponseWriter, r *http.Request) {
 
 	q := h.db.WithContext(r.Context()).
 		Preload("Credential").
-		Preload("TeamRef").
 		Where("agents.org_id = ? AND agents.is_employee = true AND agents.is_system = false", org.ID)
 
 	if status := r.URL.Query().Get("status"); status != "" {
@@ -158,7 +157,6 @@ func (h *EmployeeHandler) Get(w http.ResponseWriter, r *http.Request) {
 	var agent model.Agent
 	if err := h.db.WithContext(r.Context()).
 		Preload("Credential").
-		Preload("TeamRef").
 		Where("agents.id = ? AND agents.org_id = ? AND agents.is_employee = true AND agents.is_system = false", agentID, org.ID).
 		First(&agent).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {

@@ -51,8 +51,6 @@ pub struct PromptFragments {
     #[serde(default)]
     pub company: PromptFragment,
     #[serde(default)]
-    pub team: PromptFragment,
-    #[serde(default)]
     pub operating_principles: PromptFragment,
 }
 

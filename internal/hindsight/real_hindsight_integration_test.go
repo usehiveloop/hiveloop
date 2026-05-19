@@ -28,7 +28,6 @@ func TestRealHindsightRetainRecallOrgTeam(t *testing.T) {
 
 	client := NewClient(baseURL)
 	orgID := uuid.New()
-	teamID := uuid.New()
 	bankID := OrgBankID(orgID)
 	if err := client.ConfigureBank(ctx, bankID, DefaultMemoryConfig().ToBankConfigUpdate()); err != nil {
 		t.Fatalf("ConfigureBank: %v", err)
@@ -42,16 +41,14 @@ func TestRealHindsightRetainRecallOrgTeam(t *testing.T) {
 			DocumentID: "integration-test:" + uuid.NewString(),
 			Tags: []string{
 				"company:" + orgID.String(),
-				"team:" + teamID.String(),
 				"source:manual",
-				"visibility:team",
+				"visibility:company",
 				"memory_type:policy",
 			},
 			Timestamp: time.Now().UTC().Format(time.RFC3339),
 			Metadata:  map[string]string{"test": "real-hindsight"},
 			ObservationScopes: [][]string{
 				{"company:" + orgID.String()},
-				{"company:" + orgID.String(), "team:" + teamID.String()},
 			},
 		}},
 		Async: false,
@@ -64,7 +61,7 @@ func TestRealHindsightRetainRecallOrgTeam(t *testing.T) {
 		Query:  "What deployment policy does the Platform team follow?",
 		Budget: "mid",
 		TagGroups: []any{map[string]any{
-			"tags":  []string{"company:" + orgID.String(), "team:" + teamID.String()},
+			"tags":  []string{"company:" + orgID.String()},
 			"match": "all_strict",
 		}},
 	})
@@ -93,7 +90,6 @@ func TestRealHindsightForgetDocument(t *testing.T) {
 
 	client := NewClient(baseURL)
 	orgID := uuid.New()
-	teamID := uuid.New()
 	bankID := OrgBankID(orgID)
 	if err := client.ConfigureBank(ctx, bankID, DefaultMemoryConfig().ToBankConfigUpdate()); err != nil {
 		t.Fatalf("ConfigureBank: %v", err)
@@ -108,9 +104,8 @@ func TestRealHindsightForgetDocument(t *testing.T) {
 			DocumentID: documentID,
 			Tags: []string{
 				"company:" + orgID.String(),
-				"team:" + teamID.String(),
 				"source:manual",
-				"visibility:team",
+				"visibility:company",
 				"memory_type:policy",
 			},
 			Timestamp: time.Now().UTC().Format(time.RFC3339),
@@ -120,7 +115,7 @@ func TestRealHindsightForgetDocument(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Retain: %v", err)
 	}
-	agent := &model.Agent{ID: uuid.New(), OrgID: &orgID, TeamID: &teamID}
+	agent := &model.Agent{ID: uuid.New(), OrgID: &orgID}
 	result := callRealMemoryTool(t, ctx, agent, client, "memory_forget", map[string]any{
 		"document_id": documentID,
 		"reason":      "real Hindsight integration test cleanup",
@@ -140,7 +135,7 @@ func TestRealHindsightForgetDocument(t *testing.T) {
 			Query:  "What does the Platform team require before deploys? " + marker,
 			Budget: "mid",
 			TagGroups: []any{map[string]any{
-				"tags":  []string{"company:" + orgID.String(), "team:" + teamID.String()},
+				"tags":  []string{"company:" + orgID.String()},
 				"match": "all_strict",
 			}},
 		})

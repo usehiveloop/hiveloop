@@ -18,7 +18,7 @@ type employeeAgentTemplate struct {
 	Version           int
 	DefaultSkillNames []string
 	Matches           func(*model.Agent) bool
-	EnsureTx          func(context.Context, *EmployeeHandler, *gorm.DB, *model.Agent, *model.Team) (*model.Agent, error)
+	EnsureTx          func(context.Context, *EmployeeHandler, *gorm.DB, *model.Agent) (*model.Agent, error)
 }
 
 type employeeAgentTemplateResponse struct {
@@ -49,8 +49,8 @@ var (
 			Version:           defaultBusinessResearchSpecialistVersion,
 			DefaultSkillNames: defaultEmployeeTemplateSkillNames,
 			Matches:           isBusinessResearchSpecialist,
-			EnsureTx: func(ctx context.Context, h *EmployeeHandler, tx *gorm.DB, employee *model.Agent, team *model.Team) (*model.Agent, error) {
-				return h.ensureBusinessResearchSpecialistTx(ctx, tx, employee, team)
+			EnsureTx: func(ctx context.Context, h *EmployeeHandler, tx *gorm.DB, employee *model.Agent) (*model.Agent, error) {
+				return h.ensureBusinessResearchSpecialistTx(ctx, tx, employee)
 			},
 		},
 		{
@@ -61,8 +61,8 @@ var (
 			Version:           defaultSoftwareEngineeringSpecialistVersion,
 			DefaultSkillNames: defaultEmployeeTemplateSkillNames,
 			Matches:           isSoftwareEngineeringSpecialist,
-			EnsureTx: func(ctx context.Context, h *EmployeeHandler, tx *gorm.DB, employee *model.Agent, team *model.Team) (*model.Agent, error) {
-				return h.ensureSoftwareEngineeringSpecialistTx(ctx, tx, employee, team)
+			EnsureTx: func(ctx context.Context, h *EmployeeHandler, tx *gorm.DB, employee *model.Agent) (*model.Agent, error) {
+				return h.ensureSoftwareEngineeringSpecialistTx(ctx, tx, employee)
 			},
 		},
 	}
@@ -80,13 +80,9 @@ func (h *EmployeeHandler) ensureEmployeeAgentTemplates(ctx context.Context, empl
 	if employee == nil || employee.OrgID == nil {
 		return nil, errors.New("employee must have org_id")
 	}
-	team, err := h.ensureEmployeeTeam(ctx, employee)
-	if err != nil {
-		return nil, err
-	}
 	var out []*model.Agent
-	err = h.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		subagents, err := h.ensureEmployeeAgentTemplatesTx(ctx, tx, employee, team)
+	err := h.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		subagents, err := h.ensureEmployeeAgentTemplatesTx(ctx, tx, employee)
 		if err != nil {
 			return err
 		}
@@ -100,11 +96,11 @@ func (h *EmployeeHandler) ensureEmployeeAgentTemplates(ctx context.Context, empl
 	return out, nil
 }
 
-func (h *EmployeeHandler) ensureEmployeeAgentTemplatesTx(ctx context.Context, tx *gorm.DB, employee *model.Agent, team *model.Team) ([]*model.Agent, error) {
+func (h *EmployeeHandler) ensureEmployeeAgentTemplatesTx(ctx context.Context, tx *gorm.DB, employee *model.Agent) ([]*model.Agent, error) {
 	templates := employeeAgentTemplatesForEmployee()
 	out := make([]*model.Agent, 0, len(templates))
 	for _, template := range templates {
-		subagent, err := template.EnsureTx(ctx, h, tx, employee, team)
+		subagent, err := template.EnsureTx(ctx, h, tx, employee)
 		if err != nil {
 			return nil, err
 		}

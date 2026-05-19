@@ -36,11 +36,6 @@ import type { components } from "@/lib/api/schema"
 type Employee = components["schemas"]["employeeListItem"]
 type Status = "active" | "paused" | "error" | "draft"
 
-interface EmployeeGroup {
-  name: string
-  employees: Employee[]
-}
-
 const COLUMN_GRID = "grid-cols-[1.45fr_0.9fr_1fr_0.9fr_2.5rem]"
 
 export default function WorkspaceHome() {
@@ -71,7 +66,6 @@ export default function WorkspaceHome() {
         employee.description,
         employee.category,
         employee.model,
-        employee.team,
         employee.status,
         employee.sandbox?.status,
         employee.upgrade_available ? "upgrade available" : "",
@@ -83,7 +77,6 @@ export default function WorkspaceHome() {
     )
   }, [employees, filter])
 
-  const groups = useMemo(() => groupEmployees(filtered), [filtered])
   const activeCount = employees.filter(
     (employee) => normalizeStatus(employee.status) === "active"
   ).length
@@ -131,19 +124,16 @@ export default function WorkspaceHome() {
             <EmployeesTableSkeleton />
           ) : employees.length === 0 ? (
             <EmployeesEmpty />
-          ) : groups.length === 0 ? (
+          ) : filtered.length === 0 ? (
             <div className="rounded-2xl border border-border px-5 py-12 text-center text-sm text-muted-foreground">
               No employees match your filter.
             </div>
           ) : (
-            groups.map((group) => (
-              <TeamSection
-                key={group.name}
-                group={group}
-                onDeleteEmployee={setDeleting}
-                onUpgradeEmployee={setUpgrading}
-              />
-            ))
+            <EmployeeTable
+              employees={filtered}
+              onDeleteEmployee={setDeleting}
+              onUpgradeEmployee={setUpgrading}
+            />
           )}
         </div>
       </main>
@@ -222,49 +212,6 @@ function EmployeeActions({
         </DropdownMenuGroup>
       </DropdownMenuContent>
     </DropdownMenu>
-  )
-}
-
-function TeamSection({
-  group,
-  onDeleteEmployee,
-  onUpgradeEmployee,
-}: {
-  group: EmployeeGroup
-  onDeleteEmployee: (employee: Employee) => void
-  onUpgradeEmployee: (employee: Employee) => void
-}) {
-  return (
-    <section className="flex flex-col gap-4">
-      <header className="flex items-baseline justify-between gap-6">
-        <div className="flex items-baseline gap-3">
-          <h2 className="text-base font-semibold tracking-tight">
-            {group.name}
-          </h2>
-          <p className="text-xs text-muted-foreground">
-            {group.employees.length}{" "}
-            {group.employees.length === 1 ? "employee" : "employees"}
-          </p>
-        </div>
-        <Link
-          href="/w/teams"
-          className="flex items-center gap-1 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
-        >
-          Open teams
-          <HugeiconsIcon
-            icon={ArrowRight01Icon}
-            className="size-3.5"
-            strokeWidth={2}
-          />
-        </Link>
-      </header>
-
-      <EmployeeTable
-        employees={group.employees}
-        onDeleteEmployee={onDeleteEmployee}
-        onUpgradeEmployee={onUpgradeEmployee}
-      />
-    </section>
   )
 }
 
@@ -537,39 +484,29 @@ function StatusBadge({ status }: { status: Status }) {
 
 function EmployeesTableSkeleton() {
   return (
-    <div className="flex flex-col gap-12" aria-busy="true">
-      {Array.from({ length: 2 }).map((_, sectionIndex) => (
-        <section key={sectionIndex} className="flex flex-col gap-4">
-          <div className="flex items-center gap-3">
-            <Skeleton className="h-5 w-44 rounded-md" />
-            <Skeleton className="h-3 w-24 rounded-md" />
-          </div>
-          <div className="overflow-hidden rounded-2xl border border-border">
-            <div
-              className={cn(
-                "hidden items-center border-b border-border px-5 py-3 lg:grid",
-                COLUMN_GRID
-              )}
-            >
-              {Array.from({ length: 6 }).map((__, headerIndex) => (
-                <Skeleton key={headerIndex} className="h-3 w-20 rounded-md" />
-              ))}
-            </div>
-            {Array.from({ length: 3 }).map((__, rowIndex) => (
-              <div
-                key={rowIndex}
-                className={cn(
-                  "grid gap-3 border-b border-border px-5 py-4 last:border-b-0 lg:gap-0",
-                  COLUMN_GRID
-                )}
-              >
-                {Array.from({ length: 6 }).map((___, cellIndex) => (
-                  <Skeleton key={cellIndex} className="h-5 w-24 rounded-md" />
-                ))}
-              </div>
-            ))}
-          </div>
-        </section>
+    <div className="overflow-hidden rounded-2xl border border-border" aria-busy="true">
+      <div
+        className={cn(
+          "hidden items-center border-b border-border px-5 py-3 lg:grid",
+          COLUMN_GRID
+        )}
+      >
+        {Array.from({ length: 5 }).map((_, headerIndex) => (
+          <Skeleton key={headerIndex} className="h-3 w-20 rounded-md" />
+        ))}
+      </div>
+      {Array.from({ length: 3 }).map((_, rowIndex) => (
+        <div
+          key={rowIndex}
+          className={cn(
+            "grid gap-3 border-b border-border px-5 py-4 last:border-b-0 lg:gap-0",
+            COLUMN_GRID
+          )}
+        >
+          {Array.from({ length: 5 }).map((__, cellIndex) => (
+            <Skeleton key={cellIndex} className="h-5 w-24 rounded-md" />
+          ))}
+        </div>
       ))}
     </div>
   )
@@ -586,24 +523,6 @@ function EmployeesEmpty() {
       </p>
     </div>
   )
-}
-
-function groupEmployees(employees: Employee[]): EmployeeGroup[] {
-  const groups = new Map<string, Employee[]>()
-  for (const employee of employees) {
-    const key = employee.team?.trim() || "Unassigned"
-    groups.set(key, [...(groups.get(key) ?? []), employee])
-  }
-  return Array.from(groups.entries())
-    .sort(([a], [b]) => {
-      if (a === "Unassigned") return 1
-      if (b === "Unassigned") return -1
-      return a.localeCompare(b)
-    })
-    .map(([name, groupedEmployees]) => ({
-      name,
-      employees: groupedEmployees,
-    }))
 }
 
 function normalizeStatus(status?: string): Status {

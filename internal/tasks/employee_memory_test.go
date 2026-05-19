@@ -25,10 +25,9 @@ import (
 
 func TestBuildEmployeeRetainItem_BundlesSessionAtCheckpoint(t *testing.T) {
 	orgID := uuid.New()
-	teamID := uuid.New()
 	agentID := uuid.New()
 	sandboxID := uuid.New()
-	agent := &model.Agent{ID: agentID, OrgID: &orgID, TeamID: &teamID, Name: "Aria"}
+	agent := &model.Agent{ID: agentID, OrgID: &orgID, Name: "Aria"}
 	events := []model.EmployeeMemoryEvent{
 		memoryEvent(t, orgID, agentID, sandboxID, "S1", "user.message.received", map[string]any{
 			"source": "slack", "channel": "C123", "user": "U123", "user_display_name": "Kim",
@@ -50,10 +49,9 @@ func TestBuildEmployeeRetainItem_BundlesSessionAtCheckpoint(t *testing.T) {
 	}
 	for _, want := range []string{
 		"company:" + orgID.String(),
-		"team:" + teamID.String(),
 		"source:slack",
-		"visibility:team",
-		"memory_type:team_context",
+		"visibility:company",
+		"memory_type:company_context",
 		"channel:c123",
 	} {
 		if !hasTaskString(item.Tags, want) {
@@ -75,8 +73,8 @@ func TestBuildEmployeeRetainItem_BundlesSessionAtCheckpoint(t *testing.T) {
 	if item.Metadata["session_id"] != "S1" || item.Metadata["event_count"] != "3" || item.Metadata["user"] != "U123" || item.Metadata["user_display_name"] != "Kim" {
 		t.Fatalf("unexpected metadata: %#v", item.Metadata)
 	}
-	if len(item.ObservationScopes) != 2 {
-		t.Fatalf("expected company and team observation scopes, got %#v", item.ObservationScopes)
+	if len(item.ObservationScopes) != 1 {
+		t.Fatalf("expected company observation scope, got %#v", item.ObservationScopes)
 	}
 }
 
@@ -118,10 +116,9 @@ func TestBuildEmployeeRetainItem_SkipsPureBanterWithoutWorkSignal(t *testing.T) 
 
 func TestBuildEmployeeRetainItem_PreservesExplicitRememberFactsWithoutTools(t *testing.T) {
 	orgID := uuid.New()
-	teamID := uuid.New()
 	agentID := uuid.New()
 	sandboxID := uuid.New()
-	agent := &model.Agent{ID: agentID, OrgID: &orgID, TeamID: &teamID, Name: "Aria"}
+	agent := &model.Agent{ID: agentID, OrgID: &orgID, Name: "Aria"}
 	events := []model.EmployeeMemoryEvent{
 		memoryEvent(t, orgID, agentID, sandboxID, "S1", "user.message.received", map[string]any{
 			"source": "slack", "channel": "C123", "user_display_name": "Nora",

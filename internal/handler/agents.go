@@ -82,7 +82,6 @@ type createAgentRequest struct {
 	AgentConfig               model.JSON               `json:"agent_config,omitempty"`
 	Permissions               model.JSON               `json:"permissions,omitempty"`
 	Resources                 model.JSON               `json:"resources,omitempty"`
-	Team                      string                   `json:"team,omitempty"`
 	SharedMemory              bool                     `json:"shared_memory,omitempty"`
 	SandboxTools              []string                 `json:"sandbox_tools,omitempty"`
 	SkillIDs                  []string                 `json:"skill_ids,omitempty"`
@@ -112,7 +111,6 @@ type updateAgentRequest struct {
 	AgentConfig               model.JSON               `json:"agent_config,omitempty"`
 	Permissions               model.JSON               `json:"permissions,omitempty"`
 	Resources                 model.JSON               `json:"resources,omitempty"`
-	Team                      *string                  `json:"team,omitempty"`
 	SharedMemory              *bool                    `json:"shared_memory,omitempty"`
 	SandboxTools              []string                 `json:"sandbox_tools,omitempty"`
 	SkillIDs                  *[]string                `json:"skill_ids,omitempty"`
@@ -161,7 +159,6 @@ type agentResponse struct {
 	AgentConfig               model.JSON               `json:"agent_config"`
 	Permissions               model.JSON               `json:"permissions"`
 	Resources                 model.JSON               `json:"resources"`
-	Team                      string                   `json:"team"`
 	SharedMemory              bool                     `json:"shared_memory"`
 	SandboxTools              []string                 `json:"sandbox_tools"`
 	Harness                   string                   `json:"harness"`
@@ -197,7 +194,6 @@ func toAgentResponse(a model.Agent) agentResponse {
 		AgentConfig:               a.AgentConfig,
 		Permissions:               a.Permissions,
 		Resources:                 a.Resources,
-		Team:                      resolvedAgentTeamName(a),
 		SharedMemory:              a.SharedMemory,
 		SandboxTools:              ensureStringSlice(a.SandboxTools),
 		Harness:                   a.Harness,
@@ -223,11 +219,4 @@ func toAgentResponse(a model.Agent) agentResponse {
 		resp.ProviderID = a.Credential.ProviderID
 	}
 	return resp
-}
-
-func resolvedAgentTeamName(a model.Agent) string {
-	if a.TeamRef != nil && a.TeamRef.Name != "" {
-		return a.TeamRef.Name
-	}
-	return a.Team
 }

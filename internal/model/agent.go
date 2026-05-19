@@ -19,8 +19,6 @@ type Agent struct {
 	Credential        *Credential      `gorm:"foreignKey:CredentialID;constraint:OnDelete:SET NULL"`
 	SandboxTemplateID *uuid.UUID       `gorm:"type:uuid"`
 	SandboxTemplate   *SandboxTemplate `gorm:"foreignKey:SandboxTemplateID;constraint:OnDelete:SET NULL"`
-	TeamID            *uuid.UUID       `gorm:"type:uuid;index"`
-	TeamRef           *Team            `gorm:"foreignKey:TeamID;constraint:OnDelete:SET NULL"`
 
 	// Bridge AgentDefinition fields
 	SystemPrompt              string             `gorm:"type:text;not null"`
@@ -36,7 +34,6 @@ type Agent struct {
 	AgentConfig               JSON               `gorm:"type:jsonb;not null;default:'{}'"` // max_tokens, max_turns, temperature, etc.
 	Permissions               JSON               `gorm:"type:jsonb;not null;default:'{}'"` // tool permission overrides
 	Resources                 JSON               `gorm:"type:jsonb;not null;default:'{}'"` // per-connection resource scoping: {connID: {resourceKey: [{id, name}]}}
-	Team                      string             `gorm:"not null;default:''"`              // team tag for memory scoping (e.g. "engineering", "sales")
 	SharedMemory              bool               `gorm:"not null;default:false"`           // can store shared memories visible to all agents in identity
 
 	// Sandbox setup

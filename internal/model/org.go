@@ -63,7 +63,14 @@ func AutoMigrate(db *gorm.DB) (err error) {
 		"routers",
 		"conversation_subscriptions",
 		"agent_profiles",
+		"teams",
 	); err != nil {
+		return err
+	}
+	if err := dropAgentTeamColumns(db); err != nil {
+		return err
+	}
+	if err := dropMarketplaceAgentTeamColumn(db); err != nil {
 		return err
 	}
 	if db.Migrator().HasColumn(&AgentConversation{}, "bridge_conversation_id") &&
@@ -129,7 +136,6 @@ func AutoMigrate(db *gorm.DB) (err error) {
 		&AgentSkill{},
 		&AgentSubagent{},
 		&FailedEvent{},
-		&Team{},
 		&EmployeeAsset{},
 		&CloudAgentTask{},
 		&EmployeeMemoryEvent{},
@@ -145,6 +151,25 @@ func AutoMigrate(db *gorm.DB) (err error) {
 	}
 
 	return nil
+}
+
+func dropAgentTeamColumns(db *gorm.DB) error {
+	for _, column := range []string{"team_id", "team"} {
+		if !db.Migrator().HasColumn("agents", column) {
+			continue
+		}
+		if err := db.Migrator().DropColumn("agents", column); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func dropMarketplaceAgentTeamColumn(db *gorm.DB) error {
+	if !db.Migrator().HasColumn("marketplace_agents", "team") {
+		return nil
+	}
+	return db.Migrator().DropColumn("marketplace_agents", "team")
 }
 
 func migrateEmployeeCloudAgentHarness(db *gorm.DB) error {

@@ -18,8 +18,8 @@ export type CreateCredentialRequest = Schemas["createCredentialRequest"];
 export type MintTokenRequest = Schemas["mintTokenRequest"];
 export type MintTokenResponse = Schemas["mintTokenResponse"];
 export type TokenListItem = Schemas["tokenListItem"];
-export type PaginatedTokens = Schemas["paginatedResponse-tokenListItem"];
-export type TokenScope = Schemas["github_com_usehiveloop_hiveloop_internal_mcp.TokenScope"];
+export type PaginatedTokens = Schemas["paginatedResponse-handler_tokenListItem"];
+export type TokenScope = Schemas["TokenScope"];
 
 // Available scopes for token minting (used by scope selection UI)
 export interface AvailableScopeAction {
@@ -50,7 +50,7 @@ export interface AvailableScopeConnection {
 
 
 
-export type NangoCredentials = Schemas["github_com_usehiveloop_hiveloop_internal_nango.Credentials"];
+export type NangoCredentials = Schemas["Credentials"];
 
 
 export type UsageResponse = Schemas["usageResponse"];
@@ -62,9 +62,9 @@ export type ProviderSummary = Schemas["providerSummary"];
 export type ProviderDetail = Schemas["providerDetail"];
 export type ModelSummary = Schemas["modelSummary"];
 
-export type PaginatedApiKeys = Schemas["paginatedResponse-apiKeyResponse"];
+export type PaginatedApiKeys = Schemas["paginatedResponse-handler_apiKeyResponse"];
 export type PaginatedCredentials = Schemas["paginatedResponse-credentialResponse"];
-export type PaginatedAuditEntries = Schemas["paginatedResponse-auditEntryResponse"];
+export type PaginatedAuditEntries = Schemas["paginatedResponse-handler_auditEntryResponse"];
 
 export type ErrorResponse = Schemas["errorResponse"];
 export type JSON = Schemas["JSON"];
@@ -112,13 +112,12 @@ export type PaginatedSandboxTemplates = Schemas["paginatedResponse-sandboxTempla
 export type ConversationResponse = Schemas["conversationResponse"];
 export type ConversationEventResponse = Schemas["conversationEventResponse"];
 export type PaginatedConversations = Schemas["paginatedResponse-conversationResponse"];
-export type PaginatedConversationEvents = Schemas["paginatedResponse-conversationEventResponse"];
+export type PaginatedConversationEvents = Schemas["paginatedResponse-handler_conversationEventResponse"];
 
 // Sandboxes
 export type SandboxResponse = Schemas["sandboxResponse"];
-export type PaginatedSandboxes = Schemas["paginatedResponse-sandboxResponse"];
+export type PaginatedSandboxes = Schemas["paginatedResponse-handler_sandboxResponse"];
 export type ExecRequest = Schemas["execRequest"];
 export type ExecResponse = Schemas["execResponse"];
 export type CommandResult = Schemas["commandResult"];
-
 

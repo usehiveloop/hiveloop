@@ -32,20 +32,6 @@ func TestIntegration_EmployeesList_HappyPath_LoadsAllRelations(t *testing.T) {
 	h.platformCredCleanup(t)
 	m := h.createOrg(t)
 	emp := h.seedEmployeeAgent(t, m)
-	team := model.Team{
-		OrgID:       m.org.ID,
-		Name:        "Engineering",
-		Description: "AI engineering team.",
-	}
-	if err := h.db.Create(&team).Error; err != nil {
-		t.Fatalf("create team: %v", err)
-	}
-	t.Cleanup(func() { h.db.Where("id = ?", team.ID).Delete(&model.Team{}) })
-	if err := h.db.Model(&model.Agent{}).
-		Where("id = ?", emp.ID).
-		Update("team_id", team.ID).Error; err != nil {
-		t.Fatalf("assign team: %v", err)
-	}
 	h.seedSandbox(t, m, emp.ID)
 	h.seedSlackProfile(t, m, emp.ID)
 
@@ -99,10 +85,6 @@ func TestIntegration_EmployeesList_HappyPath_LoadsAllRelations(t *testing.T) {
 	if item["is_employee"] != true {
 		t.Errorf("is_employee = %v, want true", item["is_employee"])
 	}
-	if item["team"] != "Engineering" {
-		t.Errorf("team = %v, want Engineering", item["team"])
-	}
-
 	subagents := item["subagents"].([]any)
 	if len(subagents) != 1 {
 		t.Errorf("subagents len = %d, want 1", len(subagents))

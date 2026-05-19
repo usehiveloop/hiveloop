@@ -29,7 +29,6 @@ func TestRealHindsightEmployeeMemoryCheckpointFlow(t *testing.T) {
 
 	db := openTasksMemoryTestDB(t)
 	orgID := uuid.New()
-	teamID := uuid.New()
 	agentID := uuid.New()
 	sandboxID := uuid.New()
 	sessionID := "slack-C123-" + uuid.NewString()
@@ -38,10 +37,7 @@ func TestRealHindsightEmployeeMemoryCheckpointFlow(t *testing.T) {
 	if err := db.Create(&model.Org{ID: orgID, Name: "real-memory-" + uuid.NewString()[:8], Active: true}).Error; err != nil {
 		t.Fatalf("create org: %v", err)
 	}
-	if err := db.Create(&model.Team{ID: teamID, OrgID: orgID, Name: "Platform"}).Error; err != nil {
-		t.Fatalf("create team: %v", err)
-	}
-	agent := model.Agent{ID: agentID, OrgID: &orgID, TeamID: &teamID, Name: "Aria", IsEmployee: true, Status: "active"}
+	agent := model.Agent{ID: agentID, OrgID: &orgID, Name: "Aria", IsEmployee: true, Status: "active"}
 	if err := db.Create(&agent).Error; err != nil {
 		t.Fatalf("create agent: %v", err)
 	}
@@ -106,7 +102,7 @@ func TestRealHindsightEmployeeMemoryCheckpointFlow(t *testing.T) {
 		t.Fatalf("retained count = %d, want %d", retainedCount, len(seededEvents))
 	}
 
-	resp := waitForEmployeeMemoryRecall(t, ctx, client, orgID, teamID, marker)
+	resp := waitForEmployeeMemoryRecall(t, ctx, client, orgID, marker)
 	recallJSON := mustJSONForLog(resp.Results)
 	t.Logf("recall returned data:\n%s", recallJSON)
 	if len(resp.Results) == 0 {
@@ -134,16 +130,12 @@ func TestRealHindsightEmployeeMemoryProductionWorkload(t *testing.T) {
 
 	db := openTasksMemoryTestDB(t)
 	orgID := uuid.New()
-	teamID := uuid.New()
 	agentID := uuid.New()
 	sandboxID := uuid.New()
 	if err := db.Create(&model.Org{ID: orgID, Name: "prod-memory-" + uuid.NewString()[:8], Active: true}).Error; err != nil {
 		t.Fatalf("create org: %v", err)
 	}
-	if err := db.Create(&model.Team{ID: teamID, OrgID: orgID, Name: "Platform"}).Error; err != nil {
-		t.Fatalf("create team: %v", err)
-	}
-	agent := model.Agent{ID: agentID, OrgID: &orgID, TeamID: &teamID, Name: "Aria", IsEmployee: true, Status: "active"}
+	agent := model.Agent{ID: agentID, OrgID: &orgID, Name: "Aria", IsEmployee: true, Status: "active"}
 	if err := db.Create(&agent).Error; err != nil {
 		t.Fatalf("create agent: %v", err)
 	}
@@ -238,7 +230,7 @@ func TestRealHindsightEmployeeMemoryProductionWorkload(t *testing.T) {
 		},
 	}
 	for _, tc := range cases {
-		resp := waitForProductionRecall(t, ctx, client, orgID, teamID, tc.query, tc.want)
+		resp := waitForProductionRecall(t, ctx, client, orgID, tc.query, tc.want)
 		t.Logf("production recall %s:\n%s", tc.name, mustJSONForLog(resp.Results))
 	}
 
@@ -250,7 +242,7 @@ func TestRealHindsightEmployeeMemoryProductionWorkload(t *testing.T) {
 			Query:  query,
 			Budget: "high",
 			TagGroups: []any{map[string]any{
-				"tags":  []string{"company:" + orgID.String(), "team:" + teamID.String()},
+				"tags":  []string{"company:" + orgID.String()},
 				"match": "all_strict",
 			}},
 		})
@@ -267,7 +259,7 @@ func TestRealHindsightEmployeeMemoryProductionWorkload(t *testing.T) {
 	}
 }
 
-func waitForEmployeeMemoryRecall(t *testing.T, ctx context.Context, client *hindsight.Client, orgID, teamID uuid.UUID, marker string) *hindsight.RecallResponse {
+func waitForEmployeeMemoryRecall(t *testing.T, ctx context.Context, client *hindsight.Client, orgID uuid.UUID, marker string) *hindsight.RecallResponse {
 	t.Helper()
 	deadline := time.Now().Add(75 * time.Second)
 	var last *hindsight.RecallResponse
@@ -277,7 +269,7 @@ func waitForEmployeeMemoryRecall(t *testing.T, ctx context.Context, client *hind
 			Query:  "What does the Platform team require before production deploys? " + marker,
 			Budget: "mid",
 			TagGroups: []any{map[string]any{
-				"tags":  []string{"company:" + orgID.String(), "team:" + teamID.String()},
+				"tags":  []string{"company:" + orgID.String()},
 				"match": "all_strict",
 			}},
 		})
@@ -301,7 +293,7 @@ func waitForEmployeeMemoryRecall(t *testing.T, ctx context.Context, client *hind
 	return last
 }
 
-func waitForProductionRecall(t *testing.T, ctx context.Context, client *hindsight.Client, orgID, teamID uuid.UUID, query string, want []string) *hindsight.RecallResponse {
+func waitForProductionRecall(t *testing.T, ctx context.Context, client *hindsight.Client, orgID uuid.UUID, query string, want []string) *hindsight.RecallResponse {
 	t.Helper()
 	deadline := time.Now().Add(120 * time.Second)
 	var last *hindsight.RecallResponse
@@ -311,7 +303,7 @@ func waitForProductionRecall(t *testing.T, ctx context.Context, client *hindsigh
 			Query:  query,
 			Budget: "high",
 			TagGroups: []any{map[string]any{
-				"tags":  []string{"company:" + orgID.String(), "team:" + teamID.String()},
+				"tags":  []string{"company:" + orgID.String()},
 				"match": "all_strict",
 			}},
 		})

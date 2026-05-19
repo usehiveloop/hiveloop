@@ -173,9 +173,6 @@ func (h *AgentHandler) Update(w http.ResponseWriter, r *http.Request) {
 	if req.Resources != nil {
 		updates["resources"] = req.Resources
 	}
-	if req.Team != nil {
-		updates["team"] = *req.Team
-	}
 	if req.SharedMemory != nil {
 		updates["shared_memory"] = *req.SharedMemory
 	}

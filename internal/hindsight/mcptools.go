@@ -32,7 +32,7 @@ func NewMemoryToolsFunc(client *Client, refreshFns ...MemoryRefreshFunc) func(se
 }
 
 // AddMemoryTools registers memory tools on an existing MCP server. Memory is
-// scoped per org and optionally narrowed by team tags.
+// scoped per org.
 func AddMemoryTools(server *mcp.Server, agent *model.Agent, client *Client, db *gorm.DB, refresh MemoryRefreshFunc) {
 	if agent.OrgID == nil || client == nil {
 		return
@@ -57,26 +57,9 @@ func baseMemoryTags(agent *model.Agent, source string) []string {
 	tags := []string{
 		"company:" + agent.OrgID.String(),
 		"source:" + source,
-	}
-	if teamTag := memoryTeamTag(agent); teamTag != "" {
-		tags = append(tags, teamTag, "visibility:team")
-	} else {
-		tags = append(tags, "visibility:company")
+		"visibility:company",
 	}
 	return tags
-}
-
-func memoryTeamTag(agent *model.Agent) string {
-	if agent == nil {
-		return ""
-	}
-	if agent.TeamID != nil {
-		return "team:" + agent.TeamID.String()
-	}
-	if agent.Team != "" {
-		return "team:" + agent.Team
-	}
-	return ""
 }
 
 func recallTagGroups(agent *model.Agent) []any {
@@ -84,9 +67,6 @@ func recallTagGroups(agent *model.Agent) []any {
 		return nil
 	}
 	tags := []string{"company:" + agent.OrgID.String()}
-	if teamTag := memoryTeamTag(agent); teamTag != "" {
-		tags = append(tags, teamTag)
-	}
 	return []any{map[string]any{"tags": tags, "match": "all_strict"}}
 }
 

@@ -12,11 +12,11 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
-func (h *EmployeeHandler) ensureSoftwareEngineeringSpecialistTx(ctx context.Context, tx *gorm.DB, employee *model.Agent, team *model.Team) (*model.Agent, error) {
+func (h *EmployeeHandler) ensureSoftwareEngineeringSpecialistTx(ctx context.Context, tx *gorm.DB, employee *model.Agent) (*model.Agent, error) {
 	if existing, err := findSoftwareEngineeringSpecialist(ctx, tx, employee.ID); err != nil {
 		return nil, err
 	} else if existing != nil {
-		if err := updateSoftwareEngineeringSpecialist(ctx, tx, existing, employee, team); err != nil {
+		if err := updateSoftwareEngineeringSpecialist(ctx, tx, existing, employee); err != nil {
 			return nil, err
 		}
 		return existing, nil
@@ -33,8 +33,6 @@ func (h *EmployeeHandler) ensureSoftwareEngineeringSpecialistTx(ctx context.Cont
 		SystemPrompt:   softwareEngineeringSpecialistSystemPrompt,
 		IdentityPrompt: softwareEngineeringSpecialistSystemPrompt,
 		Model:          choice.model,
-		TeamID:         &team.ID,
-		Team:           team.Name,
 		Harness:        employeeCloudAgentHarness,
 		IsEmployee:     false,
 		Status:         "active",
@@ -102,15 +100,13 @@ func isSoftwareEngineeringSpecialist(agent *model.Agent) bool {
 	return strings.Contains(agent.SystemPrompt, "Software Engineering Specialist") || strings.Contains(agent.IdentityPrompt, "Software Engineering Specialist")
 }
 
-func updateSoftwareEngineeringSpecialist(ctx context.Context, tx *gorm.DB, subagent *model.Agent, employee *model.Agent, team *model.Team) error {
+func updateSoftwareEngineeringSpecialist(ctx context.Context, tx *gorm.DB, subagent *model.Agent, employee *model.Agent) error {
 	desc := fmt.Sprintf("Software Engineering Specialist for %s. Handles implementation, debugging, codebase changes, and verification artifacts.", employee.Name)
 	updates := map[string]any{
 		"description":     desc,
 		"category":        nil,
 		"system_prompt":   softwareEngineeringSpecialistSystemPrompt,
 		"identity_prompt": softwareEngineeringSpecialistSystemPrompt,
-		"team_id":         team.ID,
-		"team":            team.Name,
 		"harness":         employeeCloudAgentHarness,
 		"is_employee":     false,
 		"status":          "active",
@@ -123,8 +119,6 @@ func updateSoftwareEngineeringSpecialist(ctx context.Context, tx *gorm.DB, subag
 	subagent.Category = nil
 	subagent.SystemPrompt = softwareEngineeringSpecialistSystemPrompt
 	subagent.IdentityPrompt = softwareEngineeringSpecialistSystemPrompt
-	subagent.TeamID = &team.ID
-	subagent.Team = team.Name
 	subagent.Harness = employeeCloudAgentHarness
 	subagent.IsEmployee = false
 	subagent.Status = "active"

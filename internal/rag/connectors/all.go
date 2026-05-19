@@ -4,6 +4,5 @@ package connectors
 
 import (
 	_ "github.com/usehiveloop/hiveloop/internal/rag/connectors/github"
-	_ "github.com/usehiveloop/hiveloop/internal/rag/connectors/slack"
 	_ "github.com/usehiveloop/hiveloop/internal/rag/connectors/website"
 )

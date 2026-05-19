@@ -124,7 +124,7 @@ func TestBugsinkProxy_RejectsInvalidAndUnattachedRequests(t *testing.T) {
 	}
 }
 
-func TestBugsinkProxy_RequiresAttachedConnection(t *testing.T) {
+func TestBugsinkProxy_UsesActiveOrgConnectionWithoutEmployeeAssignment(t *testing.T) {
 	var nangoCalls atomic.Int64
 	harness := newBugsinkProxyHarness(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		nangoCalls.Add(1)
@@ -138,10 +138,10 @@ func TestBugsinkProxy_RequiresAttachedConnection(t *testing.T) {
 	rec := httptest.NewRecorder()
 	harness.router.ServeHTTP(rec, req)
 
-	if rec.Code != http.StatusNotFound {
+	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
 	}
-	if got := nangoCalls.Load(); got != 0 {
+	if got := nangoCalls.Load(); got != 1 {
 		t.Fatalf("nango calls = %d", got)
 	}
 }

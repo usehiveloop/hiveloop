@@ -11,11 +11,11 @@ import (
 )
 
 type MarketplaceAgent struct {
-	ID        uuid.UUID  `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
-	OrgID     uuid.UUID  `gorm:"type:uuid;not null;index"`
-	Org       Org        `gorm:"foreignKey:OrgID;constraint:OnDelete:CASCADE"`
-	PublisherID uuid.UUID `gorm:"type:uuid;not null;index"`
-	Publisher User       `gorm:"foreignKey:PublisherID;constraint:OnDelete:CASCADE"`
+	ID            uuid.UUID  `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
+	OrgID         uuid.UUID  `gorm:"type:uuid;not null;index"`
+	Org           Org        `gorm:"foreignKey:OrgID;constraint:OnDelete:CASCADE"`
+	PublisherID   uuid.UUID  `gorm:"type:uuid;not null;index"`
+	Publisher     User       `gorm:"foreignKey:PublisherID;constraint:OnDelete:CASCADE"`
 	SourceAgentID *uuid.UUID `gorm:"type:uuid;index"`
 	SourceAgent   *Agent     `gorm:"foreignKey:SourceAgentID;constraint:OnDelete:SET NULL"`
 
@@ -31,7 +31,6 @@ type MarketplaceAgent struct {
 	Integrations JSON    `gorm:"type:jsonb;not null;default:'{}'"`
 	AgentConfig  JSON    `gorm:"type:jsonb;not null;default:'{}'"`
 	Permissions  JSON    `gorm:"type:jsonb;not null;default:'{}'"`
-	Team         string  `gorm:"not null;default:''"`
 	SharedMemory bool    `gorm:"not null;default:false"`
 
 	// Marketplace-specific

@@ -23,7 +23,6 @@ func setupV1Routes(
 	enqueuer enqueue.TaskEnqueuer,
 	orgHandler *handler.OrgHandler,
 	orgInviteHandler *handler.OrgInviteHandler,
-	teamHandler *handler.TeamHandler,
 	usageHandler *handler.UsageHandler,
 	auditHandler *handler.AuditHandler,
 	reportingHandler *handler.ReportingHandler,
@@ -65,16 +64,6 @@ func setupV1Routes(
 
 			r.Get("/orgs/current", orgHandler.Current)
 			r.Get("/orgs/current/members", orgInviteHandler.ListMembers)
-
-			// Teams: reads open to any member; writes require admin/owner.
-			r.Get("/teams", teamHandler.List)
-			r.Get("/teams/{id}", teamHandler.Get)
-			r.Group(func(r chi.Router) {
-				r.Use(middleware.RequireOrgAdmin(database))
-				r.Post("/teams", teamHandler.Create)
-				r.Patch("/teams/{id}", teamHandler.Update)
-				r.Delete("/teams/{id}", teamHandler.Delete)
-			})
 
 			// Admin-only org invite management.
 			r.Group(func(r chi.Router) {

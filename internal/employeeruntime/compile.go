@@ -18,7 +18,7 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/hindsight"
 	"github.com/usehiveloop/hiveloop/internal/model"
 	"github.com/usehiveloop/hiveloop/internal/nango"
-	slackprov "github.com/usehiveloop/hiveloop/internal/profiles/slack"
+	slackprov "github.com/usehiveloop/hiveloop/internal/slackapp"
 	"github.com/usehiveloop/hiveloop/internal/token"
 )
 
@@ -79,7 +79,6 @@ type AgentMeta struct {
 type PromptFragments struct {
 	Identity            PromptFragment `json:"identity,omitempty"`
 	Company             PromptFragment `json:"company,omitempty"`
-	Team                PromptFragment `json:"team,omitempty"`
 	OperatingPrinciples PromptFragment `json:"operating_principles,omitempty"`
 }
 
@@ -298,7 +297,7 @@ func buildMemoryContext(ctx context.Context, deps CompileDeps, agent *model.Agen
 	recallCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
 	defer cancel()
 
-	query := "Durable company, team, people, project, decision, policy, preference, technical, customer, and communication-behavior memories relevant to this employee's current work."
+	query := "Durable company, people, project, decision, policy, preference, technical, customer, and communication-behavior memories relevant to this employee's current work."
 	result, err := deps.Hindsight.Recall(recallCtx, hindsight.OrgBankID(*agent.OrgID), &hindsight.RecallRequest{
 		Query:     query,
 		Budget:    "mid",
@@ -316,11 +315,6 @@ func employeeMemoryTagGroups(agent *model.Agent) []any {
 		return nil
 	}
 	tags := []string{"company:" + agent.OrgID.String()}
-	if agent.TeamID != nil {
-		tags = append(tags, "team:"+agent.TeamID.String())
-	} else if strings.TrimSpace(agent.Team) != "" {
-		tags = append(tags, "team:"+strings.TrimSpace(agent.Team))
-	}
 	return []any{map[string]any{"tags": tags, "match": "all_strict"}}
 }
 
@@ -397,16 +391,9 @@ func firstString(m map[string]any, keys ...string) string {
 func buildPromptFragments(ctx context.Context, db *gorm.DB, agent *model.Agent, description string) PromptFragments {
 	var org model.Org
 	var hasOrg bool
-	var team model.Team
-	var hasTeam bool
 	if agent.OrgID != nil && db != nil {
 		if err := db.WithContext(ctx).Where("id = ?", *agent.OrgID).First(&org).Error; err == nil {
 			hasOrg = true
-		}
-	}
-	if agent.TeamID != nil && db != nil {
-		if err := db.WithContext(ctx).Where("id = ?", *agent.TeamID).First(&team).Error; err == nil {
-			hasTeam = true
 		}
 	}
 
@@ -414,7 +401,7 @@ func buildPromptFragments(ctx context.Context, db *gorm.DB, agent *model.Agent, 
 		Identity: PromptFragment{
 			Title: "Your identity",
 			Content: strings.TrimSpace(strings.Join([]string{
-				identityOpening(agent, org, hasOrg, team, hasTeam),
+				identityOpening(org, hasOrg),
 				"Name: " + agent.Name,
 				optionalLine("Role description", description),
 				employeeIdentityPrompt(agent),
@@ -430,18 +417,6 @@ func buildPromptFragments(ctx context.Context, db *gorm.DB, agent *model.Agent, 
 			fragments.Company = PromptFragment{Title: "About the company", Content: companyContent}
 		}
 	}
-	if fragments.Team.Content == "" && hasTeam {
-		teamContent := strings.TrimSpace(team.PromptTeam)
-		if teamContent == "" {
-			teamContent = defaultTeamPrompt(team)
-		}
-		if teamContent != "" {
-			fragments.Team = PromptFragment{
-				Title:   "About your team",
-				Content: teamContent,
-			}
-		}
-	}
 	if strings.TrimSpace(agent.PromptOperatingPrinciples) != "" {
 		fragments.OperatingPrinciples = PromptFragment{
 			Title:   "Operating principles",
@@ -451,22 +426,12 @@ func buildPromptFragments(ctx context.Context, db *gorm.DB, agent *model.Agent, 
 	return fragments
 }
 
-func identityOpening(agent *model.Agent, org model.Org, hasOrg bool, team model.Team, hasTeam bool) string {
+func identityOpening(org model.Org, hasOrg bool) string {
 	companyName := "this company"
 	if hasOrg && strings.TrimSpace(org.Name) != "" {
 		companyName = strings.TrimSpace(org.Name)
 	}
-	teamName := strings.TrimSpace(agent.Team)
-	if teamName == "" && hasTeam {
-		teamName = strings.TrimSpace(team.Name)
-	}
-	if teamName == "" {
-		teamName = "your"
-	}
-	if teamName == "your" {
-		return fmt.Sprintf("You are a %s employee working on your team.", companyName)
-	}
-	return fmt.Sprintf("You are a %s employee working on the %s team.", companyName, teamName)
+	return fmt.Sprintf("You are a %s employee.", companyName)
 }
 
 func employeeIdentityPrompt(agent *model.Agent) string {
@@ -504,17 +469,6 @@ func defaultCompanyPrompt(org model.Org) string {
 	}
 	if org.Description != "" {
 		parts = append(parts, "Company description: "+org.Description)
-	}
-	return strings.Join(parts, "\n")
-}
-
-func defaultTeamPrompt(team model.Team) string {
-	var parts []string
-	if team.Name != "" {
-		parts = append(parts, "Team: "+team.Name)
-	}
-	if team.Description != "" {
-		parts = append(parts, "Team description: "+team.Description)
 	}
 	return strings.Join(parts, "\n")
 }

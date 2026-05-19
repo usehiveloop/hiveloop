@@ -86,10 +86,6 @@ func documentAllowedForAgent(doc *DocumentResponse, agent *model.Agent) bool {
 	if _, ok := tags["company:"+agent.OrgID.String()]; !ok {
 		return false
 	}
-	if teamTag := memoryTeamTag(agent); teamTag != "" {
-		_, ok := tags[teamTag]
-		return ok
-	}
 	return true
 }
 

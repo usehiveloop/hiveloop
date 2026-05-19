@@ -188,12 +188,9 @@ func buildEmployeeRetainItem(agent *model.Agent, payload EmployeeMemoryRetainPay
 		tags = append(tags, "channel:"+sanitizeMemoryTagValue(channel))
 	}
 	observationScopes := [][]string{{"company:" + agent.OrgID.String()}}
-	if teamTag := employeeMemoryTeamTag(agent); teamTag != "" {
-		observationScopes = append(observationScopes, []string{"company:" + agent.OrgID.String(), teamTag})
-	}
 	return hindsight.RetainItem{
 		Content:           digest,
-		Context:           fmt.Sprintf("Filtered employee memory digest from %s source. It intentionally omits routine tool use and transient task chatter. Retain durable people facts, including teammate names and stable channel user IDs or mention handles when present, plus company/team facts, decisions, preferences, ownership, policies, recurring workflows, and reusable technical context. Do not retain active conversation framing or temporary task status as durable facts.", source),
+		Context:           fmt.Sprintf("Filtered employee memory digest from %s source. It intentionally omits routine tool use and transient task chatter. Retain durable people facts, including teammate names and stable channel user IDs or mention handles when present, plus company facts, decisions, preferences, ownership, policies, recurring workflows, and reusable technical context. Do not retain active conversation framing or temporary task status as durable facts.", source),
 		DocumentID:        "employee-session:" + payload.SandboxID.String() + ":" + payload.SessionID,
 		Tags:              tags,
 		Timestamp:         events[0].EventAt.UTC().Format(time.RFC3339),
@@ -330,23 +327,10 @@ func employeeMemoryTags(agent *model.Agent, source string) []string {
 	tags := []string{
 		"company:" + agent.OrgID.String(),
 		"source:" + sanitizeMemoryTagValue(source),
-	}
-	if teamTag := employeeMemoryTeamTag(agent); teamTag != "" {
-		tags = append(tags, teamTag, "visibility:team", "memory_type:team_context")
-	} else {
-		tags = append(tags, "visibility:company", "memory_type:company_context")
+		"visibility:company",
+		"memory_type:company_context",
 	}
 	return tags
-}
-
-func employeeMemoryTeamTag(agent *model.Agent) string {
-	if agent.TeamID != nil {
-		return "team:" + agent.TeamID.String()
-	}
-	if strings.TrimSpace(agent.Team) != "" {
-		return "team:" + sanitizeMemoryTagValue(agent.Team)
-	}
-	return ""
 }
 
 func dominantEmployeeMemorySource(events []model.EmployeeMemoryEvent) string {

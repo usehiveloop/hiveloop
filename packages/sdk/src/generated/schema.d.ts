@@ -89,7 +89,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["paginatedResponse-adminAgentResponse"];
+                        "application/json": components["schemas"]["paginatedResponse-handler_adminAgentResponse"];
                     };
                 };
             };
@@ -336,7 +336,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["paginatedResponse-adminAPIKeyResponse"];
+                        "application/json": components["schemas"]["paginatedResponse-handler_adminAPIKeyResponse"];
                     };
                 };
             };
@@ -487,7 +487,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["paginatedResponse-adminConversationResponse"];
+                        "application/json": components["schemas"]["paginatedResponse-handler_adminConversationResponse"];
                     };
                 };
             };
@@ -625,7 +625,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["paginatedResponse-adminCredentialResponse"];
+                        "application/json": components["schemas"]["paginatedResponse-handler_adminCredentialResponse"];
                     };
                 };
             };
@@ -826,7 +826,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["paginatedResponse-adminCustomDomainResponse"];
+                        "application/json": components["schemas"]["paginatedResponse-handler_adminCustomDomainResponse"];
                     };
                 };
             };
@@ -1516,7 +1516,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["paginatedResponse-adminOrgResponse"];
+                        "application/json": components["schemas"]["paginatedResponse-handler_adminOrgResponse"];
                     };
                 };
             };
@@ -1862,7 +1862,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["paginatedResponse-adminSandboxTemplateResponse"];
+                        "application/json": components["schemas"]["paginatedResponse-handler_adminSandboxTemplateResponse"];
                     };
                 };
             };
@@ -2084,7 +2084,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["paginatedResponse-adminSandboxResponse"];
+                        "application/json": components["schemas"]["paginatedResponse-handler_adminSandboxResponse"];
                     };
                 };
             };
@@ -2341,7 +2341,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["paginatedResponse-adminSkillResponse"];
+                        "application/json": components["schemas"]["paginatedResponse-handler_adminSkillResponse"];
                     };
                 };
             };
@@ -2749,7 +2749,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["paginatedResponse-adminTokenResponse"];
+                        "application/json": components["schemas"]["paginatedResponse-handler_adminTokenResponse"];
                     };
                 };
             };
@@ -5283,7 +5283,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["paginatedResponse-apiKeyResponse"];
+                        "application/json": components["schemas"]["paginatedResponse-handler_apiKeyResponse"];
                     };
                 };
                 /** @description Bad Request */
@@ -5495,7 +5495,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["paginatedResponse-assetListItem"];
+                        "application/json": components["schemas"]["paginatedResponse-handler_assetListItem"];
                     };
                 };
                 /** @description Bad Request */
@@ -5559,7 +5559,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["paginatedResponse-auditEntryResponse"];
+                        "application/json": components["schemas"]["paginatedResponse-handler_auditEntryResponse"];
                     };
                 };
                 /** @description Bad Request */
@@ -6895,7 +6895,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["paginatedResponse-conversationEventResponse"];
+                        "application/json": components["schemas"]["paginatedResponse-handler_conversationEventResponse"];
                     };
                 };
                 /** @description Not Found */
@@ -7657,7 +7657,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["paginatedResponse-employeeListItem"];
+                        "application/json": components["schemas"]["paginatedResponse-handler_employeeListItem"];
                     };
                 };
                 /** @description Unauthorized */
@@ -8067,7 +8067,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["paginatedResponse-employeeConnectionResponse"];
+                        "application/json": components["schemas"]["paginatedResponse-handler_employeeConnectionResponse"];
                     };
                 };
                 /** @description Bad Request */
@@ -8346,7 +8346,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["paginatedResponse-employeeSessionResponse"];
+                        "application/json": components["schemas"]["paginatedResponse-handler_employeeSessionResponse"];
                     };
                 };
                 /** @description Bad Request */
@@ -8408,7 +8408,7 @@ export interface paths {
          * Push compiled config to an employee sandbox
          * @description Compiles the employee config, provisions an employee sandbox if
          *     needed, pushes it to the runtime, and verifies readiness.
-         *     Requires the agent be an employee with an active Slack profile.
+         *     Requires the org to have an active Slack connection.
          */
         post: {
             parameters: {
@@ -8826,7 +8826,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["github_com_usehiveloop_hiveloop_internal_resources.DiscoveryResult"];
+                        "application/json": components["schemas"]["DiscoveryResult"];
                     };
                 };
                 /** @description Bad Request */
@@ -11255,7 +11255,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["paginatedResponse-sandboxResponse"];
+                        "application/json": components["schemas"]["paginatedResponse-handler_sandboxResponse"];
                     };
                 };
             };
@@ -12141,278 +12141,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/teams": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List teams
-         * @description Returns teams in the current organization.
-         */
-        get: {
-            parameters: {
-                query?: {
-                    /** @description Page size (default 50, max 100) */
-                    limit?: number;
-                    /** @description Pagination cursor */
-                    cursor?: string;
-                };
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["paginatedResponse-teamResponse"];
-                    };
-                };
-                /** @description Unauthorized */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        /**
-         * Create a team
-         * @description Creates a new team in the current organization. Admin/owner only.
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            /** @description Team details */
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["createTeamRequest"];
-                };
-            };
-            responses: {
-                /** @description Created */
-                201: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["teamResponse"];
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Unauthorized */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Forbidden */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Conflict */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/teams/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get a team */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description Team ID */
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["teamResponse"];
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        /** Delete a team */
-        delete: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description Team ID */
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-                /** @description Forbidden */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-            };
-        };
-        options?: never;
-        head?: never;
-        /** Update a team */
-        patch: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description Team ID */
-                    id: string;
-                };
-                cookie?: never;
-            };
-            /** @description Team updates */
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["updateTeamRequest"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["teamResponse"];
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Forbidden */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Conflict */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-            };
-        };
-        trace?: never;
-    };
     "/v1/tokens": {
         parameters: {
             query?: never;
@@ -12446,7 +12174,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["paginatedResponse-tokenListItem"];
+                        "application/json": components["schemas"]["paginatedResponse-handler_tokenListItem"];
                     };
                 };
                 /** @description Bad Request */
@@ -12762,47 +12490,38 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        "github_com_usehiveloop_hiveloop_internal_mcp.TokenScope": {
-            actions?: string[];
-            connection_id?: string;
-            resources?: {
-                [key: string]: string[];
+        AvailableResource: {
+            id?: string;
+            name?: string;
+            type?: string;
+        };
+        BuiltInToolDefinition: {
+            category?: string;
+            description?: string;
+            id?: string;
+            /** @description true = cannot be toggled off by the user */
+            locked?: boolean;
+            name?: string;
+        };
+        Bundle: {
+            content?: string;
+            description?: string;
+            files?: {
+                [key: string]: string;
             };
+            id?: string;
+            manifest?: {
+                [key: string]: unknown;
+            };
+            parameters_schema?: number[];
+            references?: components["schemas"]["Reference"][];
+            required_environment_variables?: string[];
+            title?: string;
         };
         ConfigurableResourceSummary: {
             description?: string;
             display_name?: string;
             key?: string;
-        };
-        SchemaDefinition: {
-            /** @description for array types */
-            items?: components["schemas"]["SchemaRef"];
-            properties?: {
-                [key: string]: components["schemas"]["SchemaPropertyDef"];
-            };
-            type?: string;
-        };
-        SchemaPropertyDef: {
-            description?: string;
-            nullable?: boolean;
-            /** @description references another schema by name for nested object resolution */
-            schema_ref?: string;
-            type?: string;
-        };
-        SchemaRef: {
-            $ref?: string;
-        };
-        WebhookConfig: {
-            /**
-             * @description ConfigurationNotes is markdown text shown to the user explaining how to
-             *     configure the webhook in the provider's settings.
-             */
-            configuration_notes?: string;
-            /**
-             * @description WebhookURLRequired indicates the user must manually configure a webhook
-             *     URL in the provider's dashboard for triggers to work.
-             */
-            webhook_url_required?: boolean;
         };
         ConnectionConfigField: {
             automated?: boolean;
@@ -12815,8 +12534,40 @@ export interface components {
             title?: string;
             type?: string;
         };
+        Cost: {
+            input?: number;
+            output?: number;
+        };
+        Credentials: {
+            app_id?: string;
+            app_link?: string;
+            client_id?: string;
+            client_logo_uri?: string;
+            /** @description MCP_OAUTH2_GENERIC fields */
+            client_name?: string;
+            client_secret?: string;
+            client_uri?: string;
+            password?: string;
+            private_key?: string;
+            scopes?: string;
+            type?: string;
+            /** @description INSTALL_PLUGIN fields */
+            username?: string;
+            webhook_secret?: string;
+        };
+        DiscoveryResult: {
+            resources?: components["schemas"]["AvailableResource"][];
+        };
         JSON: {
             [key: string]: unknown;
+        };
+        Limit: {
+            context?: number;
+            output?: number;
+        };
+        Modalities: {
+            input?: string[];
+            output?: string[];
         };
         NangoConfig: {
             auth_mode?: string;
@@ -12847,6 +12598,40 @@ export interface components {
         ProviderPromptsMap: {
             [key: string]: components["schemas"]["ProviderPromptConfig"];
         };
+        Reference: {
+            body?: string;
+            path?: string;
+        };
+        SandboxToolDefinition: {
+            description?: string;
+            id?: string;
+            name?: string;
+        };
+        SchemaDefinition: {
+            /** @description for array types */
+            items?: components["schemas"]["SchemaRef"];
+            properties?: {
+                [key: string]: components["schemas"]["SchemaPropertyDef"];
+            };
+            type?: string;
+        };
+        SchemaPropertyDef: {
+            description?: string;
+            nullable?: boolean;
+            /** @description references another schema by name for nested object resolution */
+            schema_ref?: string;
+            type?: string;
+        };
+        SchemaRef: {
+            $ref?: string;
+        };
+        TokenScope: {
+            actions?: string[];
+            connection_id?: string;
+            resources?: {
+                [key: string]: string[];
+            };
+        };
         TriggerCondition: {
             /** @description equals, not_equals, one_of, not_one_of, contains, not_contains, matches, exists, not_exists */
             operator?: string;
@@ -12860,80 +12645,23 @@ export interface components {
             /** @description "all" (AND) or "any" (OR) */
             mode?: string;
         };
-        "github_com_usehiveloop_hiveloop_internal_nango.Credentials": {
-            app_id?: string;
-            app_link?: string;
-            client_id?: string;
-            client_logo_uri?: string;
-            /** @description MCP_OAUTH2_GENERIC fields */
-            client_name?: string;
-            client_secret?: string;
-            client_uri?: string;
-            password?: string;
-            private_key?: string;
-            scopes?: string;
-            type?: string;
-            /** @description INSTALL_PLUGIN fields */
-            username?: string;
-            webhook_secret?: string;
-        };
-        Cost: {
-            input?: number;
-            output?: number;
-        };
-        Limit: {
-            context?: number;
-            output?: number;
-        };
-        Modalities: {
-            input?: string[];
-            output?: string[];
-        };
-        "github_com_usehiveloop_hiveloop_internal_resources.AvailableResource": {
-            id?: string;
-            name?: string;
-            type?: string;
-        };
-        "github_com_usehiveloop_hiveloop_internal_resources.DiscoveryResult": {
-            resources?: components["schemas"]["github_com_usehiveloop_hiveloop_internal_resources.AvailableResource"][];
-        };
-        "github_com_usehiveloop_hiveloop_internal_skills.Bundle": {
-            content?: string;
-            description?: string;
-            files?: {
-                [key: string]: string;
-            };
-            id?: string;
-            manifest?: {
-                [key: string]: unknown;
-            };
-            parameters_schema?: number[];
-            references?: components["schemas"]["github_com_usehiveloop_hiveloop_internal_skills.Reference"][];
-            required_environment_variables?: string[];
-            title?: string;
-        };
-        "github_com_usehiveloop_hiveloop_internal_skills.Reference": {
-            body?: string;
-            path?: string;
-        };
-        "github_com_usehiveloop_hiveloop_internal_system.Usage": {
+        Usage: {
             cached_tokens?: number;
             input_tokens?: number;
             output_tokens?: number;
             reasoning_tokens?: number;
         };
-        BuiltInToolDefinition: {
-            category?: string;
-            description?: string;
-            id?: string;
-            /** @description true = cannot be toggled off by the user */
-            locked?: boolean;
-            name?: string;
-        };
-        SandboxToolDefinition: {
-            description?: string;
-            id?: string;
-            name?: string;
+        WebhookConfig: {
+            /**
+             * @description ConfigurationNotes is markdown text shown to the user explaining how to
+             *     configure the webhook in the provider's settings.
+             */
+            configuration_notes?: string;
+            /**
+             * @description WebhookURLRequired indicates the user must manually configure a webhook
+             *     URL in the provider's dashboard for triggers to work.
+             */
+            webhook_url_required?: boolean;
         };
         actionSchemaPaths: {
             paths?: components["schemas"]["schemaPath"][];
@@ -12977,7 +12705,7 @@ export interface components {
             token_id?: string;
         };
         adminCreateInIntegrationRequest: {
-            credentials?: components["schemas"]["github_com_usehiveloop_hiveloop_internal_nango.Credentials"];
+            credentials?: components["schemas"]["Credentials"];
             display_name?: string;
             meta?: components["schemas"]["JSON"];
             provider?: string;
@@ -12991,7 +12719,7 @@ export interface components {
             tags?: string[];
         };
         adminCreateSkillRequest: {
-            bundle?: components["schemas"]["github_com_usehiveloop_hiveloop_internal_skills.Bundle"];
+            bundle?: components["schemas"]["Bundle"];
             description?: string;
             featured?: boolean;
             name?: string;
@@ -13158,14 +12886,13 @@ export interface components {
             skills?: components["schemas"]["JSON"];
             status?: string;
             system_prompt?: string;
-            team?: string;
             tools?: components["schemas"]["JSON"];
         };
         adminUpdateCredentialRequest: {
             label?: string;
         };
         adminUpdateInIntegrationRequest: {
-            credentials?: components["schemas"]["github_com_usehiveloop_hiveloop_internal_nango.Credentials"];
+            credentials?: components["schemas"]["Credentials"];
             display_name?: string;
             meta?: components["schemas"]["JSON"];
         };
@@ -13249,7 +12976,6 @@ export interface components {
             status?: string;
             subagent_ids?: string[];
             system_prompt?: string;
-            team?: string;
             tools?: components["schemas"]["JSON"];
             triggers?: components["schemas"]["agentTriggerResponse"][];
             updated_at?: string;
@@ -13497,7 +13223,6 @@ export interface components {
             skills?: components["schemas"]["JSON"];
             subagent_ids?: string[];
             system_prompt?: string;
-            team?: string;
             tools?: components["schemas"]["JSON"];
             triggers?: components["schemas"]["agentTriggerInput"][];
         };
@@ -13578,7 +13303,7 @@ export interface components {
         };
         createSkillRequest: {
             /** @description Inline source */
-            bundle?: components["schemas"]["github_com_usehiveloop_hiveloop_internal_skills.Bundle"];
+            bundle?: components["schemas"]["Bundle"];
             description?: string;
             name?: string;
             repo_ref?: string;
@@ -13595,11 +13320,6 @@ export interface components {
             base_url?: string;
             label?: string;
             provider_id?: string;
-        };
-        createTeamRequest: {
-            description?: string;
-            name?: string;
-            prompt_team?: string;
         };
         credentialResponse: {
             auth_scheme?: string;
@@ -13684,7 +13404,6 @@ export interface components {
             subagent_ids?: string[];
             subagents?: components["schemas"]["employeeSubagentSummary"][];
             system_prompt?: string;
-            team?: string;
             tools?: components["schemas"]["JSON"];
             triggers?: components["schemas"]["agentTriggerResponse"][];
             updated_at?: string;
@@ -13884,7 +13603,6 @@ export interface components {
             status?: string;
             system_prompt?: string;
             tags?: string[];
-            team?: string;
             tools?: components["schemas"]["JSON"];
             updated_at?: string;
             verified?: boolean;
@@ -13900,7 +13618,7 @@ export interface components {
             refill_amount?: number;
             refill_interval?: string;
             remaining?: number;
-            scopes?: components["schemas"]["github_com_usehiveloop_hiveloop_internal_mcp.TokenScope"][];
+            scopes?: components["schemas"]["TokenScope"][];
             /** @description e.g. "1h", "24h" */
             ttl?: string;
         };
@@ -13988,56 +13706,6 @@ export interface components {
             code?: string;
             email?: string;
         };
-        "paginatedResponse-adminAPIKeyResponse": {
-            data?: components["schemas"]["adminAPIKeyResponse"][];
-            has_more?: boolean;
-            next_cursor?: string;
-        };
-        "paginatedResponse-adminAgentResponse": {
-            data?: components["schemas"]["adminAgentResponse"][];
-            has_more?: boolean;
-            next_cursor?: string;
-        };
-        "paginatedResponse-adminConversationResponse": {
-            data?: components["schemas"]["adminConversationResponse"][];
-            has_more?: boolean;
-            next_cursor?: string;
-        };
-        "paginatedResponse-adminCredentialResponse": {
-            data?: components["schemas"]["adminCredentialResponse"][];
-            has_more?: boolean;
-            next_cursor?: string;
-        };
-        "paginatedResponse-adminCustomDomainResponse": {
-            data?: components["schemas"]["adminCustomDomainResponse"][];
-            has_more?: boolean;
-            next_cursor?: string;
-        };
-        "paginatedResponse-adminOrgResponse": {
-            data?: components["schemas"]["adminOrgResponse"][];
-            has_more?: boolean;
-            next_cursor?: string;
-        };
-        "paginatedResponse-adminSandboxResponse": {
-            data?: components["schemas"]["adminSandboxResponse"][];
-            has_more?: boolean;
-            next_cursor?: string;
-        };
-        "paginatedResponse-adminSandboxTemplateResponse": {
-            data?: components["schemas"]["adminSandboxTemplateResponse"][];
-            has_more?: boolean;
-            next_cursor?: string;
-        };
-        "paginatedResponse-adminSkillResponse": {
-            data?: components["schemas"]["adminSkillResponse"][];
-            has_more?: boolean;
-            next_cursor?: string;
-        };
-        "paginatedResponse-adminTokenResponse": {
-            data?: components["schemas"]["adminTokenResponse"][];
-            has_more?: boolean;
-            next_cursor?: string;
-        };
         "paginatedResponse-adminUserResponse": {
             data?: components["schemas"]["adminUserResponse"][];
             has_more?: boolean;
@@ -14045,26 +13713,6 @@ export interface components {
         };
         "paginatedResponse-agentResponse": {
             data?: components["schemas"]["agentResponse"][];
-            has_more?: boolean;
-            next_cursor?: string;
-        };
-        "paginatedResponse-apiKeyResponse": {
-            data?: components["schemas"]["apiKeyResponse"][];
-            has_more?: boolean;
-            next_cursor?: string;
-        };
-        "paginatedResponse-assetListItem": {
-            data?: components["schemas"]["assetListItem"][];
-            has_more?: boolean;
-            next_cursor?: string;
-        };
-        "paginatedResponse-auditEntryResponse": {
-            data?: components["schemas"]["auditEntryResponse"][];
-            has_more?: boolean;
-            next_cursor?: string;
-        };
-        "paginatedResponse-conversationEventResponse": {
-            data?: components["schemas"]["conversationEventResponse"][];
             has_more?: boolean;
             next_cursor?: string;
         };
@@ -14078,23 +13726,103 @@ export interface components {
             has_more?: boolean;
             next_cursor?: string;
         };
-        "paginatedResponse-employeeConnectionResponse": {
+        "paginatedResponse-generationResponse": {
+            data?: components["schemas"]["generationResponse"][];
+            has_more?: boolean;
+            next_cursor?: string;
+        };
+        "paginatedResponse-handler_adminAPIKeyResponse": {
+            data?: components["schemas"]["adminAPIKeyResponse"][];
+            has_more?: boolean;
+            next_cursor?: string;
+        };
+        "paginatedResponse-handler_adminAgentResponse": {
+            data?: components["schemas"]["adminAgentResponse"][];
+            has_more?: boolean;
+            next_cursor?: string;
+        };
+        "paginatedResponse-handler_adminConversationResponse": {
+            data?: components["schemas"]["adminConversationResponse"][];
+            has_more?: boolean;
+            next_cursor?: string;
+        };
+        "paginatedResponse-handler_adminCredentialResponse": {
+            data?: components["schemas"]["adminCredentialResponse"][];
+            has_more?: boolean;
+            next_cursor?: string;
+        };
+        "paginatedResponse-handler_adminCustomDomainResponse": {
+            data?: components["schemas"]["adminCustomDomainResponse"][];
+            has_more?: boolean;
+            next_cursor?: string;
+        };
+        "paginatedResponse-handler_adminOrgResponse": {
+            data?: components["schemas"]["adminOrgResponse"][];
+            has_more?: boolean;
+            next_cursor?: string;
+        };
+        "paginatedResponse-handler_adminSandboxResponse": {
+            data?: components["schemas"]["adminSandboxResponse"][];
+            has_more?: boolean;
+            next_cursor?: string;
+        };
+        "paginatedResponse-handler_adminSandboxTemplateResponse": {
+            data?: components["schemas"]["adminSandboxTemplateResponse"][];
+            has_more?: boolean;
+            next_cursor?: string;
+        };
+        "paginatedResponse-handler_adminSkillResponse": {
+            data?: components["schemas"]["adminSkillResponse"][];
+            has_more?: boolean;
+            next_cursor?: string;
+        };
+        "paginatedResponse-handler_adminTokenResponse": {
+            data?: components["schemas"]["adminTokenResponse"][];
+            has_more?: boolean;
+            next_cursor?: string;
+        };
+        "paginatedResponse-handler_apiKeyResponse": {
+            data?: components["schemas"]["apiKeyResponse"][];
+            has_more?: boolean;
+            next_cursor?: string;
+        };
+        "paginatedResponse-handler_assetListItem": {
+            data?: components["schemas"]["assetListItem"][];
+            has_more?: boolean;
+            next_cursor?: string;
+        };
+        "paginatedResponse-handler_auditEntryResponse": {
+            data?: components["schemas"]["auditEntryResponse"][];
+            has_more?: boolean;
+            next_cursor?: string;
+        };
+        "paginatedResponse-handler_conversationEventResponse": {
+            data?: components["schemas"]["conversationEventResponse"][];
+            has_more?: boolean;
+            next_cursor?: string;
+        };
+        "paginatedResponse-handler_employeeConnectionResponse": {
             data?: components["schemas"]["employeeConnectionResponse"][];
             has_more?: boolean;
             next_cursor?: string;
         };
-        "paginatedResponse-employeeListItem": {
+        "paginatedResponse-handler_employeeListItem": {
             data?: components["schemas"]["employeeListItem"][];
             has_more?: boolean;
             next_cursor?: string;
         };
-        "paginatedResponse-employeeSessionResponse": {
+        "paginatedResponse-handler_employeeSessionResponse": {
             data?: components["schemas"]["employeeSessionResponse"][];
             has_more?: boolean;
             next_cursor?: string;
         };
-        "paginatedResponse-generationResponse": {
-            data?: components["schemas"]["generationResponse"][];
+        "paginatedResponse-handler_sandboxResponse": {
+            data?: components["schemas"]["sandboxResponse"][];
+            has_more?: boolean;
+            next_cursor?: string;
+        };
+        "paginatedResponse-handler_tokenListItem": {
+            data?: components["schemas"]["tokenListItem"][];
             has_more?: boolean;
             next_cursor?: string;
         };
@@ -14108,11 +13836,6 @@ export interface components {
             has_more?: boolean;
             next_cursor?: string;
         };
-        "paginatedResponse-sandboxResponse": {
-            data?: components["schemas"]["sandboxResponse"][];
-            has_more?: boolean;
-            next_cursor?: string;
-        };
         "paginatedResponse-sandboxTemplateResponse": {
             data?: components["schemas"]["sandboxTemplateResponse"][];
             has_more?: boolean;
@@ -14120,16 +13843,6 @@ export interface components {
         };
         "paginatedResponse-skillResponse": {
             data?: components["schemas"]["skillResponse"][];
-            has_more?: boolean;
-            next_cursor?: string;
-        };
-        "paginatedResponse-teamResponse": {
-            data?: components["schemas"]["teamResponse"][];
-            has_more?: boolean;
-            next_cursor?: string;
-        };
-        "paginatedResponse-tokenListItem": {
-            data?: components["schemas"]["tokenListItem"][];
             has_more?: boolean;
             next_cursor?: string;
         };
@@ -14446,7 +14159,7 @@ export interface components {
             upload_url?: string;
         };
         skillDetailResponse: {
-            bundle?: components["schemas"]["github_com_usehiveloop_hiveloop_internal_skills.Bundle"];
+            bundle?: components["schemas"]["Bundle"];
             created_at?: string;
             description?: string;
             featured?: boolean;
@@ -14551,21 +14264,13 @@ export interface components {
             cached?: boolean;
             model?: string;
             text?: string;
-            usage?: components["schemas"]["github_com_usehiveloop_hiveloop_internal_system.Usage"];
+            usage?: components["schemas"]["Usage"];
         };
         systemTaskRequest: {
             args?: {
                 [key: string]: unknown;
             };
             stream?: boolean;
-        };
-        teamResponse: {
-            created_at?: string;
-            description?: string;
-            id?: string;
-            name?: string;
-            prompt_team?: string;
-            updated_at?: string;
         };
         tokenListItem: {
             created_at?: string;
@@ -14668,12 +14373,11 @@ export interface components {
             skill_ids?: string[];
             skills?: components["schemas"]["JSON"];
             system_prompt?: string;
-            team?: string;
             tools?: components["schemas"]["JSON"];
             triggers?: components["schemas"]["agentTriggerInput"][];
         };
         updateContentRequest: {
-            bundle?: components["schemas"]["github_com_usehiveloop_hiveloop_internal_skills.Bundle"];
+            bundle?: components["schemas"]["Bundle"];
         };
         updateMarketplaceAgentRequest: {
             avatar?: string;
@@ -14709,11 +14413,6 @@ export interface components {
             repo_ref?: string;
             status?: string;
             tags?: string[];
-        };
-        updateTeamRequest: {
-            description?: string;
-            name?: string;
-            prompt_team?: string;
         };
         usageResponse: {
             api_keys?: components["schemas"]["apiKeyStats"];

@@ -146,7 +146,6 @@ func (h *AgentHandler) Create(w http.ResponseWriter, r *http.Request) {
 		AgentConfig:               defaultJSON(req.AgentConfig),
 		Permissions:               defaultJSON(req.Permissions),
 		Resources:                 defaultJSON(req.Resources),
-		Team:                      req.Team,
 		SharedMemory:              req.SharedMemory,
 		SandboxTools:              pq.StringArray(req.SandboxTools),
 		Harness:                   req.Harness,

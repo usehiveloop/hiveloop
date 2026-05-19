@@ -97,7 +97,6 @@ Keep the answer practical and employee-like.`
 
 var SupportedMemoryTypes = []string{
 	"company_context",
-	"team_context",
 	"people",
 	"project",
 	"decision",
@@ -200,11 +199,11 @@ func memoryEntityLabels() []map[string]any {
 		},
 		{
 			"key":         "visibility",
-			"description": "Whether the memory is company-wide or team-scoped.",
+			"description": "Whether the memory is company-wide.",
 			"type":        "value",
 			"tag":         true,
 			"optional":    false,
-			"values":      entityValues([]string{"company", "team"}),
+			"values":      entityValues([]string{"company"}),
 		},
 	}
 }
@@ -212,11 +211,10 @@ func memoryEntityLabels() []map[string]any {
 func memoryTypeEntityValues() []map[string]string {
 	descriptions := map[string]string{
 		"company_context":   "Company identity, market, business model, goals, constraints, or operating context.",
-		"team_context":      "Team responsibilities, ownership areas, rituals, norms, or collaboration context.",
 		"people":            "People, roles, ownership areas, expertise, and who should be consulted for what.",
 		"project":           "Projects, initiatives, milestones, blockers, risks, and historical context.",
 		"decision":          "Explicit decisions, reasons, tradeoffs, and changes in direction.",
-		"policy":            "Rules, standards, procedures, recurring workflows, and team/company conventions.",
+		"policy":            "Rules, standards, procedures, recurring workflows, and company conventions.",
 		"preference":        "Durable preferences about communication, execution, process, or collaboration.",
 		"technical_context": "Architecture, repositories, stack choices, deploy practices, testing norms, incidents, and operational facts.",
 		"customer_context":  "Customer segments, accounts, feedback, objections, feature requests, and sentiment.",

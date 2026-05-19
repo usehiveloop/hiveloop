@@ -145,7 +145,7 @@ func TestCapture5xxResponses_CapturesUnhandledServerResponse(t *testing.T) {
 	handler := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 	})
-	req := httptest.NewRequest(http.MethodPatch, "/v1/agents/agent/profiles/github/repositories", nil)
+	req := httptest.NewRequest(http.MethodPatch, "/v1/agents/agent/repositories", nil)
 	Middleware()(Capture5xxResponses()(handler)).ServeHTTP(httptest.NewRecorder(), req)
 
 	ev := transport.event.Load()
@@ -155,7 +155,7 @@ func TestCapture5xxResponses_CapturesUnhandledServerResponse(t *testing.T) {
 	if ev.Tags["http.status_code"] != "500" {
 		t.Fatalf("http.status_code tag = %q, want 500", ev.Tags["http.status_code"])
 	}
-	if ev.Tags["http.route"] != "/v1/agents/agent/profiles/github/repositories" {
+	if ev.Tags["http.route"] != "/v1/agents/agent/repositories" {
 		t.Fatalf("http.route tag = %q", ev.Tags["http.route"])
 	}
 }

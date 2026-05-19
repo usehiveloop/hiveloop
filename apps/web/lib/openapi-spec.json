@@ -1774,7 +1774,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/paginatedResponse-apiKeyResponse"
+                  "$ref": "#/components/schemas/paginatedResponse-handler_apiKeyResponse"
                 }
               }
             }
@@ -2017,7 +2017,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/paginatedResponse-assetListItem"
+                  "$ref": "#/components/schemas/paginatedResponse-handler_assetListItem"
                 }
               }
             }
@@ -2089,7 +2089,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/paginatedResponse-auditEntryResponse"
+                  "$ref": "#/components/schemas/paginatedResponse-handler_auditEntryResponse"
                 }
               }
             }
@@ -3362,7 +3362,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/paginatedResponse-conversationEventResponse"
+                  "$ref": "#/components/schemas/paginatedResponse-handler_conversationEventResponse"
                 }
               }
             }
@@ -4181,7 +4181,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/paginatedResponse-employeeListItem"
+                  "$ref": "#/components/schemas/paginatedResponse-handler_employeeListItem"
                 }
               }
             }
@@ -4599,7 +4599,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/paginatedResponse-employeeConnectionResponse"
+                  "$ref": "#/components/schemas/paginatedResponse-handler_employeeConnectionResponse"
                 }
               }
             }
@@ -4933,7 +4933,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/paginatedResponse-employeeSessionResponse"
+                  "$ref": "#/components/schemas/paginatedResponse-handler_employeeSessionResponse"
                 }
               }
             }
@@ -4988,7 +4988,7 @@
             "BearerAuth": []
           }
         ],
-        "description": "Compiles the employee config, provisions an employee sandbox if\nneeded, pushes it to the runtime, and verifies readiness.\nRequires the agent be an employee with an active Slack profile.",
+        "description": "Compiles the employee config, provisions an employee sandbox if\nneeded, pushes it to the runtime, and verifies readiness.\nRequires the org to have an active Slack connection.",
         "tags": [
           "employees"
         ],
@@ -5454,7 +5454,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/github_com_usehiveloop_hiveloop_internal_resources.DiscoveryResult"
+                  "$ref": "#/components/schemas/DiscoveryResult"
                 }
               }
             }
@@ -7897,7 +7897,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/paginatedResponse-sandboxResponse"
+                  "$ref": "#/components/schemas/paginatedResponse-handler_sandboxResponse"
                 }
               }
             }
@@ -8875,323 +8875,6 @@
         }
       }
     },
-    "/v1/teams": {
-      "get": {
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "description": "Returns teams in the current organization.",
-        "tags": [
-          "teams"
-        ],
-        "summary": "List teams",
-        "parameters": [
-          {
-            "description": "Page size (default 50, max 100)",
-            "name": "limit",
-            "in": "query",
-            "schema": {
-              "type": "integer"
-            }
-          },
-          {
-            "description": "Pagination cursor",
-            "name": "cursor",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/paginatedResponse-teamResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          }
-        }
-      },
-      "post": {
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "description": "Creates a new team in the current organization. Admin/owner only.",
-        "tags": [
-          "teams"
-        ],
-        "summary": "Create a team",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/createTeamRequest"
-              }
-            }
-          },
-          "description": "Team details",
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "description": "Created",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/teamResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Conflict",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/teams/{id}": {
-      "get": {
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "tags": [
-          "teams"
-        ],
-        "summary": "Get a team",
-        "parameters": [
-          {
-            "description": "Team ID",
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/teamResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          }
-        }
-      },
-      "delete": {
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "tags": [
-          "teams"
-        ],
-        "summary": "Delete a team",
-        "parameters": [
-          {
-            "description": "Team ID",
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": {
-                    "type": "string"
-                  }
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          }
-        }
-      },
-      "patch": {
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "tags": [
-          "teams"
-        ],
-        "summary": "Update a team",
-        "parameters": [
-          {
-            "description": "Team ID",
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/updateTeamRequest"
-              }
-            }
-          },
-          "description": "Team updates",
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/teamResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Conflict",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/v1/tokens": {
       "get": {
         "security": [
@@ -9236,7 +8919,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/paginatedResponse-tokenListItem"
+                  "$ref": "#/components/schemas/paginatedResponse-handler_tokenListItem"
                 }
               }
             }
@@ -9558,26 +9241,83 @@
       }
     },
     "schemas": {
-      "github_com_usehiveloop_hiveloop_internal_mcp.TokenScope": {
+      "AvailableResource": {
         "type": "object",
         "properties": {
-          "actions": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          }
+        }
+      },
+      "BuiltInToolDefinition": {
+        "type": "object",
+        "properties": {
+          "category": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "locked": {
+            "description": "true = cannot be toggled off by the user",
+            "type": "boolean"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "Bundle": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "files": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "id": {
+            "type": "string"
+          },
+          "manifest": {
+            "type": "object",
+            "additionalProperties": {}
+          },
+          "parameters_schema": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "references": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Reference"
+            }
+          },
+          "required_environment_variables": {
             "type": "array",
             "items": {
               "type": "string"
             }
           },
-          "connection_id": {
+          "title": {
             "type": "string"
-          },
-          "resources": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
-            }
           }
         }
       },
@@ -9592,67 +9332,6 @@
           },
           "key": {
             "type": "string"
-          }
-        }
-      },
-      "SchemaDefinition": {
-        "type": "object",
-        "properties": {
-          "items": {
-            "description": "for array types",
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/SchemaRef"
-              }
-            ]
-          },
-          "properties": {
-            "type": "object",
-            "additionalProperties": {
-              "$ref": "#/components/schemas/SchemaPropertyDef"
-            }
-          },
-          "type": {
-            "type": "string"
-          }
-        }
-      },
-      "SchemaPropertyDef": {
-        "type": "object",
-        "properties": {
-          "description": {
-            "type": "string"
-          },
-          "nullable": {
-            "type": "boolean"
-          },
-          "schema_ref": {
-            "description": "references another schema by name for nested object resolution",
-            "type": "string"
-          },
-          "type": {
-            "type": "string"
-          }
-        }
-      },
-      "SchemaRef": {
-        "type": "object",
-        "properties": {
-          "$ref": {
-            "type": "string"
-          }
-        }
-      },
-      "WebhookConfig": {
-        "type": "object",
-        "properties": {
-          "configuration_notes": {
-            "description": "ConfigurationNotes is markdown text shown to the user explaining how to\nconfigure the webhook in the provider's settings.",
-            "type": "string"
-          },
-          "webhook_url_required": {
-            "description": "WebhookURLRequired indicates the user must manually configure a webhook\nURL in the provider's dashboard for triggers to work.",
-            "type": "boolean"
           }
         }
       },
@@ -9688,9 +9367,105 @@
           }
         }
       },
+      "Cost": {
+        "type": "object",
+        "properties": {
+          "input": {
+            "type": "number"
+          },
+          "output": {
+            "type": "number"
+          }
+        }
+      },
+      "Credentials": {
+        "type": "object",
+        "properties": {
+          "app_id": {
+            "type": "string"
+          },
+          "app_link": {
+            "type": "string"
+          },
+          "client_id": {
+            "type": "string"
+          },
+          "client_logo_uri": {
+            "type": "string"
+          },
+          "client_name": {
+            "description": "MCP_OAUTH2_GENERIC fields",
+            "type": "string"
+          },
+          "client_secret": {
+            "type": "string"
+          },
+          "client_uri": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          },
+          "private_key": {
+            "type": "string"
+          },
+          "scopes": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "username": {
+            "description": "INSTALL_PLUGIN fields",
+            "type": "string"
+          },
+          "webhook_secret": {
+            "type": "string"
+          }
+        }
+      },
+      "DiscoveryResult": {
+        "type": "object",
+        "properties": {
+          "resources": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AvailableResource"
+            }
+          }
+        }
+      },
       "JSON": {
         "type": "object",
         "additionalProperties": {}
+      },
+      "Limit": {
+        "type": "object",
+        "properties": {
+          "context": {
+            "type": "integer"
+          },
+          "output": {
+            "type": "integer"
+          }
+        }
+      },
+      "Modalities": {
+        "type": "object",
+        "properties": {
+          "input": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "output": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
       },
       "NangoConfig": {
         "type": "object",
@@ -9769,6 +9544,102 @@
           "$ref": "#/components/schemas/ProviderPromptConfig"
         }
       },
+      "Reference": {
+        "type": "object",
+        "properties": {
+          "body": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          }
+        }
+      },
+      "SandboxToolDefinition": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "SchemaDefinition": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "description": "for array types",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SchemaRef"
+              }
+            ]
+          },
+          "properties": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/SchemaPropertyDef"
+            }
+          },
+          "type": {
+            "type": "string"
+          }
+        }
+      },
+      "SchemaPropertyDef": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "nullable": {
+            "type": "boolean"
+          },
+          "schema_ref": {
+            "description": "references another schema by name for nested object resolution",
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          }
+        }
+      },
+      "SchemaRef": {
+        "type": "object",
+        "properties": {
+          "$ref": {
+            "type": "string"
+          }
+        }
+      },
+      "TokenScope": {
+        "type": "object",
+        "properties": {
+          "actions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "connection_id": {
+            "type": "string"
+          },
+          "resources": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
       "TriggerCondition": {
         "type": "object",
         "properties": {
@@ -9800,173 +9671,7 @@
           }
         }
       },
-      "github_com_usehiveloop_hiveloop_internal_nango.Credentials": {
-        "type": "object",
-        "properties": {
-          "app_id": {
-            "type": "string"
-          },
-          "app_link": {
-            "type": "string"
-          },
-          "client_id": {
-            "type": "string"
-          },
-          "client_logo_uri": {
-            "type": "string"
-          },
-          "client_name": {
-            "description": "MCP_OAUTH2_GENERIC fields",
-            "type": "string"
-          },
-          "client_secret": {
-            "type": "string"
-          },
-          "client_uri": {
-            "type": "string"
-          },
-          "password": {
-            "type": "string"
-          },
-          "private_key": {
-            "type": "string"
-          },
-          "scopes": {
-            "type": "string"
-          },
-          "type": {
-            "type": "string"
-          },
-          "username": {
-            "description": "INSTALL_PLUGIN fields",
-            "type": "string"
-          },
-          "webhook_secret": {
-            "type": "string"
-          }
-        }
-      },
-      "Cost": {
-        "type": "object",
-        "properties": {
-          "input": {
-            "type": "number"
-          },
-          "output": {
-            "type": "number"
-          }
-        }
-      },
-      "Limit": {
-        "type": "object",
-        "properties": {
-          "context": {
-            "type": "integer"
-          },
-          "output": {
-            "type": "integer"
-          }
-        }
-      },
-      "Modalities": {
-        "type": "object",
-        "properties": {
-          "input": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "output": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          }
-        }
-      },
-      "github_com_usehiveloop_hiveloop_internal_resources.AvailableResource": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
-          "type": {
-            "type": "string"
-          }
-        }
-      },
-      "github_com_usehiveloop_hiveloop_internal_resources.DiscoveryResult": {
-        "type": "object",
-        "properties": {
-          "resources": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/github_com_usehiveloop_hiveloop_internal_resources.AvailableResource"
-            }
-          }
-        }
-      },
-      "github_com_usehiveloop_hiveloop_internal_skills.Bundle": {
-        "type": "object",
-        "properties": {
-          "content": {
-            "type": "string"
-          },
-          "description": {
-            "type": "string"
-          },
-          "files": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "string"
-            }
-          },
-          "id": {
-            "type": "string"
-          },
-          "manifest": {
-            "type": "object",
-            "additionalProperties": {}
-          },
-          "parameters_schema": {
-            "type": "array",
-            "items": {
-              "type": "integer"
-            }
-          },
-          "references": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/github_com_usehiveloop_hiveloop_internal_skills.Reference"
-            }
-          },
-          "required_environment_variables": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "title": {
-            "type": "string"
-          }
-        }
-      },
-      "github_com_usehiveloop_hiveloop_internal_skills.Reference": {
-        "type": "object",
-        "properties": {
-          "body": {
-            "type": "string"
-          },
-          "path": {
-            "type": "string"
-          }
-        }
-      },
-      "github_com_usehiveloop_hiveloop_internal_system.Usage": {
+      "Usage": {
         "type": "object",
         "properties": {
           "cached_tokens": {
@@ -9983,38 +9688,16 @@
           }
         }
       },
-      "BuiltInToolDefinition": {
+      "WebhookConfig": {
         "type": "object",
         "properties": {
-          "category": {
+          "configuration_notes": {
+            "description": "ConfigurationNotes is markdown text shown to the user explaining how to\nconfigure the webhook in the provider's settings.",
             "type": "string"
           },
-          "description": {
-            "type": "string"
-          },
-          "id": {
-            "type": "string"
-          },
-          "locked": {
-            "description": "true = cannot be toggled off by the user",
+          "webhook_url_required": {
+            "description": "WebhookURLRequired indicates the user must manually configure a webhook\nURL in the provider's dashboard for triggers to work.",
             "type": "boolean"
-          },
-          "name": {
-            "type": "string"
-          }
-        }
-      },
-      "SandboxToolDefinition": {
-        "type": "object",
-        "properties": {
-          "description": {
-            "type": "string"
-          },
-          "id": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
           }
         }
       },
@@ -10149,7 +9832,7 @@
         "type": "object",
         "properties": {
           "credentials": {
-            "$ref": "#/components/schemas/github_com_usehiveloop_hiveloop_internal_nango.Credentials"
+            "$ref": "#/components/schemas/Credentials"
           },
           "display_name": {
             "type": "string"
@@ -10192,7 +9875,7 @@
         "type": "object",
         "properties": {
           "bundle": {
-            "$ref": "#/components/schemas/github_com_usehiveloop_hiveloop_internal_skills.Bundle"
+            "$ref": "#/components/schemas/Bundle"
           },
           "description": {
             "type": "string"
@@ -10696,9 +10379,6 @@
           "system_prompt": {
             "type": "string"
           },
-          "team": {
-            "type": "string"
-          },
           "tools": {
             "$ref": "#/components/schemas/JSON"
           }
@@ -10716,7 +10396,7 @@
         "type": "object",
         "properties": {
           "credentials": {
-            "$ref": "#/components/schemas/github_com_usehiveloop_hiveloop_internal_nango.Credentials"
+            "$ref": "#/components/schemas/Credentials"
           },
           "display_name": {
             "type": "string"
@@ -10975,9 +10655,6 @@
             }
           },
           "system_prompt": {
-            "type": "string"
-          },
-          "team": {
             "type": "string"
           },
           "tools": {
@@ -11695,9 +11372,6 @@
           "system_prompt": {
             "type": "string"
           },
-          "team": {
-            "type": "string"
-          },
           "tools": {
             "$ref": "#/components/schemas/JSON"
           },
@@ -11930,7 +11604,7 @@
             "description": "Inline source",
             "allOf": [
               {
-                "$ref": "#/components/schemas/github_com_usehiveloop_hiveloop_internal_skills.Bundle"
+                "$ref": "#/components/schemas/Bundle"
               }
             ]
           },
@@ -11978,20 +11652,6 @@
             "type": "string"
           },
           "provider_id": {
-            "type": "string"
-          }
-        }
-      },
-      "createTeamRequest": {
-        "type": "object",
-        "properties": {
-          "description": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
-          "prompt_team": {
             "type": "string"
           }
         }
@@ -12249,9 +11909,6 @@
             }
           },
           "system_prompt": {
-            "type": "string"
-          },
-          "team": {
             "type": "string"
           },
           "tools": {
@@ -12848,9 +12505,6 @@
               "type": "string"
             }
           },
-          "team": {
-            "type": "string"
-          },
           "tools": {
             "$ref": "#/components/schemas/JSON"
           },
@@ -12900,7 +12554,7 @@
           "scopes": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/github_com_usehiveloop_hiveloop_internal_mcp.TokenScope"
+              "$ref": "#/components/schemas/TokenScope"
             }
           },
           "ttl": {
@@ -13151,176 +12805,6 @@
           }
         }
       },
-      "paginatedResponse-adminAPIKeyResponse": {
-        "type": "object",
-        "properties": {
-          "data": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/adminAPIKeyResponse"
-            }
-          },
-          "has_more": {
-            "type": "boolean"
-          },
-          "next_cursor": {
-            "type": "string"
-          }
-        }
-      },
-      "paginatedResponse-adminAgentResponse": {
-        "type": "object",
-        "properties": {
-          "data": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/adminAgentResponse"
-            }
-          },
-          "has_more": {
-            "type": "boolean"
-          },
-          "next_cursor": {
-            "type": "string"
-          }
-        }
-      },
-      "paginatedResponse-adminConversationResponse": {
-        "type": "object",
-        "properties": {
-          "data": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/adminConversationResponse"
-            }
-          },
-          "has_more": {
-            "type": "boolean"
-          },
-          "next_cursor": {
-            "type": "string"
-          }
-        }
-      },
-      "paginatedResponse-adminCredentialResponse": {
-        "type": "object",
-        "properties": {
-          "data": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/adminCredentialResponse"
-            }
-          },
-          "has_more": {
-            "type": "boolean"
-          },
-          "next_cursor": {
-            "type": "string"
-          }
-        }
-      },
-      "paginatedResponse-adminCustomDomainResponse": {
-        "type": "object",
-        "properties": {
-          "data": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/adminCustomDomainResponse"
-            }
-          },
-          "has_more": {
-            "type": "boolean"
-          },
-          "next_cursor": {
-            "type": "string"
-          }
-        }
-      },
-      "paginatedResponse-adminOrgResponse": {
-        "type": "object",
-        "properties": {
-          "data": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/adminOrgResponse"
-            }
-          },
-          "has_more": {
-            "type": "boolean"
-          },
-          "next_cursor": {
-            "type": "string"
-          }
-        }
-      },
-      "paginatedResponse-adminSandboxResponse": {
-        "type": "object",
-        "properties": {
-          "data": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/adminSandboxResponse"
-            }
-          },
-          "has_more": {
-            "type": "boolean"
-          },
-          "next_cursor": {
-            "type": "string"
-          }
-        }
-      },
-      "paginatedResponse-adminSandboxTemplateResponse": {
-        "type": "object",
-        "properties": {
-          "data": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/adminSandboxTemplateResponse"
-            }
-          },
-          "has_more": {
-            "type": "boolean"
-          },
-          "next_cursor": {
-            "type": "string"
-          }
-        }
-      },
-      "paginatedResponse-adminSkillResponse": {
-        "type": "object",
-        "properties": {
-          "data": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/adminSkillResponse"
-            }
-          },
-          "has_more": {
-            "type": "boolean"
-          },
-          "next_cursor": {
-            "type": "string"
-          }
-        }
-      },
-      "paginatedResponse-adminTokenResponse": {
-        "type": "object",
-        "properties": {
-          "data": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/adminTokenResponse"
-            }
-          },
-          "has_more": {
-            "type": "boolean"
-          },
-          "next_cursor": {
-            "type": "string"
-          }
-        }
-      },
       "paginatedResponse-adminUserResponse": {
         "type": "object",
         "properties": {
@@ -13345,74 +12829,6 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/agentResponse"
-            }
-          },
-          "has_more": {
-            "type": "boolean"
-          },
-          "next_cursor": {
-            "type": "string"
-          }
-        }
-      },
-      "paginatedResponse-apiKeyResponse": {
-        "type": "object",
-        "properties": {
-          "data": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/apiKeyResponse"
-            }
-          },
-          "has_more": {
-            "type": "boolean"
-          },
-          "next_cursor": {
-            "type": "string"
-          }
-        }
-      },
-      "paginatedResponse-assetListItem": {
-        "type": "object",
-        "properties": {
-          "data": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/assetListItem"
-            }
-          },
-          "has_more": {
-            "type": "boolean"
-          },
-          "next_cursor": {
-            "type": "string"
-          }
-        }
-      },
-      "paginatedResponse-auditEntryResponse": {
-        "type": "object",
-        "properties": {
-          "data": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/auditEntryResponse"
-            }
-          },
-          "has_more": {
-            "type": "boolean"
-          },
-          "next_cursor": {
-            "type": "string"
-          }
-        }
-      },
-      "paginatedResponse-conversationEventResponse": {
-        "type": "object",
-        "properties": {
-          "data": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/conversationEventResponse"
             }
           },
           "has_more": {
@@ -13457,7 +12873,262 @@
           }
         }
       },
-      "paginatedResponse-employeeConnectionResponse": {
+      "paginatedResponse-generationResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/generationResponse"
+            }
+          },
+          "has_more": {
+            "type": "boolean"
+          },
+          "next_cursor": {
+            "type": "string"
+          }
+        }
+      },
+      "paginatedResponse-handler_adminAPIKeyResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/adminAPIKeyResponse"
+            }
+          },
+          "has_more": {
+            "type": "boolean"
+          },
+          "next_cursor": {
+            "type": "string"
+          }
+        }
+      },
+      "paginatedResponse-handler_adminAgentResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/adminAgentResponse"
+            }
+          },
+          "has_more": {
+            "type": "boolean"
+          },
+          "next_cursor": {
+            "type": "string"
+          }
+        }
+      },
+      "paginatedResponse-handler_adminConversationResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/adminConversationResponse"
+            }
+          },
+          "has_more": {
+            "type": "boolean"
+          },
+          "next_cursor": {
+            "type": "string"
+          }
+        }
+      },
+      "paginatedResponse-handler_adminCredentialResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/adminCredentialResponse"
+            }
+          },
+          "has_more": {
+            "type": "boolean"
+          },
+          "next_cursor": {
+            "type": "string"
+          }
+        }
+      },
+      "paginatedResponse-handler_adminCustomDomainResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/adminCustomDomainResponse"
+            }
+          },
+          "has_more": {
+            "type": "boolean"
+          },
+          "next_cursor": {
+            "type": "string"
+          }
+        }
+      },
+      "paginatedResponse-handler_adminOrgResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/adminOrgResponse"
+            }
+          },
+          "has_more": {
+            "type": "boolean"
+          },
+          "next_cursor": {
+            "type": "string"
+          }
+        }
+      },
+      "paginatedResponse-handler_adminSandboxResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/adminSandboxResponse"
+            }
+          },
+          "has_more": {
+            "type": "boolean"
+          },
+          "next_cursor": {
+            "type": "string"
+          }
+        }
+      },
+      "paginatedResponse-handler_adminSandboxTemplateResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/adminSandboxTemplateResponse"
+            }
+          },
+          "has_more": {
+            "type": "boolean"
+          },
+          "next_cursor": {
+            "type": "string"
+          }
+        }
+      },
+      "paginatedResponse-handler_adminSkillResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/adminSkillResponse"
+            }
+          },
+          "has_more": {
+            "type": "boolean"
+          },
+          "next_cursor": {
+            "type": "string"
+          }
+        }
+      },
+      "paginatedResponse-handler_adminTokenResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/adminTokenResponse"
+            }
+          },
+          "has_more": {
+            "type": "boolean"
+          },
+          "next_cursor": {
+            "type": "string"
+          }
+        }
+      },
+      "paginatedResponse-handler_apiKeyResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/apiKeyResponse"
+            }
+          },
+          "has_more": {
+            "type": "boolean"
+          },
+          "next_cursor": {
+            "type": "string"
+          }
+        }
+      },
+      "paginatedResponse-handler_assetListItem": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/assetListItem"
+            }
+          },
+          "has_more": {
+            "type": "boolean"
+          },
+          "next_cursor": {
+            "type": "string"
+          }
+        }
+      },
+      "paginatedResponse-handler_auditEntryResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/auditEntryResponse"
+            }
+          },
+          "has_more": {
+            "type": "boolean"
+          },
+          "next_cursor": {
+            "type": "string"
+          }
+        }
+      },
+      "paginatedResponse-handler_conversationEventResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/conversationEventResponse"
+            }
+          },
+          "has_more": {
+            "type": "boolean"
+          },
+          "next_cursor": {
+            "type": "string"
+          }
+        }
+      },
+      "paginatedResponse-handler_employeeConnectionResponse": {
         "type": "object",
         "properties": {
           "data": {
@@ -13474,7 +13145,7 @@
           }
         }
       },
-      "paginatedResponse-employeeListItem": {
+      "paginatedResponse-handler_employeeListItem": {
         "type": "object",
         "properties": {
           "data": {
@@ -13491,7 +13162,7 @@
           }
         }
       },
-      "paginatedResponse-employeeSessionResponse": {
+      "paginatedResponse-handler_employeeSessionResponse": {
         "type": "object",
         "properties": {
           "data": {
@@ -13508,13 +13179,30 @@
           }
         }
       },
-      "paginatedResponse-generationResponse": {
+      "paginatedResponse-handler_sandboxResponse": {
         "type": "object",
         "properties": {
           "data": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/generationResponse"
+              "$ref": "#/components/schemas/sandboxResponse"
+            }
+          },
+          "has_more": {
+            "type": "boolean"
+          },
+          "next_cursor": {
+            "type": "string"
+          }
+        }
+      },
+      "paginatedResponse-handler_tokenListItem": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/tokenListItem"
             }
           },
           "has_more": {
@@ -13559,23 +13247,6 @@
           }
         }
       },
-      "paginatedResponse-sandboxResponse": {
-        "type": "object",
-        "properties": {
-          "data": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/sandboxResponse"
-            }
-          },
-          "has_more": {
-            "type": "boolean"
-          },
-          "next_cursor": {
-            "type": "string"
-          }
-        }
-      },
       "paginatedResponse-sandboxTemplateResponse": {
         "type": "object",
         "properties": {
@@ -13600,40 +13271,6 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/skillResponse"
-            }
-          },
-          "has_more": {
-            "type": "boolean"
-          },
-          "next_cursor": {
-            "type": "string"
-          }
-        }
-      },
-      "paginatedResponse-teamResponse": {
-        "type": "object",
-        "properties": {
-          "data": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/teamResponse"
-            }
-          },
-          "has_more": {
-            "type": "boolean"
-          },
-          "next_cursor": {
-            "type": "string"
-          }
-        }
-      },
-      "paginatedResponse-tokenListItem": {
-        "type": "object",
-        "properties": {
-          "data": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/tokenListItem"
             }
           },
           "has_more": {
@@ -14576,7 +14213,7 @@
         "type": "object",
         "properties": {
           "bundle": {
-            "$ref": "#/components/schemas/github_com_usehiveloop_hiveloop_internal_skills.Bundle"
+            "$ref": "#/components/schemas/Bundle"
           },
           "created_at": {
             "type": "string"
@@ -14882,7 +14519,7 @@
             "type": "string"
           },
           "usage": {
-            "$ref": "#/components/schemas/github_com_usehiveloop_hiveloop_internal_system.Usage"
+            "$ref": "#/components/schemas/Usage"
           }
         }
       },
@@ -14895,29 +14532,6 @@
           },
           "stream": {
             "type": "boolean"
-          }
-        }
-      },
-      "teamResponse": {
-        "type": "object",
-        "properties": {
-          "created_at": {
-            "type": "string"
-          },
-          "description": {
-            "type": "string"
-          },
-          "id": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
-          "prompt_team": {
-            "type": "string"
-          },
-          "updated_at": {
-            "type": "string"
           }
         }
       },
@@ -15223,9 +14837,6 @@
           "system_prompt": {
             "type": "string"
           },
-          "team": {
-            "type": "string"
-          },
           "tools": {
             "$ref": "#/components/schemas/JSON"
           },
@@ -15241,7 +14852,7 @@
         "type": "object",
         "properties": {
           "bundle": {
-            "$ref": "#/components/schemas/github_com_usehiveloop_hiveloop_internal_skills.Bundle"
+            "$ref": "#/components/schemas/Bundle"
           }
         }
       },
@@ -15351,20 +14962,6 @@
             "items": {
               "type": "string"
             }
-          }
-        }
-      },
-      "updateTeamRequest": {
-        "type": "object",
-        "properties": {
-          "description": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
-          "prompt_team": {
-            "type": "string"
           }
         }
       },
@@ -15601,10 +15198,6 @@
     {
       "name": "system",
       "description": "system"
-    },
-    {
-      "name": "teams",
-      "description": "teams"
     },
     {
       "name": "tokens",
