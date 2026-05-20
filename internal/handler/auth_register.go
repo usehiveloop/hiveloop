@@ -34,11 +34,6 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if h.adminMode && !h.platformAdminEmails[req.Email] {
-		writeJSON(w, http.StatusForbidden, map[string]string{"error": "admin access required"})
-		return
-	}
-
 	// Check if email is taken.
 	var existing model.User
 	if err := h.db.Where("email = ?", req.Email).First(&existing).Error; err == nil {

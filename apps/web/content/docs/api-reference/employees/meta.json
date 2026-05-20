@@ -7,6 +7,10 @@
     "v1/employees/id/sandbox/upgrade/post",
     "v1/employees/id/sandbox/upgrades/upgradeid/get",
     "v1/employees/id/sessions/get",
+    "v1/employees/id/sessions/post",
+    "v1/employees/id/specialists/get",
+    "v1/employees/id/specialists/slug/post",
+    "v1/employees/id/specialists/slug/delete",
     "v1/employees/id/sync/post"
   ]
 }

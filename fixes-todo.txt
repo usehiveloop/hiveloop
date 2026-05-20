@@ -13,9 +13,9 @@ P0
    - Key files: internal/handler/agents_helpers.go, internal/handler/agents_create.go, internal/handler/agents_update.go, internal/sandbox/pusher_helpers.go, internal/mcpserver/builder.go
 
 3. Next proxy refresh lock can swap user sessions.
-   - Problem: web/admin proxies use one module-level refreshPromise shared by all users.
+   - Problem: web proxy uses one module-level refreshPromise shared by all users.
    - Fix: key refresh in-flight locks by refresh token/session fingerprint, or remove global dedupe and refresh per request.
-   - Key files: apps/web/app/api/proxy/[...path]/route.ts, apps/admin/app/api/proxy/[...path]/route.ts
+   - Key files: apps/web/app/api/proxy/[...path]/route.ts
 
 4. Shared subagents can inherit the wrong employee GitHub identity/token.
    - Problem: subagents are many-to-many, but GitHub identity/token resolution picks the first linked employee by created_at instead of the employee dispatching the task.
@@ -168,37 +168,32 @@ P0
 P1
 --
 
-32. Clean stale admin schema references after backend support was removed.
-    - Problem: admin UI still references marketplace_agents.sandbox_type, but backend model support is gone.
-    - Fix: remove stale admin UI/API type references or intentionally re-add backend support.
-    - Key files: apps/admin/app/dashboard/agents/page.tsx, apps/admin/app/dashboard/sandboxes/page.tsx
-
-33. Tighten RAG route authorization back to admin.
+32. Tighten RAG route authorization back to admin.
     - Problem: RAG routes currently use ResolveUser with a TODO to restore RequireOrgAdmin once admin UI is gated.
     - Fix: complete UI permission handling and restore org-admin middleware.
     - Key files: cmd/server/serve_routes_v1.go
 
-34. Finish MCP scope resource validation.
+33. Finish MCP scope resource validation.
     - Problem: MCP scope validation checks actions but still passes nil for connection resources.
     - Fix: load connection resource constraints from connection metadata and validate requested resources against them.
     - Key files: internal/mcp/scope.go, internal/model/in_connection.go, internal/mcp/catalog
 
-35. Drop or migrate the post-migration agent.Tools column.
+34. Drop or migrate the post-migration agent.Tools column.
     - Problem: Agent.Tools still carries a TODO(post-migration) and generated API docs expose it.
     - Fix: archive any remaining data, remove the column/model field, regenerate OpenAPI/types, and update callers.
-    - Key files: internal/model/agent.go, apps/web/lib/api/schema.d.ts, apps/admin/lib/api/schema.d.ts, docs/openapi.json
+    - Key files: internal/model/agent.go, apps/web/lib/api/schema.d.ts, docs/openapi.json
 
-36. Decide employee category expansion beyond engineering.
+35. Decide employee category expansion beyond engineering.
     - Problem: categories list contains many categories, but POST /v1/employees rejects anything except engineering.
     - Fix: either hide unsupported categories in employee creation UI/API, or add per-category identity prompts/default team setup.
     - Key files: internal/handler/agents_categories.go, internal/handler/employees_create.go, internal/employeeprompts/prompts.go
 
-37. Define non-Slack employee startup profile support before adding non-Slack gateways.
+36. Define non-Slack employee startup profile support before adding non-Slack gateways.
     - Problem: employee startup currently requires an active Slack profile and decrypts only Slack tokens.
     - Fix: keep Slack-only as explicit v1 contract, or add provider-specific startup profile support for future gateways.
     - Key files: internal/employeeruntime/compile.go, internal/handler/employees_sync.go, internal/handler/onboarding_complete.go
 
-38. Add employee-sandbox E2E coverage.
+37. Add employee-sandbox E2E coverage.
     - Problem: employee-sandbox startup and config sync need end-to-end coverage against the current runtime.
     - Fix: add or verify an employee-sandbox E2E that creates an employee, connects Slack/GitHub profiles, provisions the sandbox, pushes /config, checks /healthz and /readyz, and verifies model/proxy/env behavior.
     - Key files: internal/handler/employees_create_test.go, internal/handler/employees_sync_test.go, internal/sandbox/orchestrator_create_employee.go, e2e
@@ -207,17 +202,17 @@ P1
 P2
 --
 
-39. Reconcile DB cleanup findings from db-todos.txt.
+38. Reconcile DB cleanup findings from db-todos.txt.
     - Problem: db-todos.txt still lists production-only columns/tables/indexes that need final decisions.
     - Fix: keep active RAG tables, remove stale columns after backup, and decide whether subscription indexes should become explicit migrations.
-    - Key files: db-todos.txt, internal/model/org.go, internal/rag/model, apps/admin
+    - Key files: db-todos.txt, internal/model/org.go, internal/rag/model
 
-40. Refactor application files still grandfathered in file-length allowlist.
+39. Refactor application files still grandfathered in file-length allowlist.
     - Problem: scripts/file-length-allowlist.txt still lists application files over the 300-line limit, including current active employee/RAG code.
     - Fix: split touched large application files opportunistically and remove allowlist entries as they fall under the limit.
     - Key files: scripts/file-length-allowlist.txt
 
-41. Update trigger architecture docs or implementation around per-agent child tasks.
+40. Update trigger architecture docs or implementation around per-agent child tasks.
     - Problem: trigger-architecture docs still say per-agent TypeAgentRun child tasks are TODO, while current router dispatch code has evolved.
     - Fix: either implement the missing child task model or update the architecture doc to match current RouterDispatchHandler behavior.
     - Key files: trigger-architecture/02-dispatcher-runtime.md, internal/tasks/router_dispatch.go, internal/trigger/dispatch/router_dispatcher.go

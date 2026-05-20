@@ -7,7 +7,6 @@ const (
 	TypeAuditWrite                   = "audit:write"
 	TypeGenerationWrite              = "generation:write"
 	TypeAPIKeyUpdate                 = "apikey:update_last_used" // #nosec G101 -- task type identifier, not a credential
-	TypeAdminAuditWrite              = "admin_audit:write"
 	TypeEmailSend                    = "email:send"
 	TypeEmailSendTemplate            = "email:send_template"
 	TypeAgentCleanup                 = "agent:cleanup"

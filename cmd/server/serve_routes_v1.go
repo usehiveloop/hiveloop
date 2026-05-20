@@ -42,7 +42,6 @@ func setupV1Routes(
 	uploadsHandler *handler.UploadsHandler,
 	systemTaskHandler *handler.SystemTaskHandler,
 	employeeHandler *handler.EmployeeHandler,
-	chatHandler *handler.ChatHandler,
 	orchestrator *sandbox.Orchestrator,
 	auditWriter *middleware.AuditWriter,
 ) {
@@ -163,15 +162,6 @@ func setupV1Routes(
 						r.Post("/employees/{id}/sync", employeeHandler.Sync)
 						r.Post("/employees/{id}/sandbox/upgrade", employeeHandler.StartSandboxUpgrade)
 						r.Get("/employees/{id}/sandbox/upgrades/{upgradeID}", employeeHandler.GetSandboxUpgrade)
-					})
-				}
-				if chatHandler != nil {
-					r.Group(func(r chi.Router) {
-						r.Use(middleware.ResolveUser(database))
-						r.Post("/employees/{id}/chats", chatHandler.Create)
-						r.Get("/chats", chatHandler.List)
-						r.Get("/chats/{id}", chatHandler.Get)
-						r.Post("/chats/{id}/messages", chatHandler.Send)
 					})
 				}
 				if systemTaskHandler != nil {

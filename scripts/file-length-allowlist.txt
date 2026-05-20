@@ -15,7 +15,6 @@ internal/registry/models.go
 internal/cache/integration_test.go
 internal/middleware/integration_test.go
 internal/middleware/apikeyauth_test.go
-internal/middleware/admin_audit_test.go
 internal/handler/api_keys_test.go
 internal/handler/spider_test.go
 internal/handler/railway_proxy_test.go

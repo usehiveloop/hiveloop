@@ -71,6 +71,9 @@ func AutoMigrate(db *gorm.DB) (err error) {
 		"teams",
 		"agent_subagents",
 		"marketplace_agents",
+		"chat_messages",
+		"chat_sessions",
+		"admin_audit_log",
 	); err != nil {
 		return err
 	}
@@ -117,8 +120,6 @@ func AutoMigrate(db *gorm.DB) (err error) {
 		&PasswordReset{},
 		&SandboxTemplate{},
 		&Employee{},
-		&ChatSession{},
-		&ChatMessage{},
 		&Sandbox{},
 		&WorkspaceStorage{},
 		&AgentConversation{},
@@ -132,7 +133,6 @@ func AutoMigrate(db *gorm.DB) (err error) {
 		&AgentTriggerDelivery{},
 		&OAuthAccount{},
 		&OAuthExchangeToken{},
-		&AdminAuditEntry{},
 		&OTPCode{},
 		&ToolUsage{},
 		&Plan{},

@@ -150,7 +150,6 @@ JWT_SIGNING_KEY=local-dev-signing-key
 CORS_ORIGINS=http://localhost:$FRONTEND_PORT
 AUTO_CONFIRM_EMAIL=true
 PLATFORM_ADMIN_EMAILS=agent-test@example.com
-ADMIN_API_ENABLED=true
 AUTH_ISSUER=hiveloop
 AUTH_AUDIENCE=http://localhost:$BACKEND_PORT
 FRONTEND_URL=http://localhost:$FRONTEND_PORT

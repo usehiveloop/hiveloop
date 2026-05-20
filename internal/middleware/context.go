@@ -17,7 +17,6 @@ const (
 	claimsKey
 	apiKeyClaimsKey
 	userKey
-	adminAuditChangesKey
 )
 
 // OrgFromContext retrieves the authenticated Org from the request context.
@@ -80,32 +79,6 @@ func UserFromContext(ctx context.Context) (*model.User, bool) {
 // WithUser sets the User on the request context.
 func WithUser(r *http.Request, user *model.User) *http.Request {
 	return r.WithContext(context.WithValue(r.Context(), userKey, user))
-}
-
-// AdminAuditChanges is a map of field→{old,new} diffs set by admin update
-// handlers so the audit middleware logs only what actually changed.
-type AdminAuditChanges map[string]any
-
-// AdminAuditBucket is a shared pointer that the middleware allocates and places
-// on the context before the handler runs. The handler stores its changes map
-// in it, and the middleware reads it after the handler returns.
-type AdminAuditBucket struct {
-	Changes AdminAuditChanges
-}
-
-func AdminAuditBucketFromContext(ctx context.Context) *AdminAuditBucket {
-	bucket, _ := ctx.Value(adminAuditChangesKey).(*AdminAuditBucket)
-	return bucket
-}
-
-func WithAdminAuditBucket(r *http.Request, bucket *AdminAuditBucket) *http.Request {
-	return r.WithContext(context.WithValue(r.Context(), adminAuditChangesKey, bucket))
-}
-
-func SetAdminAuditChanges(r *http.Request, changes AdminAuditChanges) {
-	if bucket := AdminAuditBucketFromContext(r.Context()); bucket != nil {
-		bucket.Changes = changes
-	}
 }
 
 // UserID resolves the authenticated user's UUID, or "" when the request is

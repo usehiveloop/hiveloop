@@ -57,11 +57,6 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 
 	h.clearLoginFailures(req.Email)
 
-	if h.adminMode && !h.platformAdminEmails[user.Email] {
-		writeJSON(w, http.StatusForbidden, map[string]string{"error": "admin access required"})
-		return
-	}
-
 	var memberships []model.OrgMembership
 	h.db.Preload("Org").Where("user_id = ?", user.ID).Find(&memberships)
 

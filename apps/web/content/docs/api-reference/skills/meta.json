@@ -2,6 +2,9 @@
   "title": "Skills",
   "description": "skills",
   "pages": [
+    "v1/employees/id/skills/get",
+    "v1/employees/id/skills/post",
+    "v1/employees/id/skills/skillid/delete",
     "v1/skills/get",
     "v1/skills/post",
     "v1/skills/id/get",

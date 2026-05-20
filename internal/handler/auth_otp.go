@@ -36,11 +36,6 @@ func (h *AuthHandler) OTPRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if h.adminMode && !h.platformAdminEmails[req.Email] {
-		writeJSON(w, http.StatusForbidden, map[string]string{"error": "admin access required"})
-		return
-	}
-
 	now := time.Now()
 	var recent model.OTPCode
 	dedupErr := h.db.
@@ -165,11 +160,6 @@ func (h *AuthHandler) OTPVerify(w http.ResponseWriter, r *http.Request) {
 
 	if user.EmailConfirmedAt == nil {
 		h.db.Model(&user).Update("email_confirmed_at", &now)
-	}
-
-	if h.adminMode && !h.platformAdminEmails[user.Email] {
-		writeJSON(w, http.StatusForbidden, map[string]string{"error": "admin access required"})
-		return
 	}
 
 	var memberships []model.OrgMembership

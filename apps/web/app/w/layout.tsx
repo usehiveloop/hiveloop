@@ -4,7 +4,6 @@ import { useEffect } from "react"
 import { useRouter } from "next/navigation"
 
 import { AppTopbar } from "@/components/app-topbar"
-import { ImpersonationBanner } from "@/components/impersonation-banner"
 import { Loader } from "@/components/loader"
 import { OnboardingPanel } from "@/components/onboarding-panel"
 import { AuthProvider, useAuth } from "@/lib/auth/auth-context"
@@ -38,7 +37,6 @@ export default function WorkspaceLayout({
 }) {
   return (
     <AuthProvider>
-      <ImpersonationBanner />
       <div className="flex min-h-screen flex-col bg-background">
         <AppTopbar />
         <main className="flex min-h-0 flex-1 flex-col">

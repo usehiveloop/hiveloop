@@ -48,11 +48,6 @@ export interface AvailableScopeConnection {
   resources?: Record<string, AvailableScopeResource>;
 }
 
-
-
-export type NangoCredentials = Schemas["Credentials"];
-
-
 export type UsageResponse = Schemas["usageResponse"];
 export type AuditEntryResponse = Schemas["auditEntryResponse"];
 

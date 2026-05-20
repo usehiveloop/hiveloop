@@ -153,9 +153,6 @@ type Config struct {
 	PublicAssetsSignTTL   time.Duration `env:"PUBLIC_ASSETS_SIGN_TTL" envDefault:"15m"`
 	PublicAssetsUseACL    bool          `env:"PUBLIC_ASSETS_USE_ACL" envDefault:"false"`
 
-	// Admin API (disabled by default — deploy a separate private instance with ADMIN_API_ENABLED=true)
-	AdminAPIEnabled bool `env:"ADMIN_API_ENABLED" envDefault:"false"`
-
 	// Sandbox defaults
 	DedicatedSandboxGracePeriodMins int           `env:"DEDICATED_SANDBOX_GRACE_PERIOD_MINS" envDefault:"5"`
 	SandboxResourceCheckInterval    time.Duration `env:"SANDBOX_RESOURCE_CHECK_INTERVAL" envDefault:"30m"`

@@ -1,21 +1,11 @@
 package handler_test
 
 import (
-	"bytes"
-	"crypto/rand"
-	"crypto/rsa"
-	"encoding/json"
 	"fmt"
 	"net/http"
-	"net/http/httptest"
 	"testing"
 	"time"
 
-	"github.com/go-chi/chi/v5"
-
-	"github.com/usehiveloop/hiveloop/internal/billing"
-	"github.com/usehiveloop/hiveloop/internal/email"
-	"github.com/usehiveloop/hiveloop/internal/handler"
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
@@ -114,55 +104,6 @@ func TestOTP_MissingEmail(t *testing.T) {
 	if rr.Code != http.StatusBadRequest {
 		t.Fatalf("expected 400, got %d", rr.Code)
 	}
-}
-
-func TestOTP_AdminModeRejectsNonAdmin(t *testing.T) {
-	db := connectTestDB(t)
-
-	pk, err := rsa.GenerateKey(rand.Reader, 2048)
-	if err != nil {
-		t.Fatalf("generate RSA key: %v", err)
-	}
-
-	authHandler := handler.NewAuthHandler(
-		db, pk, []byte("test-key"),
-		"test", "http://localhost",
-		15*time.Minute, 720*time.Hour,
-		&email.LogSender{},
-		"http://localhost:3000",
-		true,
-		billing.NewCreditsService(db),
-	)
-	authHandler.SetAdminMode([]string{"admin@hiveloop.com"})
-
-	r := chi.NewRouter()
-	r.Post("/auth/otp/request", authHandler.OTPRequest)
-	r.Post("/auth/otp/verify", authHandler.OTPVerify)
-
-	// Non-admin email should be rejected at request stage
-	body, _ := json.Marshal(map[string]string{"email": "hacker@evil.com"})
-	req := httptest.NewRequest("POST", "/auth/otp/request", bytes.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	rr := httptest.NewRecorder()
-	r.ServeHTTP(rr, req)
-
-	if rr.Code != http.StatusForbidden {
-		t.Fatalf("admin mode: expected 403 for non-admin, got %d", rr.Code)
-	}
-
-	// Admin email should succeed
-	body, _ = json.Marshal(map[string]string{"email": "admin@hiveloop.com"})
-	req = httptest.NewRequest("POST", "/auth/otp/request", bytes.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	rr = httptest.NewRecorder()
-	r.ServeHTTP(rr, req)
-
-	if rr.Code != http.StatusOK {
-		t.Fatalf("admin mode: expected 200 for admin, got %d: %s", rr.Code, rr.Body.String())
-	}
-
-	// Cleanup
-	db.Where("email = ?", "admin@hiveloop.com").Delete(&model.OTPCode{})
 }
 
 // ---------------------------------------------------------------------------
