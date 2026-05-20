@@ -260,9 +260,10 @@ func TestEmployeeSQLiteBackup_InvalidBearer(t *testing.T) {
 	}
 }
 
-func TestEmployeeSQLiteBackup_NonEmployeeRejected(t *testing.T) {
-	h := newSQLiteBackupHarness(t, 1024*1024, false)
-	rr := h.uploadBackup(t, []byte("backup"), h.bridgeKey)
+func TestEmployeeSQLiteBackup_UnknownEmployeeRejected(t *testing.T) {
+	h := newSQLiteBackupHarness(t, 1024*1024, true)
+	path := "/internal/employees/" + uuid.NewString() + "/sqlite-backup"
+	rr := h.uploadBackupPath(t, path, []byte("backup"), h.bridgeKey)
 	if rr.Code != http.StatusNotFound {
 		t.Fatalf("expected 404, got %d: %s", rr.Code, rr.Body.String())
 	}
