@@ -76,7 +76,7 @@ func (h *EmployeeOutboundWebhookHandler) detachSyncedSkill(ctx context.Context, 
 		}
 		if err := tx.Model(&model.Skill{}).
 			Where("id = ?", skill.ID).
-			UpdateColumn("install_count", gorm.Expr("(SELECT COUNT(*) FROM agent_skills WHERE skill_id = ?)", skill.ID)).Error; err != nil {
+			UpdateColumn("install_count", gorm.Expr("(SELECT COUNT(*) FROM employee_skills WHERE skill_id = ?)", skill.ID)).Error; err != nil {
 			return fmt.Errorf("update install count: %w", err)
 		}
 		return nil
@@ -157,7 +157,7 @@ func (h *EmployeeOutboundWebhookHandler) upsertSyncedSkill(ctx context.Context, 
 		}
 		if err := tx.Model(&model.Skill{}).
 			Where("id = ?", skill.ID).
-			UpdateColumn("install_count", gorm.Expr("(SELECT COUNT(*) FROM agent_skills WHERE skill_id = ?)", skill.ID)).Error; err != nil {
+			UpdateColumn("install_count", gorm.Expr("(SELECT COUNT(*) FROM employee_skills WHERE skill_id = ?)", skill.ID)).Error; err != nil {
 			return fmt.Errorf("update install count: %w", err)
 		}
 		return nil

@@ -50,9 +50,8 @@ func (o *Orchestrator) loadOwningEmployee(ctx context.Context, agent *model.Agen
 	}
 	var employee model.Agent
 	err := o.db.WithContext(ctx).
-		Joins("JOIN agent_subagents ON agent_subagents.agent_id = agents.id").
-		Where("agent_subagents.subagent_id = ? AND agents.org_id = ? AND agents.is_employee = ? AND agents.is_system = ?", agent.ID, *agent.OrgID, true, false).
-		Order("agent_subagents.created_at ASC").
+		Where("org_id = ? AND id <> ? AND status <> ?", *agent.OrgID, agent.ID, "archived").
+		Order("created_at ASC").
 		First(&employee).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {

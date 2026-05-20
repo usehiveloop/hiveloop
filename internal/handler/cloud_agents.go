@@ -151,24 +151,42 @@ func (h *CloudAgentHandler) authEmployee(w http.ResponseWriter, r *http.Request)
 	return &agent
 }
 
-// validateSubagent checks that agentID is a subagent of the employee.
-func (h *CloudAgentHandler) validateSubagent(ctx context.Context, w http.ResponseWriter, employee *model.Agent, agentID uuid.UUID) bool {
-	var link model.AgentSubagent
-	if err := h.db.Where("agent_id = ? AND subagent_id = ?", employee.ID, agentID).First(&link).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			writeJSON(w, http.StatusNotFound, map[string]string{"error": "cloud agent not found for this employee"})
-			return false
-		}
-		captureCloudAgentFailure(ctx, "validate_subagent", err, cloudAgentSentryContext{
-			Operation:    "load_agent_subagent",
-			EmployeeID:   employee.ID,
-			CloudAgentID: agentID,
-			OrgID:        uuidValue(employee.OrgID),
-		})
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to validate cloud agent"})
-		return false
+func specialistID(slug string) uuid.UUID {
+	return uuid.NewSHA1(uuid.NameSpaceOID, []byte("hiveloop-specialist:"+slug))
+}
+
+func specialistAgentFromTemplate(employee *model.Agent, template *employeeAgentTemplate) model.Agent {
+	description := template.Description
+	orgID := uuidValue(employee.OrgID)
+	return model.Agent{
+		ID:          specialistID(template.Slug),
+		OrgID:       &orgID,
+		Name:        template.Name,
+		Description: &description,
+		Model:       employee.Model,
+		Tools:       employee.Tools,
+		McpServers:  employee.McpServers,
+		Skills:      employee.Skills,
+		AgentConfig: employee.AgentConfig,
+		Permissions: employee.Permissions,
+		Resources:   employee.Resources,
+		Harness:     employeeCloudAgentHarness,
+		Status:      "active",
 	}
-	return true
+}
+
+// validateSpecialist checks that slug refers to an enabled code-catalog specialist.
+func (h *CloudAgentHandler) validateSpecialist(ctx context.Context, w http.ResponseWriter, employee *model.Agent, slug string) (*employeeAgentTemplate, uuid.UUID, bool) {
+	template := employeeAgentTemplateBySlug(slug)
+	if template == nil {
+		writeJSON(w, http.StatusNotFound, map[string]string{"error": "specialist not found for this employee"})
+		return nil, uuid.Nil, false
+	}
+	if disabledSpecialistSet(employee.DisabledSpecialists)[slug] {
+		writeJSON(w, http.StatusNotFound, map[string]string{"error": "specialist disabled for this employee"})
+		return nil, uuid.Nil, false
+	}
+	return template, specialistID(slug), true
 }
 
 // ListCloudAgents returns all cloud agents for the employee with their top 3
@@ -179,36 +197,17 @@ func (h *CloudAgentHandler) ListCloudAgents(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	var links []model.AgentSubagent
-	if err := h.db.Where("agent_id = ?", employee.ID).Find(&links).Error; err != nil {
-		captureCloudAgentFailure(r.Context(), "list_cloud_agents", err, cloudAgentSentryContext{
-			Operation:  "load_subagent_links",
-			OrgID:      uuidValue(employee.OrgID),
-			EmployeeID: employee.ID,
-		})
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to load cloud agents"})
-		return
-	}
-
-	if len(links) == 0 {
-		writeJSON(w, http.StatusOK, map[string]any{"cloud_agents": []any{}})
-		return
-	}
-
-	subagentIDs := make([]uuid.UUID, len(links))
-	for i, l := range links {
-		subagentIDs[i] = l.SubagentID
-	}
-
-	var agents []model.Agent
-	if err := h.db.Where("id IN ?", subagentIDs).Find(&agents).Error; err != nil {
-		captureCloudAgentFailure(r.Context(), "list_cloud_agents", err, cloudAgentSentryContext{
-			Operation:  "load_cloud_agent_details",
-			OrgID:      uuidValue(employee.OrgID),
-			EmployeeID: employee.ID,
-		})
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to load agent details"})
-		return
+	disabled := disabledSpecialistSet(employee.DisabledSpecialists)
+	agents := make([]model.Agent, 0, len(employeeAgentTemplates))
+	subagentIDs := make([]uuid.UUID, 0, len(employeeAgentTemplates))
+	for i := range employeeAgentTemplates {
+		template := &employeeAgentTemplates[i]
+		if disabled[template.Slug] {
+			continue
+		}
+		agent := specialistAgentFromTemplate(employee, template)
+		agents = append(agents, agent)
+		subagentIDs = append(subagentIDs, agent.ID)
 	}
 
 	// Load top 3 tasks per cloud agent
@@ -319,12 +318,8 @@ func (h *CloudAgentHandler) ListTasks(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	agentID, err := uuid.Parse(chi.URLParam(r, "agentID"))
-	if err != nil {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid agent_id"})
-		return
-	}
-	if !h.validateSubagent(r.Context(), w, employee, agentID) {
+	_, agentID, ok := h.validateSpecialist(r.Context(), w, employee, chi.URLParam(r, "specialistSlug"))
+	if !ok {
 		return
 	}
 
@@ -382,12 +377,8 @@ func (h *CloudAgentHandler) GetTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	agentID, err := uuid.Parse(chi.URLParam(r, "agentID"))
-	if err != nil {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid agent_id"})
-		return
-	}
-	if !h.validateSubagent(r.Context(), w, employee, agentID) {
+	_, agentID, ok := h.validateSpecialist(r.Context(), w, employee, chi.URLParam(r, "specialistSlug"))
+	if !ok {
 		return
 	}
 
@@ -425,12 +416,8 @@ func (h *CloudAgentHandler) CreateTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	agentID, err := uuid.Parse(chi.URLParam(r, "agentID"))
-	if err != nil {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid agent_id"})
-		return
-	}
-	if !h.validateSubagent(r.Context(), w, employee, agentID) {
+	template, agentID, ok := h.validateSpecialist(r.Context(), w, employee, chi.URLParam(r, "specialistSlug"))
+	if !ok {
 		return
 	}
 
@@ -453,21 +440,7 @@ func (h *CloudAgentHandler) CreateTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var cloudAgent model.Agent
-	if err := h.db.Where("id = ?", agentID).First(&cloudAgent).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			writeJSON(w, http.StatusNotFound, map[string]string{"error": "cloud agent not found"})
-			return
-		}
-		captureCloudAgentFailure(r.Context(), "create_task", err, cloudAgentSentryContext{
-			Operation:    "load_cloud_agent",
-			OrgID:        uuidValue(employee.OrgID),
-			EmployeeID:   employee.ID,
-			CloudAgentID: agentID,
-		})
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to load cloud agent"})
-		return
-	}
+	cloudAgent := specialistAgentFromTemplate(employee, template)
 
 	ctx := r.Context()
 
@@ -644,7 +617,7 @@ func (h *CloudAgentHandler) SendTaskMessage(w http.ResponseWriter, r *http.Reque
 	if !ok {
 		return
 	}
-	if !h.validateSubagent(r.Context(), w, employee, agentID) {
+	if _, _, ok := h.validateSpecialist(r.Context(), w, employee, chi.URLParam(r, "specialistSlug")); !ok {
 		return
 	}
 
@@ -717,7 +690,7 @@ func (h *CloudAgentHandler) TerminateTask(w http.ResponseWriter, r *http.Request
 	if !ok {
 		return
 	}
-	if !h.validateSubagent(r.Context(), w, employee, agentID) {
+	if _, _, ok := h.validateSpecialist(r.Context(), w, employee, chi.URLParam(r, "specialistSlug")); !ok {
 		return
 	}
 
@@ -887,11 +860,12 @@ func taskToResponse(t model.CloudAgentTask, events []model.ConversationEvent) cl
 }
 
 func (h *CloudAgentHandler) parseAgentAndTaskIDs(w http.ResponseWriter, r *http.Request) (uuid.UUID, uuid.UUID, bool) {
-	agentID, err := uuid.Parse(chi.URLParam(r, "agentID"))
-	if err != nil {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid agent_id"})
+	slug := chi.URLParam(r, "specialistSlug")
+	if employeeAgentTemplateBySlug(slug) == nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid specialist_slug"})
 		return uuid.Nil, uuid.Nil, false
 	}
+	agentID := specialistID(slug)
 	taskID, err := uuid.Parse(chi.URLParam(r, "taskID"))
 	if err != nil {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid task_id"})

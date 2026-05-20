@@ -21,11 +21,11 @@ type AgentTriggerDelivery struct {
 	TriggerID uuid.UUID    `gorm:"type:uuid;not null;index"`
 	Trigger   AgentTrigger `gorm:"foreignKey:TriggerID;constraint:OnDelete:CASCADE"`
 
-	ConnectionID *uuid.UUID   `gorm:"type:uuid;index"`
+	ConnectionID *uuid.UUID    `gorm:"type:uuid;index"`
 	Connection   *InConnection `gorm:"foreignKey:ConnectionID;constraint:OnDelete:SET NULL"`
 
-	DeliveryID string  `gorm:"type:text;not null;index"`
-	EventKey   string  `gorm:"type:text;not null;default:'';index"`
+	DeliveryID  string `gorm:"type:text;not null;index"`
+	EventKey    string `gorm:"type:text;not null;default:'';index"`
 	ResourceKey string `gorm:"type:text;not null;default:'';index"`
 
 	ConversationID        uuid.UUID         `gorm:"type:uuid;not null;index"`
@@ -41,4 +41,4 @@ type AgentTriggerDelivery struct {
 	CreatedAt time.Time `gorm:"index:idx_trigger_delivery_org_agent_created;index:idx_trigger_delivery_org_agent_session_created,priority:4"`
 }
 
-func (AgentTriggerDelivery) TableName() string { return "agent_trigger_deliveries" }
+func (AgentTriggerDelivery) TableName() string { return "employee_trigger_deliveries" }

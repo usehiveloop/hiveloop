@@ -76,7 +76,7 @@ const PLANS: Plan[] = [
   },
   {
     name: "Business",
-    tagline: "For fleets of agents.",
+    tagline: "For fleets of employees.",
     monthlyUSD: 99,
     annualUSD: 950,
     credits: 99_000,

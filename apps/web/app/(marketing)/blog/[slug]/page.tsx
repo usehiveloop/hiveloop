@@ -177,7 +177,7 @@ export default async function BlogPostPage(props: PageProps) {
           <div className="flex flex-col">
             <span className="text-sm font-semibold text-foreground">{author}</span>
             <span className="text-sm text-muted-foreground">
-              Founder at HiveLoop. Building the future of production AI agents.
+              Founder at HiveLoop. Building the future of production AI employees.
             </span>
           </div>
         </div>

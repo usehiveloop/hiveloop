@@ -52,7 +52,7 @@ internal/handler/cloud_agents_test.go
 internal/handler/employees_sync_test.go
 internal/handler/employees_helpers_test.go
 internal/handler/employee_uploads_stream_test.go
-internal/handler/cloud_agents.go
+internal/handler/cloud_employees.go
 internal/employeeruntime/compile.go
 internal/employeeruntime/compile_test.go
 internal/rag/tasks/ingest_attempt.go

@@ -153,8 +153,6 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 			employeeHandler.SetEnqueuer(enqueuer)
 		}
 	}
-	marketplaceHandler := handler.NewMarketplaceHandler(database, redisClient)
-
 	var driveHandler *handler.DriveHandler
 	if deps.S3Client != nil {
 		driveHandler = handler.NewDriveHandler(database, deps.S3Client)
@@ -207,7 +205,7 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 
 	rsaPub := rsaKey.Public().(*rsa.PublicKey)
 
-	setupPublicRoutes(r, cfg, database, redisClient, providerHandler, inIntegrationHandler, actionsCatalog, marketplaceHandler, orgInviteHandler, plansHandler, bridgeWebhookHandler, employeeOutboundWebhookHandler, nangoWebhookHandler, incomingWebhookHandler, nangoClient, sandboxEncKey, uploadsHandler, sqliteBackupHandler, cloudAgentHandler)
+	setupPublicRoutes(r, cfg, database, redisClient, providerHandler, inIntegrationHandler, actionsCatalog, orgInviteHandler, plansHandler, bridgeWebhookHandler, employeeOutboundWebhookHandler, nangoWebhookHandler, incomingWebhookHandler, nangoClient, sandboxEncKey, uploadsHandler, sqliteBackupHandler, cloudAgentHandler)
 
 	if chatHandler != nil {
 		r.Get("/v1/chats/{id}/stream", chatHandler.Stream)
@@ -220,14 +218,14 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 		return err
 	}
 	systemTaskHandler := buildSystemTaskHandler(database, deps, redisClient)
-	setupV1Routes(r, cfg, rsaPub, database, apiKeyCache, enqueuer, orgHandler, orgInviteHandler, usageHandler, auditHandler, reportingHandler, generationHandler, apiKeyHandler, billingHandler, subscriptionHandler, credHandler, tokenHandler, sandboxTemplateHandler, skillHandler, agentHandler, marketplaceHandler, conversationHandler, customDomainHandler, ragSourceHandler, ragSearchHandler, uploadsHandler, systemTaskHandler, employeeHandler, chatHandler, orchestrator, auditWriter)
+	setupV1Routes(r, cfg, rsaPub, database, apiKeyCache, enqueuer, orgHandler, orgInviteHandler, usageHandler, auditHandler, reportingHandler, generationHandler, apiKeyHandler, billingHandler, subscriptionHandler, credHandler, tokenHandler, sandboxTemplateHandler, skillHandler, agentHandler, conversationHandler, customDomainHandler, ragSourceHandler, ragSearchHandler, uploadsHandler, systemTaskHandler, employeeHandler, chatHandler, orchestrator, auditWriter)
 
 	var platformAdminEmails []string
 	if cfg.PlatformAdminEmails != "" {
 		platformAdminEmails = strings.Split(cfg.PlatformAdminEmails, ",")
 	}
 	setupConnectRoutes(r, cfg, rsaPub, database, platformAdminEmails, inIntegrationHandler, inConnectionHandler)
-	setupAdminRoutes(r, cfg, deps, rsaPub, database, platformAdminEmails, enqueuer, marketplaceHandler)
+	setupAdminRoutes(r, cfg, deps, rsaPub, database, platformAdminEmails, enqueuer)
 	setupProxyAndAuxRoutes(r, cfg, deps, signingKey, database, proxyHandler, driveHandler, sandboxEncKey, auditWriter, generationWriter, ctr)
 
 	srv := &http.Server{

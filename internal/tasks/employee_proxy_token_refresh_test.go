@@ -67,7 +67,7 @@ func TestEmployeeProxyTokenRefreshHandler_InjectsNewTokenRevokesOldAndSchedulesN
 	}
 	var activeCount int64
 	if err := f.db.Model(&model.Token{}).
-		Where("org_id = ? AND meta->>'agent_id' = ? AND meta->>'harness' = ? AND revoked_at IS NULL",
+		Where("org_id = ? AND meta->>'employee_id' = ? AND meta->>'harness' = ? AND revoked_at IS NULL",
 			f.org.ID, f.agent.ID.String(), "employee-sandbox").
 		Count(&activeCount).Error; err != nil {
 		t.Fatalf("count active tokens: %v", err)
@@ -106,7 +106,7 @@ func TestEmployeeProxyTokenRefreshHandler_RevokesMintedTokenWhenRuntimeRejectsEn
 
 	var revokedCount int64
 	if err := f.db.Model(&model.Token{}).
-		Where("org_id = ? AND meta->>'agent_id' = ? AND meta->>'harness' = ? AND revoked_at IS NOT NULL",
+		Where("org_id = ? AND meta->>'employee_id' = ? AND meta->>'harness' = ? AND revoked_at IS NOT NULL",
 			f.org.ID, f.agent.ID.String(), "employee-sandbox").
 		Count(&revokedCount).Error; err != nil {
 		t.Fatalf("count revoked tokens: %v", err)

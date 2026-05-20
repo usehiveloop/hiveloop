@@ -14,7 +14,7 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/trigger/hiveloop"
 )
 
-// EnrichmentAgent gathers context for webhook-triggered specialist agents.
+// EnrichmentAgent gathers context for webhook-triggered specialist employees.
 // It calls fetch() to execute real API calls via the Nango proxy, sees results
 // in real-time, chains cross-platform lookups, and composes the specialist's
 // first message via compose().

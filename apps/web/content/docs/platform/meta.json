@@ -2,11 +2,5 @@
   "title": "Platform",
   "icon": "DashboardSquare01Icon",
   "root": true,
-  "pages": [
-    "index",
-    "introduction",
-    "tutorials",
-    "agents",
-    "marketplace"
-  ]
+  "pages": ["index", "introduction", "tutorials"]
 }

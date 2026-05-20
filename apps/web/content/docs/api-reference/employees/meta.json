@@ -4,9 +4,6 @@
   "pages": [
     "v1/employees/get",
     "v1/employees/id/get",
-    "v1/employees/id/agent-templates/get",
-    "v1/employees/id/agent-templates/slug/install/post",
-    "v1/employees/id/connections/available/get",
     "v1/employees/id/sandbox/upgrade/post",
     "v1/employees/id/sandbox/upgrades/upgradeid/get",
     "v1/employees/id/sessions/get",

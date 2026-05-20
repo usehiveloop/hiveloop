@@ -2,8 +2,6 @@
   "title": "Conversations",
   "description": "Conversations",
   "pages": [
-    "v1/agents/agentid/conversations/get",
-    "v1/agents/agentid/conversations/post",
     "v1/conversations/convid/get",
     "v1/conversations/convid/delete",
     "v1/conversations/convid/abort/post",

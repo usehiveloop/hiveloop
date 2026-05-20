@@ -472,7 +472,7 @@ func (h *EmployeeMemoryRefreshHandler) Handle(ctx context.Context, task *asynq.T
 
 func (h *EmployeeMemoryRefreshHandler) refresh(ctx context.Context, payload EmployeeMemoryRefreshPayload) error {
 	var agent model.Agent
-	if err := h.db.WithContext(ctx).Where("id = ? AND is_employee = ?", payload.AgentID, true).First(&agent).Error; err != nil {
+	if err := h.db.WithContext(ctx).Where("id = ? AND status <> ?", payload.AgentID, "archived").First(&agent).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil
 		}

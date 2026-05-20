@@ -14,7 +14,7 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/tasks"
 )
 
-// SkillHandler serves the skills marketplace + per-agent attach/detach API.
+// SkillHandler serves the global skill library plus employee attach/detach API.
 type SkillHandler struct {
 	db       *gorm.DB
 	enqueuer enqueue.TaskEnqueuer
@@ -201,6 +201,9 @@ func (h *SkillHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	// Reload to pick up latest_version_id if we hydrated inline.
 	_ = h.db.First(&skill, "id = ?", skill.ID).Error
+	if employee, err := ensureHivyEmployee(r.Context(), h.db, org.ID); err == nil {
+		_, _ = h.attachSkillToEmployee(r.Context(), employee.ID, skill.ID, nil)
+	}
 
 	writeJSON(w, http.StatusCreated, toSkillDetailResponse(skill, latest))
 }

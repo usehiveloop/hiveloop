@@ -15,12 +15,12 @@ import (
 const (
 	employeeHarness           = "employee-sandbox"
 	employeeCloudAgentHarness = "open_code"
-	engineeringTeamName       = "Engineering"
 	hivyEmployeeName          = "Hivy"
 	hivyEmployeeDescription   = "Hivy is the organization's managed AI employee."
+	hivyEmployeeAvatarURL     = "/assets/hivy-avatar.png"
 )
 
-var defaultEmployeeSkills = []string{"git-github", "asset-uploads"}
+var defaultEmployeeSkills = []string{"asset-uploads"}
 
 type EmployeeHandler struct {
 	db           *gorm.DB

@@ -5,7 +5,7 @@ export default function Page() {
   return (
     <SettingsShell
       title="Skills"
-      description="Reusable capabilities you can attach to agents."
+      description="Reusable capabilities you can attach to employees."
       dividers={false}
     >
       <SkillsSettings />

@@ -7,34 +7,35 @@ import (
 	"github.com/lib/pq"
 )
 
-type Agent struct {
+type Employee struct {
 	ID                uuid.UUID        `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
-	OrgID             *uuid.UUID       `gorm:"type:uuid;index:idx_agent_org_id;uniqueIndex:idx_agent_org_name"` // nil for system agents
+	OrgID             *uuid.UUID       `gorm:"type:uuid;index:idx_employee_org_id"`
 	Org               *Org             `gorm:"foreignKey:OrgID;constraint:OnDelete:CASCADE"`
-	Name              string           `gorm:"not null;uniqueIndex:idx_agent_org_name"`
-	Description       *string          `gorm:"type:text"`
-	AvatarURL         *string          `gorm:"type:text"`
-	Category          *string          `gorm:"type:text;index"`
-	CredentialID      *uuid.UUID       `gorm:"type:uuid;index"` // nil for system agents
+	Name              string           `gorm:"-"`
+	Description       *string          `gorm:"-"`
+	AvatarURL         *string          `gorm:"-"`
+	Category          *string          `gorm:"-"`
+	CredentialID      *uuid.UUID       `gorm:"type:uuid;index"`
 	Credential        *Credential      `gorm:"foreignKey:CredentialID;constraint:OnDelete:SET NULL"`
 	SandboxTemplateID *uuid.UUID       `gorm:"type:uuid"`
 	SandboxTemplate   *SandboxTemplate `gorm:"foreignKey:SandboxTemplateID;constraint:OnDelete:SET NULL"`
 
 	// Bridge AgentDefinition fields
-	SystemPrompt              string             `gorm:"type:text;not null"`
-	IdentityPrompt            string             `gorm:"type:text;not null;default:''"`
-	PromptOperatingPrinciples string             `gorm:"type:text;not null;default:''"`
-	ProviderPrompts           ProviderPromptsMap `gorm:"type:jsonb;not null;default:'{}'"` // map[provider_group] -> {system_prompt, model}
-	Instructions              *string            `gorm:"type:text"`                        // optional markdown instructions for auto-starting runs
-	Model                     string             `gorm:"not null"`                         // must match credential's provider
+	SystemPrompt              string             `gorm:"-"`
+	IdentityPrompt            string             `gorm:"-"`
+	PromptOperatingPrinciples string             `gorm:"-"`
+	ProviderPrompts           ProviderPromptsMap `gorm:"type:jsonb;not null;default:'{}'"`
+	Instructions              *string            `gorm:"type:text"`
+	Model                     string             `gorm:"not null"`
 	Tools                     JSON               `gorm:"type:jsonb;not null;default:'{}'"`
 	McpServers                JSON               `gorm:"type:jsonb;not null;default:'{}'"`
 	Skills                    JSON               `gorm:"type:jsonb;not null;default:'{}'"`
-	Integrations              JSON               `gorm:"type:jsonb;not null;default:'{}'"` // selected integration IDs/configs
-	AgentConfig               JSON               `gorm:"type:jsonb;not null;default:'{}'"` // max_tokens, max_turns, temperature, etc.
-	Permissions               JSON               `gorm:"type:jsonb;not null;default:'{}'"` // tool permission overrides
-	Resources                 JSON               `gorm:"type:jsonb;not null;default:'{}'"` // per-connection resource scoping: {connID: {resourceKey: [{id, name}]}}
-	SharedMemory              bool               `gorm:"not null;default:false"`           // can store shared memories visible to all agents in identity
+	Integrations              JSON               `gorm:"-"`
+	AgentConfig               JSON               `gorm:"type:jsonb;not null;default:'{}'"`
+	Permissions               JSON               `gorm:"type:jsonb;not null;default:'{}'"`
+	Resources                 JSON               `gorm:"type:jsonb;not null;default:'{}'"`
+	SharedMemory              bool               `gorm:"not null;default:false"`
+	DisabledSpecialists       pq.StringArray     `gorm:"type:text[];not null;default:'{}'"`
 
 	// Sandbox setup
 	SandboxTools     pq.StringArray `gorm:"type:text[];default:'{}'"` // enabled sandbox tools (e.g. "chrome")
@@ -42,9 +43,9 @@ type Agent struct {
 	EncryptedEnvVars []byte         `gorm:"type:bytea"`               // AES-256-GCM encrypted JSON map of env vars
 
 	Status        string `gorm:"not null;default:'active'"` // draft, active, archived
-	IsSystem      bool   `gorm:"not null;default:false;index"`
-	IsEmployee    bool   `gorm:"not null;default:false;index"` // employee agents own subagents and use a different onboarding flow
-	ProviderGroup string `gorm:"not null;default:''"`          // e.g. "anthropic", "openai", "gemini" — set for system agents
+	IsSystem      bool   `gorm:"-"`
+	IsEmployee    bool   `gorm:"-"`
+	ProviderGroup string `gorm:"-"`
 
 	LastMemoryRefreshedAt *time.Time `gorm:"type:timestamptz"`
 	MemoryRefreshStatus   string     `gorm:"type:varchar(32);not null;default:''"` // queued, running, succeeded, failed
@@ -58,7 +59,9 @@ type Agent struct {
 	UpdatedAt time.Time
 }
 
-func (Agent) TableName() string { return "agents" }
+func (Employee) TableName() string { return "employees" }
+
+type Agent = Employee
 
 // SandboxToolDefinition describes a tool/service that can be enabled in a dedicated sandbox.
 type SandboxToolDefinition struct {

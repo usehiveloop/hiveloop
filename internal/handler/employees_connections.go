@@ -13,11 +13,13 @@ import (
 
 var employeeConnectionSkillNames = map[string][]string{
 	"bugsink":                 {"bugsink"},
-	"github":                  {"git-github"},
 	"github-app":              {"git-github"},
 	"github-app-code-reviews": {"git-github"},
 	"linear":                  {"linear"},
 	"notion":                  {"notion"},
+	"railway":                 {"railway"},
+	"slack":                   {"slack"},
+	"vercel":                  {"vercel"},
 }
 
 type employeeConnectionResponse struct {
@@ -32,19 +34,6 @@ type employeeConnectionResponse struct {
 	UpdatedAt         string     `json:"updated_at"`
 }
 
-// ListAvailableConnections handles GET /v1/employees/{id}/connections/available.
-// @Summary List assignable employee connections
-// @Description Returns non-revoked org connections available to the managed employee.
-// @Tags employees
-// @Produce json
-// @Param id path string true "Employee agent ID"
-// @Success 200 {object} paginatedResponse[employeeConnectionResponse]
-// @Failure 400 {object} errorResponse
-// @Failure 401 {object} errorResponse
-// @Failure 404 {object} errorResponse
-// @Failure 500 {object} errorResponse
-// @Security BearerAuth
-// @Router /v1/employees/{id}/connections/available [get]
 func (h *EmployeeHandler) ListAvailableConnections(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	org, ok := middleware.OrgFromContext(ctx)
@@ -61,7 +50,7 @@ func (h *EmployeeHandler) ListAvailableConnections(w http.ResponseWriter, r *htt
 
 	var count int64
 	if err := h.db.WithContext(ctx).Model(&model.Agent{}).
-		Where("id = ? AND org_id = ? AND is_employee = true AND is_system = false", agentID, org.ID).
+		Where("id = ? AND org_id = ? AND status <> ?", agentID, org.ID, "archived").
 		Count(&count).Error; err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to load employee"})
 		return

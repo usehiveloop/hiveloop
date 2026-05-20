@@ -30,4 +30,4 @@ type AgentConversation struct {
 	EndedAt               *time.Time
 }
 
-func (AgentConversation) TableName() string { return "agent_conversations" }
+func (AgentConversation) TableName() string { return "employee_sessions" }

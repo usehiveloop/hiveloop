@@ -41,7 +41,7 @@ type employeeListItem struct {
 }
 
 // @Summary List AI employees
-// @Description Returns all employee agents in the org with sub-agents,
+// @Description Returns all employees in the org with enabled specialists,
 // @Description skills (metadata only — no bundle content),
 // @Description triggers, and the latest sandbox row.
 // @Tags employees
@@ -69,10 +69,10 @@ func (h *EmployeeHandler) List(w http.ResponseWriter, r *http.Request) {
 
 	q := h.db.WithContext(r.Context()).
 		Preload("Credential").
-		Where("agents.org_id = ? AND agents.is_employee = true AND agents.is_system = false", org.ID)
+		Where("employees.org_id = ?", org.ID)
 
 	if status := r.URL.Query().Get("status"); status != "" {
-		q = q.Where("agents.status = ?", status)
+		q = q.Where("employees.status = ?", status)
 	}
 
 	q = applyPagination(q, cursor, limit)
@@ -95,7 +95,6 @@ func (h *EmployeeHandler) List(w http.ResponseWriter, r *http.Request) {
 
 	triggers := h.agents.loadAgentTriggers(agentIDs...)
 	skills := h.agents.loadAgentSkills(agentIDs...)
-	subagents := loadEmployeeSubagents(h.db, agentIDs)
 	sandboxes := loadLatestSandboxPerAgent(h.db, org.ID, agentIDs)
 	currentSnapshotID := h.currentEmployeeSandboxSnapshotID()
 
@@ -104,7 +103,7 @@ func (h *EmployeeHandler) List(w http.ResponseWriter, r *http.Request) {
 		base := toAgentResponse(a)
 		base.Triggers = triggers[a.ID]
 		base.AttachedSkills = h.markEmployeeSkillLocks(r.Context(), org.ID, &a, skills[a.ID])
-		subs := subagents[a.ID]
+		subs := employeeEnabledSpecialistSummaries(a)
 		base.SubagentIDs = make([]string, len(subs))
 		for j, s := range subs {
 			base.SubagentIDs[j] = s.ID
@@ -128,7 +127,7 @@ func (h *EmployeeHandler) List(w http.ResponseWriter, r *http.Request) {
 
 // Get handles GET /v1/employees/{id}.
 // @Summary Get an AI employee
-// @Description Returns one employee agent in the org with sub-agents,
+// @Description Returns one employee in the org with enabled specialists,
 // @Description skills (metadata only — no bundle content),
 // @Description triggers, and the latest sandbox row.
 // @Tags employees
@@ -157,7 +156,7 @@ func (h *EmployeeHandler) Get(w http.ResponseWriter, r *http.Request) {
 	var agent model.Agent
 	if err := h.db.WithContext(r.Context()).
 		Preload("Credential").
-		Where("agents.id = ? AND agents.org_id = ? AND agents.is_employee = true AND agents.is_system = false", agentID, org.ID).
+		Where("employees.id = ? AND employees.org_id = ? AND employees.status <> ?", agentID, org.ID, "archived").
 		First(&agent).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			writeJSON(w, http.StatusNotFound, map[string]string{"error": "employee not found"})
@@ -170,7 +169,7 @@ func (h *EmployeeHandler) Get(w http.ResponseWriter, r *http.Request) {
 	base := toAgentResponse(agent)
 	base.Triggers = h.agents.loadAgentTriggers(agent.ID)[agent.ID]
 	base.AttachedSkills = h.markEmployeeSkillLocks(r.Context(), org.ID, &agent, h.agents.loadAgentSkills(agent.ID)[agent.ID])
-	subagents := loadEmployeeSubagents(h.db, []uuid.UUID{agent.ID})[agent.ID]
+	subagents := employeeEnabledSpecialistSummaries(agent)
 	base.SubagentIDs = make([]string, len(subagents))
 	for i, subagent := range subagents {
 		base.SubagentIDs[i] = subagent.ID
@@ -197,7 +196,7 @@ func (h *EmployeeHandler) employeeListItem(ctx context.Context, orgID uuid.UUID,
 	base := toAgentResponse(agent)
 	base.Triggers = h.agents.loadAgentTriggers(agent.ID)[agent.ID]
 	base.AttachedSkills = h.markEmployeeSkillLocks(ctx, orgID, &agent, h.agents.loadAgentSkills(agent.ID)[agent.ID])
-	subagents := loadEmployeeSubagents(h.db, []uuid.UUID{agent.ID})[agent.ID]
+	subagents := employeeEnabledSpecialistSummaries(agent)
 	base.SubagentIDs = make([]string, len(subagents))
 	for i, subagent := range subagents {
 		base.SubagentIDs[i] = subagent.ID
@@ -209,6 +208,29 @@ func (h *EmployeeHandler) employeeListItem(ctx context.Context, orgID uuid.UUID,
 		Subagents:        subagents,
 		Sandbox:          sandbox,
 	}
+}
+
+func employeeEnabledSpecialistSummaries(employee model.Agent) []employeeSubagentSummary {
+	disabled := disabledSpecialistSet(employee.DisabledSpecialists)
+	out := make([]employeeSubagentSummary, 0, len(employeeAgentTemplates))
+	for i := range employeeAgentTemplates {
+		t := employeeAgentTemplates[i]
+		if disabled[t.Slug] {
+			continue
+		}
+		slug := t.Slug
+		agentType := t.AgentType
+		desc := t.Description
+		out = append(out, employeeSubagentSummary{
+			ID:                t.Slug,
+			Name:              t.Name,
+			Description:       &desc,
+			Status:            "active",
+			TemplateSlug:      &slug,
+			TemplateAgentType: &agentType,
+		})
+	}
+	return out
 }
 
 func employeeSandboxUpgradeAvailable(summary *employeeSandboxSummary, currentSnapshotID string) bool {

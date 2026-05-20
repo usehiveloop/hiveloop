@@ -107,9 +107,6 @@ func (h *EmployeeTriggerDispatchHandler) matchTriggers(ctx context.Context, payl
 			First(&trigger).Error; err != nil {
 			return nil, fmt.Errorf("load http trigger: %w", err)
 		}
-		if !trigger.Agent.IsEmployee {
-			return nil, fmt.Errorf("trigger owner is not an employee")
-		}
 		return []model.AgentTrigger{trigger}, nil
 	}
 
@@ -119,10 +116,10 @@ func (h *EmployeeTriggerDispatchHandler) matchTriggers(ctx context.Context, payl
 	}
 	var triggers []model.AgentTrigger
 	if err := h.db.WithContext(ctx).
-		Joins("JOIN agents ON agents.id = agent_triggers.agent_id").
-		Where("agent_triggers.org_id = ? AND agent_triggers.connection_id = ? AND agent_triggers.enabled = true AND agent_triggers.trigger_type = ? AND agents.is_employee = true",
-			payload.OrgID, payload.ConnectionID, "webhook").
-		Where("agent_triggers.trigger_keys && ?", pq.StringArray(eventKeys)).
+		Joins("JOIN employees ON employees.id = employee_triggers.agent_id").
+		Where("employee_triggers.org_id = ? AND employee_triggers.connection_id = ? AND employee_triggers.enabled = true AND employee_triggers.trigger_type = ? AND employees.status <> ?",
+			payload.OrgID, payload.ConnectionID, "webhook", "archived").
+		Where("employee_triggers.trigger_keys && ?", pq.StringArray(eventKeys)).
 		Preload("Agent").
 		Find(&triggers).Error; err != nil {
 		return nil, fmt.Errorf("find employee triggers: %w", err)
@@ -133,7 +130,7 @@ func (h *EmployeeTriggerDispatchHandler) matchTriggers(ctx context.Context, payl
 func (h *EmployeeTriggerDispatchHandler) deliver(ctx context.Context, payload EmployeeTriggerDispatchPayload, trigger model.AgentTrigger, webhookPayload map[string]any) error {
 	agent := trigger.Agent
 	if agent.ID == uuid.Nil {
-		if err := h.db.WithContext(ctx).Where("id = ? AND is_employee = true", trigger.AgentID).First(&agent).Error; err != nil {
+		if err := h.db.WithContext(ctx).Where("id = ? AND status <> ?", trigger.AgentID, "archived").First(&agent).Error; err != nil {
 			return fmt.Errorf("load employee: %w", err)
 		}
 	}

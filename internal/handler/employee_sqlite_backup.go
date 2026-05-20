@@ -142,7 +142,7 @@ func (h *EmployeeSQLiteBackupHandler) parseAndVerifyUpgradeID(w http.ResponseWri
 
 func (h *EmployeeSQLiteBackupHandler) authenticateEmployeeBridge(w http.ResponseWriter, r *http.Request, employeeID uuid.UUID, bearer string) (*model.Agent, *model.Sandbox, bool) {
 	var agent model.Agent
-	if err := h.db.Where("id = ? AND is_employee = true", employeeID).First(&agent).Error; err != nil {
+	if err := h.db.Where("id = ? AND status <> ?", employeeID, "archived").First(&agent).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			writeJSON(w, http.StatusNotFound, map[string]string{"error": "employee not found"})
 			return nil, nil, false

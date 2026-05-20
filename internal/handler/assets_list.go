@@ -72,7 +72,7 @@ func (h *UploadsHandler) ListAssets(w http.ResponseWriter, r *http.Request) {
 	q := h.db.
 		Table("conversation_assets AS ca").
 		Select("ca.*, ac.agent_id AS agent_id_join").
-		Joins("JOIN agent_conversations AS ac ON ac.id = ca.conversation_id").
+		Joins("JOIN employee_sessions AS ac ON ac.id = ca.conversation_id").
 		Where("ca.org_id = ?", org.ID)
 
 	if v := r.URL.Query().Get("conversation_id"); v != "" {

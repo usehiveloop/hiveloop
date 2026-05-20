@@ -1,211 +1,29 @@
 "use client"
 
 import { useState } from "react"
-import { SkillDetailDialog } from "./skill-detail-dialog"
+import { toast } from "sonner"
+import { useQueryClient } from "@tanstack/react-query"
 import { CreateSkillDialog } from "./create-skill-dialog"
-import { EditSkillMetadataDialog } from "./edit-skill-metadata-dialog"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip"
-import { Skeleton } from "@/components/ui/skeleton"
+import { SkillDetailDialog } from "./skill-detail-dialog"
 import { ConfirmDialog } from "@/components/confirm-dialog"
+import { Button } from "@/components/ui/button"
+import { Skeleton } from "@/components/ui/skeleton"
 import { $api } from "@/lib/api/hooks"
 import { extractErrorMessage } from "@/lib/api/error"
-import { useQueryClient } from "@tanstack/react-query"
-import { toast } from "sonner"
 import type { components } from "@/lib/api/schema"
-import { HugeiconsIcon } from "@hugeicons/react"
-import {
-  BookOpen01Icon,
-  Add01Icon,
-  MoreHorizontalIcon,
-  Delete02Icon,
-  ArrowRight01Icon,
-  GitBranchIcon,
-  File01Icon,
-  Globe02Icon,
-  Edit02Icon,
-  CodeIcon,
-} from "@hugeicons/core-free-icons"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 
 type SkillRow = components["schemas"]["skillResponse"]
 
-function formatDate(dateStr: string) {
-  return new Date(dateStr).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  })
-}
-
-function SkillHydrationBadge({ skill }: { skill: SkillRow }) {
-  const status = skill.hydration_status ?? "pending"
-
-  if (status === "error") {
-    return (
-      <Tooltip>
-        <TooltipTrigger className="cursor-default">
-          <Badge
-            variant="secondary"
-            className="border-red-500/20 bg-red-500/10 text-[10px] text-red-600 dark:text-red-400"
-          >
-            error
-          </Badge>
-        </TooltipTrigger>
-        <TooltipContent className="max-w-xs">
-          <p className="font-mono text-xs whitespace-pre-wrap">
-            {skill.hydration_error ?? "Unknown error"}
-          </p>
-        </TooltipContent>
-      </Tooltip>
-    )
-  }
-
-  if (status === "pending") {
-    return (
-      <Badge
-        variant="secondary"
-        className="border-yellow-500/20 bg-yellow-500/10 text-[10px] text-yellow-600 dark:text-yellow-400"
-      >
-        pending
-      </Badge>
-    )
-  }
-
-  return (
-    <Badge
-      variant="default"
-      className="border-green-500/20 bg-green-500/10 text-[10px] text-green-600 dark:text-green-400"
-    >
-      ready
-    </Badge>
-  )
-}
-
-function PublishedIndicator() {
-  return (
-    <Tooltip>
-      <TooltipTrigger className="cursor-default">
-        <HugeiconsIcon
-          icon={Globe02Icon}
-          size={14}
-          className="shrink-0 text-blue-500"
-        />
-      </TooltipTrigger>
-      <TooltipContent>Published to marketplace</TooltipContent>
-    </Tooltip>
-  )
-}
-
-interface SkillActionsProps {
-  skill: SkillRow
-  onEditMetadata: () => void
-  onEditContent: () => void
-  onDelete: () => void
-  onPublish: () => void
-  onUnpublish: () => void
-}
-
-function SkillActions({
-  skill,
-  onEditMetadata,
-  onEditContent,
-  onDelete,
-  onPublish,
-  onUnpublish,
-}: SkillActionsProps) {
-  const isPublished = !!skill.public_skill_id
-
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger className="flex h-8 w-8 items-center justify-center rounded-lg transition-colors outline-none hover:bg-muted">
-        <HugeiconsIcon
-          icon={MoreHorizontalIcon}
-          size={16}
-          className="text-muted-foreground"
-        />
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" sideOffset={4} className="min-w-56">
-        <DropdownMenuGroup>
-          <DropdownMenuItem onClick={onEditMetadata}>
-            <HugeiconsIcon
-              icon={Edit02Icon}
-              size={16}
-              className="text-muted-foreground"
-            />
-            Edit metadata
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={onEditContent}>
-            <HugeiconsIcon
-              icon={CodeIcon}
-              size={16}
-              className="text-muted-foreground"
-            />
-            Edit content
-          </DropdownMenuItem>
-        </DropdownMenuGroup>
-        <DropdownMenuSeparator />
-        <DropdownMenuGroup>
-          {isPublished ? (
-            <DropdownMenuItem onClick={onUnpublish}>
-              <HugeiconsIcon
-                icon={Globe02Icon}
-                size={16}
-                className="text-muted-foreground"
-              />
-              Unpublish from marketplace
-            </DropdownMenuItem>
-          ) : (
-            <DropdownMenuItem onClick={onPublish}>
-              <HugeiconsIcon
-                icon={Globe02Icon}
-                size={16}
-                className="text-muted-foreground"
-              />
-              Publish to marketplace
-            </DropdownMenuItem>
-          )}
-        </DropdownMenuGroup>
-        <DropdownMenuSeparator />
-        <DropdownMenuGroup>
-          <DropdownMenuItem variant="destructive" onClick={onDelete}>
-            <HugeiconsIcon icon={Delete02Icon} size={16} />
-            Archive
-          </DropdownMenuItem>
-        </DropdownMenuGroup>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  )
-}
-
 export function SkillsSettings() {
   const queryClient = useQueryClient()
-  const [createOpen, setCreateOpen] = useState(false)
-  const [viewing, setViewing] = useState<SkillRow | null>(null)
-  const [viewingMode, setViewingMode] = useState<"view" | "edit">("view")
-  const [editingMetadata, setEditingMetadata] = useState<SkillRow | null>(null)
+  const [creating, setCreating] = useState(false)
+  const [selected, setSelected] = useState<SkillRow | null>(null)
   const [deleting, setDeleting] = useState<SkillRow | null>(null)
-  const [publishing, setPublishing] = useState<SkillRow | null>(null)
-  const [unpublishing, setUnpublishing] = useState<SkillRow | null>(null)
   const { data, isLoading } = $api.useQuery("get", "/v1/skills", {
-    params: { query: { scope: "own" } },
+    params: { query: { scope: "all", limit: 100 } },
   })
-  const skills = data?.data ?? []
   const deleteSkill = $api.useMutation("delete", "/v1/skills/{id}")
-  const publishSkill = $api.useMutation("post", "/v1/skills/{id}/publish")
-  const unpublishSkill = $api.useMutation("delete", "/v1/skills/{id}/publish")
+  const skills = data?.data ?? []
 
   function handleDelete() {
     if (!deleting?.id) return
@@ -213,7 +31,7 @@ export function SkillsSettings() {
       { params: { path: { id: deleting.id } } },
       {
         onSuccess: () => {
-          toast.success(`"${deleting.name}" archived`)
+          toast.success("Skill archived")
           queryClient.invalidateQueries({ queryKey: ["get", "/v1/skills"] })
           setDeleting(null)
         },
@@ -225,295 +43,82 @@ export function SkillsSettings() {
     )
   }
 
-  function handlePublish() {
-    if (!publishing?.id) return
-    publishSkill.mutate(
-      { params: { path: { id: publishing.id } } },
-      {
-        onSuccess: () => {
-          toast.success(`"${publishing.name}" published to marketplace`)
-          queryClient.invalidateQueries({ queryKey: ["get", "/v1/skills"] })
-          setPublishing(null)
-        },
-        onError: (error) => {
-          toast.error(extractErrorMessage(error, "Failed to publish skill"))
-          setPublishing(null)
-        },
-      }
-    )
-  }
-
-  function handleUnpublish() {
-    if (!unpublishing?.id) return
-    unpublishSkill.mutate(
-      { params: { path: { id: unpublishing.id } } },
-      {
-        onSuccess: () => {
-          toast.success(`"${unpublishing.name}" removed from marketplace`)
-          queryClient.invalidateQueries({ queryKey: ["get", "/v1/skills"] })
-          setUnpublishing(null)
-        },
-        onError: (error) => {
-          toast.error(extractErrorMessage(error, "Failed to unpublish skill"))
-          setUnpublishing(null)
-        },
-      }
-    )
-  }
-
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
+    <div className="space-y-5">
+      <div className="flex items-center justify-between gap-4">
         <div>
-          <h3 className="text-sm font-medium text-foreground">Skills</h3>
+          <h2 className="text-sm font-medium text-foreground">Skill library</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Reusable instruction bundles your agents can invoke on demand.
+            Global and workspace skills can be installed on Hivy.
           </p>
         </div>
-        <Button
-          size="sm"
-          variant="secondary"
-          onClick={() => setCreateOpen(true)}
-        >
-          <HugeiconsIcon icon={Add01Icon} size={14} data-icon="inline-start" />
-          Add skill
-        </Button>
+        <Button onClick={() => setCreating(true)}>New skill</Button>
       </div>
 
-      <div className="flex flex-col gap-2">
-        {isLoading ? (
-          Array.from({ length: 3 }).map((_, index) => (
-            <Skeleton key={index} className="h-[52px] w-full rounded-xl" />
-          ))
-        ) : skills.length === 0 ? (
-          <div className="flex flex-col items-center py-14">
-            <div className="mb-6 text-center">
-              <h2 className="font-heading text-lg font-semibold text-foreground">
-                No skills yet
-              </h2>
-              <p className="mt-1.5 max-w-xs text-sm text-muted-foreground">
-                Create a skill to give your agents reusable capabilities.
-              </p>
-            </div>
-            <div className="w-full max-w-sm">
+      {isLoading ? (
+        <div className="space-y-3">
+          <Skeleton className="h-20 w-full" />
+          <Skeleton className="h-20 w-full" />
+        </div>
+      ) : skills.length === 0 ? (
+        <div className="border border-border p-6 text-sm text-muted-foreground">
+          No skills yet.
+        </div>
+      ) : (
+        <div className="divide-y divide-border border border-border">
+          {skills.map((skill) => (
+            <div
+              key={skill.id}
+              className="flex items-center justify-between gap-4 p-4"
+            >
               <button
                 type="button"
-                onClick={() => setCreateOpen(true)}
-                className="group flex w-full cursor-pointer items-start gap-4 rounded-xl bg-muted/50 p-4 text-left transition-colors hover:bg-muted"
+                className="min-w-0 text-left"
+                onClick={() => setSelected(skill)}
               >
-                <HugeiconsIcon
-                  icon={BookOpen01Icon}
-                  size={20}
-                  className="mt-0.5 shrink-0 text-muted-foreground"
-                />
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-semibold text-foreground">
-                    Create a skill
-                  </p>
-                  <p className="mt-0.5 text-[13px] leading-relaxed text-muted-foreground">
-                    Write inline instructions or sync from a Git repository.
-                  </p>
+                <div className="truncate text-sm font-medium">
+                  {skill.name}
                 </div>
-                <HugeiconsIcon
-                  icon={ArrowRight01Icon}
-                  size={16}
-                  className="mt-0.5 shrink-0 text-muted-foreground/30"
-                />
+                <div className="mt-1 line-clamp-2 text-sm text-muted-foreground">
+                  {skill.description ?? "No description"}
+                </div>
               </button>
-            </div>
-          </div>
-        ) : (
-          <>
-            <div className="hidden items-center gap-3 px-4 py-1 font-mono text-[10px] tracking-[1px] text-muted-foreground/50 uppercase md:flex">
-              <span className="min-w-0 flex-1">Name</span>
-              <span className="w-20 shrink-0 text-right">Source</span>
-              <span className="w-20 shrink-0 text-right">Status</span>
-              <span className="w-28 shrink-0 text-right">Created</span>
-              <span className="w-8 shrink-0" />
-            </div>
-
-            {skills.map((skill) => (
-              <div key={skill.id}>
-                {/* Desktop row */}
-                <div
-                  className="hidden cursor-pointer items-center gap-3 rounded-xl border border-border px-4 py-2.5 transition-colors hover:border-primary md:flex"
-                  onClick={() => {
-                    setViewingMode("view")
-                    setViewing(skill)
-                  }}
+              {skill.source_type === "org" ? (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setDeleting(skill)}
                 >
-                  <div className="flex min-w-0 flex-1 items-center gap-3">
-                    <HugeiconsIcon
-                      icon={
-                        skill.source_type === "git" ? GitBranchIcon : File01Icon
-                      }
-                      size={16}
-                      className="shrink-0 text-muted-foreground"
-                    />
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-1.5">
-                        <p className="truncate text-sm font-medium text-foreground">
-                          {skill.name}
-                        </p>
-                        {skill.public_skill_id && <PublishedIndicator />}
-                      </div>
-                      {skill.description && (
-                        <p className="max-w-[280px] truncate text-xs text-muted-foreground">
-                          {skill.description}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                  <span className="w-20 shrink-0 text-right">
-                    <Badge variant="secondary" className="text-[10px]">
-                      {skill.source_type === "git" ? "git" : "inline"}
-                    </Badge>
-                  </span>
-                  <span className="w-20 shrink-0 text-right">
-                    <SkillHydrationBadge skill={skill} />
-                  </span>
-                  <span className="w-28 shrink-0 text-right font-mono text-[11px] text-muted-foreground tabular-nums">
-                    {skill.created_at ? formatDate(skill.created_at) : "\u2014"}
-                  </span>
-                  <div
-                    className="flex w-8 shrink-0 justify-center"
-                    onClick={(event) => event.stopPropagation()}
-                  >
-                    <SkillActions
-                      skill={skill}
-                      onEditMetadata={() => setEditingMetadata(skill)}
-                      onEditContent={() => {
-                        setViewingMode("edit")
-                        setViewing(skill)
-                      }}
-                      onDelete={() => setDeleting(skill)}
-                      onPublish={() => setPublishing(skill)}
-                      onUnpublish={() => setUnpublishing(skill)}
-                    />
-                  </div>
-                </div>
+                  Archive
+                </Button>
+              ) : null}
+            </div>
+          ))}
+        </div>
+      )}
 
-                {/* Mobile row */}
-                <div
-                  className="flex cursor-pointer flex-col gap-3 rounded-xl border border-border p-4 transition-colors hover:border-primary md:hidden"
-                  onClick={() => {
-                    setViewingMode("view")
-                    setViewing(skill)
-                  }}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex min-w-0 flex-1 items-center gap-3">
-                      <HugeiconsIcon
-                        icon={
-                          skill.source_type === "git"
-                            ? GitBranchIcon
-                            : File01Icon
-                        }
-                        size={16}
-                        className="shrink-0 text-muted-foreground"
-                      />
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-1.5">
-                          <p className="truncate text-sm font-medium text-foreground">
-                            {skill.name}
-                          </p>
-                          {skill.public_skill_id && <PublishedIndicator />}
-                        </div>
-                        {skill.description && (
-                          <p className="max-w-[280px] truncate text-xs text-muted-foreground">
-                            {skill.description}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                    <div onClick={(event) => event.stopPropagation()}>
-                      <SkillActions
-                        skill={skill}
-                        onEditMetadata={() => setEditingMetadata(skill)}
-                        onEditContent={() => {
-                          setViewingMode("edit")
-                          setViewing(skill)
-                        }}
-                        onDelete={() => setDeleting(skill)}
-                        onPublish={() => setPublishing(skill)}
-                        onUnpublish={() => setUnpublishing(skill)}
-                      />
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 font-mono text-xs text-muted-foreground tabular-nums">
-                    <Badge variant="secondary" className="text-[10px]">
-                      {skill.source_type === "git" ? "git" : "inline"}
-                    </Badge>
-                    <SkillHydrationBadge skill={skill} />
-                    <span>
-                      {skill.created_at
-                        ? formatDate(skill.created_at)
-                        : "\u2014"}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </>
-        )}
-      </div>
-
-      <CreateSkillDialog open={createOpen} onOpenChange={setCreateOpen} />
-
-      <SkillDetailDialog
-        skill={viewing}
-        open={viewing !== null}
-        initialEditing={viewingMode === "edit"}
-        onOpenChange={(open) => {
-          if (!open) setViewing(null)
-        }}
-      />
-
-      <EditSkillMetadataDialog
-        skill={editingMetadata}
-        open={editingMetadata !== null}
-        onOpenChange={(open) => {
-          if (!open) setEditingMetadata(null)
-        }}
-      />
-
+      <CreateSkillDialog open={creating} onOpenChange={setCreating} />
+      {selected ? (
+        <SkillDetailDialog
+          skill={selected}
+          open
+          onOpenChange={(open) => {
+            if (!open) setSelected(null)
+          }}
+        />
+      ) : null}
       <ConfirmDialog
         open={deleting !== null}
         onOpenChange={(open) => {
           if (!open) setDeleting(null)
         }}
         title="Archive skill"
-        description={`This will archive "${deleting?.name ?? ""}". Agents using this skill will no longer be able to invoke it.`}
-        confirmText="archive"
-        confirmLabel="Archive skill"
+        description={`This will archive "${deleting?.name ?? ""}". Hivy will no longer be able to invoke it.`}
+        confirmLabel="Archive"
+        confirmText={deleting?.name ?? ""}
         destructive
         loading={deleteSkill.isPending}
         onConfirm={handleDelete}
-      />
-
-      <ConfirmDialog
-        open={publishing !== null}
-        onOpenChange={(open) => {
-          if (!open) setPublishing(null)
-        }}
-        title="Publish to marketplace"
-        description={`This will make "${publishing?.name ?? ""}" publicly available in the marketplace. Other users will be able to discover and install it.`}
-        confirmLabel="Publish"
-        loading={publishSkill.isPending}
-        onConfirm={handlePublish}
-      />
-
-      <ConfirmDialog
-        open={unpublishing !== null}
-        onOpenChange={(open) => {
-          if (!open) setUnpublishing(null)
-        }}
-        title="Unpublish from marketplace"
-        description={`This will remove "${unpublishing?.name ?? ""}" from the public marketplace. Agents that already have it installed will no longer receive updates.`}
-        confirmLabel="Unpublish"
-        destructive
-        loading={unpublishSkill.isPending}
-        onConfirm={handleUnpublish}
       />
     </div>
   )

@@ -83,9 +83,8 @@ func (p *Pusher) loadOwningEmployee(ctx context.Context, agent *model.Agent) (*m
 	}
 	var employee model.Agent
 	err := p.db.WithContext(ctx).
-		Joins("JOIN agent_subagents ON agent_subagents.agent_id = agents.id").
-		Where("agent_subagents.subagent_id = ? AND agents.org_id = ? AND agents.is_employee = ? AND agents.is_system = ?", agent.ID, *agent.OrgID, true, false).
-		Order("agent_subagents.created_at ASC").
+		Where("org_id = ? AND status <> ?", *agent.OrgID, "archived").
+		Order("created_at ASC").
 		First(&employee).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {

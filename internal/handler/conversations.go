@@ -110,18 +110,17 @@ type conversationMessagesResponse struct {
 	HasMore     bool                          `json:"has_more"`
 }
 
-// Create handles POST /v1/agents/{agentID}/conversations.
-// @Summary Create a conversation
-// @Description Creates a new conversation for an agent by spinning up a dedicated sandbox.
+// Create handles POST /v1/employees/{id}/sessions.
+// @Summary Create an employee session
+// @Description Creates a new session for Hivy by spinning up a dedicated sandbox.
 // @Tags conversations
 // @Produce json
-// @Param agentID path string true "Agent ID"
+// @Param id path string true "Employee ID"
 // @Success 201 {object} conversationResponse
 // @Failure 404 {object} errorResponse
 // @Failure 500 {object} errorResponse
 // @Failure 503 {object} errorResponse
 // @Security BearerAuth
-// @Router /v1/agents/{agentID}/conversations [post]
 func (h *ConversationHandler) Create(w http.ResponseWriter, r *http.Request) {
 	org, ok := middleware.OrgFromContext(r.Context())
 	if !ok {
@@ -144,6 +143,9 @@ func (h *ConversationHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	agentID := chi.URLParam(r, "agentID")
+	if agentID == "" {
+		agentID = chi.URLParam(r, "id")
+	}
 
 	var agent model.Agent
 	if err := h.db.Preload("Credential").
@@ -217,4 +219,20 @@ func (h *ConversationHandler) Create(w http.ResponseWriter, r *http.Request) {
 		StreamURL: fmt.Sprintf("/v1/conversations/%s/stream", conv.ID),
 		CreatedAt: conv.CreatedAt.Format(time.RFC3339),
 	})
+}
+
+// CreateEmployeeSession handles POST /v1/employees/{id}/sessions.
+// @Summary Create an employee session
+// @Description Creates a new Hivy employee session.
+// @Tags employees
+// @Produce json
+// @Param id path string true "Employee ID"
+// @Success 201 {object} conversationResponse
+// @Failure 404 {object} errorResponse
+// @Failure 500 {object} errorResponse
+// @Failure 503 {object} errorResponse
+// @Security BearerAuth
+// @Router /v1/employees/{id}/sessions [post]
+func (h *ConversationHandler) CreateEmployeeSession(w http.ResponseWriter, r *http.Request) {
+	h.Create(w, r)
 }

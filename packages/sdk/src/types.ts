@@ -92,15 +92,10 @@ export type IntegrationSummary = Schemas["integrationSummary"];
 export type IntegrationDetail = Schemas["integrationDetail"];
 export type ActionSummary = Schemas["actionSummary"];
 
-// Setup
-export type SetupRequest = Schemas["setupRequest"];
-export type SetupResponse = Schemas["setupResponse"];
-
-// Agents
-export type AgentResponse = Schemas["agentResponse"];
-export type CreateAgentRequest = Schemas["createAgentRequest"];
-export type UpdateAgentRequest = Schemas["updateAgentRequest"];
-export type PaginatedAgents = Schemas["paginatedResponse-agentResponse"];
+// Employees
+export type EmployeeListItem = Schemas["employeeListItem"];
+export type EmployeeResponse = EmployeeListItem;
+export type PaginatedEmployees = Schemas["paginatedResponse-handler_employeeListItem"];
 
 // Sandbox Templates
 export type SandboxTemplateResponse = Schemas["sandboxTemplateResponse"];
@@ -120,4 +115,3 @@ export type PaginatedSandboxes = Schemas["paginatedResponse-handler_sandboxRespo
 export type ExecRequest = Schemas["execRequest"];
 export type ExecResponse = Schemas["execResponse"];
 export type CommandResult = Schemas["commandResult"];
-

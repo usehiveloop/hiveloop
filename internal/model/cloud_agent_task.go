@@ -7,9 +7,9 @@ import (
 )
 
 type CloudAgentTask struct {
-	ID              uuid.UUID `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
-	OrgID           uuid.UUID `gorm:"type:uuid;not null;index:idx_cloud_task_org"`
-	Org             Org       `gorm:"foreignKey:OrgID;constraint:OnDelete:CASCADE"`
+	ID    uuid.UUID `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
+	OrgID uuid.UUID `gorm:"type:uuid;not null;index:idx_cloud_task_org"`
+	Org   Org       `gorm:"foreignKey:OrgID;constraint:OnDelete:CASCADE"`
 
 	EmployeeAgentID uuid.UUID `gorm:"type:uuid;not null;index"`
 	EmployeeAgent   Agent     `gorm:"foreignKey:EmployeeAgentID;constraint:OnDelete:CASCADE"`
@@ -17,9 +17,9 @@ type CloudAgentTask struct {
 	CloudAgentID uuid.UUID `gorm:"type:uuid;not null;index"`
 	CloudAgent   Agent     `gorm:"foreignKey:CloudAgentID;constraint:OnDelete:CASCADE"`
 
-	SandboxID    uuid.UUID `gorm:"type:uuid;not null"`
-	Sandbox      Sandbox   `gorm:"foreignKey:SandboxID;constraint:OnDelete:CASCADE"`
-	ConversationID uuid.UUID `gorm:"type:uuid;not null"`
+	SandboxID      uuid.UUID         `gorm:"type:uuid;not null"`
+	Sandbox        Sandbox           `gorm:"foreignKey:SandboxID;constraint:OnDelete:CASCADE"`
+	ConversationID uuid.UUID         `gorm:"type:uuid;not null"`
 	Conversation   AgentConversation `gorm:"foreignKey:ConversationID;constraint:OnDelete:CASCADE"`
 
 	ParentConversationType string `gorm:"not null"`
@@ -31,4 +31,4 @@ type CloudAgentTask struct {
 	CreatedAt time.Time
 }
 
-func (CloudAgentTask) TableName() string { return "cloud_agent_tasks" }
+func (CloudAgentTask) TableName() string { return "specialist_tasks" }

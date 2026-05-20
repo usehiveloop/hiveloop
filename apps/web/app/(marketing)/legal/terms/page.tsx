@@ -47,7 +47,7 @@ export default function TermsPage() {
             2. Use of Service
           </h2>
           <p className="text-base sm:text-lg text-muted-foreground leading-[1.8]">
-            You may use HiveLoop to create and deploy AI agents. You are responsible for the content and actions of agents you create. You agree not to use the platform for illegal purposes or to violate any third-party rights.
+            You may use HiveLoop to create and deploy AI employees. You are responsible for the content and actions of agents you create. You agree not to use the platform for illegal purposes or to violate any third-party rights.
           </p>
 
           <h2 className="font-heading text-2xl sm:text-3xl font-bold text-foreground mt-8 -tracking-[0.5px]">

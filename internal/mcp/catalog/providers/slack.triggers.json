@@ -3,7 +3,7 @@
   "triggers": {
     "app_mention": {
       "display_name": "App Mentioned",
-      "description": "Fires when the bot is @-mentioned in a channel message. The primary entry-point trigger for most Slack agents. Works for both top-level mentions and mentions inside existing threads — the thread_id ref coalesces event.thread_ts and event.ts so continuation works across both cases.",
+      "description": "Fires when the bot is @-mentioned in a channel message. The primary entry-point trigger for most Slack employees. Works for both top-level mentions and mentions inside existing threads — the thread_id ref coalesces event.thread_ts and event.ts so continuation works across both cases.",
       "resource_type": "slack_thread",
       "payload_schema": "app_mention_event",
       "refs": {
@@ -104,7 +104,7 @@
 
     "member_joined_channel": {
       "display_name": "Member Joined Channel",
-      "description": "Fires when a user joins a channel the bot is in. Useful for welcome-flow agents. The inviter field is present when the user was added by another member; it's absent when the user self-joined a public channel.",
+      "description": "Fires when a user joins a channel the bot is in. Useful for welcome-flow employees. The inviter field is present when the user was added by another member; it's absent when the user self-joined a public channel.",
       "resource_type": "slack_channel",
       "payload_schema": "member_channel_event",
       "refs": {

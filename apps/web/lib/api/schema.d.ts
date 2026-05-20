@@ -54,253 +54,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/admin/v1/agents": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List all agents
-         * @description Returns agents across all organizations.
-         */
-        get: {
-            parameters: {
-                query?: {
-                    /** @description Filter by org ID */
-                    org_id?: string;
-                    /** @description Filter by status (active, archived) */
-                    status?: string;
-                    /** @description Page size */
-                    limit?: number;
-                    /** @description Pagination cursor */
-                    cursor?: string;
-                };
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["paginatedResponse-handler_adminAgentResponse"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/admin/v1/agents/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get agent details
-         * @description Returns agent details.
-         */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description Agent ID */
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["adminAgentResponse"];
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-            };
-        };
-        /**
-         * Update an agent
-         * @description Updates agent configuration with full validation.
-         */
-        put: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description Agent ID */
-                    id: string;
-                };
-                cookie?: never;
-            };
-            /** @description Fields to update */
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["adminUpdateAgentRequest"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["adminAgentResponse"];
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Conflict */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-            };
-        };
-        post?: never;
-        /**
-         * Delete an agent
-         * @description Permanently deletes an agent.
-         */
-        delete: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description Agent ID */
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-            };
-        };
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/admin/v1/agents/{id}/archive": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Archive an agent
-         * @description Force-archives an active agent.
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description Agent ID */
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/admin/v1/api-keys": {
         parameters: {
             query?: never;
@@ -1294,188 +1047,6 @@ export interface paths {
                 };
             };
         };
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/admin/v1/marketplace/agents": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List all marketplace agents (admin)
-         * @description Returns all marketplace agents regardless of status.
-         */
-        get: {
-            parameters: {
-                query?: {
-                    /** @description Filter by status */
-                    status?: string;
-                    /** @description Filter flagged agents */
-                    flagged?: boolean;
-                    /** @description Page size */
-                    limit?: number;
-                    /** @description Pagination cursor */
-                    cursor?: string;
-                };
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["paginatedResponse-marketplaceAgentResponse"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/admin/v1/marketplace/agents/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        /**
-         * Admin update marketplace agent
-         * @description Admin can set featured, popular, verified, flagged, and status.
-         */
-        put: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description Marketplace agent ID */
-                    id: string;
-                };
-                cookie?: never;
-            };
-            /** @description Fields to update */
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["adminUpdateMarketplaceAgentRequest"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["marketplaceAgentResponse"];
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-            };
-        };
-        post?: never;
-        /**
-         * Admin delete marketplace agent
-         * @description Permanently deletes a marketplace agent.
-         */
-        delete: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description Marketplace agent ID */
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-            };
-        };
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/admin/v1/marketplace/cache/bust": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Bust marketplace cache
-         * @description Flushes all marketplace cache keys from Redis.
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-            };
-        };
-        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -4516,742 +4087,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/agents": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List agents
-         * @description Returns agents for the current organization with optional filters.
-         */
-        get: {
-            parameters: {
-                query?: {
-                    /** @description Filter by status (active, archived) */
-                    status?: string;
-                    /** @description Page size (default 50, max 100) */
-                    limit?: number;
-                    /** @description Pagination cursor */
-                    cursor?: string;
-                };
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["paginatedResponse-agentResponse"];
-                    };
-                };
-                /** @description Unauthorized */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        /**
-         * Create an agent
-         * @description Creates a new agent tied to a credential. A dedicated sandbox is provisioned lazily on conversation create.
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            /** @description Agent definition */
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["createAgentRequest"];
-                };
-            };
-            responses: {
-                /** @description Created */
-                201: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["agentResponse"];
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Unauthorized */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Conflict */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Internal Server Error */
-                500: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/agents/built-in-tools": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List built-in tools
-         * @description Returns the catalog of built-in tools that can be granted to an agent.
-         */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["BuiltInToolDefinition"][];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/agents/categories": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List agent categories
-         * @description Returns the static catalog of work categories an agent can be tagged with.
-         */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["agentCategory"][];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/agents/sandbox-tools": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List sandbox tools
-         * @description Returns the catalog of sandbox tools that can be granted to an agent.
-         */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["SandboxToolDefinition"][];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/agents/{agentID}/conversations": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List conversations for an agent
-         * @description Returns conversations for the specified agent.
-         */
-        get: {
-            parameters: {
-                query?: {
-                    /** @description Filter by status (active, ended, error) */
-                    status?: string;
-                    /** @description Page size */
-                    limit?: number;
-                    /** @description Pagination cursor */
-                    cursor?: string;
-                };
-                header?: never;
-                path: {
-                    /** @description Agent ID */
-                    agentID: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["paginatedResponse-conversationResponse"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        /**
-         * Create a conversation
-         * @description Creates a new conversation for an agent by spinning up a dedicated sandbox.
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description Agent ID */
-                    agentID: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Created */
-                201: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["conversationResponse"];
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Internal Server Error */
-                500: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Service Unavailable */
-                503: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/agents/{agentID}/skills": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List skills attached to an agent */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description Agent ID */
-                    agentID: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["agentSkillResponse"][];
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        /**
-         * Attach a skill to an agent
-         * @description Creates an agent_skills row. PinnedVersionID is optional — when null the agent follows the skill's latest version.
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description Agent ID */
-                    agentID: string;
-                };
-                cookie?: never;
-            };
-            /** @description Skill to attach */
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["attachSkillRequest"];
-                };
-            };
-            responses: {
-                /** @description Created */
-                201: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["agentSkillResponse"];
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/agents/{agentID}/skills/{skillID}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /**
-         * Detach a skill from an agent
-         * @description Removes an agent_skills row.
-         */
-        delete: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description Agent ID */
-                    agentID: string;
-                    /** @description Skill ID */
-                    skillID: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-            };
-        };
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/agents/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get an agent
-         * @description Returns a single agent by ID, including the latest forge run if one exists.
-         */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description Agent ID */
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["agentResponse"];
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-            };
-        };
-        /**
-         * Update an agent
-         * @description Updates an agent. Re-validates credential/model compatibility.
-         */
-        put: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description Agent ID */
-                    id: string;
-                };
-                cookie?: never;
-            };
-            /** @description Fields to update */
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["updateAgentRequest"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["agentResponse"];
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Conflict */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-            };
-        };
-        post?: never;
-        /**
-         * Delete an agent
-         * @description Deletes an agent and removes it from Bridge.
-         */
-        delete: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description Agent ID */
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-            };
-        };
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/agents/{id}/setup": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get agent sandbox setup config
-         * @description Returns setup commands and env var key names for dedicated agents.
-         */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description Agent ID */
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["setupResponse"];
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-            };
-        };
-        /**
-         * Update agent sandbox setup config
-         * @description Sets setup commands and encrypted environment variables. Only available for dedicated sandbox agents.
-         */
-        put: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description Agent ID */
-                    id: string;
-                };
-                cookie?: never;
-            };
-            /** @description Setup configuration */
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["setupRequest"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["setupResponse"];
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-            };
-        };
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/v1/api-keys": {
         parameters: {
             query?: never;
@@ -7631,7 +6466,7 @@ export interface paths {
         };
         /**
          * List AI employees
-         * @description Returns all employee agents in the org with sub-agents,
+         * @description Returns all employees in the org with enabled specialists,
          *     skills (metadata only — no bundle content),
          *     triggers, and the latest sandbox row.
          */
@@ -7697,7 +6532,7 @@ export interface paths {
         };
         /**
          * Get an AI employee
-         * @description Returns one employee agent in the org with sub-agents,
+         * @description Returns one employee in the org with enabled specialists,
          *     skills (metadata only — no bundle content),
          *     triggers, and the latest sandbox row.
          */
@@ -7762,200 +6597,6 @@ export interface paths {
         };
         put?: never;
         post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/employees/{id}/agent-templates": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List employee agent templates
-         * @description Returns employee subagent templates and whether each one is already installed on the employee.
-         */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description Employee agent ID */
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["employeeAgentTemplateResponse"][];
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Unauthorized */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Internal Server Error */
-                500: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/employees/{id}/agent-templates/{slug}/install": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Install an employee agent template
-         * @description Idempotently adds or updates a template subagent on the employee, attaches default subagent skills, and syncs runtime config.
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description Employee agent ID */
-                    id: string;
-                    /** @description Template slug */
-                    slug: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["installEmployeeAgentTemplateResponse"];
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Unauthorized */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Forbidden */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Conflict */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Internal Server Error */
-                500: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Bad Gateway */
-                502: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Service Unavailable */
-                503: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-            };
-        };
         delete?: never;
         options?: never;
         head?: never;
@@ -8032,84 +6673,6 @@ export interface paths {
                 };
             };
         };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/employees/{id}/connections/available": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List assignable employee connections
-         * @description Returns non-revoked org connections available to the managed employee.
-         */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description Employee agent ID */
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["paginatedResponse-handler_employeeConnectionResponse"];
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Unauthorized */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Internal Server Error */
-                500: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -8388,8 +6951,439 @@ export interface paths {
             };
         };
         put?: never;
+        /**
+         * Create an employee session
+         * @description Creates a new Hivy employee session.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Employee ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["conversationResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Service Unavailable */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/employees/{id}/skills": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List skills attached to an employee */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Employee ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["agentSkillResponse"][];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /**
+         * Attach a skill to an employee
+         * @description Creates an employee skill attachment. PinnedVersionID is optional — when null the employee follows the skill's latest version.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Employee ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            /** @description Skill to attach */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["attachSkillRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["agentSkillResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/employees/{id}/skills/{skillID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Detach a skill from an employee
+         * @description Removes an employee skill attachment.
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Employee ID */
+                    id: string;
+                    /** @description Skill ID */
+                    skillID: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/employees/{id}/specialists": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List employee specialists
+         * @description Returns all code-defined specialists and whether Hivy currently has each enabled.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Employee ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["employeeSpecialistResponse"][];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/employees/{id}/specialists/{slug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Enable an employee specialist
+         * @description Removes a specialist slug from Hivy's disabled specialist list.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Employee ID */
+                    id: string;
+                    /** @description Specialist slug */
+                    slug: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        /**
+         * Disable an employee specialist
+         * @description Adds a specialist slug to Hivy's disabled specialist list.
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Employee ID */
+                    id: string;
+                    /** @description Specialist slug */
+                    slug: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
         options?: never;
         head?: never;
         patch?: never;
@@ -9253,277 +8247,6 @@ export interface paths {
                 };
             };
         };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/marketplace/agents": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List published marketplace agents
-         * @description Returns published marketplace agents with optional filters. Cached in Redis.
-         */
-        get: {
-            parameters: {
-                query?: {
-                    /** @description Search by name */
-                    search?: string;
-                    /** @description Filter by tag (comma-separated) */
-                    tags?: string;
-                    /** @description Filter featured agents */
-                    featured?: boolean;
-                    /** @description Filter popular agents */
-                    popular?: boolean;
-                    /** @description Filter verified agents */
-                    verified?: boolean;
-                    /** @description Page size */
-                    limit?: number;
-                    /** @description Pagination cursor */
-                    cursor?: string;
-                };
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["paginatedResponse-marketplaceAgentResponse"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        /**
-         * Publish agent to marketplace
-         * @description Copies an org agent into the marketplace as a draft listing.
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            /** @description Agent to publish */
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["createMarketplaceAgentRequest"];
-                };
-            };
-            responses: {
-                /** @description Created */
-                201: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["marketplaceAgentResponse"];
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/marketplace/agents/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        /**
-         * Update a marketplace agent
-         * @description Updates name, description, avatar, tags, instructions, or status. Only the publisher can update.
-         */
-        put: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description Marketplace agent ID */
-                    id: string;
-                };
-                cookie?: never;
-            };
-            /** @description Fields to update */
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["updateMarketplaceAgentRequest"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["marketplaceAgentResponse"];
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Forbidden */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-            };
-        };
-        post?: never;
-        /**
-         * Remove a marketplace listing
-         * @description Deletes a marketplace agent. Only the publisher can delete.
-         */
-        delete: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description Marketplace agent ID */
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-                /** @description Forbidden */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-            };
-        };
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/marketplace/agents/{slug}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get a marketplace agent by slug
-         * @description Returns a single published marketplace agent by its URL slug. Cached in Redis.
-         */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description Agent slug */
-                    slug: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["marketplaceAgentResponse"];
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -11510,7 +10233,7 @@ export interface paths {
         };
         /**
          * List skills
-         * @description Lists skills visible to the current org. Use scope=public to browse the marketplace, scope=own for org skills, scope=all for both. Pass q to search by name/description.
+         * @description Lists skills visible to the current org. Use scope=public to browse the global library, scope=own for org skills, scope=all for both. Pass q to search by name/description.
          */
         get: {
             parameters: {
@@ -11881,112 +10604,6 @@ export interface paths {
             };
         };
         delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/skills/{id}/publish": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Publish a skill to the public marketplace
-         * @description Clones an org-owned skill into a public skill (OrgID=nil) with a reference back to the original. The original skill gets a reference to the public clone.
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description Skill ID */
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Created */
-                201: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["skillDetailResponse"];
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-            };
-        };
-        /**
-         * Remove a skill from the public marketplace
-         * @description Archives the public clone and removes the reference from the original skill.
-         */
-        delete: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description Skill ID */
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-            };
-        };
         options?: never;
         head?: never;
         patch?: never;
@@ -12495,14 +11112,6 @@ export interface components {
             name?: string;
             type?: string;
         };
-        BuiltInToolDefinition: {
-            category?: string;
-            description?: string;
-            id?: string;
-            /** @description true = cannot be toggled off by the user */
-            locked?: boolean;
-            name?: string;
-        };
         Bundle: {
             content?: string;
             description?: string;
@@ -12602,11 +11211,6 @@ export interface components {
             body?: string;
             path?: string;
         };
-        SandboxToolDefinition: {
-            description?: string;
-            id?: string;
-            name?: string;
-        };
         SchemaDefinition: {
             /** @description for array types */
             items?: components["schemas"]["SchemaRef"];
@@ -12631,19 +11235,6 @@ export interface components {
             resources?: {
                 [key: string]: string[];
             };
-        };
-        TriggerCondition: {
-            /** @description equals, not_equals, one_of, not_one_of, contains, not_contains, matches, exists, not_exists */
-            operator?: string;
-            /** @description dot-path into payload, e.g. "repository.full_name" */
-            path?: string;
-            /** @description string or []string depending on operator */
-            value?: unknown;
-        };
-        TriggerMatch: {
-            conditions?: components["schemas"]["TriggerCondition"][];
-            /** @description "all" (AND) or "any" (OR) */
-            mode?: string;
         };
         Usage: {
             cached_tokens?: number;
@@ -12685,14 +11276,6 @@ export interface components {
             org_id?: string;
             revoked_at?: string;
             scopes?: string[];
-        };
-        adminAgentResponse: {
-            created_at?: string;
-            id?: string;
-            model?: string;
-            name?: string;
-            org_id?: string;
-            status?: string;
         };
         adminConversationResponse: {
             agent_id?: string;
@@ -12872,22 +11455,6 @@ export interface components {
             org_id?: string;
             revoked_at?: string;
         };
-        adminUpdateAgentRequest: {
-            agent_config?: components["schemas"]["JSON"];
-            credential_id?: string;
-            description?: string;
-            integrations?: components["schemas"]["JSON"];
-            mcp_servers?: components["schemas"]["JSON"];
-            model?: string;
-            name?: string;
-            permissions?: components["schemas"]["JSON"];
-            sandbox_template_id?: string;
-            shared_memory?: boolean;
-            skills?: components["schemas"]["JSON"];
-            status?: string;
-            system_prompt?: string;
-            tools?: components["schemas"]["JSON"];
-        };
         adminUpdateCredentialRequest: {
             label?: string;
         };
@@ -12895,13 +11462,6 @@ export interface components {
             credentials?: components["schemas"]["Credentials"];
             display_name?: string;
             meta?: components["schemas"]["JSON"];
-        };
-        adminUpdateMarketplaceAgentRequest: {
-            featured?: boolean;
-            flagged?: boolean;
-            popular?: boolean;
-            status?: string;
-            verified?: boolean;
         };
         adminUpdateOrgRequest: {
             active?: boolean;
@@ -12939,47 +11499,6 @@ export interface components {
             name?: string;
             updated_at?: string;
         };
-        agentCategory: {
-            description?: string;
-            id?: string;
-            name?: string;
-        };
-        agentResponse: {
-            agent_config?: components["schemas"]["JSON"];
-            attached_skills?: components["schemas"]["agentSkillSummary"][];
-            avatar_url?: string;
-            category?: string;
-            created_at?: string;
-            credential_id?: string;
-            description?: string;
-            harness?: string;
-            id?: string;
-            identity_prompt?: string;
-            instructions?: string;
-            integrations?: components["schemas"]["JSON"];
-            is_employee?: boolean;
-            last_memory_refreshed_at?: string;
-            mcp_servers?: components["schemas"]["JSON"];
-            memory_refresh_error?: string;
-            memory_refresh_status?: string;
-            model?: string;
-            name?: string;
-            permissions?: components["schemas"]["JSON"];
-            prompt_operating_principles?: string;
-            provider_id?: string;
-            provider_prompts?: components["schemas"]["ProviderPromptsMap"];
-            resources?: components["schemas"]["JSON"];
-            sandbox_template_id?: string;
-            sandbox_tools?: string[];
-            shared_memory?: boolean;
-            skills?: components["schemas"]["JSON"];
-            status?: string;
-            subagent_ids?: string[];
-            system_prompt?: string;
-            tools?: components["schemas"]["JSON"];
-            triggers?: components["schemas"]["agentTriggerResponse"][];
-            updated_at?: string;
-        };
         agentSkillResponse: {
             created_at?: string;
             locked?: boolean;
@@ -12995,21 +11514,6 @@ export interface components {
             name?: string;
             required?: boolean;
             source_type?: string;
-        };
-        agentTriggerInput: {
-            conditions?: components["schemas"]["TriggerMatch"];
-            connection_id?: string;
-            id?: string;
-            instructions?: string;
-            /**
-             * @description SecretKey is the optional plaintext shared secret for HTTP triggers.
-             *     When provided, the server bcrypt-hashes it before storing. Never returned
-             *     in any response — see agentTriggerResponse.SecretSet for visibility.
-             */
-            secret_key?: string;
-            trigger_keys?: string[];
-            /** @description "webhook" (default), "http" */
-            trigger_type?: string;
         };
         agentTriggerResponse: {
             conditions?: unknown;
@@ -13198,34 +11702,6 @@ export interface components {
             name?: string;
             scopes?: string[];
         };
-        createAgentRequest: {
-            agent_config?: components["schemas"]["JSON"];
-            avatar_url?: string;
-            category?: string;
-            credential_id?: string;
-            description?: string;
-            harness?: string;
-            identity_prompt?: string;
-            instructions?: string;
-            integrations?: components["schemas"]["JSON"];
-            is_employee?: boolean;
-            mcp_servers?: components["schemas"]["JSON"];
-            model?: string;
-            name?: string;
-            permissions?: components["schemas"]["JSON"];
-            prompt_operating_principles?: string;
-            provider_prompts?: components["schemas"]["ProviderPromptsMap"];
-            resources?: components["schemas"]["JSON"];
-            sandbox_template_id?: string;
-            sandbox_tools?: string[];
-            shared_memory?: boolean;
-            skill_ids?: string[];
-            skills?: components["schemas"]["JSON"];
-            subagent_ids?: string[];
-            system_prompt?: string;
-            tools?: components["schemas"]["JSON"];
-            triggers?: components["schemas"]["agentTriggerInput"][];
-        };
         createCheckoutRequest: {
             cancel_url?: string;
             /** @description e.g. "USD", "NGN" */
@@ -13272,9 +11748,6 @@ export interface components {
         createInConnectionRequest: {
             meta?: components["schemas"]["JSON"];
             nango_connection_id?: string;
-        };
-        createMarketplaceAgentRequest: {
-            agent_id?: string;
         };
         createOrgInviteRequest: {
             email?: string;
@@ -13350,26 +11823,6 @@ export interface components {
             type?: string;
             value?: string;
         };
-        employeeAgentTemplateResponse: {
-            agent_type?: string;
-            description?: string;
-            installed?: boolean;
-            name?: string;
-            slug?: string;
-            subagent_id?: string;
-            version?: number;
-        };
-        employeeConnectionResponse: {
-            created_at?: string;
-            display_name?: string;
-            id?: string;
-            in_integration_id?: string;
-            meta?: components["schemas"]["JSON"];
-            nango_connection_id?: string;
-            org_id?: string;
-            provider?: string;
-            updated_at?: string;
-        };
         employeeListItem: {
             agent_config?: components["schemas"]["JSON"];
             attached_skills?: components["schemas"]["agentSkillSummary"][];
@@ -13440,6 +11893,14 @@ export interface components {
             status?: string;
             thread_ts?: string;
             trigger_delivery?: components["schemas"]["triggerDeliveryResponse"];
+        };
+        employeeSpecialistResponse: {
+            agent_type?: string;
+            description?: string;
+            enabled?: boolean;
+            name?: string;
+            slug?: string;
+            version?: number;
         };
         employeeSubagentSummary: {
             avatar_url?: string;
@@ -13532,11 +11993,6 @@ export interface components {
             currency?: string;
             reference?: string;
         };
-        installEmployeeAgentTemplateResponse: {
-            subagent?: components["schemas"]["employeeSubagentSummary"];
-            sync?: components["schemas"]["syncEmployeeResponse"];
-            template?: components["schemas"]["employeeAgentTemplateResponse"];
-        };
         integrationDetail: {
             actions?: components["schemas"]["actionSummary"][];
             display_name?: string;
@@ -13575,37 +12031,6 @@ export interface components {
         };
         logoutRequest: {
             refresh_token?: string;
-        };
-        marketplaceAgentResponse: {
-            agent_config?: components["schemas"]["JSON"];
-            avatar?: string;
-            created_at?: string;
-            description?: string;
-            featured?: boolean;
-            flagged?: boolean;
-            id?: string;
-            install_count?: number;
-            instructions?: string;
-            integrations?: components["schemas"]["JSON"];
-            mcp_servers?: components["schemas"]["JSON"];
-            model?: string;
-            name?: string;
-            permissions?: components["schemas"]["JSON"];
-            popular?: boolean;
-            published_at?: string;
-            publisher_id?: string;
-            publisher_name?: string;
-            required_integrations?: string[];
-            shared_memory?: boolean;
-            skills?: components["schemas"]["JSON"];
-            slug?: string;
-            source_agent_id?: string;
-            status?: string;
-            system_prompt?: string;
-            tags?: string[];
-            tools?: components["schemas"]["JSON"];
-            updated_at?: string;
-            verified?: boolean;
         };
         meResponse: {
             is_platform_admin?: boolean;
@@ -13711,11 +12136,6 @@ export interface components {
             has_more?: boolean;
             next_cursor?: string;
         };
-        "paginatedResponse-agentResponse": {
-            data?: components["schemas"]["agentResponse"][];
-            has_more?: boolean;
-            next_cursor?: string;
-        };
         "paginatedResponse-conversationResponse": {
             data?: components["schemas"]["conversationResponse"][];
             has_more?: boolean;
@@ -13733,11 +12153,6 @@ export interface components {
         };
         "paginatedResponse-handler_adminAPIKeyResponse": {
             data?: components["schemas"]["adminAPIKeyResponse"][];
-            has_more?: boolean;
-            next_cursor?: string;
-        };
-        "paginatedResponse-handler_adminAgentResponse": {
-            data?: components["schemas"]["adminAgentResponse"][];
             has_more?: boolean;
             next_cursor?: string;
         };
@@ -13801,11 +12216,6 @@ export interface components {
             has_more?: boolean;
             next_cursor?: string;
         };
-        "paginatedResponse-handler_employeeConnectionResponse": {
-            data?: components["schemas"]["employeeConnectionResponse"][];
-            has_more?: boolean;
-            next_cursor?: string;
-        };
         "paginatedResponse-handler_employeeListItem": {
             data?: components["schemas"]["employeeListItem"][];
             has_more?: boolean;
@@ -13828,11 +12238,6 @@ export interface components {
         };
         "paginatedResponse-inConnectionResponse": {
             data?: components["schemas"]["inConnectionResponse"][];
-            has_more?: boolean;
-            next_cursor?: string;
-        };
-        "paginatedResponse-marketplaceAgentResponse": {
-            data?: components["schemas"]["marketplaceAgentResponse"][];
             has_more?: boolean;
             next_cursor?: string;
         };
@@ -14130,16 +12535,6 @@ export interface components {
             session_id?: string;
             stream_url?: string;
         };
-        setupRequest: {
-            env_vars?: {
-                [key: string]: string;
-            };
-            setup_commands?: string[];
-        };
-        setupResponse: {
-            env_var_keys?: string[];
-            setup_commands?: string[];
-        };
         signUploadRequest: {
             asset_type?: string;
             content_type?: string;
@@ -14350,42 +12745,8 @@ export interface components {
             triggers?: components["schemas"]["triggerSummary"][];
             webhook_config?: components["schemas"]["WebhookConfig"];
         };
-        updateAgentRequest: {
-            agent_config?: components["schemas"]["JSON"];
-            avatar_url?: string;
-            category?: string;
-            credential_id?: string;
-            description?: string;
-            harness?: string;
-            identity_prompt?: string;
-            instructions?: string;
-            integrations?: components["schemas"]["JSON"];
-            mcp_servers?: components["schemas"]["JSON"];
-            model?: string;
-            name?: string;
-            permissions?: components["schemas"]["JSON"];
-            prompt_operating_principles?: string;
-            provider_prompts?: components["schemas"]["ProviderPromptsMap"];
-            resources?: components["schemas"]["JSON"];
-            sandbox_template_id?: string;
-            sandbox_tools?: string[];
-            shared_memory?: boolean;
-            skill_ids?: string[];
-            skills?: components["schemas"]["JSON"];
-            system_prompt?: string;
-            tools?: components["schemas"]["JSON"];
-            triggers?: components["schemas"]["agentTriggerInput"][];
-        };
         updateContentRequest: {
             bundle?: components["schemas"]["Bundle"];
-        };
-        updateMarketplaceAgentRequest: {
-            avatar?: string;
-            description?: string;
-            instructions?: string;
-            name?: string;
-            status?: string;
-            tags?: string[];
         };
         updateOrgRequest: {
             logo_url?: string;

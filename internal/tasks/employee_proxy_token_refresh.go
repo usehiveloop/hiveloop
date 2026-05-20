@@ -34,7 +34,7 @@ func ScheduleEmployeeProxyTokenRefresh(ctx context.Context, db *gorm.DB, enqueue
 	if db == nil || enqueuer == nil || agent == nil || agent.OrgID == nil || sb == nil || sb.ID == uuid.Nil {
 		return nil
 	}
-	if agent.ID == uuid.Nil || !agent.IsEmployee || agent.Harness != "employee-sandbox" {
+	if agent.ID == uuid.Nil || agent.Harness != "employee-sandbox" {
 		return nil
 	}
 	if sb.AgentID == nil || *sb.AgentID != agent.ID {
@@ -192,7 +192,7 @@ func (h *EmployeeProxyTokenRefreshHandler) markAgentRefreshed(ctx context.Contex
 func (h *EmployeeProxyTokenRefreshHandler) loadAgentAndSandbox(ctx context.Context, payload EmployeeProxyTokenRefreshPayload) (*model.Agent, *model.Sandbox, bool, error) {
 	var agent model.Agent
 	if err := h.db.WithContext(ctx).
-		Where("id = ? AND is_employee = true AND harness = ? AND status <> ?", payload.AgentID, "employee-sandbox", "archived").
+		Where("id = ? AND harness = ? AND status <> ?", payload.AgentID, "employee-sandbox", "archived").
 		First(&agent).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil, false, nil
@@ -224,8 +224,8 @@ func (h *EmployeeProxyTokenRefreshHandler) revokeOlderTokens(ctx context.Context
 	}
 	now := time.Now().UTC()
 	if err := h.db.WithContext(ctx).Model(&model.Token{}).
-		Where("org_id = ? AND meta->>'agent_id' = ? AND meta->>'type' = ? AND meta->>'harness' = ? AND jti != ? AND revoked_at IS NULL",
-			*agent.OrgID, agent.ID.String(), "agent_proxy", "employee-sandbox", keepJTI).
+		Where("org_id = ? AND meta->>'employee_id' = ? AND meta->>'type' = ? AND meta->>'harness' = ? AND jti != ? AND revoked_at IS NULL",
+			*agent.OrgID, agent.ID.String(), "employee_proxy", "employee-sandbox", keepJTI).
 		Update("revoked_at", now).Error; err != nil {
 		return fmt.Errorf("revoke older employee proxy tokens: %w", err)
 	}
@@ -253,8 +253,8 @@ func nextEmployeeProxyTokenRefreshAt(ctx context.Context, db *gorm.DB, agent *mo
 	}
 	var tok model.Token
 	err := db.WithContext(ctx).
-		Where("org_id = ? AND meta->>'agent_id' = ? AND meta->>'type' = ? AND meta->>'harness' = ? AND revoked_at IS NULL",
-			*agent.OrgID, agent.ID.String(), "agent_proxy", "employee-sandbox").
+		Where("org_id = ? AND meta->>'employee_id' = ? AND meta->>'type' = ? AND meta->>'harness' = ? AND revoked_at IS NULL",
+			*agent.OrgID, agent.ID.String(), "employee_proxy", "employee-sandbox").
 		Where("COALESCE(meta->>'sandbox_id', '') IN (?, '')", sandboxID.String()).
 		Order("created_at DESC").
 		First(&tok).Error

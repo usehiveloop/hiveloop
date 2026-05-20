@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 
 	"github.com/usehiveloop/hiveloop/internal/logging"
@@ -64,7 +65,46 @@ func (h *InConnectionHandler) Revoke(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusNotFound, map[string]string{"error": "connection not found or already revoked"})
 		return
 	}
+	if err := h.afterConnectionRevoked(r, org.ID, conn.InIntegration.Provider); err != nil {
+		logging.FromContext(r.Context()).WarnContext(r.Context(), "post-revoke employee connection cleanup failed",
+			"error", err, "connection_id", conn.ID, "org_id", org.ID, "provider", conn.InIntegration.Provider)
+	}
 
 	logging.FromContext(r.Context()).InfoContext(r.Context(), "in-connection revoked", "connection_id", conn.ID, "org_id", org.ID, "provider", conn.InIntegration.Provider)
 	writeJSON(w, http.StatusOK, map[string]string{"status": "revoked"})
+}
+
+func (h *InConnectionHandler) afterConnectionRevoked(r *http.Request, orgID uuid.UUID, provider string) error {
+	var remaining int64
+	if err := h.db.WithContext(r.Context()).
+		Model(&model.InConnection{}).
+		Joins("JOIN in_integrations ON in_integrations.id = in_connections.in_integration_id AND in_integrations.deleted_at IS NULL").
+		Where("in_connections.org_id = ? AND in_connections.revoked_at IS NULL AND in_integrations.provider = ?", orgID, provider).
+		Count(&remaining).Error; err != nil {
+		return err
+	}
+	if remaining > 0 {
+		return nil
+	}
+	employee, err := ensureHivyEmployee(r.Context(), h.db, orgID)
+	if err != nil {
+		return err
+	}
+	for _, name := range employeeConnectionSkillNames[provider] {
+		var skill model.Skill
+		if err := h.db.WithContext(r.Context()).
+			Where("org_id IS NULL AND name = ?", name).
+			First(&skill).Error; err != nil {
+			continue
+		}
+		if err := h.db.WithContext(r.Context()).
+			Where("agent_id = ? AND skill_id = ?", employee.ID, skill.ID).
+			Delete(&model.AgentSkill{}).Error; err != nil {
+			return err
+		}
+	}
+	if provider == "slack" {
+		return h.db.WithContext(r.Context()).Model(&model.Org{}).Where("id = ?", orgID).Update("onboarded", false).Error
+	}
+	return nil
 }

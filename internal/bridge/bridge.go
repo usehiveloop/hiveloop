@@ -215,7 +215,7 @@ func (c *BridgeClient) HealthCheck(ctx context.Context) error {
 	return doVoid(c, ctx, http.MethodGet, "/health", nil)
 }
 
-// GetMetrics retrieves metrics from all agents.
+// GetMetrics retrieves metrics from all employees.
 func (c *BridgeClient) GetMetrics(ctx context.Context) (*MetricsResponse, error) {
 	return doJSON[MetricsResponse](c, ctx, http.MethodGet, "/metrics", nil)
 }

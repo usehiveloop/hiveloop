@@ -13,7 +13,7 @@ import (
 
 // List handles GET /v1/skills.
 // @Summary List skills
-// @Description Lists skills visible to the current org. Use scope=public to browse the marketplace, scope=own for org skills, scope=all for both. Pass q to search by name/description.
+// @Description Lists skills visible to the current org. Use scope=public to browse the global library, scope=own for org skills, scope=all for both. Pass q to search by name/description.
 // @Tags skills
 // @Produce json
 // @Param scope query string false "Filter: public, own, all (default all)"

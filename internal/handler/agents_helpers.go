@@ -56,7 +56,7 @@ func (h *AgentHandler) loadAgentTriggers(agentIDs ...uuid.UUID) map[uuid.UUID][]
 			at.conditions,
 			at.instructions,
 			at.secret_key
-		FROM agent_triggers at
+		FROM employee_triggers at
 		LEFT JOIN in_connections ic ON ic.id = at.connection_id
 		LEFT JOIN in_integrations ii ON ii.id = ic.in_integration_id
 		WHERE at.agent_id IN ?
@@ -94,7 +94,7 @@ func (h *AgentHandler) loadAgentTriggers(agentIDs ...uuid.UUID) map[uuid.UUID][]
 	return result
 }
 
-// loadAgentSkills batch-loads attached skill summaries for one or more agents.
+// loadAgentSkills batch-loads attached skill summaries for one or more employees.
 func (h *AgentHandler) loadAgentSkills(agentIDs ...uuid.UUID) map[uuid.UUID][]agentSkillSummary {
 	if len(agentIDs) == 0 {
 		return nil
@@ -143,7 +143,7 @@ var errGitHubAppExclusive = errors.New("an agent can connect to only one of gith
 
 // validateAgentIntegrationsExclusivity checks the proposed integrations map
 // against mutually-exclusive provider rules. integrations is keyed by
-// connection UUID (matching the JSONB shape on agents.integrations); we
+// connection UUID (matching the JSONB shape on employees.integrations); we
 // resolve those connections to providers via in_connections → in_integrations
 // scoped to the org.
 func validateAgentIntegrationsExclusivity(db *gorm.DB, orgID uuid.UUID, integrations model.JSON) error {

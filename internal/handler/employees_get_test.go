@@ -6,11 +6,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/google/uuid"
-
 	"github.com/usehiveloop/hiveloop/internal/auth"
 	"github.com/usehiveloop/hiveloop/internal/middleware"
-	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
 func (h *employeeHarness) getEmployee(t *testing.T, m orgWithMember, agentID string) *httptest.ResponseRecorder {
@@ -34,19 +31,6 @@ func TestIntegration_EmployeesGet_HappyPath_LoadsSubagentsAndSandbox(t *testing.
 	emp := h.seedEmployeeAgent(t, m)
 	h.seedSandbox(t, m, emp.ID)
 
-	subagent := model.Agent{
-		OrgID: &m.org.ID, Name: "research-" + uuid.NewString()[:6],
-		IsEmployee: false, Status: "active", SystemPrompt: "x", Model: "y",
-	}
-	if err := h.db.Create(&subagent).Error; err != nil {
-		t.Fatalf("create subagent: %v", err)
-	}
-	t.Cleanup(func() { h.db.Where("id = ?", subagent.ID).Delete(&model.Agent{}) })
-	if err := h.db.Create(&model.AgentSubagent{AgentID: emp.ID, SubagentID: subagent.ID}).Error; err != nil {
-		t.Fatalf("link subagent: %v", err)
-	}
-	t.Cleanup(func() { h.db.Where("agent_id = ?", emp.ID).Delete(&model.AgentSubagent{}) })
-
 	rr := h.getEmployee(t, m, emp.ID.String())
 	if rr.Code != http.StatusOK {
 		t.Fatalf("status = %d, want 200: %s", rr.Code, rr.Body.String())
@@ -66,8 +50,8 @@ func TestIntegration_EmployeesGet_HappyPath_LoadsSubagentsAndSandbox(t *testing.
 		t.Fatalf("sandbox missing: %#v", item["sandbox"])
 	}
 	subagents := item["subagents"].([]any)
-	if len(subagents) != 1 {
-		t.Fatalf("subagents len = %d, want 1", len(subagents))
+	if len(subagents) != 2 {
+		t.Fatalf("subagents len = %d, want 2", len(subagents))
 	}
 }
 
@@ -119,25 +103,6 @@ func TestIntegration_EmployeesGet_ReportsSandboxUpgradeAvailability(t *testing.T
 	}
 	if item["upgrade_available"] != true {
 		t.Fatalf("legacy sandbox upgrade_available = %v, want true", item["upgrade_available"])
-	}
-}
-
-func TestIntegration_EmployeesGet_RejectsNonEmployee(t *testing.T) {
-	h := newEmployeeHarness(t)
-	h.platformCredCleanup(t)
-	m := h.createOrg(t)
-	agent := model.Agent{
-		OrgID: &m.org.ID, Name: "plain-agent-" + uuid.NewString()[:6],
-		IsEmployee: false, Status: "active", SystemPrompt: "x", Model: "y",
-	}
-	if err := h.db.Create(&agent).Error; err != nil {
-		t.Fatalf("create plain agent: %v", err)
-	}
-	t.Cleanup(func() { h.db.Where("id = ?", agent.ID).Delete(&model.Agent{}) })
-
-	rr := h.getEmployee(t, m, agent.ID.String())
-	if rr.Code != http.StatusNotFound {
-		t.Fatalf("status = %d, want 404: %s", rr.Code, rr.Body.String())
 	}
 }
 

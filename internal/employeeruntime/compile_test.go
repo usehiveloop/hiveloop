@@ -23,7 +23,7 @@ const compileTestDBURL = "postgres://hiveloop:localdev@localhost:5433/hiveloop_t
 
 func TestBuildPromptFragments_UsesTypedFields(t *testing.T) {
 	orgID := uuid.New()
-	description := "Coordinates engineering work."
+	description := managedEmployeeDescription
 	agent := &model.Agent{
 		ID:             uuid.New(),
 		OrgID:          &orgID,
@@ -35,7 +35,7 @@ func TestBuildPromptFragments_UsesTypedFields(t *testing.T) {
 
 	fragments := buildPromptFragments(context.Background(), nil, agent, description)
 
-	if !strings.Contains(fragments.Identity.Content, "Aria") {
+	if !strings.Contains(fragments.Identity.Content, managedEmployeeName) {
 		t.Fatalf("identity fragment should include employee name: %#v", fragments.Identity)
 	}
 	if !strings.Contains(fragments.Identity.Content, description) {
@@ -44,8 +44,8 @@ func TestBuildPromptFragments_UsesTypedFields(t *testing.T) {
 	if strings.Contains(fragments.Identity.Content, agent.SystemPrompt) {
 		t.Fatalf("typed fragments must not include raw system prompt")
 	}
-	if !strings.Contains(fragments.Identity.Content, agent.IdentityPrompt) {
-		t.Fatalf("identity fragment should include employee identity prompt")
+	if strings.Contains(fragments.Identity.Content, agent.IdentityPrompt) {
+		t.Fatalf("identity fragment should not include user-editable identity prompt")
 	}
 }
 
@@ -76,8 +76,8 @@ func TestBuildPromptFragments_UpgradesDefaultManagedIdentityPrompt(t *testing.T)
 			if !strings.Contains(fragments.Identity.Content, "Slack communication contract") {
 				t.Fatalf("identity fragment missing current Slack communication contract: %#v", fragments.Identity)
 			}
-			if !strings.Contains(fragments.Identity.Content, "Do not say \"cloud agent\"") {
-				t.Fatalf("identity fragment missing cloud-agent leakage guard: %#v", fragments.Identity)
+			if !strings.Contains(fragments.Identity.Content, "Do not say \"specialist runtime\"") {
+				t.Fatalf("identity fragment missing specialist runtime leakage guard: %#v", fragments.Identity)
 			}
 		})
 	}
@@ -97,11 +97,11 @@ func TestBuildPromptFragments_PreservesCustomIdentityPrompt(t *testing.T) {
 
 	fragments := buildPromptFragments(context.Background(), nil, agent, description)
 
-	if !strings.Contains(fragments.Identity.Content, custom) {
-		t.Fatalf("identity fragment should preserve custom identity prompt: %#v", fragments.Identity)
+	if strings.Contains(fragments.Identity.Content, custom) {
+		t.Fatalf("identity fragment should ignore custom identity prompt: %#v", fragments.Identity)
 	}
-	if strings.Contains(fragments.Identity.Content, "Slack communication contract") {
-		t.Fatalf("custom identity prompt should not be replaced with default: %#v", fragments.Identity)
+	if !strings.Contains(fragments.Identity.Content, "Slack communication contract") {
+		t.Fatalf("identity fragment should use backend-owned default: %#v", fragments.Identity)
 	}
 }
 
@@ -150,7 +150,7 @@ func TestCompile_EmitsTypedPromptFragmentsWithoutRawSystemPrompt(t *testing.T) {
 		Category:                  &category,
 		SystemPrompt:              "raw system prompt must not be forwarded",
 		IdentityPrompt:            "Act like the Platform team's coordinator.",
-		PromptOperatingPrinciples: "Prefer dispatching cloud agents for implementation.",
+		PromptOperatingPrinciples: "Prefer dispatching specialists for implementation.",
 		Model:                     DefaultEmployeeModel,
 		Tools:                     model.JSON{},
 		McpServers:                model.JSON{},
@@ -184,11 +184,8 @@ func TestCompile_EmitsTypedPromptFragmentsWithoutRawSystemPrompt(t *testing.T) {
 	if def.PromptFragments.Company.Title != "About the company" {
 		t.Fatalf("company title = %q", def.PromptFragments.Company.Title)
 	}
-	if def.PromptFragments.OperatingPrinciples.Title != "Operating principles" {
-		t.Fatalf("operating principles title = %q", def.PromptFragments.OperatingPrinciples.Title)
-	}
-	if !strings.Contains(def.PromptFragments.OperatingPrinciples.Content, "dispatching cloud agents") {
-		t.Fatalf("operating principles not sourced from employee: %q", def.PromptFragments.OperatingPrinciples.Content)
+	if def.PromptFragments.OperatingPrinciples.Title != "" || def.PromptFragments.OperatingPrinciples.Content != "" {
+		t.Fatalf("operating principles should be backend-owned inside identity prompt: %#v", def.PromptFragments.OperatingPrinciples)
 	}
 }
 

@@ -167,14 +167,13 @@ func (h *NotionProxyHandler) authenticatedSandbox(ctx context.Context, agentID u
 }
 
 func (h *NotionProxyHandler) resolveOwningEmployee(ctx context.Context, orgID uuid.UUID, agent model.Agent) (model.Agent, error) {
-	if agent.IsEmployee {
+	if agent.OrgID != nil && *agent.OrgID == orgID {
 		return agent, nil
 	}
 	var employee model.Agent
 	if err := h.db.WithContext(ctx).
-		Joins("JOIN agent_subagents ON agent_subagents.agent_id = agents.id").
-		Where("agent_subagents.subagent_id = ? AND agents.org_id = ? AND agents.is_employee = ? AND agents.is_system = ?", agent.ID, orgID, true, false).
-		Order("agent_subagents.created_at ASC").
+		Where("org_id = ? AND status <> ?", orgID, "archived").
+		Order("created_at ASC").
 		First(&employee).Error; err != nil {
 		return model.Agent{}, err
 	}

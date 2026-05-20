@@ -140,7 +140,7 @@ export function SandboxTemplatesList() {
         <div>
           <h2 className="text-lg font-medium">Sandbox Templates</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Custom sandbox environments for your agents.
+            Custom sandbox environments for your employees.
           </p>
         </div>
         <Button onClick={() => setCreateModalOpen(true)}>
@@ -157,7 +157,7 @@ export function SandboxTemplatesList() {
             </h2>
             <p className="mt-1.5 max-w-xs text-sm text-muted-foreground">
               Create a template to define custom sandbox environments for your
-              agents.
+              employees.
             </p>
           </div>
           <div className="w-full max-w-sm">

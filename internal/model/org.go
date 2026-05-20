@@ -62,15 +62,25 @@ func AutoMigrate(db *gorm.DB) (err error) {
 		"router_triggers",
 		"routers",
 		"conversation_subscriptions",
+		"agent_skills",
+		"agent_triggers",
+		"agent_trigger_deliveries",
+		"agent_conversations",
+		"cloud_agent_tasks",
 		"agent_profiles",
 		"teams",
+		"agent_subagents",
+		"marketplace_agents",
 	); err != nil {
 		return err
 	}
-	if err := dropAgentTeamColumns(db); err != nil {
+	if err := prepareEmployeeTable(db); err != nil {
 		return err
 	}
-	if err := dropMarketplaceAgentTeamColumn(db); err != nil {
+	if err := dropEmployeeLegacyIndexes(db); err != nil {
+		return err
+	}
+	if err := dropEmployeeLegacyColumns(db); err != nil {
 		return err
 	}
 	if db.Migrator().HasColumn(&AgentConversation{}, "bridge_conversation_id") &&
@@ -106,7 +116,7 @@ func AutoMigrate(db *gorm.DB) (err error) {
 		&EmailVerification{},
 		&PasswordReset{},
 		&SandboxTemplate{},
-		&Agent{},
+		&Employee{},
 		&ChatSession{},
 		&ChatMessage{},
 		&Sandbox{},
@@ -124,7 +134,6 @@ func AutoMigrate(db *gorm.DB) (err error) {
 		&OAuthExchangeToken{},
 		&AdminAuditEntry{},
 		&OTPCode{},
-		&MarketplaceAgent{},
 		&ToolUsage{},
 		&Plan{},
 		&Subscription{},
@@ -134,7 +143,6 @@ func AutoMigrate(db *gorm.DB) (err error) {
 		&Skill{},
 		&SkillVersion{},
 		&AgentSkill{},
-		&AgentSubagent{},
 		&FailedEvent{},
 		&EmployeeAsset{},
 		&CloudAgentTask{},
@@ -153,41 +161,65 @@ func AutoMigrate(db *gorm.DB) (err error) {
 	return nil
 }
 
-func dropAgentTeamColumns(db *gorm.DB) error {
-	for _, column := range []string{"team_id", "team"} {
-		if !db.Migrator().HasColumn("agents", column) {
+func prepareEmployeeTable(db *gorm.DB) error {
+	if db.Migrator().HasTable("agents") && !db.Migrator().HasTable("employees") {
+		return db.Migrator().RenameTable("agents", "employees")
+	}
+	return nil
+}
+
+func dropEmployeeLegacyColumns(db *gorm.DB) error {
+	for _, column := range []string{
+		"name",
+		"team_id",
+		"team",
+		"category",
+		"avatar_url",
+		"description",
+		"system_prompt",
+		"identity_prompt",
+		"prompt_operating_principles",
+		"integrations",
+		"is_employee",
+		"is_system",
+		"provider_group",
+	} {
+		if !db.Migrator().HasColumn("employees", column) {
 			continue
 		}
-		if err := db.Migrator().DropColumn("agents", column); err != nil {
+		if err := db.Migrator().DropColumn("employees", column); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func dropMarketplaceAgentTeamColumn(db *gorm.DB) error {
-	if !db.Migrator().HasColumn("marketplace_agents", "team") {
-		return nil
+func dropEmployeeLegacyIndexes(db *gorm.DB) error {
+	for _, index := range []string{"idx_agent_org_name", "idx_employee_org_name"} {
+		if !db.Migrator().HasIndex("employees", index) {
+			continue
+		}
+		if err := db.Migrator().DropIndex("employees", index); err != nil {
+			return err
+		}
 	}
-	return db.Migrator().DropColumn("marketplace_agents", "team")
+	return nil
 }
 
 func migrateEmployeeCloudAgentHarness(db *gorm.DB) error {
 	switch db.Dialector.Name() {
 	case "postgres":
 		return db.Exec(`
-			UPDATE agents
+			UPDATE employees
 			SET harness = 'open_code'
-			WHERE is_employee = false
-				AND harness = 'employee-sandbox'
+			WHERE harness = 'employee-sandbox'
 				AND agent_config->>'default_cloud_agent_type' IN ('business_research_specialist', 'software_engineering_specialist')
 		`).Error
 	case "sqlite":
 		return db.Exec(`
-			UPDATE agents
+			UPDATE employees
 			SET harness = 'open_code'
-			WHERE is_employee = false
-				AND harness = 'employee-sandbox'
+			WHERE harness = 'employee-sandbox'
 				AND json_extract(agent_config, '$.default_cloud_agent_type') IN ('business_research_specialist', 'software_engineering_specialist')
 		`).Error
 	default:

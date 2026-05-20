@@ -35,7 +35,6 @@ func setupV1Routes(
 	sandboxTemplateHandler *handler.SandboxTemplateHandler,
 	skillHandler *handler.SkillHandler,
 	agentHandler *handler.AgentHandler,
-	marketplaceHandler *handler.MarketplaceHandler,
 	conversationHandler *handler.ConversationHandler,
 	customDomainHandler *handler.CustomDomainHandler,
 	ragSourceHandler *handler.RAGSourceHandler,
@@ -138,43 +137,30 @@ func setupV1Routes(
 					r.Put("/{id}/content", skillHandler.UpdateContent)
 					r.Post("/{id}/hydrate", skillHandler.Hydrate)
 					r.Get("/{id}/versions", skillHandler.ListVersions)
-					r.Post("/{id}/publish", skillHandler.Publish)
-					r.Delete("/{id}/publish", skillHandler.Unpublish)
 				})
-				r.Get("/agents/sandbox-tools", agentHandler.ListSandboxTools)
-				r.Get("/agents/built-in-tools", agentHandler.ListBuiltInTools)
-				r.Get("/agents/categories", agentHandler.ListCategories)
 				triggerDeliveryHandler := handler.NewTriggerDeliveryHandler(database)
-				r.Route("/agents", func(r chi.Router) {
-					r.Post("/", agentHandler.Create)
-					r.Get("/", agentHandler.List)
-					r.Get("/{id}", agentHandler.Get)
-					r.Put("/{id}", agentHandler.Update)
-					r.Delete("/{id}", agentHandler.Delete)
-					r.Get("/{id}/setup", agentHandler.GetSetup)
-					r.Put("/{id}/setup", agentHandler.UpdateSetup)
-					r.Route("/{agentID}/skills", func(r chi.Router) {
-						r.Post("/", skillHandler.AttachToAgent)
-						r.Get("/", skillHandler.ListAgentSkills)
-						r.Delete("/{skillID}", skillHandler.DetachFromAgent)
-					})
-					if conversationHandler != nil {
-						r.Post("/{agentID}/conversations", conversationHandler.Create)
-						r.Get("/{agentID}/conversations", conversationHandler.List)
-					}
-					r.Get("/{agentID}/trigger-deliveries", triggerDeliveryHandler.List)
-					r.Get("/{agentID}/trigger-deliveries/{deliveryID}", triggerDeliveryHandler.Get)
-				})
+				_ = agentHandler
 				if employeeHandler != nil {
 					r.Get("/employees", employeeHandler.List)
 					r.Get("/employees/{id}", employeeHandler.Get)
 					r.Get("/employees/{id}/sessions", employeeHandler.ListSessions)
-					r.Get("/employees/{id}/agent-templates", employeeHandler.ListAgentTemplates)
-					r.Get("/employees/{id}/connections/available", employeeHandler.ListAvailableConnections)
+					if conversationHandler != nil {
+						r.Post("/employees/{id}/sessions", conversationHandler.CreateEmployeeSession)
+						r.Get("/employees/{id}/sessions/{convID}", conversationHandler.Get)
+					}
+					r.Get("/employees/{id}/specialists", employeeHandler.ListSpecialists)
+					r.Post("/employees/{id}/specialists/{slug}", employeeHandler.EnableSpecialist)
+					r.Delete("/employees/{id}/specialists/{slug}", employeeHandler.DisableSpecialist)
+					r.Route("/employees/{id}/skills", func(r chi.Router) {
+						r.Post("/", skillHandler.AttachToEmployee)
+						r.Get("/", skillHandler.ListEmployeeSkills)
+						r.Delete("/{skillID}", skillHandler.DetachFromEmployee)
+					})
+					r.Get("/employees/{id}/trigger-deliveries", triggerDeliveryHandler.List)
+					r.Get("/employees/{id}/trigger-deliveries/{deliveryID}", triggerDeliveryHandler.Get)
 					r.Group(func(r chi.Router) {
 						r.Use(middleware.RequireOrgAdmin(database))
 						r.Post("/employees/{id}/sync", employeeHandler.Sync)
-						r.Post("/employees/{id}/agent-templates/{slug}/install", employeeHandler.InstallAgentTemplate)
 						r.Post("/employees/{id}/sandbox/upgrade", employeeHandler.StartSandboxUpgrade)
 						r.Get("/employees/{id}/sandbox/upgrades/{upgradeID}", employeeHandler.GetSandboxUpgrade)
 					})
@@ -191,12 +177,6 @@ func setupV1Routes(
 				if systemTaskHandler != nil {
 					r.Post("/system/tasks/{taskName}", systemTaskHandler.Run)
 				}
-				r.Route("/marketplace/agents", func(r chi.Router) {
-					r.Use(middleware.ResolveUser(database))
-					r.Post("/", marketplaceHandler.Create)
-					r.Put("/{id}", marketplaceHandler.Update)
-					r.Delete("/{id}", marketplaceHandler.Delete)
-				})
 				if conversationHandler != nil {
 					r.Route("/conversations/{convID}", func(r chi.Router) {
 						r.Get("/", conversationHandler.Get)

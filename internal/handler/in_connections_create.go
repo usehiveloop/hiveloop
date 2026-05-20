@@ -99,10 +99,14 @@ func (h *InConnectionHandler) Create(w http.ResponseWriter, r *http.Request) {
 		if err := tx.Create(&conn).Error; err != nil {
 			return err
 		}
+		employee, err := ensureHivyEmployee(r.Context(), tx, org.ID)
+		if err != nil {
+			return err
+		}
+		if err := attachEmployeeRequiredSkillsForAgent(r.Context(), tx, org.ID, employee); err != nil {
+			return err
+		}
 		if integ.Provider == "slack" {
-			if _, err := ensureHivyEmployee(r.Context(), tx, org.ID); err != nil {
-				return err
-			}
 			if err := tx.Model(&model.Org{}).Where("id = ?", org.ID).Update("onboarded", true).Error; err != nil {
 				return err
 			}

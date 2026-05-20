@@ -9,20 +9,6 @@ definitions:
       type:
         type: string
     type: object
-  BuiltInToolDefinition:
-    properties:
-      category:
-        type: string
-      description:
-        type: string
-      id:
-        type: string
-      locked:
-        description: true = cannot be toggled off by the user
-        type: boolean
-      name:
-        type: string
-    type: object
   Bundle:
     properties:
       content:
@@ -207,15 +193,6 @@ definitions:
       path:
         type: string
     type: object
-  SandboxToolDefinition:
-    properties:
-      description:
-        type: string
-      id:
-        type: string
-      name:
-        type: string
-    type: object
   SchemaDefinition:
     properties:
       items:
@@ -260,28 +237,6 @@ definitions:
             type: string
           type: array
         type: object
-    type: object
-  TriggerCondition:
-    properties:
-      operator:
-        description: equals, not_equals, one_of, not_one_of, contains, not_contains,
-          matches, exists, not_exists
-        type: string
-      path:
-        description: dot-path into payload, e.g. "repository.full_name"
-        type: string
-      value:
-        description: string or []string depending on operator
-    type: object
-  TriggerMatch:
-    properties:
-      conditions:
-        items:
-          $ref: '#/definitions/TriggerCondition'
-        type: array
-      mode:
-        description: '"all" (AND) or "any" (OR)'
-        type: string
     type: object
   Usage:
     properties:
@@ -355,21 +310,6 @@ definitions:
         items:
           type: string
         type: array
-    type: object
-  adminAgentResponse:
-    properties:
-      created_at:
-        type: string
-      id:
-        type: string
-      model:
-        type: string
-      name:
-        type: string
-      org_id:
-        type: string
-      status:
-        type: string
     type: object
   adminConversationResponse:
     properties:
@@ -724,37 +664,6 @@ definitions:
       revoked_at:
         type: string
     type: object
-  adminUpdateAgentRequest:
-    properties:
-      agent_config:
-        $ref: '#/definitions/JSON'
-      credential_id:
-        type: string
-      description:
-        type: string
-      integrations:
-        $ref: '#/definitions/JSON'
-      mcp_servers:
-        $ref: '#/definitions/JSON'
-      model:
-        type: string
-      name:
-        type: string
-      permissions:
-        $ref: '#/definitions/JSON'
-      sandbox_template_id:
-        type: string
-      shared_memory:
-        type: boolean
-      skills:
-        $ref: '#/definitions/JSON'
-      status:
-        type: string
-      system_prompt:
-        type: string
-      tools:
-        $ref: '#/definitions/JSON'
-    type: object
   adminUpdateCredentialRequest:
     properties:
       label:
@@ -768,19 +677,6 @@ definitions:
         type: string
       meta:
         $ref: '#/definitions/JSON'
-    type: object
-  adminUpdateMarketplaceAgentRequest:
-    properties:
-      featured:
-        type: boolean
-      flagged:
-        type: boolean
-      popular:
-        type: boolean
-      status:
-        type: string
-      verified:
-        type: boolean
     type: object
   adminUpdateOrgRequest:
     properties:
@@ -855,94 +751,6 @@ definitions:
       updated_at:
         type: string
     type: object
-  agentCategory:
-    properties:
-      description:
-        type: string
-      id:
-        type: string
-      name:
-        type: string
-    type: object
-  agentResponse:
-    properties:
-      agent_config:
-        $ref: '#/definitions/JSON'
-      attached_skills:
-        items:
-          $ref: '#/definitions/agentSkillSummary'
-        type: array
-      avatar_url:
-        type: string
-      category:
-        type: string
-      created_at:
-        type: string
-      credential_id:
-        type: string
-      description:
-        type: string
-      harness:
-        type: string
-      id:
-        type: string
-      identity_prompt:
-        type: string
-      instructions:
-        type: string
-      integrations:
-        $ref: '#/definitions/JSON'
-      is_employee:
-        type: boolean
-      last_memory_refreshed_at:
-        type: string
-      mcp_servers:
-        $ref: '#/definitions/JSON'
-      memory_refresh_error:
-        type: string
-      memory_refresh_status:
-        type: string
-      model:
-        type: string
-      name:
-        type: string
-      permissions:
-        $ref: '#/definitions/JSON'
-      prompt_operating_principles:
-        type: string
-      provider_id:
-        type: string
-      provider_prompts:
-        $ref: '#/definitions/ProviderPromptsMap'
-      resources:
-        $ref: '#/definitions/JSON'
-      sandbox_template_id:
-        type: string
-      sandbox_tools:
-        items:
-          type: string
-        type: array
-      shared_memory:
-        type: boolean
-      skills:
-        $ref: '#/definitions/JSON'
-      status:
-        type: string
-      subagent_ids:
-        items:
-          type: string
-        type: array
-      system_prompt:
-        type: string
-      tools:
-        $ref: '#/definitions/JSON'
-      triggers:
-        items:
-          $ref: '#/definitions/agentTriggerResponse'
-        type: array
-      updated_at:
-        type: string
-    type: object
   agentSkillResponse:
     properties:
       created_at:
@@ -971,30 +779,6 @@ definitions:
       required:
         type: boolean
       source_type:
-        type: string
-    type: object
-  agentTriggerInput:
-    properties:
-      conditions:
-        $ref: '#/definitions/TriggerMatch'
-      connection_id:
-        type: string
-      id:
-        type: string
-      instructions:
-        type: string
-      secret_key:
-        description: |-
-          SecretKey is the optional plaintext shared secret for HTTP triggers.
-          When provided, the server bcrypt-hashes it before storing. Never returned
-          in any response — see agentTriggerResponse.SecretSet for visibility.
-        type: string
-      trigger_keys:
-        items:
-          type: string
-        type: array
-      trigger_type:
-        description: '"webhook" (default), "http"'
         type: string
     type: object
   agentTriggerResponse:
@@ -1355,69 +1139,6 @@ definitions:
           type: string
         type: array
     type: object
-  createAgentRequest:
-    properties:
-      agent_config:
-        $ref: '#/definitions/JSON'
-      avatar_url:
-        type: string
-      category:
-        type: string
-      credential_id:
-        type: string
-      description:
-        type: string
-      harness:
-        type: string
-      identity_prompt:
-        type: string
-      instructions:
-        type: string
-      integrations:
-        $ref: '#/definitions/JSON'
-      is_employee:
-        type: boolean
-      mcp_servers:
-        $ref: '#/definitions/JSON'
-      model:
-        type: string
-      name:
-        type: string
-      permissions:
-        $ref: '#/definitions/JSON'
-      prompt_operating_principles:
-        type: string
-      provider_prompts:
-        $ref: '#/definitions/ProviderPromptsMap'
-      resources:
-        $ref: '#/definitions/JSON'
-      sandbox_template_id:
-        type: string
-      sandbox_tools:
-        items:
-          type: string
-        type: array
-      shared_memory:
-        type: boolean
-      skill_ids:
-        items:
-          type: string
-        type: array
-      skills:
-        $ref: '#/definitions/JSON'
-      subagent_ids:
-        items:
-          type: string
-        type: array
-      system_prompt:
-        type: string
-      tools:
-        $ref: '#/definitions/JSON'
-      triggers:
-        items:
-          $ref: '#/definitions/agentTriggerInput'
-        type: array
-    type: object
   createCheckoutRequest:
     properties:
       cancel_url:
@@ -1503,11 +1224,6 @@ definitions:
       meta:
         $ref: '#/definitions/JSON'
       nango_connection_id:
-        type: string
-    type: object
-  createMarketplaceAgentRequest:
-    properties:
-      agent_id:
         type: string
     type: object
   createOrgInviteRequest:
@@ -1648,44 +1364,6 @@ definitions:
       type:
         type: string
       value:
-        type: string
-    type: object
-  employeeAgentTemplateResponse:
-    properties:
-      agent_type:
-        type: string
-      description:
-        type: string
-      installed:
-        type: boolean
-      name:
-        type: string
-      slug:
-        type: string
-      subagent_id:
-        type: string
-      version:
-        type: integer
-    type: object
-  employeeConnectionResponse:
-    properties:
-      created_at:
-        type: string
-      display_name:
-        type: string
-      id:
-        type: string
-      in_integration_id:
-        type: string
-      meta:
-        $ref: '#/definitions/JSON'
-      nango_connection_id:
-        type: string
-      org_id:
-        type: string
-      provider:
-        type: string
-      updated_at:
         type: string
     type: object
   employeeListItem:
@@ -1835,6 +1513,21 @@ definitions:
         type: string
       trigger_delivery:
         $ref: '#/definitions/triggerDeliveryResponse'
+    type: object
+  employeeSpecialistResponse:
+    properties:
+      agent_type:
+        type: string
+      description:
+        type: string
+      enabled:
+        type: boolean
+      name:
+        type: string
+      slug:
+        type: string
+      version:
+        type: integer
     type: object
   employeeSubagentSummary:
     properties:
@@ -2013,15 +1706,6 @@ definitions:
       reference:
         type: string
     type: object
-  installEmployeeAgentTemplateResponse:
-    properties:
-      subagent:
-        $ref: '#/definitions/employeeSubagentSummary'
-      sync:
-        $ref: '#/definitions/syncEmployeeResponse'
-      template:
-        $ref: '#/definitions/employeeAgentTemplateResponse'
-    type: object
   integrationDetail:
     properties:
       actions:
@@ -2093,71 +1777,6 @@ definitions:
     properties:
       refresh_token:
         type: string
-    type: object
-  marketplaceAgentResponse:
-    properties:
-      agent_config:
-        $ref: '#/definitions/JSON'
-      avatar:
-        type: string
-      created_at:
-        type: string
-      description:
-        type: string
-      featured:
-        type: boolean
-      flagged:
-        type: boolean
-      id:
-        type: string
-      install_count:
-        type: integer
-      instructions:
-        type: string
-      integrations:
-        $ref: '#/definitions/JSON'
-      mcp_servers:
-        $ref: '#/definitions/JSON'
-      model:
-        type: string
-      name:
-        type: string
-      permissions:
-        $ref: '#/definitions/JSON'
-      popular:
-        type: boolean
-      published_at:
-        type: string
-      publisher_id:
-        type: string
-      publisher_name:
-        type: string
-      required_integrations:
-        items:
-          type: string
-        type: array
-      shared_memory:
-        type: boolean
-      skills:
-        $ref: '#/definitions/JSON'
-      slug:
-        type: string
-      source_agent_id:
-        type: string
-      status:
-        type: string
-      system_prompt:
-        type: string
-      tags:
-        items:
-          type: string
-        type: array
-      tools:
-        $ref: '#/definitions/JSON'
-      updated_at:
-        type: string
-      verified:
-        type: boolean
     type: object
   meResponse:
     properties:
@@ -2359,17 +1978,6 @@ definitions:
       next_cursor:
         type: string
     type: object
-  paginatedResponse-agentResponse:
-    properties:
-      data:
-        items:
-          $ref: '#/definitions/agentResponse'
-        type: array
-      has_more:
-        type: boolean
-      next_cursor:
-        type: string
-    type: object
   paginatedResponse-conversationResponse:
     properties:
       data:
@@ -2408,17 +2016,6 @@ definitions:
       data:
         items:
           $ref: '#/definitions/adminAPIKeyResponse'
-        type: array
-      has_more:
-        type: boolean
-      next_cursor:
-        type: string
-    type: object
-  paginatedResponse-handler_adminAgentResponse:
-    properties:
-      data:
-        items:
-          $ref: '#/definitions/adminAgentResponse'
         type: array
       has_more:
         type: boolean
@@ -2557,17 +2154,6 @@ definitions:
       next_cursor:
         type: string
     type: object
-  paginatedResponse-handler_employeeConnectionResponse:
-    properties:
-      data:
-        items:
-          $ref: '#/definitions/employeeConnectionResponse'
-        type: array
-      has_more:
-        type: boolean
-      next_cursor:
-        type: string
-    type: object
   paginatedResponse-handler_employeeListItem:
     properties:
       data:
@@ -2617,17 +2203,6 @@ definitions:
       data:
         items:
           $ref: '#/definitions/inConnectionResponse'
-        type: array
-      has_more:
-        type: boolean
-      next_cursor:
-        type: string
-    type: object
-  paginatedResponse-marketplaceAgentResponse:
-    properties:
-      data:
-        items:
-          $ref: '#/definitions/marketplaceAgentResponse'
         type: array
       has_more:
         type: boolean
@@ -3209,28 +2784,6 @@ definitions:
       stream_url:
         type: string
     type: object
-  setupRequest:
-    properties:
-      env_vars:
-        additionalProperties:
-          type: string
-        type: object
-      setup_commands:
-        items:
-          type: string
-        type: array
-    type: object
-  setupResponse:
-    properties:
-      env_var_keys:
-        items:
-          type: string
-        type: array
-      setup_commands:
-        items:
-          type: string
-        type: array
-    type: object
   signUploadRequest:
     properties:
       asset_type:
@@ -3626,84 +3179,10 @@ definitions:
       webhook_config:
         $ref: '#/definitions/WebhookConfig'
     type: object
-  updateAgentRequest:
-    properties:
-      agent_config:
-        $ref: '#/definitions/JSON'
-      avatar_url:
-        type: string
-      category:
-        type: string
-      credential_id:
-        type: string
-      description:
-        type: string
-      harness:
-        type: string
-      identity_prompt:
-        type: string
-      instructions:
-        type: string
-      integrations:
-        $ref: '#/definitions/JSON'
-      mcp_servers:
-        $ref: '#/definitions/JSON'
-      model:
-        type: string
-      name:
-        type: string
-      permissions:
-        $ref: '#/definitions/JSON'
-      prompt_operating_principles:
-        type: string
-      provider_prompts:
-        $ref: '#/definitions/ProviderPromptsMap'
-      resources:
-        $ref: '#/definitions/JSON'
-      sandbox_template_id:
-        type: string
-      sandbox_tools:
-        items:
-          type: string
-        type: array
-      shared_memory:
-        type: boolean
-      skill_ids:
-        items:
-          type: string
-        type: array
-      skills:
-        $ref: '#/definitions/JSON'
-      system_prompt:
-        type: string
-      tools:
-        $ref: '#/definitions/JSON'
-      triggers:
-        items:
-          $ref: '#/definitions/agentTriggerInput'
-        type: array
-    type: object
   updateContentRequest:
     properties:
       bundle:
         $ref: '#/definitions/Bundle'
-    type: object
-  updateMarketplaceAgentRequest:
-    properties:
-      avatar:
-        type: string
-      description:
-        type: string
-      instructions:
-        type: string
-      name:
-        type: string
-      status:
-        type: string
-      tags:
-        items:
-          type: string
-        type: array
     type: object
   updateOrgRequest:
     properties:
@@ -3873,156 +3352,6 @@ paths:
       security:
       - BearerAuth: []
       summary: List admin audit entries
-      tags:
-      - admin
-  /admin/v1/agents:
-    get:
-      description: Returns agents across all organizations.
-      parameters:
-      - description: Filter by org ID
-        in: query
-        name: org_id
-        type: string
-      - description: Filter by status (active, archived)
-        in: query
-        name: status
-        type: string
-      - description: Page size
-        in: query
-        name: limit
-        type: integer
-      - description: Pagination cursor
-        in: query
-        name: cursor
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/paginatedResponse-handler_adminAgentResponse'
-      security:
-      - BearerAuth: []
-      summary: List all agents
-      tags:
-      - admin
-  /admin/v1/agents/{id}:
-    delete:
-      description: Permanently deletes an agent.
-      parameters:
-      - description: Agent ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/errorResponse'
-      security:
-      - BearerAuth: []
-      summary: Delete an agent
-      tags:
-      - admin
-    get:
-      description: Returns agent details.
-      parameters:
-      - description: Agent ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/adminAgentResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/errorResponse'
-      security:
-      - BearerAuth: []
-      summary: Get agent details
-      tags:
-      - admin
-    put:
-      consumes:
-      - application/json
-      description: Updates agent configuration with full validation.
-      parameters:
-      - description: Agent ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: Fields to update
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/adminUpdateAgentRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/adminAgentResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/errorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/errorResponse'
-        "409":
-          description: Conflict
-          schema:
-            $ref: '#/definitions/errorResponse'
-      security:
-      - BearerAuth: []
-      summary: Update an agent
-      tags:
-      - admin
-  /admin/v1/agents/{id}/archive:
-    post:
-      description: Force-archives an active agent.
-      parameters:
-      - description: Agent ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/errorResponse'
-      security:
-      - BearerAuth: []
-      summary: Archive an agent
       tags:
       - admin
   /admin/v1/api-keys:
@@ -4621,114 +3950,6 @@ paths:
       security:
       - BearerAuth: []
       summary: Update a platform integration
-      tags:
-      - admin
-  /admin/v1/marketplace/agents:
-    get:
-      description: Returns all marketplace agents regardless of status.
-      parameters:
-      - description: Filter by status
-        in: query
-        name: status
-        type: string
-      - description: Filter flagged agents
-        in: query
-        name: flagged
-        type: boolean
-      - description: Page size
-        in: query
-        name: limit
-        type: integer
-      - description: Pagination cursor
-        in: query
-        name: cursor
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/paginatedResponse-marketplaceAgentResponse'
-      security:
-      - BearerAuth: []
-      summary: List all marketplace agents (admin)
-      tags:
-      - admin
-  /admin/v1/marketplace/agents/{id}:
-    delete:
-      description: Permanently deletes a marketplace agent.
-      parameters:
-      - description: Marketplace agent ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/errorResponse'
-      security:
-      - BearerAuth: []
-      summary: Admin delete marketplace agent
-      tags:
-      - admin
-    put:
-      consumes:
-      - application/json
-      description: Admin can set featured, popular, verified, flagged, and status.
-      parameters:
-      - description: Marketplace agent ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: Fields to update
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/adminUpdateMarketplaceAgentRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/marketplaceAgentResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/errorResponse'
-      security:
-      - BearerAuth: []
-      summary: Admin update marketplace agent
-      tags:
-      - admin
-  /admin/v1/marketplace/cache/bust:
-    post:
-      description: Flushes all marketplace cache keys from Redis.
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Bust marketplace cache
       tags:
       - admin
   /admin/v1/orgs:
@@ -6386,447 +5607,6 @@ paths:
       summary: X (Twitter) OAuth callback
       tags:
       - oauth
-  /v1/agents:
-    get:
-      description: Returns agents for the current organization with optional filters.
-      parameters:
-      - description: Filter by status (active, archived)
-        in: query
-        name: status
-        type: string
-      - description: Page size (default 50, max 100)
-        in: query
-        name: limit
-        type: integer
-      - description: Pagination cursor
-        in: query
-        name: cursor
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/paginatedResponse-agentResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/errorResponse'
-      security:
-      - BearerAuth: []
-      summary: List agents
-      tags:
-      - agents
-    post:
-      consumes:
-      - application/json
-      description: Creates a new agent tied to a credential. A dedicated sandbox is
-        provisioned lazily on conversation create.
-      parameters:
-      - description: Agent definition
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/createAgentRequest'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            $ref: '#/definitions/agentResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/errorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/errorResponse'
-        "409":
-          description: Conflict
-          schema:
-            $ref: '#/definitions/errorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/errorResponse'
-      security:
-      - BearerAuth: []
-      summary: Create an agent
-      tags:
-      - agents
-  /v1/agents/{agentID}/conversations:
-    get:
-      description: Returns conversations for the specified agent.
-      parameters:
-      - description: Agent ID
-        in: path
-        name: agentID
-        required: true
-        type: string
-      - description: Filter by status (active, ended, error)
-        in: query
-        name: status
-        type: string
-      - description: Page size
-        in: query
-        name: limit
-        type: integer
-      - description: Pagination cursor
-        in: query
-        name: cursor
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/paginatedResponse-conversationResponse'
-      security:
-      - BearerAuth: []
-      summary: List conversations for an agent
-      tags:
-      - conversations
-    post:
-      description: Creates a new conversation for an agent by spinning up a dedicated
-        sandbox.
-      parameters:
-      - description: Agent ID
-        in: path
-        name: agentID
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            $ref: '#/definitions/conversationResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/errorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/errorResponse'
-        "503":
-          description: Service Unavailable
-          schema:
-            $ref: '#/definitions/errorResponse'
-      security:
-      - BearerAuth: []
-      summary: Create a conversation
-      tags:
-      - conversations
-  /v1/agents/{agentID}/skills:
-    get:
-      parameters:
-      - description: Agent ID
-        in: path
-        name: agentID
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            items:
-              $ref: '#/definitions/agentSkillResponse'
-            type: array
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/errorResponse'
-      security:
-      - BearerAuth: []
-      summary: List skills attached to an agent
-      tags:
-      - skills
-    post:
-      consumes:
-      - application/json
-      description: Creates an agent_skills row. PinnedVersionID is optional — when
-        null the agent follows the skill's latest version.
-      parameters:
-      - description: Agent ID
-        in: path
-        name: agentID
-        required: true
-        type: string
-      - description: Skill to attach
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/attachSkillRequest'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            $ref: '#/definitions/agentSkillResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/errorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/errorResponse'
-      security:
-      - BearerAuth: []
-      summary: Attach a skill to an agent
-      tags:
-      - skills
-  /v1/agents/{agentID}/skills/{skillID}:
-    delete:
-      description: Removes an agent_skills row.
-      parameters:
-      - description: Agent ID
-        in: path
-        name: agentID
-        required: true
-        type: string
-      - description: Skill ID
-        in: path
-        name: skillID
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/errorResponse'
-      security:
-      - BearerAuth: []
-      summary: Detach a skill from an agent
-      tags:
-      - skills
-  /v1/agents/{id}:
-    delete:
-      description: Deletes an agent and removes it from Bridge.
-      parameters:
-      - description: Agent ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/errorResponse'
-      security:
-      - BearerAuth: []
-      summary: Delete an agent
-      tags:
-      - agents
-    get:
-      description: Returns a single agent by ID, including the latest forge run if
-        one exists.
-      parameters:
-      - description: Agent ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/agentResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/errorResponse'
-      security:
-      - BearerAuth: []
-      summary: Get an agent
-      tags:
-      - agents
-    put:
-      consumes:
-      - application/json
-      description: Updates an agent. Re-validates credential/model compatibility.
-      parameters:
-      - description: Agent ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: Fields to update
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/updateAgentRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/agentResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/errorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/errorResponse'
-        "409":
-          description: Conflict
-          schema:
-            $ref: '#/definitions/errorResponse'
-      security:
-      - BearerAuth: []
-      summary: Update an agent
-      tags:
-      - agents
-  /v1/agents/{id}/setup:
-    get:
-      description: Returns setup commands and env var key names for dedicated agents.
-      parameters:
-      - description: Agent ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/setupResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/errorResponse'
-      security:
-      - BearerAuth: []
-      summary: Get agent sandbox setup config
-      tags:
-      - agents
-    put:
-      consumes:
-      - application/json
-      description: Sets setup commands and encrypted environment variables. Only available
-        for dedicated sandbox agents.
-      parameters:
-      - description: Agent ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: Setup configuration
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/setupRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/setupResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/errorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/errorResponse'
-      security:
-      - BearerAuth: []
-      summary: Update agent sandbox setup config
-      tags:
-      - agents
-  /v1/agents/built-in-tools:
-    get:
-      description: Returns the catalog of built-in tools that can be granted to an
-        agent.
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            items:
-              $ref: '#/definitions/BuiltInToolDefinition'
-            type: array
-      security:
-      - BearerAuth: []
-      summary: List built-in tools
-      tags:
-      - agents
-  /v1/agents/categories:
-    get:
-      description: Returns the static catalog of work categories an agent can be tagged
-        with.
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            items:
-              $ref: '#/definitions/agentCategory'
-            type: array
-      security:
-      - BearerAuth: []
-      summary: List agent categories
-      tags:
-      - agents
-  /v1/agents/sandbox-tools:
-    get:
-      description: Returns the catalog of sandbox tools that can be granted to an
-        agent.
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            items:
-              $ref: '#/definitions/SandboxToolDefinition'
-            type: array
-      security:
-      - BearerAuth: []
-      summary: List sandbox tools
-      tags:
-      - agents
   /v1/api-keys:
     get:
       description: Returns API keys for the current organization with cursor pagination.
@@ -8118,7 +6898,7 @@ paths:
   /v1/employees:
     get:
       description: |-
-        Returns all employee agents in the org with sub-agents,
+        Returns all employees in the org with enabled specialists,
         skills (metadata only — no bundle content),
         triggers, and the latest sandbox row.
       parameters:
@@ -8157,7 +6937,7 @@ paths:
   /v1/employees/{id}:
     get:
       description: |-
-        Returns one employee agent in the org with sub-agents,
+        Returns one employee in the org with enabled specialists,
         skills (metadata only — no bundle content),
         triggers, and the latest sandbox row.
       parameters:
@@ -8192,105 +6972,6 @@ paths:
       security:
       - BearerAuth: []
       summary: Get an AI employee
-      tags:
-      - employees
-  /v1/employees/{id}/agent-templates:
-    get:
-      description: Returns employee subagent templates and whether each one is already
-        installed on the employee.
-      parameters:
-      - description: Employee agent ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            items:
-              $ref: '#/definitions/employeeAgentTemplateResponse'
-            type: array
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/errorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/errorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/errorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/errorResponse'
-      security:
-      - BearerAuth: []
-      summary: List employee agent templates
-      tags:
-      - employees
-  /v1/employees/{id}/agent-templates/{slug}/install:
-    post:
-      description: Idempotently adds or updates a template subagent on the employee,
-        attaches default subagent skills, and syncs runtime config.
-      parameters:
-      - description: Employee agent ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: Template slug
-        in: path
-        name: slug
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/installEmployeeAgentTemplateResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/errorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/errorResponse'
-        "403":
-          description: Forbidden
-          schema:
-            $ref: '#/definitions/errorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/errorResponse'
-        "409":
-          description: Conflict
-          schema:
-            $ref: '#/definitions/errorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/errorResponse'
-        "502":
-          description: Bad Gateway
-          schema:
-            $ref: '#/definitions/errorResponse'
-        "503":
-          description: Service Unavailable
-          schema:
-            $ref: '#/definitions/errorResponse'
-      security:
-      - BearerAuth: []
-      summary: Install an employee agent template
       tags:
       - employees
   /v1/employees/{id}/chats:
@@ -8337,43 +7018,6 @@ paths:
       summary: Start a chat with an AI employee
       tags:
       - chats
-  /v1/employees/{id}/connections/available:
-    get:
-      description: Returns non-revoked org connections available to the managed employee.
-      parameters:
-      - description: Employee agent ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/paginatedResponse-handler_employeeConnectionResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/errorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/errorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/errorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/errorResponse'
-      security:
-      - BearerAuth: []
-      summary: List assignable employee connections
-      tags:
-      - employees
   /v1/employees/{id}/sandbox/upgrade:
     post:
       consumes:
@@ -8540,6 +7184,260 @@ paths:
       security:
       - BearerAuth: []
       summary: List sessions for an employee
+      tags:
+      - employees
+    post:
+      description: Creates a new Hivy employee session.
+      parameters:
+      - description: Employee ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/conversationResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/errorResponse'
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create an employee session
+      tags:
+      - employees
+  /v1/employees/{id}/skills:
+    get:
+      parameters:
+      - description: Employee ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/agentSkillResponse'
+            type: array
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/errorResponse'
+      security:
+      - BearerAuth: []
+      summary: List skills attached to an employee
+      tags:
+      - skills
+    post:
+      consumes:
+      - application/json
+      description: Creates an employee skill attachment. PinnedVersionID is optional
+        — when null the employee follows the skill's latest version.
+      parameters:
+      - description: Employee ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Skill to attach
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/attachSkillRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/agentSkillResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Attach a skill to an employee
+      tags:
+      - skills
+  /v1/employees/{id}/skills/{skillID}:
+    delete:
+      description: Removes an employee skill attachment.
+      parameters:
+      - description: Employee ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Skill ID
+        in: path
+        name: skillID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Detach a skill from an employee
+      tags:
+      - skills
+  /v1/employees/{id}/specialists:
+    get:
+      description: Returns all code-defined specialists and whether Hivy currently
+        has each enabled.
+      parameters:
+      - description: Employee ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/employeeSpecialistResponse'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/errorResponse'
+      security:
+      - BearerAuth: []
+      summary: List employee specialists
+      tags:
+      - employees
+  /v1/employees/{id}/specialists/{slug}:
+    delete:
+      description: Adds a specialist slug to Hivy's disabled specialist list.
+      parameters:
+      - description: Employee ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Specialist slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Disable an employee specialist
+      tags:
+      - employees
+    post:
+      description: Removes a specialist slug from Hivy's disabled specialist list.
+      parameters:
+      - description: Employee ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Specialist slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Enable an employee specialist
       tags:
       - employees
   /v1/employees/{id}/sync:
@@ -9000,176 +7898,6 @@ paths:
       summary: Decline an invitation
       tags:
       - org-invites
-  /v1/marketplace/agents:
-    get:
-      description: Returns published marketplace agents with optional filters. Cached
-        in Redis.
-      parameters:
-      - description: Search by name
-        in: query
-        name: search
-        type: string
-      - description: Filter by tag (comma-separated)
-        in: query
-        name: tags
-        type: string
-      - description: Filter featured agents
-        in: query
-        name: featured
-        type: boolean
-      - description: Filter popular agents
-        in: query
-        name: popular
-        type: boolean
-      - description: Filter verified agents
-        in: query
-        name: verified
-        type: boolean
-      - description: Page size
-        in: query
-        name: limit
-        type: integer
-      - description: Pagination cursor
-        in: query
-        name: cursor
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/paginatedResponse-marketplaceAgentResponse'
-      summary: List published marketplace agents
-      tags:
-      - marketplace
-    post:
-      consumes:
-      - application/json
-      description: Copies an org agent into the marketplace as a draft listing.
-      parameters:
-      - description: Agent to publish
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/createMarketplaceAgentRequest'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            $ref: '#/definitions/marketplaceAgentResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/errorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/errorResponse'
-      security:
-      - BearerAuth: []
-      summary: Publish agent to marketplace
-      tags:
-      - marketplace
-  /v1/marketplace/agents/{id}:
-    delete:
-      description: Deletes a marketplace agent. Only the publisher can delete.
-      parameters:
-      - description: Marketplace agent ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "403":
-          description: Forbidden
-          schema:
-            $ref: '#/definitions/errorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/errorResponse'
-      security:
-      - BearerAuth: []
-      summary: Remove a marketplace listing
-      tags:
-      - marketplace
-    put:
-      consumes:
-      - application/json
-      description: Updates name, description, avatar, tags, instructions, or status.
-        Only the publisher can update.
-      parameters:
-      - description: Marketplace agent ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: Fields to update
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/updateMarketplaceAgentRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/marketplaceAgentResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/errorResponse'
-        "403":
-          description: Forbidden
-          schema:
-            $ref: '#/definitions/errorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/errorResponse'
-      security:
-      - BearerAuth: []
-      summary: Update a marketplace agent
-      tags:
-      - marketplace
-  /v1/marketplace/agents/{slug}:
-    get:
-      description: Returns a single published marketplace agent by its URL slug. Cached
-        in Redis.
-      parameters:
-      - description: Agent slug
-        in: path
-        name: slug
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/marketplaceAgentResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/errorResponse'
-      summary: Get a marketplace agent by slug
-      tags:
-      - marketplace
   /v1/models:
     get:
       description: Returns models from providers that have at least one active system
@@ -10283,8 +9011,8 @@ paths:
   /v1/skills:
     get:
       description: Lists skills visible to the current org. Use scope=public to browse
-        the marketplace, scope=own for org skills, scope=all for both. Pass q to search
-        by name/description.
+        the global library, scope=own for org skills, scope=all for both. Pass q to
+        search by name/description.
       parameters:
       - description: 'Filter: public, own, all (default all)'
         in: query
@@ -10514,68 +9242,6 @@ paths:
       security:
       - BearerAuth: []
       summary: Re-hydrate a git-sourced skill
-      tags:
-      - skills
-  /v1/skills/{id}/publish:
-    delete:
-      description: Archives the public clone and removes the reference from the original
-        skill.
-      parameters:
-      - description: Skill ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/errorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/errorResponse'
-      security:
-      - BearerAuth: []
-      summary: Remove a skill from the public marketplace
-      tags:
-      - skills
-    post:
-      description: Clones an org-owned skill into a public skill (OrgID=nil) with
-        a reference back to the original. The original skill gets a reference to the
-        public clone.
-      parameters:
-      - description: Skill ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            $ref: '#/definitions/skillDetailResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/errorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/errorResponse'
-      security:
-      - BearerAuth: []
-      summary: Publish a skill to the public marketplace
       tags:
       - skills
   /v1/skills/{id}/versions:

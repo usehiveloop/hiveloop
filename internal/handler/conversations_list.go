@@ -11,18 +11,17 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
-// List handles GET /v1/agents/{agentID}/conversations.
-// @Summary List conversations for an agent
-// @Description Returns conversations for the specified agent.
+// List handles GET /v1/employees/{id}/sessions.
+// @Summary List employee sessions
+// @Description Returns sessions for the specified employee.
 // @Tags conversations
 // @Produce json
-// @Param agentID path string true "Agent ID"
+// @Param id path string true "Employee ID"
 // @Param status query string false "Filter by status (active, ended, error)"
 // @Param limit query int false "Page size"
 // @Param cursor query string false "Pagination cursor"
 // @Success 200 {object} paginatedResponse[conversationResponse]
 // @Security BearerAuth
-// @Router /v1/agents/{agentID}/conversations [get]
 func (h *ConversationHandler) List(w http.ResponseWriter, r *http.Request) {
 	org, ok := middleware.OrgFromContext(r.Context())
 	if !ok {
@@ -31,6 +30,9 @@ func (h *ConversationHandler) List(w http.ResponseWriter, r *http.Request) {
 	}
 
 	agentID := chi.URLParam(r, "agentID")
+	if agentID == "" {
+		agentID = chi.URLParam(r, "id")
+	}
 	limit, cursor, err := parsePagination(r)
 	if err != nil {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})

@@ -17,7 +17,7 @@ type ProviderPromptConfig struct {
 type ProviderPromptsMap map[string]ProviderPromptConfig
 
 // validProviderGroups mirrors the groups returned by
-// subagents.MapProviderToGroup. Kept here to avoid an import cycle into
+// subemployees.MapProviderToGroup. Kept here to avoid an import cycle into
 // internal/sub-agents from internal/model.
 var validProviderGroups = map[string]bool{
 	"anthropic": true,

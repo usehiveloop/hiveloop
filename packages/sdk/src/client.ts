@@ -1,13 +1,13 @@
 import createClient from "openapi-fetch";
 import type { paths } from "./generated/schema.js";
 import type { HiveLoopConfig } from "./types.js";
-import { AgentsResource } from "./resources/agents.js";
 import { ApiKeysResource } from "./resources/api-keys.js";
 import { AuditResource } from "./resources/audit.js";
 import { CatalogResource } from "./resources/catalog.js";
 import { ConversationsResource } from "./resources/conversations.js";
 import { CredentialsResource } from "./resources/credentials.js";
 import { CustomDomainsResource } from "./resources/custom-domains.js";
+import { EmployeesResource } from "./resources/employees.js";
 import { GenerationsResource } from "./resources/generations.js";
 import { OrgResource } from "./resources/org.js";
 import { ProvidersResource } from "./resources/providers.js";
@@ -18,13 +18,13 @@ import { TokensResource } from "./resources/tokens.js";
 import { UsageResource } from "./resources/usage.js";
 
 export class HiveLoop {
-  public readonly agents: AgentsResource;
   public readonly apiKeys: ApiKeysResource;
   public readonly audit: AuditResource;
   public readonly catalog: CatalogResource;
   public readonly conversations: ConversationsResource;
   public readonly credentials: CredentialsResource;
   public readonly customDomains: CustomDomainsResource;
+  public readonly employees: EmployeesResource;
   public readonly generations: GenerationsResource;
   public readonly org: OrgResource;
   public readonly providers: ProvidersResource;
@@ -43,13 +43,13 @@ export class HiveLoop {
       },
     });
 
-    this.agents = new AgentsResource(client);
     this.apiKeys = new ApiKeysResource(client);
     this.audit = new AuditResource(client);
     this.catalog = new CatalogResource(client);
     this.conversations = new ConversationsResource(client, baseUrl, config.apiKey);
     this.credentials = new CredentialsResource(client);
     this.customDomains = new CustomDomainsResource(client);
+    this.employees = new EmployeesResource(client);
     this.generations = new GenerationsResource(client);
     this.org = new OrgResource(client);
     this.providers = new ProvidersResource(client);

@@ -87,29 +87,6 @@ func toAdminTokenResponse(t model.Token) adminTokenResponse {
 	return resp
 }
 
-type adminAgentResponse struct {
-	ID        string `json:"id"`
-	OrgID     string `json:"org_id"`
-	Name      string `json:"name"`
-	Model     string `json:"model"`
-	Status    string `json:"status"`
-	CreatedAt string `json:"created_at"`
-}
-
-func toAdminAgentResponse(a model.Agent) adminAgentResponse {
-	resp := adminAgentResponse{
-		ID:        a.ID.String(),
-		Name:      a.Name,
-		Model:     a.Model,
-		Status:    a.Status,
-		CreatedAt: a.CreatedAt.Format(time.RFC3339),
-	}
-	if a.OrgID != nil {
-		resp.OrgID = a.OrgID.String()
-	}
-	return resp
-}
-
 type adminSandboxResponse struct {
 	ID               string  `json:"id"`
 	OrgID            *string `json:"org_id,omitempty"`

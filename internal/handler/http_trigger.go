@@ -69,8 +69,8 @@ func (handler *HTTPTriggerHandler) Handle(writer http.ResponseWriter, request *h
 
 	var trigger model.AgentTrigger
 	if err := handler.db.
-		Joins("JOIN agents ON agents.id = agent_triggers.agent_id").
-		Where("agent_triggers.id = ? AND agent_triggers.enabled = TRUE AND agent_triggers.trigger_type = ? AND agents.is_employee = true", triggerID, "http").
+		Joins("JOIN employees ON employees.id = employee_triggers.agent_id").
+		Where("employee_triggers.id = ? AND employee_triggers.enabled = TRUE AND employee_triggers.trigger_type = ? AND employees.status <> ?", triggerID, "http", "archived").
 		First(&trigger).Error; err != nil {
 		writeJSON(writer, http.StatusNotFound, errorResponse{Error: "trigger not found"})
 		return

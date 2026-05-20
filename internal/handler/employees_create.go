@@ -19,7 +19,7 @@ import (
 func ensureHivyEmployee(ctx context.Context, db *gorm.DB, orgID uuid.UUID) (*model.Agent, error) {
 	var existing model.Agent
 	err := db.WithContext(ctx).
-		Where("org_id = ? AND is_employee = true AND is_system = false", orgID).
+		Where("org_id = ? AND status <> ?", orgID, "archived").
 		Order("created_at ASC").
 		First(&existing).Error
 	if err == nil {
@@ -41,7 +41,7 @@ func ensureHivyEmployee(ctx context.Context, db *gorm.DB, orgID uuid.UUID) (*mod
 	if err != nil {
 		if isDuplicateKeyError(err) {
 			if refetch := db.WithContext(ctx).
-				Where("org_id = ? AND is_employee = true AND is_system = false", orgID).
+				Where("org_id = ? AND status <> ?", orgID, "archived").
 				Order("created_at ASC").
 				First(&existing).Error; refetch == nil {
 				return &existing, nil
@@ -53,26 +53,17 @@ func ensureHivyEmployee(ctx context.Context, db *gorm.DB, orgID uuid.UUID) (*mod
 }
 
 func createHivyEmployeeWithDefaultsTx(ctx context.Context, tx *gorm.DB, orgID uuid.UUID) (*model.Agent, error) {
-	agent, subagents, err := createHivyEmployeeTx(ctx, tx, orgID)
+	agent, err := createHivyEmployeeTx(ctx, tx, orgID)
 	if err != nil {
 		return nil, err
 	}
 	if err := attachPublishedGlobalSkillsTx(ctx, tx, agent.ID, defaultEmployeeSkills); err != nil {
 		return nil, err
 	}
-	for _, subagent := range subagents {
-		template := employeeAgentTemplateForSubagent(subagent)
-		if template == nil {
-			continue
-		}
-		if err := attachPublishedGlobalSkillsTx(ctx, tx, subagent.ID, template.DefaultSkillNames); err != nil {
-			return nil, err
-		}
-	}
 	return agent, nil
 }
 
-func createHivyEmployeeTx(ctx context.Context, tx *gorm.DB, orgID uuid.UUID) (*model.Agent, []*model.Agent, error) {
+func createHivyEmployeeTx(ctx context.Context, tx *gorm.DB, orgID uuid.UUID) (*model.Agent, error) {
 	choice, err := pickEmployeeCredential(tx)
 	if err != nil {
 		logging.FromContext(ctx).WarnContext(ctx, "no provider credential available for Hivy employee", "error", err, "org_id", orgID)
@@ -88,7 +79,6 @@ func createHivyEmployeeTx(ctx context.Context, tx *gorm.DB, orgID uuid.UUID) (*m
 		IdentityPrompt: employeeprompts.EngineeringIdentityPrompt,
 		Model:          choice.model,
 		Harness:        employeeHarness,
-		IsEmployee:     true,
 		Status:         "draft",
 		Tools:          model.JSON{},
 		McpServers:     model.JSON{},
@@ -102,15 +92,10 @@ func createHivyEmployeeTx(ctx context.Context, tx *gorm.DB, orgID uuid.UUID) (*m
 		agent.CredentialID = &choice.cred.ID
 	}
 	if err := tx.WithContext(ctx).Create(&agent).Error; err != nil {
-		return nil, nil, fmt.Errorf("create Hivy employee: %w", err)
+		return nil, fmt.Errorf("create Hivy employee: %w", err)
 	}
 
-	h := &EmployeeHandler{db: tx}
-	subagents, err := h.ensureEmployeeAgentTemplatesTx(ctx, tx, &agent)
-	if err != nil {
-		return nil, nil, err
-	}
-	return &agent, subagents, nil
+	return &agent, nil
 }
 
 func attachPublishedGlobalSkillsTx(ctx context.Context, tx *gorm.DB, agentID uuid.UUID, names []string) error {

@@ -65,11 +65,6 @@ func (h *EmployeeHandler) Sync(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !agent.IsEmployee {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "agent is not an employee"})
-		return
-	}
-
 	if upgrade, ok, err := activeEmployeeSandboxUpgrade(ctx, h.db, org.ID, agentID); err != nil {
 		log.ErrorContext(ctx, "load active employee sandbox upgrade", "error", err, "agent_id", agentID)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to load active upgrade"})
@@ -87,12 +82,6 @@ func (h *EmployeeHandler) Sync(w http.ResponseWriter, r *http.Request) {
 	}
 	if !hasProfile {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "organization must have an active Slack connection"})
-		return
-	}
-
-	if _, err := h.ensureEmployeeAgentTemplates(ctx, &agent); err != nil {
-		log.ErrorContext(ctx, "ensure employee agent templates", "error", err, "agent_id", agentID, "org_id", org.ID)
-		writeJSON(w, http.StatusServiceUnavailable, map[string]string{"error": "failed to ensure employee agent templates"})
 		return
 	}
 

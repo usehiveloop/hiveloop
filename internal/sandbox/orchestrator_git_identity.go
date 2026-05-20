@@ -38,15 +38,14 @@ func (o *Orchestrator) resolveGitIdentityAgent(ctx context.Context, agent *model
 	if agent.IsEmployee {
 		return agent, nil
 	}
+	if agent.OrgID == nil {
+		return agent, nil
+	}
 
 	var employee model.Agent
 	query := o.db.WithContext(ctx).
-		Joins("JOIN agent_subagents ON agent_subagents.agent_id = agents.id").
-		Where("agent_subagents.subagent_id = ? AND agents.is_employee = ?", agent.ID, true)
-	if agent.OrgID != nil {
-		query = query.Where("agents.org_id = ?", *agent.OrgID)
-	}
-	err := query.Order("agent_subagents.created_at ASC").First(&employee).Error
+		Where("org_id = ? AND id <> ? AND status <> ?", *agent.OrgID, agent.ID, "archived")
+	err := query.Order("created_at ASC").First(&employee).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return agent, nil
@@ -94,7 +93,7 @@ func fallbackGitUsername(agent *model.Agent) string {
 	if username := sanitizeName(agent.Name); username != "" {
 		return username
 	}
-	return "agent-" + shortID(agent.ID)
+	return "hivy"
 }
 
 func fallbackGitEmail(agent *model.Agent) string {

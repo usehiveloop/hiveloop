@@ -66,7 +66,7 @@ func (h *EmployeeHandler) ListSessions(w http.ResponseWriter, r *http.Request) {
 
 	var agent model.Agent
 	if err := h.db.WithContext(ctx).
-		Where("id = ? AND org_id = ? AND is_employee = true AND is_system = false", agentID, org.ID).
+		Where("id = ? AND org_id = ? AND status <> ?", agentID, org.ID, "archived").
 		First(&agent).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			writeJSON(w, http.StatusNotFound, map[string]string{"error": "employee not found"})

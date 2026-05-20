@@ -253,7 +253,7 @@ func TestPromptWriter_PublicPublishedSkill_VisibleAcrossOrgs(t *testing.T) {
 	})
 
 	publicSkill := seedSkill(t, h.db, nil,
-		"public-marketplace-skill",
+		"public-library-skill",
 		"installed by anyone",
 		model.SkillStatusPublished,
 	)
@@ -270,7 +270,7 @@ func TestPromptWriter_PublicPublishedSkill_VisibleAcrossOrgs(t *testing.T) {
 	if rr.Code != http.StatusOK {
 		t.Fatalf("status=%d body=%s", rr.Code, rr.Body.String())
 	}
-	if !strings.Contains(*h.upstreamBody, "public-marketplace-skill") {
+	if !strings.Contains(*h.upstreamBody, "public-library-skill") {
 		t.Errorf("upstream request missing public skill name; body:\n%s", *h.upstreamBody)
 	}
 }

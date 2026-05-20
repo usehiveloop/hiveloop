@@ -107,7 +107,7 @@ var SupportedMemoryTypes = []string{
 	"bot_feedback",
 }
 
-// DefaultMemoryConfig returns sensible defaults for general-purpose agents.
+// DefaultMemoryConfig returns sensible defaults for general-purpose employees.
 func DefaultMemoryConfig() MemoryConfig {
 	enabled := true
 	skep, lit, emp := defaultSkepticism, defaultLiteralism, defaultEmpathy

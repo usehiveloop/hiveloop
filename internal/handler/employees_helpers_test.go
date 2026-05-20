@@ -235,12 +235,10 @@ func newEmployeeHarness(t *testing.T) *employeeHarness {
 		r.Use(middleware.ResolveOrgFromHeader(db))
 		r.Get("/", h.List)
 		r.Get("/{id}", h.Get)
-		r.Get("/{id}/agent-templates", h.ListAgentTemplates)
-		r.Get("/{id}/connections/available", h.ListAvailableConnections)
+		r.Get("/{id}/specialists", h.ListSpecialists)
 		r.Group(func(r chi.Router) {
 			r.Use(middleware.RequireOrgAdmin(db))
 			r.Post("/{id}/sync", h.Sync)
-			r.Post("/{id}/agent-templates/{slug}/install", h.InstallAgentTemplate)
 			r.Post("/{id}/sandbox/upgrade", h.StartSandboxUpgrade)
 			r.Get("/{id}/sandbox/upgrades/{upgradeID}", h.GetSandboxUpgrade)
 		})

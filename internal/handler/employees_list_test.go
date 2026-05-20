@@ -6,8 +6,6 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/google/uuid"
-
 	"github.com/usehiveloop/hiveloop/internal/auth"
 	"github.com/usehiveloop/hiveloop/internal/middleware"
 	"github.com/usehiveloop/hiveloop/internal/model"
@@ -35,22 +33,8 @@ func TestIntegration_EmployeesList_HappyPath_LoadsAllRelations(t *testing.T) {
 	h.seedSandbox(t, m, emp.ID)
 	h.seedSlackProfile(t, m, emp.ID)
 
-	subagent := model.Agent{
-		OrgID: &m.org.ID, Name: "sub-" + uuid.NewString()[:6],
-		IsEmployee: false, Status: "active", SystemPrompt: "x", Model: "y",
-	}
-	if err := h.db.Create(&subagent).Error; err != nil {
-		t.Fatalf("create subagent: %v", err)
-	}
-	subID := subagent.ID
-	t.Cleanup(func() { h.db.Where("id = ?", subID).Delete(&model.Agent{}) })
-	if err := h.db.Create(&model.AgentSubagent{AgentID: emp.ID, SubagentID: subID}).Error; err != nil {
-		t.Fatalf("link subagent: %v", err)
-	}
-	t.Cleanup(func() { h.db.Where("agent_id = ?", emp.ID).Delete(&model.AgentSubagent{}) })
-
 	skill := model.Skill{
-		ID: uuid.New(), Slug: "list-skill-" + uuid.NewString()[:6],
+		Slug: "list-skill-" + randSuffix(),
 		Name: "List Skill", SourceType: model.SkillSourceInline,
 		Status: model.SkillStatusPublished,
 	}
@@ -86,13 +70,8 @@ func TestIntegration_EmployeesList_HappyPath_LoadsAllRelations(t *testing.T) {
 		t.Errorf("is_employee = %v, want true", item["is_employee"])
 	}
 	subagents := item["subagents"].([]any)
-	if len(subagents) != 1 {
-		t.Errorf("subagents len = %d, want 1", len(subagents))
-	} else {
-		sa := subagents[0].(map[string]any)
-		if sa["id"] != subID.String() {
-			t.Errorf("subagent id mismatch: got %v", sa["id"])
-		}
+	if len(subagents) != 2 {
+		t.Errorf("subagents len = %d, want 2", len(subagents))
 	}
 
 	attached := item["attached_skills"].([]any)
@@ -171,38 +150,6 @@ func TestIntegration_EmployeesList_ReportsSandboxUpgradeAvailability(t *testing.
 	}
 	if !got[legacy.ID.String()] {
 		t.Errorf("legacy sandbox upgrade_available = false, want true")
-	}
-}
-
-func TestIntegration_EmployeesList_ExcludesNonEmployees(t *testing.T) {
-	h := newEmployeeHarness(t)
-	h.platformCredCleanup(t)
-	m := h.createOrg(t)
-	emp := h.seedEmployeeAgent(t, m)
-
-	notEmp := model.Agent{
-		OrgID: &m.org.ID, Name: "plain-agent-" + uuid.NewString()[:6],
-		IsEmployee: false, Status: "active", SystemPrompt: "x", Model: "y",
-	}
-	if err := h.db.Create(&notEmp).Error; err != nil {
-		t.Fatalf("create plain agent: %v", err)
-	}
-	notEmpID := notEmp.ID
-	t.Cleanup(func() { h.db.Where("id = ?", notEmpID).Delete(&model.Agent{}) })
-
-	rr := h.listEmployees(t, m)
-	if rr.Code != http.StatusOK {
-		t.Fatalf("status = %d", rr.Code)
-	}
-	var resp struct {
-		Data []map[string]any `json:"data"`
-	}
-	json.Unmarshal(rr.Body.Bytes(), &resp)
-	if len(resp.Data) != 1 {
-		t.Fatalf("data len = %d, want 1 (only the employee)", len(resp.Data))
-	}
-	if resp.Data[0]["id"] != emp.ID.String() {
-		t.Errorf("returned wrong agent: %v", resp.Data[0]["id"])
 	}
 }
 

@@ -28,7 +28,7 @@ type AgentTrigger struct {
 	UpdatedAt time.Time
 }
 
-func (AgentTrigger) TableName() string { return "agent_triggers" }
+func (AgentTrigger) TableName() string { return "employee_triggers" }
 
 // TriggerMatch defines filtering conditions on the webhook payload.
 type TriggerMatch struct {

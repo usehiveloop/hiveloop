@@ -25,7 +25,6 @@ func setupPublicRoutes(
 	providerHandler *handler.ProviderHandler,
 	inIntegrationHandler *handler.InIntegrationHandler,
 	actionsCatalog *catalog.Catalog,
-	marketplaceHandler *handler.MarketplaceHandler,
 	orgInviteHandler *handler.OrgInviteHandler,
 	plansHandler *handler.PlansHandler,
 	bridgeWebhookHandler *handler.BridgeWebhookHandler,
@@ -57,10 +56,6 @@ func setupPublicRoutes(
 	r.Get("/v1/catalog/integrations/{id}/actions", actionsHandler.ListActions)
 	r.Get("/v1/catalog/integrations/{id}/triggers", actionsHandler.ListTriggers)
 	r.Get("/v1/catalog/integrations/{id}/schema-paths", actionsHandler.GetSchemaPaths)
-
-	// Marketplace discovery (no auth, Redis cached)
-	r.Get("/v1/marketplace/agents", marketplaceHandler.List)
-	r.Get("/v1/marketplace/agents/{slug}", marketplaceHandler.GetBySlug)
 
 	// Org invite preview (public, token-based lookup)
 	r.Get("/v1/invites/{token}", orgInviteHandler.Preview)
@@ -115,12 +110,12 @@ func setupPublicRoutes(
 	}
 
 	if cloudAgentHandler != nil {
-		r.Get("/internal/employees/{employeeID}/cloud-agents/", cloudAgentHandler.ListCloudAgents)
-		r.Get("/internal/employees/{employeeID}/cloud-agents/{agentID}/tasks", cloudAgentHandler.ListTasks)
-		r.Get("/internal/employees/{employeeID}/cloud-agents/{agentID}/tasks/{taskID}", cloudAgentHandler.GetTask)
-		r.Post("/internal/employees/{employeeID}/cloud-agents/{agentID}/tasks", cloudAgentHandler.CreateTask)
-		r.Post("/internal/employees/{employeeID}/cloud-agents/{agentID}/tasks/{taskID}/message", cloudAgentHandler.SendTaskMessage)
-		r.Post("/internal/employees/{employeeID}/cloud-agents/{agentID}/tasks/{taskID}", cloudAgentHandler.TerminateTask)
+		r.Get("/internal/employees/{employeeID}/specialists/", cloudAgentHandler.ListCloudAgents)
+		r.Get("/internal/employees/{employeeID}/specialists/{specialistSlug}/tasks", cloudAgentHandler.ListTasks)
+		r.Get("/internal/employees/{employeeID}/specialists/{specialistSlug}/tasks/{taskID}", cloudAgentHandler.GetTask)
+		r.Post("/internal/employees/{employeeID}/specialists/{specialistSlug}/tasks", cloudAgentHandler.CreateTask)
+		r.Post("/internal/employees/{employeeID}/specialists/{specialistSlug}/tasks/{taskID}/message", cloudAgentHandler.SendTaskMessage)
+		r.Post("/internal/employees/{employeeID}/specialists/{specialistSlug}/tasks/{taskID}", cloudAgentHandler.TerminateTask)
 	}
 }
 

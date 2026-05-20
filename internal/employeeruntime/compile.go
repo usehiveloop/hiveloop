@@ -27,6 +27,8 @@ const (
 	DefaultEmployeeSubagentModel   = "deepseek/deepseek-v4-pro"
 	DefaultEmployeeMultimodalModel = "google/gemini-3-flash-preview"
 	proxyTokenTTL                  = 24 * time.Hour
+	managedEmployeeName            = "Hivy"
+	managedEmployeeDescription     = "Hivy is the organization's managed AI employee."
 )
 
 type CompileDeps struct {
@@ -56,8 +58,8 @@ type ProxyTokenResult struct {
 	ExpiresAt time.Time
 }
 
-type AgentDefinition struct {
-	Agent            AgentMeta        `json:"agent"`
+type EmployeeDefinition struct {
+	Employee         AgentMeta        `json:"employee"`
 	PromptFragments  PromptFragments  `json:"prompt_fragments,omitempty"`
 	Model            ModelConfig      `json:"model"`
 	MultimodalModel  *ModelConfig     `json:"multimodal_model,omitempty"`
@@ -66,10 +68,12 @@ type AgentDefinition struct {
 	Tools            []map[string]any `json:"tools"`
 	McpServers       []any            `json:"mcp_servers"`
 	Skills           []SkillSpec      `json:"skills"`
-	Subagents        []any            `json:"subagents"`
+	Specialists      []any            `json:"specialists"`
 	Slack            map[string]any   `json:"slack,omitempty"`
 	OutboundChannels []any            `json:"outbound_channels"`
 }
+
+type AgentDefinition = EmployeeDefinition
 
 type AgentMeta struct {
 	Name        string `json:"name"`
@@ -187,7 +191,7 @@ func MintProxyToken(ctx context.Context, deps CompileDeps, agent *model.Agent, s
 		return nil, fmt.Errorf("mint proxy token: %w", err)
 	}
 	now := time.Now().UTC()
-	meta := model.JSON{"agent_id": agent.ID.String(), "type": "agent_proxy", "harness": "employee-sandbox"}
+	meta := model.JSON{"employee_id": agent.ID.String(), "type": "employee_proxy", "harness": "employee-sandbox"}
 	if sandboxID != uuid.Nil {
 		meta["sandbox_id"] = sandboxID.String()
 	}
@@ -197,7 +201,7 @@ func MintProxyToken(ctx context.Context, deps CompileDeps, agent *model.Agent, s
 		CredentialID: cred.ID,
 		JTI:          jti,
 		ExpiresAt:    expiresAt,
-		Scopes:       scopesFromIntegrations(agent.Integrations),
+		Scopes:       model.JSON{},
 		Meta:         meta,
 	}
 	if err := deps.DB.WithContext(ctx).Create(&dbToken).Error; err != nil {
@@ -216,8 +220,8 @@ func AttachLatestProxyTokenToSandbox(ctx context.Context, deps CompileDeps, agen
 	}
 	var tok model.Token
 	if err := deps.DB.WithContext(ctx).
-		Where("org_id = ? AND meta->>'agent_id' = ? AND meta->>'type' = ? AND meta->>'harness' = ?",
-			*agent.OrgID, agent.ID.String(), "agent_proxy", "employee-sandbox").
+		Where("org_id = ? AND meta->>'employee_id' = ? AND meta->>'type' = ? AND meta->>'harness' = ?",
+			*agent.OrgID, agent.ID.String(), "employee_proxy", "employee-sandbox").
 		Order("created_at DESC").
 		First(&tok).Error; err != nil {
 		return nil
@@ -230,7 +234,7 @@ func AttachLatestProxyTokenToSandbox(ctx context.Context, deps CompileDeps, agen
 	return deps.DB.WithContext(ctx).Model(&tok).Update("meta", meta).Error
 }
 
-func Compile(ctx context.Context, deps CompileDeps, agent *model.Agent) (*AgentDefinition, error) {
+func Compile(ctx context.Context, deps CompileDeps, agent *model.Agent) (*EmployeeDefinition, error) {
 	if agent == nil || agent.OrgID == nil {
 		return nil, fmt.Errorf("employee runtime compile: agent must have org_id")
 	}
@@ -242,10 +246,7 @@ func Compile(ctx context.Context, deps CompileDeps, agent *model.Agent) (*AgentD
 	if ourMCP := buildEmployeeMCPServer(ctx, deps, agent); ourMCP != nil {
 		mcpServers = upsertHiveloopMCPServer(mcpServers, ourMCP)
 	}
-	description := ""
-	if agent.Description != nil {
-		description = *agent.Description
-	}
+	description := managedEmployeeDescription
 	fragments := buildPromptFragments(ctx, deps.DB, agent, description)
 	contextMap := map[string]any{
 		"memory": buildMemoryContext(ctx, deps, agent),
@@ -255,9 +256,9 @@ func Compile(ctx context.Context, deps CompileDeps, agent *model.Agent) (*AgentD
 	if modelID == "" {
 		modelID = DefaultEmployeeModel
 	}
-	return &AgentDefinition{
-		Agent: AgentMeta{
-			Name:        agent.Name,
+	return &EmployeeDefinition{
+		Employee: AgentMeta{
+			Name:        managedEmployeeName,
 			Description: description,
 		},
 		PromptFragments:  fragments,
@@ -268,7 +269,7 @@ func Compile(ctx context.Context, deps CompileDeps, agent *model.Agent) (*AgentD
 		Tools:            defaultTools(),
 		McpServers:       mcpServers,
 		Skills:           skills,
-		Subagents:        []any{},
+		Specialists:      []any{},
 		Slack:            slackConfigMap(slackConfig),
 		OutboundChannels: []any{},
 	}, nil
@@ -402,7 +403,7 @@ func buildPromptFragments(ctx context.Context, db *gorm.DB, agent *model.Agent, 
 			Title: "Your identity",
 			Content: strings.TrimSpace(strings.Join([]string{
 				identityOpening(org, hasOrg),
-				"Name: " + agent.Name,
+				"Name: " + managedEmployeeName,
 				optionalLine("Role description", description),
 				employeeIdentityPrompt(agent),
 			}, "\n")),
@@ -417,12 +418,6 @@ func buildPromptFragments(ctx context.Context, db *gorm.DB, agent *model.Agent, 
 			fragments.Company = PromptFragment{Title: "About the company", Content: companyContent}
 		}
 	}
-	if strings.TrimSpace(agent.PromptOperatingPrinciples) != "" {
-		fragments.OperatingPrinciples = PromptFragment{
-			Title:   "Operating principles",
-			Content: strings.TrimSpace(agent.PromptOperatingPrinciples),
-		}
-	}
 	return fragments
 }
 
@@ -435,12 +430,6 @@ func identityOpening(org model.Org, hasOrg bool) string {
 }
 
 func employeeIdentityPrompt(agent *model.Agent) string {
-	if !isDefaultManagedEmployeeIdentityPrompt(agent.IdentityPrompt) {
-		return strings.TrimSpace(agent.IdentityPrompt)
-	}
-	if agent.Category != nil && strings.EqualFold(strings.TrimSpace(*agent.Category), "engineering") {
-		return employeeprompts.EngineeringIdentityPrompt
-	}
 	return employeeprompts.EngineeringIdentityPrompt
 }
 
@@ -479,7 +468,7 @@ func buildEmployeeMCPServer(ctx context.Context, deps CompileDeps, agent *model.
 	}
 	var tok model.Token
 	if err := deps.DB.WithContext(ctx).
-		Where("org_id = ? AND expires_at > ? AND meta->>'agent_id' = ? AND meta->>'type' = ?", *agent.OrgID, time.Now(), agent.ID.String(), "agent_proxy").
+		Where("org_id = ? AND expires_at > ? AND meta->>'employee_id' = ? AND meta->>'type' = ?", *agent.OrgID, time.Now(), agent.ID.String(), "employee_proxy").
 		Order("created_at DESC").
 		First(&tok).Error; err != nil {
 		return nil
@@ -541,7 +530,7 @@ func defaultLimits() map[string]any {
 		"input_token_budget":        180000,
 		"output_token_budget":       8000,
 		"tool_call_timeout_seconds": 60,
-		"subagent_max_depth":        2,
+		"specialist_max_depth":      2,
 	}
 }
 
@@ -554,8 +543,8 @@ func defaultTools() []map[string]any {
 		{"type": "builtin.cron"}, {"type": "builtin.delegate"}, {"type": "builtin.check_delegated_status"},
 		{"type": "builtin.check_bash_status"}, {"type": "builtin.wake"}, {"type": "builtin.load_tools"},
 		{"type": "builtin.skills_list"}, {"type": "builtin.skill_view"}, {"type": "builtin.skill_manage"},
-		{"type": "builtin.cloud_agent_launch_task"}, {"type": "builtin.cloud_agent_task_status"}, {"type": "builtin.cloud_agent_list_tasks"},
-		{"type": "builtin.cloud_agent_task_send_message"}, {"type": "builtin.cloud_agent_task_terminate"},
+		{"type": "builtin.specialist_launch_task"}, {"type": "builtin.specialist_task_status"}, {"type": "builtin.specialist_list_tasks"},
+		{"type": "builtin.specialist_task_send_message"}, {"type": "builtin.specialist_task_terminate"},
 	}
 }
 

@@ -6,8 +6,8 @@ import (
 	"github.com/google/uuid"
 )
 
-// AgentSkill attaches a Skill to an Agent. PinnedVersionID is nil when the
-// agent should follow the skill's latest version; otherwise the agent is
+// AgentSkill attaches a Skill to an Employee. PinnedVersionID is nil when the
+// employee should follow the skill's latest version; otherwise the employee is
 // frozen to that specific version.
 type AgentSkill struct {
 	AgentID uuid.UUID `gorm:"type:uuid;primaryKey"`
@@ -21,4 +21,4 @@ type AgentSkill struct {
 	CreatedAt time.Time
 }
 
-func (AgentSkill) TableName() string { return "agent_skills" }
+func (AgentSkill) TableName() string { return "employee_skills" }

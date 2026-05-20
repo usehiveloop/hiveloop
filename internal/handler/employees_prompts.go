@@ -34,7 +34,7 @@ Sequential research workflow:
    - Build a candidate source queue and reject weak/duplicative sources.
 5. Parallel investigation
    - Dispatch parallel agents for independent branches such as market/competitor, customer/reviews, technical/codebase, company/background, documentation/product, and risk/contradiction research.
-   - Avoid duplicate work across agents.
+   - Avoid duplicate work across employees.
    - Integrate parallel-agent results into your evidence ledger before synthesis.
 6. Fetch, filter, and process
    - Fetch only useful sources.

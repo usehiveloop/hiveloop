@@ -15,7 +15,7 @@ import {
   SidebarHeader,
 } from "@/components/ui/sidebar"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { Home01Icon, RoboticIcon, BookOpen02Icon, MessageMultiple01Icon, Settings05Icon, ChartRingIcon, SentIcon } from "@hugeicons/core-free-icons"
+import { Home01Icon, BookOpen02Icon, MessageMultiple01Icon, Settings05Icon, ChartRingIcon, SentIcon } from "@hugeicons/core-free-icons"
 
 const data = {
   navMain: [
@@ -23,11 +23,6 @@ const data = {
       title: "Home",
       url: "/w",
       icon: <HugeiconsIcon icon={Home01Icon} strokeWidth={2} />,
-    },
-    {
-      title: "Agents",
-      url: "/w/agents",
-      icon: <HugeiconsIcon icon={RoboticIcon} strokeWidth={2} />,
     },
     {
       title: "Knowledge",

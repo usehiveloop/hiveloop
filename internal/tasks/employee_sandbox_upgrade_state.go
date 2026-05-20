@@ -55,7 +55,7 @@ func (h *EmployeeSandboxUpgradeHandler) loadAndStart(ctx context.Context, payloa
 
 	var agent model.Agent
 	if err := h.db.WithContext(ctx).
-		Where("id = ? AND org_id = ? AND is_employee = true", upgrade.AgentID, upgrade.OrgID).
+		Where("id = ? AND org_id = ? AND status <> ?", upgrade.AgentID, upgrade.OrgID, "archived").
 		First(&agent).Error; err != nil {
 		h.markFailed(ctx, &upgrade, model.EmployeeSandboxUpgradePhaseBackup, "employee not found")
 		return nil, nil, nil, fmt.Errorf("load employee: %w", err)

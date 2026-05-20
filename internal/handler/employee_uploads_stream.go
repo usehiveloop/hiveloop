@@ -42,7 +42,7 @@ func (h *UploadsHandler) authEmployee(w http.ResponseWriter, r *http.Request) (*
 	}
 
 	var agent model.Agent
-	if err := h.db.Where("id = ? AND is_employee = true", agentID).First(&agent).Error; err != nil {
+	if err := h.db.Where("id = ? AND status <> ?", agentID, "archived").First(&agent).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			writeJSON(w, http.StatusNotFound, map[string]string{"error": "employee not found"})
 			return nil, nil, false
@@ -84,8 +84,8 @@ func (h *UploadsHandler) bearerMatchesEmployeeSubagentSandbox(r *http.Request, e
 	}
 	var sandboxes []model.Sandbox
 	if err := h.db.
-		Joins("JOIN cloud_agent_tasks ON cloud_agent_tasks.sandbox_id = sandboxes.id").
-		Where("cloud_agent_tasks.employee_agent_id = ? AND sandboxes.status NOT IN (?, ?)", employeeID, "archived", "error").
+		Joins("JOIN specialist_tasks ON specialist_tasks.sandbox_id = sandboxes.id").
+		Where("specialist_tasks.employee_agent_id = ? AND sandboxes.status NOT IN (?, ?)", employeeID, "archived", "error").
 		Find(&sandboxes).Error; err != nil {
 		logging.FromContext(r.Context()).ErrorContext(r.Context(), "load employee subagent sandboxes for asset auth", "employee_id", employeeID, "error", err)
 		return false

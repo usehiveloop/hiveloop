@@ -15,10 +15,6 @@ import (
 
 func employeeRequiredSkillNames(ctx context.Context, db *gorm.DB, orgID uuid.UUID) (map[string]bool, []string, error) {
 	names := map[string]bool{}
-	for _, name := range defaultEmployeeSkills {
-		names[name] = true
-	}
-
 	warnings := make([]string, 0)
 	var connections []model.InConnection
 	if err := db.WithContext(ctx).

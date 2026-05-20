@@ -100,7 +100,7 @@ export function LlmKeysSettings() {
         <div>
           <h3 className="text-sm font-medium text-foreground">Model provider keys</h3>
           <p className="mt-1 text-sm text-muted-foreground">
-            API keys for LLM providers that power your agents.
+            API keys for LLM providers that power your employees.
           </p>
         </div>
         <Button size="sm" onClick={() => setAddKeyOpen(true)} variant='secondary'>
@@ -119,7 +119,7 @@ export function LlmKeysSettings() {
             <div className="text-center mb-6">
               <h2 className="font-heading text-lg font-semibold text-foreground">No LLM keys yet</h2>
               <p className="text-sm text-muted-foreground mt-1.5 max-w-xs">
-                Add a provider key to start running agents.
+                Add a provider key to start running employees.
               </p>
             </div>
             <div className="w-full max-w-sm">
@@ -132,7 +132,7 @@ export function LlmKeysSettings() {
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-foreground">Add LLM key</p>
                   <p className="text-[13px] text-muted-foreground mt-0.5 leading-relaxed">
-                    Connect a provider like OpenAI or Anthropic to power your agents.
+                    Connect a provider like OpenAI or Anthropic to power your employees.
                   </p>
                 </div>
                 <HugeiconsIcon icon={ArrowRight01Icon} size={16} className="text-muted-foreground/30 shrink-0 mt-0.5" />

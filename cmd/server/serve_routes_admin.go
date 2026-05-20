@@ -25,7 +25,6 @@ func setupAdminRoutes(
 	database *gorm.DB,
 	platformAdminEmails []string,
 	enqueuer enqueue.TaskEnqueuer,
-	marketplaceHandler *handler.MarketplaceHandler,
 ) {
 	if cfg.AdminAPIEnabled {
 		adminHandler := handler.NewAdminHandler(database, deps.Orchestrator, deps.NangoClient, deps.ActionsCatalog,
@@ -68,11 +67,6 @@ func setupAdminRoutes(
 			r.Post("/api-keys/{id}/revoke", adminHandler.RevokeAPIKey)
 			r.Get("/tokens", adminHandler.ListTokens)
 			r.Post("/tokens/{id}/revoke", adminHandler.RevokeToken)
-			r.Get("/agents", adminHandler.ListAgents)
-			r.Get("/agents/{id}", adminHandler.GetAgent)
-			r.Put("/agents/{id}", adminHandler.UpdateAgent)
-			r.Post("/agents/{id}/archive", adminHandler.ArchiveAgent)
-			r.Delete("/agents/{id}", adminHandler.DeleteAgent)
 			r.Get("/skills", adminHandler.ListSkills)
 			r.Get("/skills/{id}", adminHandler.GetSkill)
 			r.Post("/skills", adminHandler.CreateSkill)
@@ -107,10 +101,6 @@ func setupAdminRoutes(
 			r.Get("/usage", adminHandler.ListUsage)
 			r.Get("/workspace-storage", adminHandler.ListWorkspaceStorage)
 			r.Delete("/workspace-storage/{id}", adminHandler.DeleteWorkspaceStorage)
-			r.Get("/marketplace/agents", marketplaceHandler.AdminList)
-			r.Put("/marketplace/agents/{id}", marketplaceHandler.AdminUpdate)
-			r.Delete("/marketplace/agents/{id}", marketplaceHandler.AdminDelete)
-			r.Post("/marketplace/cache/bust", marketplaceHandler.BustCache)
 		})
 		slog.Info("admin API enabled", "path", "/admin/v1")
 	}

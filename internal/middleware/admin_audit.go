@@ -131,7 +131,7 @@ func AdminAudit(db *gorm.DB, enqueuer ...enqueue.TaskEnqueuer) func(http.Handler
 //
 //	POST /admin/v1/users/abc-123/ban  → resource="users", resourceID="abc-123", action="ban_user"
 //	PUT  /admin/v1/orgs/abc-123      → resource="orgs",  resourceID="abc-123", action="update_org"
-//	DELETE /admin/v1/agents/abc-123   → resource="agents", resourceID="abc-123", action="delete_agent"
+//	DELETE /admin/v1/employees/abc-123   → resource="employees", resourceID="abc-123", action="delete_employee"
 func parseAdminPath(method, path string) (resource, resourceID, action string) {
 
 	path = strings.TrimPrefix(path, "/admin/v1/")

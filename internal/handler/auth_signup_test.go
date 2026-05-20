@@ -97,22 +97,18 @@ func TestCreateUserDefaultOrg_CreatesHivyWithAllSpecialists(t *testing.T) {
 	cleanupOrgAndLedger(t, db, org.ID)
 
 	var employee model.Agent
-	if err := db.Where("org_id = ? AND is_employee = true", org.ID).First(&employee).Error; err != nil {
+	if err := db.Where("org_id = ?", org.ID).First(&employee).Error; err != nil {
 		t.Fatalf("load Hivy employee: %v", err)
 	}
-	if employee.Name != "Hivy" {
-		t.Fatalf("employee name = %q, want Hivy", employee.Name)
+	resp := toAgentResponse(employee)
+	if resp.Name != "Hivy" {
+		t.Fatalf("employee name = %q, want Hivy", resp.Name)
 	}
-	if employee.Category != nil {
-		t.Fatalf("employee category = %v, want nil", *employee.Category)
+	if resp.Category != nil {
+		t.Fatalf("employee category = %v, want nil", *resp.Category)
 	}
-
-	var links []model.AgentSubagent
-	if err := db.Where("agent_id = ?", employee.ID).Find(&links).Error; err != nil {
-		t.Fatalf("load Hivy specialists: %v", err)
-	}
-	if len(links) != len(employeeAgentTemplates) {
-		t.Fatalf("specialist links = %d, want %d", len(links), len(employeeAgentTemplates))
+	if got := len(employeeEnabledSpecialistSummaries(employee)); got != len(employeeAgentTemplates) {
+		t.Fatalf("enabled specialists = %d, want %d", got, len(employeeAgentTemplates))
 	}
 }
 

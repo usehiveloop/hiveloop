@@ -90,7 +90,7 @@ ON CONFLICT (key_hash) DO NOTHING;
 
 -- === starter agent ===
 
-INSERT INTO agents (id, org_id, name, description, category, system_prompt, model,
+INSERT INTO employees (id, org_id, name, description, category, system_prompt, model,
                     provider_prompts, tools, mcp_servers, skills, integrations,
                     agent_config, permissions, resources, team, shared_memory,
                     sandbox_tools, setup_commands, status, is_system,
@@ -111,7 +111,7 @@ SELECT gen_random_uuid(),
   FROM orgs o
   WHERE o.name = 'Agent Test Workspace'
     AND NOT EXISTS (
-      SELECT 1 FROM agents a
+      SELECT 1 FROM employees a
       WHERE a.org_id = o.id AND a.name = 'Test Agent' AND a.deleted_at IS NULL
     );
 
@@ -208,7 +208,7 @@ SELECT 'api_key',          'hvl_sk_aaaaaaaa…  scopes=' || array_to_string(k.sc
   FROM api_keys k JOIN orgs o ON o.id = k.org_id
   WHERE o.name = 'Agent Test Workspace' AND k.revoked_at IS NULL
 UNION ALL
-SELECT 'agent',            a.name FROM agents a JOIN orgs o ON o.id = a.org_id
+SELECT 'agent',            a.name FROM employees a JOIN orgs o ON o.id = a.org_id
   WHERE o.name = 'Agent Test Workspace' AND a.deleted_at IS NULL
 UNION ALL
 SELECT 'revoked conn',     'github · revoked 7d ago' FROM in_connections

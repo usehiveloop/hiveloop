@@ -1,0 +1,6 @@
+{
+  "name": "slack",
+  "description": "Use the connected Slack workspace through Hiveloop's backend Slack proxy. This placeholder skill is attached automatically when an organization connects Slack.",
+  "root": "./SKILL.md",
+  "files": []
+}

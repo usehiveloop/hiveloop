@@ -39,9 +39,8 @@ const sections = [
     ],
   },
   {
-    label: "Agents & Sandboxes",
+    label: "Runtime & Sandboxes",
     items: [
-      { label: "Agents", href: "/dashboard/agents" },
       { label: "Skills", href: "/dashboard/skills" },
       { label: "Sandboxes", href: "/dashboard/sandboxes" },
       { label: "Templates", href: "/dashboard/sandbox-templates" },

@@ -1,9 +1,5 @@
 {
   "title": "Tutorials",
   "defaultOpen": true,
-  "pages": [
-    "build-your-first-agent",
-    "install-from-marketplace",
-    "set-up-your-workspace"
-  ]
+  "pages": ["build-your-first-agent", "set-up-your-workspace"]
 }

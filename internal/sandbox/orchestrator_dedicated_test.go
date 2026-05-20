@@ -81,10 +81,6 @@ func TestCreateDedicatedSandbox_InheritsEmployeeEnvWithSubagentOverrides(t *test
 	if err := db.Save(&subagent).Error; err != nil {
 		t.Fatalf("save subagent: %v", err)
 	}
-	if err := db.Create(&model.AgentSubagent{AgentID: employee.ID, SubagentID: subagent.ID}).Error; err != nil {
-		t.Fatalf("create agent subagent link: %v", err)
-	}
-
 	sb, err := orch.CreateDedicatedSandbox(context.Background(), &subagent)
 	if err != nil {
 		t.Fatalf("CreateDedicatedSandbox: %v", err)
@@ -136,10 +132,6 @@ func TestCreateDedicatedSandbox_InheritsEmployeeResourcesForRepositoryClone(t *t
 	if err := db.Save(&subagent).Error; err != nil {
 		t.Fatalf("save subagent: %v", err)
 	}
-	if err := db.Create(&model.AgentSubagent{AgentID: employee.ID, SubagentID: subagent.ID}).Error; err != nil {
-		t.Fatalf("create agent subagent link: %v", err)
-	}
-
 	var commands []string
 	provider.executeCommandFn = func(_ context.Context, _ string, command string) (string, error) {
 		commands = append(commands, command)
@@ -171,14 +163,6 @@ func TestCreateDedicatedSandbox_InheritsGitIdentityFromEmployee(t *testing.T) {
 	}
 	subagent := createTestAgent(t, db, org.ID, cred.ID)
 
-	link := model.AgentSubagent{AgentID: employee.ID, SubagentID: subagent.ID}
-	if err := db.Create(&link).Error; err != nil {
-		t.Fatalf("create agent subagent link: %v", err)
-	}
-	t.Cleanup(func() {
-		db.Where("agent_id = ? AND subagent_id = ?", employee.ID, subagent.ID).Delete(&model.AgentSubagent{})
-	})
-
 	sb, err := orch.CreateDedicatedSandbox(context.Background(), &subagent)
 	if err != nil {
 		t.Fatalf("CreateDedicatedSandbox: %v", err)
@@ -189,11 +173,11 @@ func TestCreateDedicatedSandbox_InheritsGitIdentityFromEmployee(t *testing.T) {
 	})
 
 	env := provider.createCalls[len(provider.createCalls)-1].EnvVars
-	if env["HIVELOOP_GIT_USERNAME"] != "employeeowner" {
-		t.Fatalf("HIVELOOP_GIT_USERNAME = %q, want employeeowner", env["HIVELOOP_GIT_USERNAME"])
+	if env["HIVELOOP_GIT_USERNAME"] != "hivy" {
+		t.Fatalf("HIVELOOP_GIT_USERNAME = %q, want hivy", env["HIVELOOP_GIT_USERNAME"])
 	}
-	if env["HIVELOOP_GIT_EMAIL"] != "employeeowner@users.noreply.github.com" {
-		t.Fatalf("HIVELOOP_GIT_EMAIL = %q, want employeeowner@users.noreply.github.com", env["HIVELOOP_GIT_EMAIL"])
+	if env["HIVELOOP_GIT_EMAIL"] != "hivy@users.noreply.github.com" {
+		t.Fatalf("HIVELOOP_GIT_EMAIL = %q, want hivy@users.noreply.github.com", env["HIVELOOP_GIT_EMAIL"])
 	}
 }
 

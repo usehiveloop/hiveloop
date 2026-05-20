@@ -10,15 +10,15 @@ export class ConversationsResource extends BaseResource {
     this.apiKey = apiKey;
   }
 
-  create(agentID: string) {
-    return this.client.POST("/v1/agents/{agentID}/conversations", {
-      params: { path: { agentID } },
+  create(employeeID: string) {
+    return this.client.POST("/v1/employees/{id}/sessions", {
+      params: { path: { id: employeeID } },
     });
   }
 
-  list(agentID: string, query?: { limit?: number; cursor?: string; status?: string }) {
-    return this.client.GET("/v1/agents/{agentID}/conversations", {
-      params: { path: { agentID }, query },
+  list(employeeID: string, query?: { limit?: number; cursor?: string; status?: string }) {
+    return this.client.GET("/v1/employees/{id}/sessions", {
+      params: { path: { id: employeeID }, query },
     });
   }
 
