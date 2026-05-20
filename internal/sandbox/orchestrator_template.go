@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/usehiveloop/hiveloop/internal/logging"
-	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehivy/hivy/internal/logging"
+	"github.com/usehivy/hivy/internal/model"
 )
 
 func (o *Orchestrator) resolveBuildOpts(tmpl *model.SandboxTemplate, snapshotName string) BuildSnapshotOpts {
@@ -19,7 +19,7 @@ func (o *Orchestrator) resolveBuildOpts(tmpl *model.SandboxTemplate, snapshotNam
 	opts := BuildSnapshotOpts{
 		Name:          snapshotName,
 		BuildCommands: cmds,
-		BaseImage:     fmt.Sprintf("ghcr.io/usehiveloop/sandbox-bridge:%s", o.cfg.BridgeBinaryVersion),
+		BaseImage:     fmt.Sprintf("ghcr.io/usehivy/sandbox-bridge:%s", o.cfg.BridgeBinaryVersion),
 	}
 
 	if sz, ok := model.TemplateSizes[tmpl.Size]; ok {

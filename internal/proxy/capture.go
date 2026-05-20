@@ -9,9 +9,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/usehiveloop/hiveloop/internal/logging"
-	"github.com/usehiveloop/hiveloop/internal/observe"
-	sentryobs "github.com/usehiveloop/hiveloop/internal/observability/sentry"
+	"github.com/usehivy/hivy/internal/logging"
+	sentryobs "github.com/usehivy/hivy/internal/observability/sentry"
+	"github.com/usehivy/hivy/internal/observe"
 )
 
 // CaptureTransport wraps an http.RoundTripper to capture response metadata

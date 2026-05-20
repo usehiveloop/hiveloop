@@ -6,8 +6,8 @@ type SpiderParams struct {
 	URL             string            `json:"url"`
 	Limit           *int              `json:"limit,omitempty"`
 	Depth           *int              `json:"depth,omitempty"`
-	ReturnFormat    string            `json:"return_format,omitempty"`    // "markdown", "raw", "text", "html2text", "bytes", "empty"
-	RequestType     string            `json:"request,omitempty"`          // "http", "chrome", "smart"
+	ReturnFormat    string            `json:"return_format,omitempty"` // "markdown", "raw", "text", "html2text", "bytes", "empty"
+	RequestType     string            `json:"request,omitempty"`       // "http", "chrome", "smart"
 	Readability     *bool             `json:"readability,omitempty"`
 	Cache           *bool             `json:"cache,omitempty"`
 	Stealth         *bool             `json:"stealth,omitempty"`

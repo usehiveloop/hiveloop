@@ -7,8 +7,8 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
-	"github.com/usehiveloop/hiveloop/internal/mcp/catalog"
-	providerregistry "github.com/usehiveloop/hiveloop/internal/registry"
+	"github.com/usehivy/hivy/internal/mcp/catalog"
+	providerregistry "github.com/usehivy/hivy/internal/registry"
 )
 
 // ArgType is the value-type of a task argument. Validation against this is

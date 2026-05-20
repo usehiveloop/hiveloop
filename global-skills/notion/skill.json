@@ -1,6 +1,6 @@
 {
   "name": "notion",
-  "description": "Read, search, create, edit, and organize Notion pages, blocks, data sources, databases, comments, files, users, icons, custom emojis, and markdown content through the Hiveloop-provided Notion API proxy for the employee's Notion profile using NOTION_API_URL, NOTION_TOKEN, curl, and jq; use Notion response URLs for human-facing links, never the proxy URL.",
+  "description": "Read, search, create, edit, and organize Notion pages, blocks, data sources, databases, comments, files, users, icons, custom emojis, and markdown content through the Hivy-provided Notion API proxy for the employee's Notion profile using NOTION_API_URL, NOTION_TOKEN, curl, and jq; use Notion response URLs for human-facing links, never the proxy URL.",
   "root": "./SKILL.md",
   "required_environment_variables": [
     "NOTION_API_URL",

@@ -47,8 +47,8 @@ type Config struct {
 
 	// Auth (RSA key for JWT signing)
 	AuthRSAPrivateKey   string        `env:"AUTH_RSA_PRIVATE_KEY,required"` // base64-encoded PEM
-	AuthIssuer          string        `env:"AUTH_ISSUER" envDefault:"hiveloop"`
-	AuthAudience        string        `env:"AUTH_AUDIENCE" envDefault:"https://api.usehiveloop.com"`
+	AuthIssuer          string        `env:"AUTH_ISSUER" envDefault:"hivy"`
+	AuthAudience        string        `env:"AUTH_AUDIENCE" envDefault:"https://api.usehivy.com"`
 	AuthAccessTokenTTL  time.Duration `env:"AUTH_ACCESS_TOKEN_TTL" envDefault:"15m"`
 	AuthRefreshTokenTTL time.Duration `env:"AUTH_REFRESH_TOKEN_TTL" envDefault:"720h"` // 30 days
 
@@ -65,8 +65,8 @@ type Config struct {
 	// FromName is sent as the separate `fromName` top-level field so
 	// recipients see "Display Name <email>" in their inbox.
 	KibamailAPIKey      string `env:"KIBAMAIL_API_KEY"`
-	KibamailFromAddress string `env:"KIBAMAIL_FROM_ADDRESS" envDefault:"betty@notifications.usehiveloop.com"`
-	KibamailFromName    string `env:"KIBAMAIL_FROM_NAME" envDefault:"Betty from Hiveloop"`
+	KibamailFromAddress string `env:"KIBAMAIL_FROM_ADDRESS" envDefault:"betty@notifications.usehivy.com"`
+	KibamailFromName    string `env:"KIBAMAIL_FROM_NAME" envDefault:"Betty from Hivy"`
 
 	// OAuth (social login)
 	OAuthGitHubClientID     string `env:"OAUTH_GITHUB_CLIENT_ID"`
@@ -107,16 +107,16 @@ type Config struct {
 	SandboxTarget        string `env:"SANDBOX_TARGET"`                           // provider-specific target/region
 
 	// Bridge (agent runtime in sandboxes)
-	BridgeBaseImagePrefix          string `env:"BRIDGE_BASE_IMAGE_PREFIX" envDefault:"hiveloop-bridge-1-0-0-small-v1"`           // snapshot for shared/pool sandboxes (ACP-harness runtime)
-	BridgeBaseDedicatedImagePrefix string `env:"BRIDGE_BASE_DEDICATED_IMAGE_PREFIX" envDefault:"hiveloop-bridge-1-0-0-small-v1"` // snapshot for dedicated agent sandboxes (ACP-harness runtime)
-	BridgeBinaryVersion            string `env:"BRIDGE_BINARY_VERSION,required"`                                                 // usehiveloop/hiveloop release tag installed into user-template snapshots (e.g. v1.0.0)
+	BridgeBaseImagePrefix          string `env:"BRIDGE_BASE_IMAGE_PREFIX" envDefault:"hivy-bridge-1-0-0-small-v1"`           // snapshot for shared/pool sandboxes (ACP-harness runtime)
+	BridgeBaseDedicatedImagePrefix string `env:"BRIDGE_BASE_DEDICATED_IMAGE_PREFIX" envDefault:"hivy-bridge-1-0-0-small-v1"` // snapshot for dedicated agent sandboxes (ACP-harness runtime)
+	BridgeBinaryVersion            string `env:"BRIDGE_BINARY_VERSION,required"`                                             // usehivy/hivy release tag installed into user-template snapshots (e.g. v1.0.0)
 
-	BridgeHost        string `env:"BRIDGE_HOST"`                                                   // legacy runtime host setting
-	APIWebhookBaseURL string `env:"API_WEBHOOK_BASE_URL" envDefault:"https://api.usehiveloop.com"` // public API base URL for provider webhook callbacks
-	ProxyHost         string `env:"PROXY_HOST" envDefault:"proxy.hiveloop.com"`                    // LLM proxy hostname (proxy.hiveloop.com)
+	BridgeHost        string `env:"BRIDGE_HOST"`                                               // legacy runtime host setting
+	APIWebhookBaseURL string `env:"API_WEBHOOK_BASE_URL" envDefault:"https://api.usehivy.com"` // public API base URL for provider webhook callbacks
+	ProxyHost         string `env:"PROXY_HOST" envDefault:"proxy.usehivy.com"`                 // LLM proxy hostname (proxy.usehivy.com)
 
-	// Employee sandbox runtime — ghcr.io/usehiveloop/employee-sandbox image.
-	EmployeeSandboxBaseImagePrefix string `env:"EMPLOYEE_SANDBOX_BASE_IMAGE_PREFIX" envDefault:"hiveloop-employee-sandbox-0-0-3-small-v1"`
+	// Employee sandbox runtime — ghcr.io/usehivy/employee-sandbox image.
+	EmployeeSandboxBaseImagePrefix string `env:"EMPLOYEE_SANDBOX_BASE_IMAGE_PREFIX" envDefault:"hivy-employee-sandbox-0-0-3-small-v1"`
 
 	// Hindsight (agent memory)
 	HindsightAPIURL string `env:"HINDSIGHT_API_URL"` // e.g. http://hindsight.railway.internal:8888 — empty = memory disabled
@@ -125,10 +125,10 @@ type Config struct {
 	PlatformAdminEmails string `env:"PLATFORM_ADMIN_EMAILS"`
 
 	// Custom preview domains
-	PreviewCNAMETarget   string `env:"PREVIEW_CNAME_TARGET" envDefault:"preview-proxy.hiveloop.com"`
+	PreviewCNAMETarget   string `env:"PREVIEW_CNAME_TARGET" envDefault:"preview-proxy.usehivy.com"`
 	InternalDomainSecret string `env:"INTERNAL_DOMAIN_SECRET"` // shared secret for Gatekeeper + acme-dns proxy + Caddy admin proxy
-	AcmeDNSAPIURL        string `env:"ACME_DNS_API_URL"`       // acme-dns registration API (e.g. https://acme-dns-api.daytona.hiveloop.com)
-	CaddyAdminURL        string `env:"CADDY_ADMIN_URL"`        // Caddy admin API proxy (e.g. https://caddy-admin.daytona.hiveloop.com)
+	AcmeDNSAPIURL        string `env:"ACME_DNS_API_URL"`       // acme-dns registration API (e.g. https://acme-dns-api.daytona.usehivy.com)
+	CaddyAdminURL        string `env:"CADDY_ADMIN_URL"`        // Caddy admin API proxy (e.g. https://caddy-admin.daytona.usehivy.com)
 
 	// Spider (web crawling/search via spider.cloud)
 	SpiderAPIKey  string `env:"SPIDER_CLOUD_API_KEY"`                                  // empty = spider disabled

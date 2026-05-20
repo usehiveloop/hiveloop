@@ -15,12 +15,12 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
-	"github.com/usehiveloop/hiveloop/internal/config"
-	"github.com/usehiveloop/hiveloop/internal/crypto"
-	"github.com/usehiveloop/hiveloop/internal/employeeruntime"
-	"github.com/usehiveloop/hiveloop/internal/enqueue"
-	"github.com/usehiveloop/hiveloop/internal/hindsight"
-	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehivy/hivy/internal/config"
+	"github.com/usehivy/hivy/internal/crypto"
+	"github.com/usehivy/hivy/internal/employeeruntime"
+	"github.com/usehivy/hivy/internal/enqueue"
+	"github.com/usehivy/hivy/internal/hindsight"
+	"github.com/usehivy/hivy/internal/model"
 )
 
 func TestBuildEmployeeRetainItem_BundlesSessionAtCheckpoint(t *testing.T) {
@@ -335,7 +335,7 @@ func openTasksMemoryTestDB(t *testing.T) *gorm.DB {
 	t.Helper()
 	dsn := os.Getenv("DATABASE_URL")
 	if dsn == "" {
-		dsn = "postgres://hiveloop:localdev@localhost:5433/hiveloop_test?sslmode=disable" // #nosec G101 -- local test fixture
+		dsn = "postgres://hivy:localdev@localhost:5433/hivy_test?sslmode=disable" // #nosec G101 -- local test fixture
 	}
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {

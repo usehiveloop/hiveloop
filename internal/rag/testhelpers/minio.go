@@ -22,7 +22,7 @@ const (
 	DefaultMinIOAccessKey = "minioadmin"
 	DefaultMinIOSecretKey = "minioadmin"
 	DefaultMinIORegion    = "us-east-1"
-	DefaultMinIOBucket    = "hiveloop-rag-test"
+	DefaultMinIOBucket    = "hivy-rag-test"
 )
 
 // MinIOConfig carries everything an S3-compatible client needs to talk

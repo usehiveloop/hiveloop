@@ -8,7 +8,7 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"gorm.io/gorm"
 
-	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehivy/hivy/internal/model"
 )
 
 // MemoryRefreshFunc is called after a destructive memory change so employee

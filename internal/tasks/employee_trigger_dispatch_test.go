@@ -7,8 +7,8 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/usehiveloop/hiveloop/internal/mcp/catalog"
-	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehivy/hivy/internal/mcp/catalog"
+	"github.com/usehivy/hivy/internal/model"
 )
 
 func TestEmployeeTriggerCompileMessage_UsesCatalogRefsAndOmitsRawPayload(t *testing.T) {
@@ -26,18 +26,18 @@ func TestEmployeeTriggerCompileMessage_UsesCatalogRefsAndOmitsRawPayload(t *test
 	}
 	raw := map[string]any{
 		"repository": map[string]any{
-			"name":           "hiveloop.com",
-			"full_name":      "usehiveloop/hiveloop.com",
+			"name":           "hivy",
+			"full_name":      "usehivy/hivy",
 			"default_branch": "main",
 			"owner": map[string]any{
-				"login": "usehiveloop",
+				"login": "usehivy",
 			},
 		},
 		"issue": map[string]any{
 			"number":   float64(42),
 			"title":    "Queue trigger events",
 			"body":     "Please do not dump this whole body if it is not requested.",
-			"html_url": "https://github.com/usehiveloop/hiveloop.com/issues/42",
+			"html_url": "https://github.com/usehivy/hivy/issues/42",
 			"user": map[string]any{
 				"login": "bahdcoder",
 			},
@@ -53,7 +53,7 @@ func TestEmployeeTriggerCompileMessage_UsesCatalogRefsAndOmitsRawPayload(t *test
 	compiled := (&EmployeeTriggerDispatchHandler{catalog: catalog.Global()}).
 		compileMessage(payload, trigger, raw)
 
-	if compiled.ResourceKey != "github/usehiveloop/hiveloop.com/issue/42" {
+	if compiled.ResourceKey != "github/usehivy/hivy/issue/42" {
 		t.Fatalf("resource key = %q", compiled.ResourceKey)
 	}
 	if compiled.ConversationID != stableTriggerConversationID(triggerID, compiled.ResourceKey) {
@@ -114,7 +114,7 @@ func TestTriggerConditionsMatch(t *testing.T) {
 		Conditions: []model.TriggerCondition{{
 			Path:     "repository.full_name",
 			Operator: "equals",
-			Value:    "usehiveloop/hiveloop.com",
+			Value:    "usehivy/hivy",
 		}},
 	})
 	if err != nil {
@@ -123,7 +123,7 @@ func TestTriggerConditionsMatch(t *testing.T) {
 	trigger := model.AgentTrigger{Conditions: model.RawJSON(conditions)}
 
 	ok, _ := triggerConditionsMatch(trigger, map[string]any{
-		"repository": map[string]any{"full_name": "usehiveloop/hiveloop.com"},
+		"repository": map[string]any{"full_name": "usehivy/hivy"},
 	})
 	if !ok {
 		t.Fatal("expected matching payload to pass")

@@ -7,7 +7,7 @@ import (
 
 	"gorm.io/gorm"
 
-	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehivy/hivy/internal/model"
 )
 
 type employeeGitIdentity struct {
@@ -68,8 +68,8 @@ func setGitIdentityEnvVars(envVars map[string]string, agent *model.Agent, identi
 	if agent == nil {
 		return
 	}
-	envVars["HIVELOOP_GIT_USERNAME"] = employeeGitUsername(agent, identity)
-	envVars["HIVELOOP_GIT_EMAIL"] = employeeGitEmail(agent, identity)
+	envVars["HIVY_GIT_USERNAME"] = employeeGitUsername(agent, identity)
+	envVars["HIVY_GIT_EMAIL"] = employeeGitEmail(agent, identity)
 }
 
 func employeeGitUsername(agent *model.Agent, identity *employeeGitIdentity) string {

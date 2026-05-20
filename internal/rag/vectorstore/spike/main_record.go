@@ -17,7 +17,7 @@
 //
 //	make rag-spike
 //
-// Which ensures MinIO is running with the hiveloop-rag-test bucket, sets
+// Which ensures MinIO is running with the hivy-rag-test bucket, sets
 // the CGO flags pointing at .lancedb-native/, and invokes:
 //
 //	go run ./internal/rag/vectorstore/spike

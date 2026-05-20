@@ -10,8 +10,8 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 
-	"github.com/usehiveloop/hiveloop/internal/billing"
-	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehivy/hivy/internal/billing"
+	"github.com/usehivy/hivy/internal/model"
 )
 
 // 30 days for every plan; annual not yet supported.
@@ -34,9 +34,9 @@ func (s *Service) Renew(ctx context.Context, subID uuid.UUID) (RenewalAction, er
 	}
 
 	view := RenewalSubscriptionView{
-		Status:                 sub.Status,
-		CurrentPeriodEnd:       sub.CurrentPeriodEnd,
-		CancelAtPeriodEnd:      sub.CancelAtPeriodEnd,
+		Status:            sub.Status,
+		CurrentPeriodEnd:  sub.CurrentPeriodEnd,
+		CancelAtPeriodEnd: sub.CancelAtPeriodEnd,
 		HasReusableAuthorization: sub.AuthorizationCode != "" &&
 			billing.PaymentChannel(sub.PaymentChannel).IsReusable(),
 		RenewalAttempts:      sub.RenewalAttempts,

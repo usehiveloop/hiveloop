@@ -8,12 +8,12 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
-	"github.com/usehiveloop/hiveloop/internal/bridge"
-	"github.com/usehiveloop/hiveloop/internal/config"
-	"github.com/usehiveloop/hiveloop/internal/crypto"
-	"github.com/usehiveloop/hiveloop/internal/logging"
-	"github.com/usehiveloop/hiveloop/internal/model"
-	"github.com/usehiveloop/hiveloop/internal/turso"
+	"github.com/usehivy/hivy/internal/bridge"
+	"github.com/usehivy/hivy/internal/config"
+	"github.com/usehivy/hivy/internal/crypto"
+	"github.com/usehivy/hivy/internal/logging"
+	"github.com/usehivy/hivy/internal/model"
+	"github.com/usehivy/hivy/internal/turso"
 )
 
 // Orchestrator manages sandbox lifecycle — creating, starting, stopping sandboxes

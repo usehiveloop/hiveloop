@@ -3,8 +3,8 @@ package acl_test
 import (
 	"testing"
 
-	"github.com/usehiveloop/hiveloop/internal/rag/acl"
-	"github.com/usehiveloop/hiveloop/internal/rag/model"
+	"github.com/usehivy/hivy/internal/rag/acl"
+	"github.com/usehivy/hivy/internal/rag/model"
 )
 
 // Business value: every string emitted by these helpers ends up in

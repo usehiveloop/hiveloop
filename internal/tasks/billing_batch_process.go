@@ -11,8 +11,8 @@ import (
 	"github.com/oklog/ulid/v2"
 	"gorm.io/gorm"
 
-	"github.com/usehiveloop/hiveloop/internal/billing"
-	"github.com/usehiveloop/hiveloop/internal/logging"
+	"github.com/usehivy/hivy/internal/billing"
+	"github.com/usehivy/hivy/internal/logging"
 )
 
 const (

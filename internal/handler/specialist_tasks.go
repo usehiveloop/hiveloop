@@ -15,12 +15,12 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
-	"github.com/usehiveloop/hiveloop/internal/bridge"
-	"github.com/usehiveloop/hiveloop/internal/bridgeevents"
-	"github.com/usehiveloop/hiveloop/internal/crypto"
-	"github.com/usehiveloop/hiveloop/internal/logging"
-	"github.com/usehiveloop/hiveloop/internal/model"
-	"github.com/usehiveloop/hiveloop/internal/sandbox"
+	"github.com/usehivy/hivy/internal/bridge"
+	"github.com/usehivy/hivy/internal/bridgeevents"
+	"github.com/usehivy/hivy/internal/crypto"
+	"github.com/usehivy/hivy/internal/logging"
+	"github.com/usehivy/hivy/internal/model"
+	"github.com/usehivy/hivy/internal/sandbox"
 )
 
 // SpecialistBridgeClient is the subset of bridge runtime operations used by
@@ -152,7 +152,7 @@ func (h *SpecialistTaskHandler) authEmployee(w http.ResponseWriter, r *http.Requ
 }
 
 func specialistID(slug string) uuid.UUID {
-	return uuid.NewSHA1(uuid.NameSpaceOID, []byte("hiveloop-specialist:"+slug))
+	return uuid.NewSHA1(uuid.NameSpaceOID, []byte("hivy-specialist:"+slug))
 }
 
 func specialistAgentFromTemplate(employee *model.Agent, template *specialistTemplate) model.Agent {
@@ -447,7 +447,7 @@ func (h *SpecialistTaskHandler) CreateTask(w http.ResponseWriter, r *http.Reques
 	taskID := uuid.New()
 	extraEnv := map[string]string{}
 	if h.hooks.TaskDriveUploadURL != nil {
-		extraEnv["HIVELOOP_DRIVE_UPLOAD_URL"] = h.hooks.TaskDriveUploadURL(employee.ID, taskID)
+		extraEnv["HIVY_DRIVE_UPLOAD_URL"] = h.hooks.TaskDriveUploadURL(employee.ID, taskID)
 	}
 
 	sb, err := h.hooks.CreateDedicatedSandbox(ctx, &cloudAgent, extraEnv)

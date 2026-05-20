@@ -13,13 +13,13 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
-	"github.com/usehiveloop/hiveloop/internal/config"
-	"github.com/usehiveloop/hiveloop/internal/employeeprompts"
-	"github.com/usehiveloop/hiveloop/internal/hindsight"
-	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehivy/hivy/internal/config"
+	"github.com/usehivy/hivy/internal/employeeprompts"
+	"github.com/usehivy/hivy/internal/hindsight"
+	"github.com/usehivy/hivy/internal/model"
 )
 
-const compileTestDBURL = "postgres://hiveloop:localdev@localhost:5433/hiveloop_test?sslmode=disable" // #nosec G101 -- test fixture, not a real secret
+const compileTestDBURL = "postgres://hivy:localdev@localhost:5433/hivy_test?sslmode=disable" // #nosec G101 -- test fixture, not a real secret
 
 func TestBuildPromptFragments_UsesTypedFields(t *testing.T) {
 	orgID := uuid.New()
@@ -114,18 +114,18 @@ func TestBuildEmployeeMCPServer_DisabledWithoutRuntimeToken(t *testing.T) {
 	}
 }
 
-func TestUpsertHiveloopMCPServer_ReplacesExistingHiveloopServer(t *testing.T) {
+func TestUpsertHivyMCPServer_ReplacesExistingHivyServer(t *testing.T) {
 	servers := []any{
-		map[string]any{"name": "hiveloop", "url": "old"},
+		map[string]any{"name": "hivy", "url": "old"},
 		map[string]any{"name": "linear", "url": "keep"},
 	}
-	got := upsertHiveloopMCPServer(servers, map[string]any{"name": "hiveloop", "url": "new"})
+	got := upsertHivyMCPServer(servers, map[string]any{"name": "hivy", "url": "new"})
 
 	if len(got) != 2 {
 		t.Fatalf("server count = %d, want 2", len(got))
 	}
 	if got[1].(map[string]any)["url"] != "new" {
-		t.Fatalf("hiveloop server was not replaced: %#v", got)
+		t.Fatalf("hivy server was not replaced: %#v", got)
 	}
 }
 
@@ -303,7 +303,7 @@ func TestCompile_PreservesSkillRequiredEnvironmentVariables(t *testing.T) {
 		"description":"Upload generated artifacts.",
 		"content":"Use the upload endpoint.",
 		"files":{},
-		"required_environment_variables":["UPLOAD_BEARER","HIVELOOP_DRIVE_UPLOAD_URL","UPLOAD_BEARER"]
+		"required_environment_variables":["UPLOAD_BEARER","HIVY_DRIVE_UPLOAD_URL","UPLOAD_BEARER"]
 	}`)
 	version := model.SkillVersion{ID: uuid.New(), SkillID: skill.ID, Version: "v1", Bundle: bundle}
 	if err := db.Create(&version).Error; err != nil {
@@ -389,7 +389,7 @@ func TestCompile_SucceedsWhenHindsightRecallFails(t *testing.T) {
 
 func TestControlPlaneOutboundChannels_EmitsEmployeeWebhookSpec(t *testing.T) {
 	sandboxID := uuid.New()
-	channels := ControlPlaneOutboundChannels(&config.Config{BridgeHost: "api.hiveloop.test"}, sandboxID)
+	channels := ControlPlaneOutboundChannels(&config.Config{BridgeHost: "api.hivy.test"}, sandboxID)
 	if len(channels) != 1 {
 		t.Fatalf("channels = %#v", channels)
 	}
@@ -397,7 +397,7 @@ func TestControlPlaneOutboundChannels_EmitsEmployeeWebhookSpec(t *testing.T) {
 	if !ok {
 		t.Fatalf("channel has wrong type: %#v", channels[0])
 	}
-	if channel["url"] != "https://api.hiveloop.test/internal/webhooks/employee/"+sandboxID.String() {
+	if channel["url"] != "https://api.hivy.test/internal/webhooks/employee/"+sandboxID.String() {
 		t.Fatalf("url = %q", channel["url"])
 	}
 	if channel["secret_env"] != EmployeeEnvRuntimeSecret {
@@ -409,14 +409,14 @@ func TestCompile_ReferencesProxyEnvInsteadOfRawProviderKeys(t *testing.T) {
 	orgID := uuid.New()
 	agent := &model.Agent{ID: uuid.New(), OrgID: &orgID, Name: "Aria", Model: DefaultEmployeeModel}
 
-	def, err := Compile(context.Background(), CompileDeps{Cfg: &config.Config{ProxyHost: "proxy.hiveloop.test"}}, agent)
+	def, err := Compile(context.Background(), CompileDeps{Cfg: &config.Config{ProxyHost: "proxy.hivy.test"}}, agent)
 	if err != nil {
 		t.Fatalf("compile: %v", err)
 	}
 	if def.Model.APIKeyEnv != ProxyAPIKeyEnv {
 		t.Fatalf("model.api_key_env = %q, want %q", def.Model.APIKeyEnv, ProxyAPIKeyEnv)
 	}
-	if def.Model.BaseURL != "https://proxy.hiveloop.test/v1" {
+	if def.Model.BaseURL != "https://proxy.hivy.test/v1" {
 		t.Fatalf("model.base_url = %q", def.Model.BaseURL)
 	}
 	if def.MultimodalModel == nil || def.MultimodalModel.APIKeyEnv != ProxyAPIKeyEnv {

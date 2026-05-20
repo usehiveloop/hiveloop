@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehivy/hivy/internal/model"
 )
 
 // --- parseCgroupOutput unit tests ---
@@ -176,14 +176,17 @@ func TestRunResourceCheck_UpdatesSandboxFields(t *testing.T) {
 func TestRunResourceCheck_SkipsStoppedSandboxes(t *testing.T) {
 	orch, provider, db := setupOrchestrator(t)
 
+	targetExternalID := "mock-rc-stopped-" + uuid.New().String()[:8]
 	called := false
-	provider.executeCommandFn = func(_ context.Context, _ string, _ string) (string, error) {
-		called = true
+	provider.executeCommandFn = func(_ context.Context, externalID string, _ string) (string, error) {
+		if externalID == targetExternalID {
+			called = true
+		}
 		return "", nil
 	}
 
 	sb := model.Sandbox{
-		ExternalID:            "mock-rc-stopped",
+		ExternalID:            targetExternalID,
 		BridgeURL:             "https://mock.test",
 		EncryptedBridgeAPIKey: []byte("enc"),
 		Status:                "stopped",
@@ -228,9 +231,12 @@ func TestRunResourceCheck_HandlesExecuteError(t *testing.T) {
 func TestRunResourceCheck_MultipleSandboxes(t *testing.T) {
 	orch, provider, db := setupOrchestrator(t)
 
+	targetExternalIDs := map[string]bool{}
 	callCount := 0
-	provider.executeCommandFn = func(_ context.Context, _ string, _ string) (string, error) {
-		callCount++
+	provider.executeCommandFn = func(_ context.Context, externalID string, _ string) (string, error) {
+		if targetExternalIDs[externalID] {
+			callCount++
+		}
 		return "2147483648\n10000000\n10000000\n100000 100000\nusage_usec 100\nnr_throttled 0\n5", nil
 	}
 
@@ -244,6 +250,7 @@ func TestRunResourceCheck_MultipleSandboxes(t *testing.T) {
 		}
 		db.Create(&sb)
 		provider.registerSandbox(sb.ExternalID, StatusRunning)
+		targetExternalIDs[sb.ExternalID] = true
 		sandboxIDs = append(sandboxIDs, sb.ID)
 	}
 	t.Cleanup(func() {

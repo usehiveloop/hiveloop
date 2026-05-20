@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/usehiveloop/hiveloop/internal/middleware"
+	"github.com/usehivy/hivy/internal/middleware"
 )
 
 func TestE2E_Provider_List(t *testing.T) {

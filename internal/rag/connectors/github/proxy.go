@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/usehiveloop/hiveloop/internal/nango"
+	"github.com/usehivy/hivy/internal/nango"
 )
 
 type proxyClient interface {

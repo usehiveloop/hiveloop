@@ -10,22 +10,22 @@ Create A records pointing to the control plane VPS IP before running Phase 2.
 
 | Record | Type | Value |
 |--------|------|-------|
-| `api.daytona.usehiveloop.com` | A | `<VPS_IP>` |
-| `dex.daytona.usehiveloop.com` | A | `<VPS_IP>` |
-| `*.preview.usehiveloop.com` | A | `<VPS_IP>` |
-| `acme-dns-api.daytona.usehiveloop.com` | A | `<VPS_IP>` |
-| `caddy-admin.daytona.usehiveloop.com` | A | `<VPS_IP>` |
+| `api.daytona.usehivy.com` | A | `<VPS_IP>` |
+| `dex.daytona.usehivy.com` | A | `<VPS_IP>` |
+| `*.preview.usehivy.com` | A | `<VPS_IP>` |
+| `acme-dns-api.daytona.usehivy.com` | A | `<VPS_IP>` |
+| `caddy-admin.daytona.usehivy.com` | A | `<VPS_IP>` |
 
 ### Custom domains — acme-dns zone delegation
 
-Custom preview domains (users bringing their own domain) rely on acme-dns running on the VPS. The zone `acme.usehiveloop.com` must be delegated to it as authoritative.
+Custom preview domains (users bringing their own domain) rely on acme-dns running on the VPS. The zone `acme.usehivy.com` must be delegated to it as authoritative.
 
 | Record | Type | Value |
 |--------|------|-------|
-| `auth.acme.usehiveloop.com` | A | `<VPS_IP>` |
-| `acme.usehiveloop.com` | NS | `auth.acme.usehiveloop.com` |
+| `auth.acme.usehivy.com` | A | `<VPS_IP>` |
+| `acme.usehivy.com` | NS | `auth.acme.usehivy.com` |
 
-In Cloudflare, the NS record on `acme.usehiveloop.com` tells resolvers to ask the acme-dns server (at `auth.acme.usehiveloop.com`) for anything under `acme.usehiveloop.com`. Cloudflare proxying must be **off** (gray cloud) for `auth.acme.usehiveloop.com` so UDP/TCP :53 traffic reaches the VPS.
+In Cloudflare, the NS record on `acme.usehivy.com` tells resolvers to ask the acme-dns server (at `auth.acme.usehivy.com`) for anything under `acme.usehivy.com`. Cloudflare proxying must be **off** (gray cloud) for `auth.acme.usehivy.com` so UDP/TCP :53 traffic reaches the VPS.
 
 For dynamic alias domains (e.g. `*.preview.useportal.app`), add an A record pointing to the same VPS IP. No server-side changes needed — Caddy auto-provisions TLS via on-demand HTTP-01 challenge.
 
@@ -51,28 +51,28 @@ For dynamic alias domains (e.g. `*.preview.useportal.app`), add an A record poin
 
 1. Go to Cloudflare Dashboard → My Profile → API Tokens → Create Token
 2. Use "Edit zone DNS" template
-3. Zone Resources: Include → Specific zone → `usehiveloop.com`
+3. Zone Resources: Include → Specific zone → `usehivy.com`
 4. Copy the token into `.env` as `CLOUDFLARE_API_TOKEN`
 
-This is used by Caddy for DNS-01 challenges to provision wildcard certs for `*.preview.usehiveloop.com`, `api.daytona.usehiveloop.com`, `dex.daytona.usehiveloop.com`, `acme-dns-api.daytona.usehiveloop.com`, and `caddy-admin.daytona.usehiveloop.com`.
+This is used by Caddy for DNS-01 challenges to provision wildcard certs for `*.preview.usehivy.com`, `api.daytona.usehivy.com`, `dex.daytona.usehivy.com`, `acme-dns-api.daytona.usehivy.com`, and `caddy-admin.daytona.usehivy.com`.
 
 ---
 
-## 3b. Hiveloop Internal Secret (for custom-domain backend → Caddy)
+## 3b. Hivy Internal Secret (for custom-domain backend → Caddy)
 
 The backend talks to the acme-dns API proxy and Caddy admin API proxy using a shared secret sent in the `X-Internal-Secret` header.
 
 Generate and export before running Phase 2:
 
 ```bash
-export HIVELOOP_INTERNAL_SECRET="$(openssl rand -hex 32)"
+export HIVY_INTERNAL_SECRET="$(openssl rand -hex 32)"
 ```
 
 Add the same value to the backend's runtime env as `INTERNAL_DOMAIN_SECRET`, alongside:
 
 ```
-ACME_DNS_API_URL=https://acme-dns-api.daytona.usehiveloop.com
-CADDY_ADMIN_URL=https://caddy-admin.daytona.usehiveloop.com
+ACME_DNS_API_URL=https://acme-dns-api.daytona.usehivy.com
+CADDY_ADMIN_URL=https://caddy-admin.daytona.usehivy.com
 ```
 
 ---
@@ -92,7 +92,7 @@ export DAYTONA_DEX_ADMIN_PASSWORD_HASH='$2y$10$...'
 ```
 
 Login credentials for the Daytona dashboard:
-- Email: `admin@usehiveloop.com`
+- Email: `admin@usehivy.com`
 - Password: whatever you entered when generating the hash
 
 ---
@@ -101,12 +101,12 @@ Login credentials for the Daytona dashboard:
 
 After Phase 2 deploys the control plane and you log into the dashboard:
 
-1. Go to `https://api.daytona.usehiveloop.com/dashboard`
+1. Go to `https://api.daytona.usehivy.com/dashboard`
 2. Log in with the Dex admin credentials
 3. Navigate to the dashboard and set the **default region** to `us-bare-metal` (required — without this, snapshot creation returns 428)
 4. Navigate to API Keys section
 5. Generate a new API key (will start with `dtn_`)
-6. Update the repo's `.env` file at `/Users/bahdcoder/code/hiveloop.com/.env`:
+6. Update the repo's `.env` file at `/Users/bahdcoder/code/usehivy.com/.env`:
    ```
    SANDBOX_PROVIDER_KEY=dtn_<your-new-key>
    ```
@@ -136,7 +136,7 @@ Update the ZiraLoop repo's `.env` (not the ansible `.env`) to point to the self-
 
 ```
 SANDBOX_PROVIDER_ID=daytona
-SANDBOX_PROVIDER_URL=https://api.daytona.usehiveloop.com/api
+SANDBOX_PROVIDER_URL=https://api.daytona.usehivy.com/api
 SANDBOX_PROVIDER_KEY=dtn_<api-key-from-dashboard>
 SANDBOX_TARGET=us
 ```

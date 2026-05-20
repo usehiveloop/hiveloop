@@ -11,9 +11,9 @@ import (
 
 	"github.com/google/uuid"
 
-	bridgepkg "github.com/usehiveloop/hiveloop/internal/bridge"
-	"github.com/usehiveloop/hiveloop/internal/config"
-	"github.com/usehiveloop/hiveloop/internal/model"
+	bridgepkg "github.com/usehivy/hivy/internal/bridge"
+	"github.com/usehivy/hivy/internal/config"
+	"github.com/usehivy/hivy/internal/model"
 )
 
 func TestPusherAgentConfig_HarnessFromAgent(t *testing.T) {

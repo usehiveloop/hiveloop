@@ -17,7 +17,7 @@ POST /v1/uploads/sign
 
 The endpoint returns a short-lived **presigned PUT URL** plus the **public read URL** the caller will use afterward. Bytes never touch the Go monolith — the client uploads directly to T3 storage. After upload, the client stores the public URL on whatever entity needed it (`users.avatar_url`, `orgs.logo_url`, etc. — those columns are out of scope for this phase; we just hand back the URL).
 
-A second concern this phase resolves: **integration tests need a public-files bucket on the local MinIO.** Currently `make test-services-up` provisions only `hiveloop-rag-test`. We add `public-files-test` to the bootstrap so tests can sign + PUT against it.
+A second concern this phase resolves: **integration tests need a public-files bucket on the local MinIO.** Currently `make test-services-up` provisions only `hivy-rag-test`. We add `public-files-test` to the bootstrap so tests can sign + PUT against it.
 
 ---
 
@@ -79,7 +79,7 @@ internal/handler/
   uploads_sign_test.go      ~ 220 LOC  table-driven: happy paths per asset_type + every rejection branch
 
 cmd/server/serve_routes_v1.go   ~10 line edit  mount the new handler under /v1/uploads
-docker-compose.yml              ~3 line edit   minio-setup creates public-files-test alongside hiveloop-rag-test
+docker-compose.yml              ~3 line edit   minio-setup creates public-files-test alongside hivy-rag-test
 ```
 
 Largest file: `uploads_sign_test.go` ~220 lines, well under the 300-line ceiling.
@@ -199,15 +199,15 @@ If existing rate-limit middleware is per-route, attach a `30/minute` limit to th
 
 ```yaml
 mc alias set local http://minio:9000 minioadmin minioadmin &&
-mc mb --ignore-existing local/hiveloop-rag-test &&
-echo 'bucket hiveloop-rag-test ready'
+mc mb --ignore-existing local/hivy-rag-test &&
+echo 'bucket hivy-rag-test ready'
 ```
 
 Extend to:
 
 ```yaml
 mc alias set local http://minio:9000 minioadmin minioadmin &&
-mc mb --ignore-existing local/hiveloop-rag-test &&
+mc mb --ignore-existing local/hivy-rag-test &&
 mc mb --ignore-existing local/public-files-test &&
 mc anonymous set download local/public-files-test &&
 echo 'buckets ready'
@@ -249,7 +249,7 @@ The handler tests use the chi-in-process router pattern established in `internal
 
 ## Onyx mapping
 
-This is Hiveloop-specific — Onyx doesn't have a public-asset upload endpoint. No upstream port reference.
+This is Hivy-specific — Onyx doesn't have a public-asset upload endpoint. No upstream port reference.
 
 ## Out of scope
 

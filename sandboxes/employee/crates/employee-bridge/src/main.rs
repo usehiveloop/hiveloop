@@ -369,7 +369,7 @@ fn bootstrap_agent_definition() -> Result<AgentDefinition> {
     Ok(AgentDefinition {
         agent: AgentMeta {
             name: "Aria".into(),
-            description: "Hiveloop AI employee".into(),
+            description: "Hivy AI employee".into(),
             system_prompt: String::new(),
         },
         prompt_fragments: PromptFragments {

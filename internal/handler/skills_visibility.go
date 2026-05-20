@@ -7,7 +7,7 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
-	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehivy/hivy/internal/model"
 )
 
 func parseUniqueUUIDStrings(rawIDs []string, field string) ([]uuid.UUID, error) {

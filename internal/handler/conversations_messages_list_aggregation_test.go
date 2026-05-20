@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehivy/hivy/internal/model"
 )
 
 func TestListMessages_AggregatesUserMessageAndConsecutiveBashCalls(t *testing.T) {

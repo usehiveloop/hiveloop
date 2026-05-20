@@ -24,7 +24,7 @@ ROOT = Path(__file__).resolve().parent.parent
 OUT_DIR = ROOT / "rag-test-data" / "docs"
 OUT_DIR.mkdir(parents=True, exist_ok=True)
 
-DATASET_NAME = "hiveloop_demo"
+DATASET_NAME = "hivy_demo"
 ORGS = ["org-acme", "org-globex", "org-initech"]
 USERS = [f"user{i:02d}@example.com" for i in range(1, 51)]
 TEAMS = ["backend", "frontend", "platform", "data", "mobile", "security", "sre"]
@@ -178,7 +178,7 @@ TOPICS = {
         "Candidate NPS survey after every loop, won or lost, to improve the experience.",
         "Internal transfer policy: must be in-role 18 months unless manager approves a shorter tenure.",
         "Referral bonus: $5000 at start, $5000 at 6 months. Doubled for senior and staff hires.",
-        "Greenhouse ATS integration with Hiveloop for candidate tracking.",
+        "Greenhouse ATS integration with Hivy for candidate tracking.",
     ],
     "legal": [
         "Master Services Agreement redline with enterprise customer: they want data-residency guarantees in EU.",
@@ -186,7 +186,7 @@ TOPICS = {
         "Privacy policy needs updating to reflect the new sub-processor for rerank (SiliconFlow).",
         "NDA templates: mutual vs one-way. Default is mutual. Legal must review any redlines.",
         "Open-source license audit: we're using 3 AGPL deps that need to be replaced before enterprise launch.",
-        "Trademark filing for the Hiveloop name in the EU is in examiner review, 6 months expected.",
+        "Trademark filing for the Hivy name in the EU is in examiner review, 6 months expected.",
         "Contract review SLA: 5 business days for standard, 10 for redlined.",
         "SOC 2 Type II audit window is July 1 through June 30; Vanta is our automation platform.",
         "GDPR data subject access request: must respond within 30 days. Tooling under internal/privacy/.",
@@ -210,7 +210,7 @@ TOPICS = {
         "Ad spend for this quarter: $40k across Google and LinkedIn, measured by signups not clicks.",
         "Webinar schedule: 3 per quarter, 45min each, demo + Q&A. Topics lined up through Q3.",
         "Brand guidelines updated: new logo, new typefaces, new color palette. Asset library in Figma.",
-        "Customer case study: Acme Corp scaled from 10k to 100M docs on Hiveloop in 6 months.",
+        "Customer case study: Acme Corp scaled from 10k to 100M docs on Hivy in 6 months.",
         "Podcast interview with the CTO scheduled for May 12; prep deck in progress.",
         "Conference sponsorships Q2: KubeCon, SRECon, AI Engineer Summit. Total spend $120k.",
         "SEO: we rank #3 for 'RAG ingestion pipeline' on Google; aim for top spot by end of Q3.",
@@ -287,7 +287,7 @@ def linear_ticket(idx, org):
     return {
         "doc_id": f"linear-ENG-{num}",
         "semantic_id": f"ENG-{num}: {title}",
-        "link": f"https://linear.app/hiveloop/issue/ENG-{num}",
+        "link": f"https://linear.app/hivy/issue/ENG-{num}",
         "doc_updated_at": iso_ts(random.randint(0, 90)),
         "acl": random_acl(is_public),
         "is_public": is_public,
@@ -313,7 +313,7 @@ def jira_issue(idx, org):
     return {
         "doc_id": f"jira-{project}-{num}",
         "semantic_id": f"{project}-{num}: {title}",
-        "link": f"https://hiveloop.atlassian.net/browse/{project}-{num}",
+        "link": f"https://hivy.atlassian.net/browse/{project}-{num}",
         "doc_updated_at": iso_ts(random.randint(0, 120)),
         "acl": random_acl(is_public),
         "is_public": is_public,
@@ -333,13 +333,13 @@ def jira_issue(idx, org):
 
 def github_pr(idx, org):
     topic = pick_topic()
-    repo = random.choice(["hiveloop/hiveloop", "hiveloop/rag-engine", "hiveloop/web", "hiveloop/infra"])
+    repo = random.choice(["usehivy/hivy", "usehivy/rag-engine", "usehivy/web", "usehivy/infra"])
     num = 2000 + idx
     title = body_from_topic(topic, 1).rstrip(".")
     body = body_from_topic(topic, random.randint(3, 5))
     checks = random.choice(["all passing", "1 failing (flaky)", "all passing, needs review"])
     reviewers = random.sample(USERS, k=random.randint(1, 3))
-    is_public = "hiveloop/hiveloop" in repo and random.random() < 0.1
+    is_public = "usehivy/hivy" in repo and random.random() < 0.1
     return {
         "doc_id": f"gh-pr-{repo.replace('/', '_')}-{num}",
         "semantic_id": f"{repo}#{num}: {title}",
@@ -362,12 +362,12 @@ def github_pr(idx, org):
 
 def github_issue(idx, org):
     topic = pick_topic()
-    repo = random.choice(["hiveloop/hiveloop", "hiveloop/rag-engine", "hiveloop/web"])
+    repo = random.choice(["usehivy/hivy", "usehivy/rag-engine", "usehivy/web"])
     num = 3000 + idx
     title = body_from_topic(topic, 1).rstrip(".")
     body = body_from_topic(topic, random.randint(2, 4))
     reproduction = body_from_topic(topic, 2)
-    is_public = "hiveloop/hiveloop" in repo and random.random() < 0.2
+    is_public = "usehivy/hivy" in repo and random.random() < 0.2
     return {
         "doc_id": f"gh-issue-{repo.replace('/', '_')}-{num}",
         "semantic_id": f"{repo}#{num}: {title}",
@@ -388,7 +388,7 @@ def github_issue(idx, org):
 
 def github_discussion(idx, org):
     topic = pick_topic()
-    repo = "hiveloop/hiveloop"
+    repo = "usehivy/hivy"
     num = 4000 + idx
     title = f"RFC: " + body_from_topic(topic, 1).rstrip(".")
     body = body_from_topic(topic, random.randint(4, 6))
@@ -415,7 +415,7 @@ def gitlab_mr(idx, org):
     return {
         "doc_id": f"gl-mr-{num}",
         "semantic_id": f"infra!{num}: {title}",
-        "link": f"https://gitlab.com/hiveloop/infra/-/merge_requests/{num}",
+        "link": f"https://gitlab.com/usehivy/infra/-/merge_requests/{num}",
         "doc_updated_at": iso_ts(random.randint(0, 90)),
         "acl": random_acl(is_public),
         "is_public": is_public,
@@ -434,7 +434,7 @@ def gitlab_issue(idx, org):
     return {
         "doc_id": f"gl-issue-{num}",
         "semantic_id": f"infra#{num}: {title}",
-        "link": f"https://gitlab.com/hiveloop/infra/-/issues/{num}",
+        "link": f"https://gitlab.com/usehivy/infra/-/issues/{num}",
         "doc_updated_at": iso_ts(random.randint(0, 120)),
         "acl": random_acl(False),
         "is_public": False,
@@ -459,7 +459,7 @@ def slack_engineering(idx, org):
     return {
         "doc_id": f"slack-eng-{idx}",
         "semantic_id": f"#engineering thread {ts[:10]}",
-        "link": f"https://hiveloop.slack.com/archives/C01ABCDEF/p{int(random.random()*1e13)}",
+        "link": f"https://hivy.slack.com/archives/C01ABCDEF/p{int(random.random()*1e13)}",
         "doc_updated_at": ts,
         "acl": random_acl(False),
         "is_public": False,
@@ -480,7 +480,7 @@ def slack_incidents(idx, org):
     return {
         "doc_id": f"slack-incident-{idx}",
         "semantic_id": f"#incidents {severity} {ts[:10]}",
-        "link": f"https://hiveloop.slack.com/archives/C02INCIDENT/p{int(random.random()*1e13)}",
+        "link": f"https://hivy.slack.com/archives/C02INCIDENT/p{int(random.random()*1e13)}",
         "doc_updated_at": ts,
         "acl": random_acl(False),
         "is_public": False,
@@ -498,7 +498,7 @@ def slack_support(idx, org):
     return {
         "doc_id": f"slack-support-{idx}",
         "semantic_id": f"#support customer={customer}",
-        "link": f"https://hiveloop.slack.com/archives/C03SUPPORT/p{int(random.random()*1e13)}",
+        "link": f"https://hivy.slack.com/archives/C03SUPPORT/p{int(random.random()*1e13)}",
         "doc_updated_at": iso_ts(random.randint(0, 30)),
         "acl": random_acl(False),
         "is_public": False,
@@ -515,7 +515,7 @@ def slack_random(idx, org):
     return {
         "doc_id": f"slack-random-{idx}",
         "semantic_id": f"#random",
-        "link": f"https://hiveloop.slack.com/archives/C04RANDOM/p{int(random.random()*1e13)}",
+        "link": f"https://hivy.slack.com/archives/C04RANDOM/p{int(random.random()*1e13)}",
         "doc_updated_at": iso_ts(random.randint(0, 10)),
         "acl": random_acl(True),
         "is_public": True,
@@ -550,7 +550,7 @@ def zoom_transcript(idx, org):
     return {
         "doc_id": f"zoom-{idx}",
         "semantic_id": f"Zoom meeting transcript ({duration}m)",
-        "link": f"https://hiveloop.zoom.us/rec/share/{random.getrandbits(40):x}",
+        "link": f"https://hivy.zoom.us/rec/share/{random.getrandbits(40):x}",
         "doc_updated_at": iso_ts(random.randint(0, 60)),
         "acl": random_acl(False),
         "is_public": False,
@@ -613,7 +613,7 @@ def confluence_page(idx, org):
     return {
         "doc_id": f"confluence-{space}-{1000+idx}",
         "semantic_id": f"[{space}] {title}",
-        "link": f"https://hiveloop.atlassian.net/wiki/spaces/{space}/pages/{1000+idx}",
+        "link": f"https://hivy.atlassian.net/wiki/spaces/{space}/pages/{1000+idx}",
         "doc_updated_at": iso_ts(random.randint(0, 365)),
         "acl": random_acl(is_public),
         "is_public": is_public,
@@ -631,7 +631,7 @@ def notion_engineering(idx, org):
     return {
         "doc_id": f"notion-eng-{idx}",
         "semantic_id": f"Engineering wiki: {title}",
-        "link": f"https://www.notion.so/hiveloop/{random.getrandbits(60):x}",
+        "link": f"https://www.notion.so/hivy/{random.getrandbits(60):x}",
         "doc_updated_at": iso_ts(random.randint(0, 180)),
         "acl": random_acl(False),
         "is_public": False,
@@ -652,7 +652,7 @@ def notion_handbook(idx, org):
     return {
         "doc_id": f"notion-handbook-{idx}",
         "semantic_id": f"Handbook: {title}",
-        "link": f"https://www.notion.so/hiveloop/handbook/{random.getrandbits(60):x}",
+        "link": f"https://www.notion.so/hivy/handbook/{random.getrandbits(60):x}",
         "doc_updated_at": iso_ts(random.randint(0, 365)),
         "acl": random_acl(is_public),
         "is_public": is_public,
@@ -695,7 +695,7 @@ def api_doc(idx, org):
     return {
         "doc_id": f"apidoc-{method}-{resource.replace('/', '_')}-{idx}",
         "semantic_id": f"API: {method} {resource}",
-        "link": f"https://docs.hiveloop.com/api{resource}",
+        "link": f"https://docs.usehivy.com/api{resource}",
         "doc_updated_at": iso_ts(random.randint(0, 120)),
         "acl": random_acl(True),
         "is_public": True,
@@ -713,7 +713,7 @@ def gitbook(idx, org):
     return {
         "doc_id": f"gitbook-{idx}",
         "semantic_id": f"Docs: {title}",
-        "link": f"https://docs.hiveloop.com/{idx}",
+        "link": f"https://docs.usehivy.com/{idx}",
         "doc_updated_at": iso_ts(random.randint(0, 180)),
         "acl": random_acl(True),
         "is_public": True,
@@ -731,7 +731,7 @@ def readme_docs(idx, org):
     return {
         "doc_id": f"readme-{idx}",
         "semantic_id": f"Readme.io: {title}",
-        "link": f"https://hiveloop.readme.io/docs/{idx}",
+        "link": f"https://hivy.readme.io/docs/{idx}",
         "doc_updated_at": iso_ts(random.randint(0, 180)),
         "acl": random_acl(True),
         "is_public": True,
@@ -753,7 +753,7 @@ def zendesk_ticket(idx, org):
     return {
         "doc_id": f"zd-{num}",
         "semantic_id": f"Zendesk #{num}: {title}",
-        "link": f"https://hiveloop.zendesk.com/agent/tickets/{num}",
+        "link": f"https://hivy.zendesk.com/agent/tickets/{num}",
         "doc_updated_at": iso_ts(random.randint(0, 180)),
         "acl": random_acl(False),
         "is_public": False,
@@ -774,7 +774,7 @@ def intercom_conversation(idx, org):
     return {
         "doc_id": f"intercom-{idx}",
         "semantic_id": f"Intercom conversation {iso_ts(random.randint(0,30))[:10]}",
-        "link": f"https://app.intercom.com/a/apps/hiveloop/conversations/{random.getrandbits(40):x}",
+        "link": f"https://app.intercom.com/a/apps/hivy/conversations/{random.getrandbits(40):x}",
         "doc_updated_at": iso_ts(random.randint(0, 90)),
         "acl": random_acl(False),
         "is_public": False,
@@ -792,7 +792,7 @@ def freshdesk_ticket(idx, org):
     return {
         "doc_id": f"fd-{num}",
         "semantic_id": f"Freshdesk #{num}",
-        "link": f"https://hiveloop.freshdesk.com/a/tickets/{num}",
+        "link": f"https://hivy.freshdesk.com/a/tickets/{num}",
         "doc_updated_at": iso_ts(random.randint(0, 180)),
         "acl": random_acl(False),
         "is_public": False,
@@ -815,7 +815,7 @@ def salesforce_opportunity(idx, org):
     return {
         "doc_id": f"sfdc-opp-{num}",
         "semantic_id": f"Opportunity: {account} ${amount}",
-        "link": f"https://hiveloop.lightning.force.com/lightning/r/Opportunity/{random.getrandbits(60):x}/view",
+        "link": f"https://hivy.lightning.force.com/lightning/r/Opportunity/{random.getrandbits(60):x}/view",
         "doc_updated_at": iso_ts(random.randint(0, 120)),
         "acl": random_acl(False),
         "is_public": False,
@@ -838,7 +838,7 @@ def salesforce_account(idx, org):
     return {
         "doc_id": f"sfdc-acct-{num}",
         "semantic_id": f"Account: {account_name}",
-        "link": f"https://hiveloop.lightning.force.com/lightning/r/Account/{random.getrandbits(60):x}/view",
+        "link": f"https://hivy.lightning.force.com/lightning/r/Account/{random.getrandbits(60):x}/view",
         "doc_updated_at": iso_ts(random.randint(0, 365)),
         "acl": random_acl(False),
         "is_public": False,
@@ -896,7 +896,7 @@ def runbook(idx, org):
     return {
         "doc_id": f"runbook-{idx}",
         "semantic_id": title,
-        "link": f"https://hiveloop.atlassian.net/wiki/spaces/OPS/pages/runbook-{idx}",
+        "link": f"https://hivy.atlassian.net/wiki/spaces/OPS/pages/runbook-{idx}",
         "doc_updated_at": iso_ts(random.randint(0, 365)),
         "acl": random_acl(False),
         "is_public": False,
@@ -919,7 +919,7 @@ def postmortem(idx, org):
     return {
         "doc_id": f"postmortem-{idx}",
         "semantic_id": title,
-        "link": f"https://hiveloop.atlassian.net/wiki/spaces/OPS/pages/postmortem-{idx}",
+        "link": f"https://hivy.atlassian.net/wiki/spaces/OPS/pages/postmortem-{idx}",
         "doc_updated_at": date,
         "acl": random_acl(False),
         "is_public": False,
@@ -941,7 +941,7 @@ def adr(idx, org):
     return {
         "doc_id": f"adr-{num:04d}",
         "semantic_id": title,
-        "link": f"https://github.com/hiveloop/adr/blob/main/{num:04d}.md",
+        "link": f"https://github.com/usehivy/adr/blob/main/{num:04d}.md",
         "doc_updated_at": iso_ts(random.randint(0, 365)),
         "acl": random_acl(False),
         "is_public": False,
@@ -963,7 +963,7 @@ def rfc(idx, org):
     return {
         "doc_id": f"rfc-{num:04d}",
         "semantic_id": title,
-        "link": f"https://github.com/hiveloop/rfcs/pull/{num}",
+        "link": f"https://github.com/usehivy/rfcs/pull/{num}",
         "doc_updated_at": iso_ts(random.randint(0, 365)),
         "acl": random_acl(False),
         "is_public": False,

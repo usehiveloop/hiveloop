@@ -1,4 +1,4 @@
-module github.com/usehiveloop/hiveloop
+module github.com/usehivy/hivy
 
 go 1.25.10
 

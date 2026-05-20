@@ -3,7 +3,7 @@ package handler
 import (
 	"sort"
 
-	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehivy/hivy/internal/model"
 )
 
 func extractRequiredIntegrations(integrations model.JSON) []string {

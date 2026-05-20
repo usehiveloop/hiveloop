@@ -6,7 +6,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/hibiken/asynq"
 
-	"github.com/usehiveloop/hiveloop/internal/tasks"
+	"github.com/usehivy/hivy/internal/tasks"
 )
 
 func (h *EmployeeHandler) deleteStaleEmployeeSandboxUpgradeTask(agentID uuid.UUID) error {

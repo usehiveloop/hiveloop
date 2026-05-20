@@ -13,12 +13,12 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
-	"github.com/usehiveloop/hiveloop/internal/billing"
-	"github.com/usehiveloop/hiveloop/internal/billing/fake"
-	"github.com/usehiveloop/hiveloop/internal/billing/subscription"
-	"github.com/usehiveloop/hiveloop/internal/enqueue"
-	"github.com/usehiveloop/hiveloop/internal/model"
-	"github.com/usehiveloop/hiveloop/internal/tasks"
+	"github.com/usehivy/hivy/internal/billing"
+	"github.com/usehivy/hivy/internal/billing/fake"
+	"github.com/usehivy/hivy/internal/billing/subscription"
+	"github.com/usehivy/hivy/internal/enqueue"
+	"github.com/usehivy/hivy/internal/model"
+	"github.com/usehivy/hivy/internal/tasks"
 )
 
 func connectBillingTestDB(t *testing.T) *gorm.DB {
@@ -26,7 +26,7 @@ func connectBillingTestDB(t *testing.T) *gorm.DB {
 	dsn := os.Getenv("DATABASE_URL")
 	if dsn == "" {
 		//nolint:gosec // local-dev DSN, mirrors other integration tests
-		dsn = "postgres://hiveloop:localdev@localhost:5433/hiveloop_test?sslmode=disable"
+		dsn = "postgres://hivy:localdev@localhost:5433/hivy_test?sslmode=disable"
 	}
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {

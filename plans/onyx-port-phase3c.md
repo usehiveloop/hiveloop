@@ -203,9 +203,9 @@ Where a test needs a connector, register a `StubConnector` (defined in `tasks/st
 
 ---
 
-## Onyx ↔ Hiveloop reference index
+## Onyx ↔ Hivy reference index
 
-| Onyx | Hiveloop (after 3C) |
+| Onyx | Hivy (after 3C) |
 |---|---|
 | `backend/onyx/background/celery/tasks/beat_schedule.py:68-200` | `internal/rag/scheduler/Configs()` |
 | `backend/onyx/background/celery/tasks/docprocessing/tasks.py:788-1149` (`check_for_indexing`) | `internal/rag/scheduler/ingest_loop.go` `ScanIngestDue` |

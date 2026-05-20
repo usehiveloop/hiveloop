@@ -9,9 +9,9 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
-	bridgepkg "github.com/usehiveloop/hiveloop/internal/bridge"
-	"github.com/usehiveloop/hiveloop/internal/logging"
-	"github.com/usehiveloop/hiveloop/internal/model"
+	bridgepkg "github.com/usehivy/hivy/internal/bridge"
+	"github.com/usehivy/hivy/internal/logging"
+	"github.com/usehivy/hivy/internal/model"
 )
 
 func harnessFromAgent(agentHarness string) bridgepkg.Harness {
@@ -21,7 +21,7 @@ func harnessFromAgent(agentHarness string) bridgepkg.Harness {
 	return bridgepkg.Harness(agentHarness)
 }
 
-func buildHiveLoopMCPServer(mcpBaseURL, jti, token string) bridgepkg.McpServerDefinition {
+func buildHivyMCPServer(mcpBaseURL, jti, token string) bridgepkg.McpServerDefinition {
 	url := fmt.Sprintf("%s/%s", mcpBaseURL, jti)
 
 	var transport bridgepkg.McpTransport
@@ -36,7 +36,7 @@ func buildHiveLoopMCPServer(mcpBaseURL, jti, token string) bridgepkg.McpServerDe
 	_ = transport.FromMcpTransport1(httpTransport)
 
 	return bridgepkg.McpServerDefinition{
-		Name:      "hiveloop",
+		Name:      "hivy",
 		Transport: transport,
 	}
 }

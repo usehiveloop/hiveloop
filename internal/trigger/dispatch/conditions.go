@@ -5,7 +5,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehivy/hivy/internal/model"
 )
 
 // evaluateConditions runs every condition against the payload and combines the

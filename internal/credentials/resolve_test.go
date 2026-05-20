@@ -8,8 +8,8 @@ import (
 	"github.com/google/uuid"
 	"go.uber.org/goleak"
 
-	"github.com/usehiveloop/hiveloop/internal/credentials"
-	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehivy/hivy/internal/credentials"
+	"github.com/usehivy/hivy/internal/model"
 )
 
 func TestMain(m *testing.M) {

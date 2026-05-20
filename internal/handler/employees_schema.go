@@ -3,7 +3,7 @@ package handler
 import (
 	"fmt"
 
-	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehivy/hivy/internal/model"
 )
 
 func validateJSONSchema(agentConfig model.JSON) string {

@@ -5,7 +5,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/usehiveloop/hiveloop/internal/rag/connectors/interfaces"
+	"github.com/usehivy/hivy/internal/rag/connectors/interfaces"
 )
 
 // fetchPRsPage returns true when the repo is done at this stage (last

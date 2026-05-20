@@ -4,9 +4,9 @@ import (
 	"net/http"
 	"net/http/httputil"
 
-	"github.com/usehiveloop/hiveloop/internal/cache"
-	"github.com/usehiveloop/hiveloop/internal/logging"
-	"github.com/usehiveloop/hiveloop/internal/proxy"
+	"github.com/usehivy/hivy/internal/cache"
+	"github.com/usehivy/hivy/internal/logging"
+	"github.com/usehivy/hivy/internal/proxy"
 )
 
 // NewProxyHandler creates the streaming reverse proxy handler.

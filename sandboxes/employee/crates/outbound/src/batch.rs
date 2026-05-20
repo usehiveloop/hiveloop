@@ -148,7 +148,7 @@ impl StreamBatcher {
             let mut request = self
                 .http
                 .post(&sink.url)
-                .header("X-Hiveloop-Signature", format!("sha256={signature}"))
+                .header("X-Hivy-Signature", format!("sha256={signature}"))
                 .header(reqwest::header::CONTENT_TYPE, "application/x-ndjson")
                 .header(reqwest::header::CONTENT_ENCODING, "gzip");
             for (header_name, header_value) in &sink.extra_headers {

@@ -8,9 +8,9 @@ import (
 
 	"github.com/hibiken/asynq"
 
-	"github.com/usehiveloop/hiveloop/internal/enqueue"
-	"github.com/usehiveloop/hiveloop/internal/model"
-	"github.com/usehiveloop/hiveloop/internal/sandbox"
+	"github.com/usehivy/hivy/internal/enqueue"
+	"github.com/usehivy/hivy/internal/model"
+	"github.com/usehivy/hivy/internal/sandbox"
 )
 
 func TestEmployeeSandboxUpgradeWorker_SucceedsAndSchedulesOldRetirement(t *testing.T) {

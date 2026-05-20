@@ -9,9 +9,9 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
-	"github.com/usehiveloop/hiveloop/internal/bridgeevents"
-	"github.com/usehiveloop/hiveloop/internal/logging"
-	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehivy/hivy/internal/bridgeevents"
+	"github.com/usehivy/hivy/internal/logging"
+	"github.com/usehivy/hivy/internal/model"
 )
 
 func (h *BridgeWebhookHandler) cloudAgentTaskForConversation(ctx context.Context, conversationID uuid.UUID) (*model.CloudAgentTask, bool) {

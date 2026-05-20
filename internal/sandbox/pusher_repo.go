@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehivy/hivy/internal/model"
 )
 
 func buildRepoContext(resources model.JSON) string {

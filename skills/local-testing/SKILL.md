@@ -94,7 +94,7 @@ Direct SQL is faster than going through the API for **assertions** and **fixture
 ```bash
 # Read the live port written by local-up (defaults to 5432).
 PG_PORT=$(cat /tmp/agent-test/pg.port 2>/dev/null || echo 5432)
-PSQL="PGPASSWORD=localdev psql -h localhost -p $PG_PORT -U hiveloop -d hiveloop"
+PSQL="PGPASSWORD=localdev psql -h localhost -p $PG_PORT -U hivy -d hivy"
 
 # Inspect a connection by integration
 $PSQL -c "SELECT id, nango_connection_id, revoked_at FROM in_connections
@@ -207,7 +207,7 @@ The chrome window is a real window — it's the easiest live view. For DevTools-
 ```bash
 # 1. Ensure no existing connection blocks the button
 PG_PORT=$(cat /tmp/agent-test/pg.port 2>/dev/null || echo 5432)
-PGPASSWORD=localdev psql -h localhost -p $PG_PORT -U hiveloop -d hiveloop -c \
+PGPASSWORD=localdev psql -h localhost -p $PG_PORT -U hivy -d hivy -c \
   "UPDATE in_connections SET revoked_at = NOW() WHERE in_integration_id IN
    (SELECT id FROM in_integrations WHERE provider='github') AND revoked_at IS NULL;"
 
@@ -223,7 +223,7 @@ agent-browser find role button click --name "github GitHub"
 sleep 3   # popup → callback → ws notify → frontend POST → connection persisted
 
 # 4. Assert
-PGPASSWORD=localdev psql -h localhost -p 5433 -U hiveloop -d hiveloop -tAc \
+PGPASSWORD=localdev psql -h localhost -p 5433 -U hivy -d hivy -tAc \
   "SELECT count(*) FROM in_connections c
    JOIN in_integrations i ON i.id = c.in_integration_id
    WHERE i.provider='github' AND c.revoked_at IS NULL;"
@@ -247,7 +247,7 @@ agent-browser eval "Array.from(document.querySelectorAll('li[role=\"listitem\"]'
 ```bash
 # Need a connection in place first (run the approve flow above), then:
 PG_PORT=$(cat /tmp/agent-test/pg.port 2>/dev/null || echo 5432)
-CONN_ID=$(PGPASSWORD=localdev psql -h localhost -p $PG_PORT -U hiveloop -d hiveloop -tAc \
+CONN_ID=$(PGPASSWORD=localdev psql -h localhost -p $PG_PORT -U hivy -d hivy -tAc \
   "SELECT nango_connection_id FROM in_connections c
    JOIN in_integrations i ON i.id = c.in_integration_id
    WHERE i.provider='github' AND c.revoked_at IS NULL LIMIT 1;")

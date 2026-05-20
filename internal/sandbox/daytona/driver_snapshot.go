@@ -9,7 +9,7 @@ import (
 	daytonasdk "github.com/daytonaio/daytona/libs/sdk-go/pkg/daytona"
 	sdktypes "github.com/daytonaio/daytona/libs/sdk-go/pkg/types"
 
-	"github.com/usehiveloop/hiveloop/internal/sandbox"
+	"github.com/usehivy/hivy/internal/sandbox"
 )
 
 func (d *Driver) BuildSnapshot(ctx context.Context, opts sandbox.BuildSnapshotOpts) (string, error) {
@@ -28,7 +28,7 @@ func (d *Driver) buildImage(ctx context.Context, opts sandbox.BuildSnapshotOpts,
 
 	tag := "v" + strings.TrimPrefix(d.bridgeBinaryVersion, "v")
 	bridgeDownloadURL := fmt.Sprintf(
-		"https://github.com/usehiveloop/hiveloop/releases/download/%s/bridge-%s-x86_64-unknown-linux-gnu.tar.gz",
+		"https://github.com/usehivy/hivy/releases/download/%s/bridge-%s-x86_64-unknown-linux-gnu.tar.gz",
 		tag, tag,
 	)
 

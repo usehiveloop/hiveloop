@@ -3,10 +3,10 @@ package handler
 import (
 	"time"
 
-	"github.com/usehiveloop/hiveloop/internal/mcp/catalog"
-	"github.com/usehiveloop/hiveloop/internal/model"
-	"github.com/usehiveloop/hiveloop/internal/nango"
-	"github.com/usehiveloop/hiveloop/internal/resources"
+	"github.com/usehivy/hivy/internal/mcp/catalog"
+	"github.com/usehivy/hivy/internal/model"
+	"github.com/usehivy/hivy/internal/nango"
+	"github.com/usehivy/hivy/internal/resources"
 	"gorm.io/gorm"
 )
 

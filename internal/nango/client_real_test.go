@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/usehiveloop/hiveloop/internal/nango"
+	"github.com/usehivy/hivy/internal/nango"
 )
 
 func TestRealNangoCreateIntegrationRequiresConcreteOAuthCredentials(t *testing.T) {
@@ -32,8 +32,8 @@ func TestRealNangoCreateIntegrationRequiresConcreteOAuthCredentials(t *testing.T
 		DisplayName: "Real Nango Placeholder Test",
 		Credentials: &nango.Credentials{
 			Type:         "OAUTH2",
-			ClientID:     "hiveloop-placeholder-client-id-8f47c2d91b6a",
-			ClientSecret: "hiveloop-placeholder-client-secret-3a91e58c0d74",
+			ClientID:     "hivy-placeholder-client-id-8f47c2d91b6a",
+			ClientSecret: "hivy-placeholder-client-secret-3a91e58c0d74",
 			Scopes:       "comments:create,comments:read",
 		},
 	})

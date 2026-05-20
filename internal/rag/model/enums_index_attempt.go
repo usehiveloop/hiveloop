@@ -66,7 +66,7 @@ const (
 // backend/onyx/db/enums.py:101-111.
 //
 // DEVIATION: we intentionally DO NOT port `document_set` or
-// `user_group` — Hiveloop has neither concept.
+// `user_group` — Hivy has neither concept.
 type SyncType string
 
 const (

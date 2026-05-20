@@ -94,7 +94,7 @@ data: [DONE]
 
 `
 
-func TestForward_Streaming_RewrapsToHiveloopShape(t *testing.T) {
+func TestForward_Streaming_RewrapsToHivyShape(t *testing.T) {
 	base, cap := newFakeUpstream(t, func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "text/event-stream")
 		_, _ = io.WriteString(w, upstreamSSE)
@@ -122,7 +122,7 @@ func TestForward_Streaming_RewrapsToHiveloopShape(t *testing.T) {
 		t.Fatalf("missing SSE Content-Type")
 	}
 
-	deltas, done := parseHiveloopSSE(t, rw.body.String())
+	deltas, done := parseHivySSE(t, rw.body.String())
 	if len(deltas) != 2 || deltas[0] != "hello " || deltas[1] != "world" {
 		t.Fatalf("deltas = %q", deltas)
 	}
@@ -146,7 +146,7 @@ func TestEmitCachedSSE_OneDeltaPlusCachedDone(t *testing.T) {
 	if err := EmitCachedSSE(rw, cached); err != nil {
 		t.Fatalf("emit: %v", err)
 	}
-	deltas, done := parseHiveloopSSE(t, rw.body.String())
+	deltas, done := parseHivySSE(t, rw.body.String())
 	if len(deltas) != 1 || deltas[0] != "the moon is bright" {
 		t.Fatalf("deltas = %q", deltas)
 	}
@@ -186,7 +186,7 @@ type parsedDone struct {
 	Cached bool  `json:"cached"`
 }
 
-func parseHiveloopSSE(t *testing.T, body string) ([]string, parsedDone) {
+func parseHivySSE(t *testing.T, body string) ([]string, parsedDone) {
 	t.Helper()
 	var deltas []string
 	var done parsedDone

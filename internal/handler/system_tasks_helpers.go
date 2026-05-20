@@ -11,11 +11,11 @@ import (
 	"github.com/google/uuid"
 	"github.com/oklog/ulid/v2"
 
-	"github.com/usehiveloop/hiveloop/internal/crypto"
-	"github.com/usehiveloop/hiveloop/internal/logging"
-	"github.com/usehiveloop/hiveloop/internal/model"
-	"github.com/usehiveloop/hiveloop/internal/registry"
-	"github.com/usehiveloop/hiveloop/internal/system"
+	"github.com/usehivy/hivy/internal/crypto"
+	"github.com/usehivy/hivy/internal/logging"
+	"github.com/usehivy/hivy/internal/model"
+	"github.com/usehivy/hivy/internal/registry"
+	"github.com/usehivy/hivy/internal/system"
 )
 
 func (h *SystemTaskHandler) pickCredential(ctx context.Context, task system.Task) (*model.Credential, error) {

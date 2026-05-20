@@ -9,7 +9,7 @@ import (
 
 	"github.com/redis/go-redis/v9"
 
-	"github.com/usehiveloop/hiveloop/internal/logging"
+	"github.com/usehivy/hivy/internal/logging"
 )
 
 func (t *convTap) attach() (*subscriber, string) {

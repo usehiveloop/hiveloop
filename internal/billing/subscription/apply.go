@@ -9,8 +9,8 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 
-	"github.com/usehiveloop/hiveloop/internal/billing"
-	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehivy/hivy/internal/billing"
+	"github.com/usehivy/hivy/internal/model"
 )
 
 // ApplyChange consumes a quote. For upgrades it requires a verified Paystack

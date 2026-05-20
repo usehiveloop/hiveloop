@@ -20,8 +20,8 @@ import (
 // errors (5xx, rate limits, transport failures).
 type KibamailSender struct {
 	client    *kibamail.Client
-	fromEmail string // bare email, e.g. "betty@notifications.usehiveloop.com"
-	fromName  string // optional display name, e.g. "Betty from Hiveloop"
+	fromEmail string // bare email, e.g. "betty@notifications.usehivy.com"
+	fromName  string // optional display name, e.g. "Betty from Hivy"
 }
 
 // sendEmailRequestExt mirrors kibamail.SendEmailRequest but adds the
@@ -30,17 +30,17 @@ type KibamailSender struct {
 // `fromName` (or a structured EmailAddress) support, swap this back to
 // the SDK's typed request.
 type sendEmailRequestExt struct {
-	From        string                          `json:"from"`
-	FromName    string                          `json:"fromName,omitempty"`
-	To          interface{}                     `json:"to"`
-	Subject     string                          `json:"subject,omitempty"`
-	Html        string                          `json:"html,omitempty"`
-	Text        string                          `json:"text,omitempty"`
-	PreviewText string                          `json:"previewText,omitempty"`
-	ReplyTo     *kibamail.SendEmailReplyTo      `json:"replyTo,omitempty"`
-	Template    *kibamail.SendEmailTemplate     `json:"template,omitempty"`
-	Attachments []kibamail.SendEmailAttachment  `json:"attachments,omitempty"`
-	Metadata    map[string]string               `json:"metadata,omitempty"`
+	From        string                         `json:"from"`
+	FromName    string                         `json:"fromName,omitempty"`
+	To          interface{}                    `json:"to"`
+	Subject     string                         `json:"subject,omitempty"`
+	Html        string                         `json:"html,omitempty"`
+	Text        string                         `json:"text,omitempty"`
+	PreviewText string                         `json:"previewText,omitempty"`
+	ReplyTo     *kibamail.SendEmailReplyTo     `json:"replyTo,omitempty"`
+	Template    *kibamail.SendEmailTemplate    `json:"template,omitempty"`
+	Attachments []kibamail.SendEmailAttachment `json:"attachments,omitempty"`
+	Metadata    map[string]string              `json:"metadata,omitempty"`
 }
 
 // NewKibamailSender builds a Kibamail-backed sender. Pass the API key, a

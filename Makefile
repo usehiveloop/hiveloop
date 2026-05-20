@@ -3,7 +3,7 @@
 
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 COMMIT  ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo unknown)
-IMAGE   ?= usehiveloop/hiveloop
+IMAGE   ?= usehivy/hivy
 SANDBOX_RUNTIME_DIR ?= sandboxes/runtime
 SANDBOX_EMPLOYEE_DIR ?= sandboxes/employee
 GO_BIN ?= $(shell if command -v go >/dev/null 2>&1; then command -v go; elif [ -x /opt/homebrew/bin/go ]; then echo /opt/homebrew/bin/go; elif [ -x /usr/local/go/bin/go ]; then echo /usr/local/go/bin/go; else echo go; fi)
@@ -34,9 +34,9 @@ openapi:
 	raw = json.dumps(d); \
 	raw = raw.replace('internal_handler.', ''); \
 	raw = raw.replace('internal_handler_', ''); \
-	raw = raw.replace('github_com_usehiveloop_hiveloop_internal_registry.', ''); \
-	raw = raw.replace('github_com_usehiveloop_hiveloop_internal_model.', ''); \
-	raw = raw.replace('github_com_usehiveloop_hiveloop_internal_mcp_catalog.', ''); \
+	raw = raw.replace('github_com_usehivy_hivy_internal_registry.', ''); \
+	raw = raw.replace('github_com_usehivy_hivy_internal_model.', ''); \
+	raw = raw.replace('github_com_usehivy_hivy_internal_mcp_catalog.', ''); \
 	json.dump(json.loads(raw), open('docs/openapi.json','w'), indent=2) \
 	"
 	@echo "✓ docs/openapi.json updated"
@@ -52,14 +52,14 @@ openapi:
 # rebuild — Daytona freezes the snapshot's mirrored image at create time, so
 # reusing a VERSION leaves the old bytes in the control-plane registry.
 # BRIDGE_VERSION is the monorepo release tag installed into the image, either
-# from ghcr.io/usehiveloop/hiveloop release assets or from BRIDGE_BINARY when
+# from ghcr.io/usehivy/hivy release assets or from BRIDGE_BINARY when
 # building the runtime bridge directly from sandboxes/runtime.
 build-templates:
 	@test -n "$(VERSION)" || (echo "error: VERSION is required (e.g. make build-templates VERSION=1.0.1 BRIDGE_VERSION=v1.0.0)" && exit 1)
 	@test -n "$(BRIDGE_VERSION)" || (echo "error: BRIDGE_VERSION is required (e.g. make build-templates VERSION=1.0.1 BRIDGE_VERSION=v1.0.0)" && exit 1)
 	env $$(grep -v '^\s*\#' .env | grep -v '^\s*$$' | xargs) go run ./cmd/buildtemplates bridge -version=$(VERSION) -bridge-version=$(BRIDGE_VERSION) -size=$(or $(SIZE),all) $(if $(BRIDGE_BINARY),-bridge-binary=$(BRIDGE_BINARY),)
 
-# Register Daytona snapshots from a usehiveloop/employee-sandbox image already published.
+# Register Daytona snapshots from a usehivy/employee-sandbox image already published.
 # Requires SANDBOX_PROVIDER_KEY, SANDBOX_PROVIDER_URL, SANDBOX_TARGET.
 # Usage: make build-employee-sandbox-templates EMPLOYEE_SANDBOX_VERSION=v0.0.1
 #        make build-employee-sandbox-templates EMPLOYEE_SANDBOX_VERSION=v0.0.1 SIZE=small
@@ -97,7 +97,7 @@ employee-debug-pack:
 	if [ "$(DEBUG_SENSITIVE)" = "1" ]; then flags="$$flags --sensitive"; fi; \
 	go run ./cmd/employee-debug-pack $$flags
 
-# Upload skill definitions to Hiveloop API (reads HIVELOOP_SKILLS_API_KEY from .env)
+# Upload skill definitions to Hivy API (reads HIVY_SKILLS_API_KEY from .env)
 upload-skills:
 	env $$(grep -v '^\s*\#' .env | grep -v '^\s*$$' | xargs) go run ./global-skills/upload
 
@@ -173,7 +173,7 @@ generate: fetch-actions
 # Build the binary
 build:
 	go build -ldflags="-s -w -X main.version=$(VERSION) -X main.commit=$(COMMIT)" \
-		-o bin/hiveloop ./cmd/server
+		-o bin/hivy ./cmd/server
 
 # Run unit tests with race detection
 test:
@@ -187,7 +187,7 @@ test-e2e:
 test-setup:
 	docker compose up -d postgres redis minio qdrant
 	@echo "Waiting for services..."
-	@until docker compose exec -T postgres pg_isready -U hiveloop -q 2>/dev/null; do sleep 1; done
+	@until docker compose exec -T postgres pg_isready -U hivy -q 2>/dev/null; do sleep 1; done
 	@echo "  ✓ Postgres"
 	@until docker compose exec -T redis redis-cli ping 2>/dev/null | grep -q PONG; do sleep 1; done
 	@echo "  ✓ Redis"
@@ -208,7 +208,7 @@ test-setup:
 test-setup-nango:
 	docker compose up -d postgres redis nango
 	@echo "Waiting for services..."
-	@until docker compose exec -T postgres pg_isready -U hiveloop -q 2>/dev/null; do sleep 1; done
+	@until docker compose exec -T postgres pg_isready -U hivy -q 2>/dev/null; do sleep 1; done
 	@echo "  ✓ Postgres"
 	@until docker compose exec -T redis redis-cli ping 2>/dev/null | grep -q PONG; do sleep 1; done
 	@echo "  ✓ Redis"
@@ -228,7 +228,7 @@ test-nango:
 	go test ./e2e/... -v -race -count=1 -timeout=5m -run "TestE2E_Integration"
 
 test-real-nango:
-	@secret=$$(docker compose exec -T postgres psql -U $${POSTGRES_USER:-hiveloop} -d nango -Atc "SELECT secret_key FROM nango._nango_environments WHERE name='prod' LIMIT 1"); \
+	@secret=$$(docker compose exec -T postgres psql -U $${POSTGRES_USER:-hivy} -d nango -Atc "SELECT secret_key FROM nango._nango_environments WHERE name='prod' LIMIT 1"); \
 	if [ -z "$$secret" ]; then echo "Nango secret not found; run make test-setup-nango"; exit 1; fi; \
 	RUN_REAL_NANGO_TESTS=1 \
 	NANGO_ENDPOINT=http://localhost:$${NANGO_PORT:-13003} \
@@ -279,13 +279,13 @@ up:
 dev: up
 	@echo ""
 	@echo "Waiting for services..."
-	@until docker compose exec -T postgres pg_isready -U hiveloop -q 2>/dev/null; do sleep 1; done
+	@until docker compose exec -T postgres pg_isready -U hivy -q 2>/dev/null; do sleep 1; done
 	@echo "  ✓ Postgres"
 	@until docker compose exec -T redis redis-cli ping 2>/dev/null | grep -q PONG; do sleep 1; done
 	@echo "  ✓ Redis"
 	@echo ""
 	@echo "========================================"
-	@echo "  Starting HiveLoop (hot reload, debug)"
+	@echo "  Starting Hivy (hot reload, debug)"
 	@echo "========================================"
 	@echo "  Postgres:  localhost:5433"
 	@echo "  Redis:     localhost:6379"
@@ -336,7 +336,7 @@ docker-build:
 # Run Docker image locally (connects to host docker-compose infra)
 docker-run:
 	docker run --rm --network host \
-		-e DATABASE_URL=postgres://hiveloop:localdev@localhost:5433/hiveloop?sslmode=disable \
+		-e DATABASE_URL=postgres://hivy:localdev@localhost:5433/hivy?sslmode=disable \
 		-e KMS_TYPE=aead \
 		-e KMS_KEY=$${KMS_KEY} \
 		-e REDIS_ADDR=localhost:6379 \
@@ -347,7 +347,7 @@ docker-run:
 
 # Start the docker-compose services the RAG integration tests need:
 # postgres (metadata) + redis (locks) + minio (object storage) + qdrant
-# (vector search). Creates the hiveloop-rag-test bucket as a side effect.
+# (vector search). Creates the hivy-rag-test bucket as a side effect.
 test-services-up:
 	POSTGRES_PASSWORD=$${POSTGRES_PASSWORD:-localdev} docker compose up -d postgres redis minio qdrant
 	@until curl -fsS http://localhost:$${QDRANT_HTTP_PORT:-6333}/readyz >/dev/null 2>&1; do sleep 1; done
@@ -366,20 +366,20 @@ ragtest-slack-live:
 	[ ! -f .env.rag ] || . ./.env.rag; \
 	[ ! -f sandboxes/employee/.env ] || . sandboxes/employee/.env; \
 	set +a; \
-	HIVELOOP_E2E_SLACK_RAG=1 \
-	HIVELOOP_E2E_KEEP_SLACK_RAG=$${HIVELOOP_E2E_KEEP_SLACK_RAG:-1} \
+	HIVY_E2E_SLACK_RAG=1 \
+	HIVY_E2E_KEEP_SLACK_RAG=$${HIVY_E2E_KEEP_SLACK_RAG:-1} \
 	QDRANT_HOST=$${QDRANT_HOST:-localhost} \
 	QDRANT_PORT=$${QDRANT_PORT:-6334} \
-	DATABASE_URL=$${DATABASE_URL:-postgres://hiveloop:localdev@localhost:5433/hiveloop_test?sslmode=disable} \
+	DATABASE_URL=$${DATABASE_URL:-postgres://hivy:localdev@localhost:5433/hivy_test?sslmode=disable} \
 	go test ./internal/rag/connectors/slack -run TestSlackBotProfileRAGIngestion_Live -count=1 -v
 
 # Run live semantic KB search against an existing local Qdrant collection.
-# Requires HIVELOOP_E2E_KB_COLLECTION and HIVELOOP_E2E_KB_ORG_ID.
+# Requires HIVY_E2E_KB_COLLECTION and HIVY_E2E_KB_ORG_ID.
 ragtest-kb-search-live:
 	@set -a; \
 	[ ! -f .env.rag ] || . ./.env.rag; \
 	set +a; \
-	HIVELOOP_E2E_KB_SEARCH=1 \
+	HIVY_E2E_KB_SEARCH=1 \
 	QDRANT_HOST=$${QDRANT_HOST:-localhost} \
 	QDRANT_PORT=$${QDRANT_PORT:-6334} \
 	go test ./internal/rag -run TestSearchKnowledgeBase_LiveSlackCollection -count=1 -v
@@ -388,7 +388,7 @@ seed-test:
 	@PORT=$${DB_PORT:-$$(test -s /tmp/agent-test/pg.port && cat /tmp/agent-test/pg.port || echo 5432)}; \
 	PGPASSWORD=$${POSTGRES_PASSWORD:-localdev} psql -q \
 		-h $${DB_HOST:-localhost} -p $$PORT \
-		-U $${DB_USER:-hiveloop} -d $${DB_NAME:-hiveloop} \
+		-U $${DB_USER:-hivy} -d $${DB_NAME:-hivy} \
 		-f scripts/seed-test-data.sql
 
 # --- Local test stack ---

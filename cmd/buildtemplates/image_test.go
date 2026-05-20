@@ -10,11 +10,11 @@ import (
 func TestBuildBridgeImageDownloadsBridgeFromMonorepoRelease(t *testing.T) {
 	dockerfile := buildBridgeImage("1.2.3", "v1.2.3", false).Dockerfile()
 
-	want := "https://github.com/usehiveloop/hiveloop/releases/download/v1.2.3/bridge-v1.2.3-x86_64-unknown-linux-gnu.tar.gz"
+	want := "https://github.com/usehivy/hivy/releases/download/v1.2.3/bridge-v1.2.3-x86_64-unknown-linux-gnu.tar.gz"
 	if !strings.Contains(dockerfile, want) {
 		t.Fatalf("Dockerfile missing monorepo bridge asset URL %q:\n%s", want, dockerfile)
 	}
-	if strings.Contains(dockerfile, "github.com/usehiveloop/bridge/releases") {
+	if strings.Contains(dockerfile, "github.com/usehivy/bridge/releases") {
 		t.Fatalf("Dockerfile still references the old bridge release repo:\n%s", dockerfile)
 	}
 	if strings.Contains(dockerfile, "COPY bridge /usr/local/bin/bridge") {

@@ -138,7 +138,7 @@ func newNangoConnMock(cfg *nangoConnMockConfig) http.Handler {
 			}
 			_ = json.NewEncoder(w).Encode(map[string]any{
 				"provider":          "github",
-				"connection_config": map[string]any{"org": "hiveloop"},
+				"connection_config": map[string]any{"org": "hivy"},
 				"credentials":       map[string]any{"access_token": "gho_xxxx"},
 			})
 			return
@@ -238,7 +238,7 @@ func newNangoConnMock(cfg *nangoConnMockConfig) http.Handler {
 					"name":       "web",
 					"active":     true,
 					"events":     []string{"pull_request", "pull_request_review", "pull_request_review_comment", "pull_request_review_thread", "issue_comment", "workflow_run", "workflow_job", "commit_comment", "issues"},
-					"config":     map[string]any{"url": "https://api.hiveloop.test/internal/webhooks/github/employees/test"},
+					"config":     map[string]any{"url": "https://api.hivy.test/internal/webhooks/github/employees/test"},
 					"created_at": time.Now().UTC().Format(time.RFC3339),
 				})
 				return
@@ -283,7 +283,7 @@ func newNangoConnMock(cfg *nangoConnMockConfig) http.Handler {
 				"name":       "web",
 				"active":     true,
 				"events":     []string{"pull_request", "pull_request_review", "pull_request_review_comment", "pull_request_review_thread", "issue_comment", "workflow_run", "workflow_job", "commit_comment", "issues"},
-				"config":     map[string]any{"url": "https://api.hiveloop.test/internal/webhooks/github/employees/test"},
+				"config":     map[string]any{"url": "https://api.hivy.test/internal/webhooks/github/employees/test"},
 				"created_at": time.Now().UTC().Format(time.RFC3339),
 			})
 			return

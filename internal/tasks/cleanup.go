@@ -7,11 +7,11 @@ import (
 	"github.com/hibiken/asynq"
 	"gorm.io/gorm"
 
-	"github.com/usehiveloop/hiveloop/internal/billing"
-	"github.com/usehiveloop/hiveloop/internal/logging"
-	"github.com/usehiveloop/hiveloop/internal/model"
-	"github.com/usehiveloop/hiveloop/internal/sandbox"
-	"github.com/usehiveloop/hiveloop/internal/streaming"
+	"github.com/usehivy/hivy/internal/billing"
+	"github.com/usehivy/hivy/internal/logging"
+	"github.com/usehivy/hivy/internal/model"
+	"github.com/usehivy/hivy/internal/sandbox"
+	"github.com/usehivy/hivy/internal/streaming"
 )
 
 // TokenCleanupHandler deletes expired email verifications, password resets, and OAuth exchange tokens.

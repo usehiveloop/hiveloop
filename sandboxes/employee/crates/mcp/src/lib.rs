@@ -401,10 +401,10 @@ mod tests {
     #[test]
     fn expands_env_placeholders_in_header_values() {
         unsafe {
-            std::env::set_var("HIVELOOP_PROXY_API_KEY", "proxy-test-token");
+            std::env::set_var("HIVY_PROXY_API_KEY", "proxy-test-token");
         }
         assert_eq!(
-            expand_env_placeholders("Bearer ${HIVELOOP_PROXY_API_KEY}"),
+            expand_env_placeholders("Bearer ${HIVY_PROXY_API_KEY}"),
             "Bearer proxy-test-token"
         );
     }

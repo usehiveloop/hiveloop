@@ -9,12 +9,12 @@ import (
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 
-	"github.com/usehiveloop/hiveloop/internal/config"
-	"github.com/usehiveloop/hiveloop/internal/crypto"
-	"github.com/usehiveloop/hiveloop/internal/handler"
-	"github.com/usehiveloop/hiveloop/internal/mcp/catalog"
-	"github.com/usehiveloop/hiveloop/internal/middleware"
-	"github.com/usehiveloop/hiveloop/internal/nango"
+	"github.com/usehivy/hivy/internal/config"
+	"github.com/usehivy/hivy/internal/crypto"
+	"github.com/usehivy/hivy/internal/handler"
+	"github.com/usehivy/hivy/internal/mcp/catalog"
+	"github.com/usehivy/hivy/internal/middleware"
+	"github.com/usehivy/hivy/internal/nango"
 )
 
 func setupPublicRoutes(

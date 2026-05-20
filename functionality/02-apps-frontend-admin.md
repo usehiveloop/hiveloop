@@ -691,10 +691,10 @@
 - [ ] Provide Android Chrome icon asset (apps/web/public/android-chrome-192x192.png)
 - [ ] Provide Android Chrome icon asset (apps/web/public/android-chrome-512x512.png)
 - [ ] Provide Apple touch icon asset (apps/web/public/apple-touch-icon.png)
-- [ ] Provide email Hiveloop Black logo asset (apps/web/public/email/hiveloop-black.png)
-- [ ] Provide email Hiveloop Black logo asset (apps/web/public/email/hiveloop-black.webp)
-- [ ] Provide email Hiveloop White logo asset (apps/web/public/email/hiveloop-white.png)
-- [ ] Provide email Hiveloop White logo asset (apps/web/public/email/hiveloop-white.webp)
+- [ ] Provide email Hivy Black logo asset (apps/web/public/email/hivy-black.png)
+- [ ] Provide email Hivy Black logo asset (apps/web/public/email/hivy-black.webp)
+- [ ] Provide email Hivy White logo asset (apps/web/public/email/hivy-white.png)
+- [ ] Provide email Hivy White logo asset (apps/web/public/email/hivy-white.webp)
 - [ ] Provide png favicon asset file (apps/web/public/favicon-16x16.png)
 - [ ] Provide png favicon asset file (apps/web/public/favicon-32x32.png)
 - [ ] Provide ico favicon asset file (apps/web/public/favicon.ico)
@@ -839,6 +839,6 @@
 - [ ] Link Typeset frontend skill bundle (apps/web/skills/typeset)
 
 ## Coverage
-- [ ] Files scanned count equals 764 (/tmp/hiveloop-functionality/apps.txt)
-- [ ] Uninspectable files count equals 0 (/tmp/hiveloop-functionality/apps.txt)
+- [ ] Files scanned count equals 764 (/tmp/hivy-functionality/apps.txt)
+- [ ] Uninspectable files count equals 0 (/tmp/hivy-functionality/apps.txt)
 - [ ] Broken skill symlinks inspected by readlink (apps/web/skills/adapt)

@@ -144,4 +144,3 @@ func validateOne(s ArgSpec, val any) *ValidationError {
 	}
 	return nil
 }
-

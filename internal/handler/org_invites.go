@@ -5,10 +5,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/usehiveloop/hiveloop/internal/email"
+	"github.com/usehivy/hivy/internal/email"
 	"gorm.io/gorm"
 
-	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehivy/hivy/internal/model"
 )
 
 type OrgInviteHandler struct {

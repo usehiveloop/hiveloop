@@ -1,13 +1,13 @@
 ---
 name: notion
-description: Use whenever the user asks to read, search, create, edit, summarize, organize, or manage Notion pages, blocks, databases, data sources, comments, files, icons, custom emojis, templates, users, or markdown content. Provides verified curl and jq commands through the Hiveloop-provided Notion API proxy using NOTION_API_URL and NOTION_TOKEN, including safe patterns for Notion API version 2026-03-11 and human-facing Notion links that never use the proxy URL.
+description: Use whenever the user asks to read, search, create, edit, summarize, organize, or manage Notion pages, blocks, databases, data sources, comments, files, icons, custom emojis, templates, users, or markdown content. Provides verified curl and jq commands through the Hivy-provided Notion API proxy using NOTION_API_URL and NOTION_TOKEN, including safe patterns for Notion API version 2026-03-11 and human-facing Notion links that never use the proxy URL.
 ---
 
 # Notion REST API
 
-Use Notion through the Hiveloop-provided Notion API proxy at `$NOTION_API_URL`.
+Use Notion through the Hivy-provided Notion API proxy at `$NOTION_API_URL`.
 
-`NOTION_API_URL` and `NOTION_TOKEN` are provided by the Hiveloop runtime for the employee's configured Notion profile. Always call the provided `NOTION_API_URL` exactly; it is not expected to be `https://api.notion.com`, and the runtime handles forwarding to Notion for the selected profile connection. Do not substitute another workspace, base URL, or token.
+`NOTION_API_URL` and `NOTION_TOKEN` are provided by the Hivy runtime for the employee's configured Notion profile. Always call the provided `NOTION_API_URL` exactly; it is not expected to be `https://api.notion.com`, and the runtime handles forwarding to Notion for the selected profile connection. Do not substitute another workspace, base URL, or token.
 
 Never use `NOTION_API_URL` to construct human-facing Notion dashboard links. It is an API proxy, not the Notion UI host. For links shown to users, use the `url` or `public_url` fields returned by Notion page, database, or data source responses. If no Notion response URL is available, provide the object ID and say the UI URL is unavailable instead of inventing one from the proxy.
 
@@ -17,7 +17,7 @@ Required:
 
 | Variable | Purpose |
 |---|---|
-| `NOTION_API_URL` | Hiveloop-provided Notion API proxy base URL |
+| `NOTION_API_URL` | Hivy-provided Notion API proxy base URL |
 | `NOTION_TOKEN` | Bearer token for the configured Notion connection |
 
 Initialize once:
@@ -78,7 +78,7 @@ For file upload content, call `curl` directly with the same headers.
 
 - Always filter API JSON with `jq` before reading or returning results.
 - Never print `$NOTION_TOKEN`.
-- Always call `$NOTION_API_URL` for API requests. Do not call `https://api.notion.com` directly in runtime work unless the user is explicitly debugging Notion outside Hiveloop.
+- Always call `$NOTION_API_URL` for API requests. Do not call `https://api.notion.com` directly in runtime work unless the user is explicitly debugging Notion outside Hivy.
 - Never construct a human-facing Notion URL from `$NOTION_API_URL`. Use `url` or `public_url` fields from Notion responses, or report the ID when no UI URL is available.
 - Use `Notion-Version: 2026-03-11` unless the user explicitly requests another version.
 - Prefer the markdown endpoints for broad document reading and editing. Use block endpoints when you need precise block structure, media blocks, tables, toggles, or block IDs.
@@ -116,7 +116,7 @@ notion_api GET "/v1/data_sources/$DATA_SOURCE_ID" \
   | jq '{id, title: ([.title[]?.plain_text] | join("")), url, public_url}'
 ```
 
-Do not transform `$NOTION_API_URL/v1/pages/...` into a browser link. `NOTION_API_URL` is the Hiveloop runtime proxy and is not suitable for teammates to open in a browser.
+Do not transform `$NOTION_API_URL/v1/pages/...` into a browser link. `NOTION_API_URL` is the Hivy runtime proxy and is not suitable for teammates to open in a browser.
 
 ## Search accessible content
 

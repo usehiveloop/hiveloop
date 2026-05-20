@@ -10,10 +10,10 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 
-	"github.com/usehiveloop/hiveloop/internal/employeeprompts"
-	"github.com/usehiveloop/hiveloop/internal/employeeruntime"
-	"github.com/usehiveloop/hiveloop/internal/logging"
-	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehivy/hivy/internal/employeeprompts"
+	"github.com/usehivy/hivy/internal/employeeruntime"
+	"github.com/usehivy/hivy/internal/logging"
+	"github.com/usehivy/hivy/internal/model"
 )
 
 func ensureHivyEmployee(ctx context.Context, db *gorm.DB, orgID uuid.UUID) (*model.Agent, error) {

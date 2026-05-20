@@ -7,9 +7,9 @@ import (
 	"github.com/go-chi/chi/v5"
 	"gorm.io/gorm"
 
-	"github.com/usehiveloop/hiveloop/internal/logging"
-	"github.com/usehiveloop/hiveloop/internal/middleware"
-	ragdb "github.com/usehiveloop/hiveloop/internal/rag/db"
+	"github.com/usehivy/hivy/internal/logging"
+	"github.com/usehivy/hivy/internal/middleware"
+	ragdb "github.com/usehivy/hivy/internal/rag/db"
 )
 
 // @Summary Delete a RAG source

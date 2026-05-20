@@ -5,11 +5,11 @@ import (
 
 	"gorm.io/gorm"
 
-	"github.com/usehiveloop/hiveloop/internal/cache"
-	"github.com/usehiveloop/hiveloop/internal/counter"
-	"github.com/usehiveloop/hiveloop/internal/mcp"
-	"github.com/usehiveloop/hiveloop/internal/mcp/catalog"
-	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehivy/hivy/internal/cache"
+	"github.com/usehivy/hivy/internal/counter"
+	"github.com/usehivy/hivy/internal/mcp"
+	"github.com/usehivy/hivy/internal/mcp/catalog"
+	"github.com/usehivy/hivy/internal/model"
 )
 
 // TokenHandler manages sandbox proxy token operations.

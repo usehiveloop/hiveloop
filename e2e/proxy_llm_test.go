@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/usehiveloop/hiveloop/internal/middleware"
+	"github.com/usehivy/hivy/internal/middleware"
 )
 
 func TestE2E_Proxy_OpenAI_NonStreaming(t *testing.T) {

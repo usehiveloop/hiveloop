@@ -7,7 +7,7 @@ import (
 
 	"gorm.io/gorm"
 
-	ragmodel "github.com/usehiveloop/hiveloop/internal/rag/model"
+	ragmodel "github.com/usehivy/hivy/internal/rag/model"
 )
 
 // ScanStuckAttempts is the only crash-recovery path: without it, a

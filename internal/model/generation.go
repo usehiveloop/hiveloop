@@ -10,10 +10,10 @@ import (
 // Generation records a single LLM proxy request with full observability data:
 // token usage, cost, latency, attribution, and error tracking.
 type Generation struct {
-	ID             string         `gorm:"primaryKey" json:"id"`
-	OrgID          uuid.UUID      `gorm:"type:uuid;not null;index:idx_gen_org_created" json:"org_id"`
-	CredentialID   uuid.UUID      `gorm:"type:uuid;not null;index:idx_gen_org_credential" json:"credential_id"`
-	TokenJTI       string         `gorm:"column:token_jti;not null" json:"token_jti"`
+	ID           string    `gorm:"primaryKey" json:"id"`
+	OrgID        uuid.UUID `gorm:"type:uuid;not null;index:idx_gen_org_created" json:"org_id"`
+	CredentialID uuid.UUID `gorm:"type:uuid;not null;index:idx_gen_org_credential" json:"credential_id"`
+	TokenJTI     string    `gorm:"column:token_jti;not null" json:"token_jti"`
 
 	// Request metadata
 	ProviderID  string `gorm:"not null;index:idx_gen_org_provider" json:"provider_id"`

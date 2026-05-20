@@ -296,29 +296,29 @@ assert_event "event: tool_call_result" "Phase 3: got tool_call_result"
 assert_event "event: turn_completed" "Phase 3: got turn_completed"
 
 # ──────────────────────────────────────────
-# Phase 4: custom MCP (hiveloop memory)
+# Phase 4: custom MCP (hivy memory)
 # ──────────────────────────────────────────
 echo
-echo "═══ Phase 4: custom MCP (hiveloop memory) ═══"
+echo "═══ Phase 4: custom MCP (hivy memory) ═══"
 docker rm -f "${CONTAINER_NAME}" >/dev/null 2>&1 || true
 start_container
 
-if [[ -z "${HIVELOOP_MCP_URL:-}" || -z "${HIVELOOP_MCP_TOKEN:-}" ]]; then
-    echo "✗ HIVELOOP_MCP_URL and HIVELOOP_MCP_TOKEN are required for Phase 4" >&2
+if [[ -z "${HIVY_MCP_URL:-}" || -z "${HIVY_MCP_TOKEN:-}" ]]; then
+    echo "✗ HIVY_MCP_URL and HIVY_MCP_TOKEN are required for Phase 4" >&2
     exit 2
 fi
-HIVELOOP_MCP=$(python3 -c "
+HIVY_MCP=$(python3 -c "
 import json, os
 print(json.dumps([{
-    'name': 'hiveloop',
+    'name': 'hivy',
     'transport': {
         'type': 'streamable_http',
-        'url': os.environ['HIVELOOP_MCP_URL'],
-        'headers': {'Authorization': f\"Bearer {os.environ['HIVELOOP_MCP_TOKEN']}\"},
+        'url': os.environ['HIVY_MCP_URL'],
+        'headers': {'Authorization': f\"Bearer {os.environ['HIVY_MCP_TOKEN']}\"},
     },
 }]))
 ")
-push_agent "bypassPermissions" "${HIVELOOP_MCP}"
+push_agent "bypassPermissions" "${HIVY_MCP}"
 
 # Phase 4a — retain
 echo "── 4a: retain a fact ──"

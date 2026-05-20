@@ -16,12 +16,12 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
-	"github.com/usehiveloop/hiveloop/internal/handler"
-	"github.com/usehiveloop/hiveloop/internal/model"
-	"github.com/usehiveloop/hiveloop/internal/nango"
+	"github.com/usehivy/hivy/internal/handler"
+	"github.com/usehivy/hivy/internal/model"
+	"github.com/usehivy/hivy/internal/nango"
 )
 
-const railwayTestDBURL = "postgres://hiveloop:localdev@localhost:5433/hiveloop_test?sslmode=disable" // #nosec G101 -- test fixture, not a real secret
+const railwayTestDBURL = "postgres://hivy:localdev@localhost:5433/hivy_test?sslmode=disable" // #nosec G101 -- test fixture, not a real secret
 
 type railwayTestHarness struct {
 	db          *gorm.DB

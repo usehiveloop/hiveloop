@@ -16,7 +16,7 @@ package acl
 import (
 	"strings"
 
-	"github.com/usehiveloop/hiveloop/internal/rag/model"
+	"github.com/usehivy/hivy/internal/rag/model"
 )
 
 // PublicDocPat is the sentinel ACL string stamped on documents that are
@@ -40,7 +40,7 @@ func PrefixUserEmail(email string) string {
 // backend/onyx/access/utils.py:11-14. The "group:" prefix namespaces
 // Onyx-internal user groups against user emails and external groups.
 //
-// NOTE: Hiveloop does not port Onyx's EE UserGroup table. This helper
+// NOTE: Hivy does not port Onyx's EE UserGroup table. This helper
 // is still ported verbatim because indexing code paths that compute
 // ACLs may encounter legacy group rows during migration and because
 // the helper is cheap to keep in sync.

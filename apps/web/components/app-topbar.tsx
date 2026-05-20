@@ -55,7 +55,7 @@ export function AppTopbar({
     <>
       <header className="sticky top-0 z-30 flex w-full items-center justify-between gap-4 border-b border-border/60 bg-background/90 px-6 py-4 backdrop-blur sm:px-10">
         <div className="flex min-w-0 items-center gap-4">
-          <Link href={logoHref} aria-label="Hiveloop home" className="shrink-0">
+          <Link href={logoHref} aria-label="Hivy home" className="shrink-0">
             <Logo className="h-8" />
           </Link>
           <HeaderWorkspaceSwitcher className="hidden sm:flex" />
@@ -92,7 +92,7 @@ export function AppTopbar({
           <Button
             variant="ghost"
             size="sm"
-            render={<a href="mailto:support@usehiveloop.com" />}
+            render={<a href="mailto:support@usehivy.com" />}
           >
             Support
           </Button>

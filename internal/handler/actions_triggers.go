@@ -6,7 +6,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
-	"github.com/usehiveloop/hiveloop/internal/mcp/catalog"
+	"github.com/usehivy/hivy/internal/mcp/catalog"
 )
 
 type triggerSummary struct {

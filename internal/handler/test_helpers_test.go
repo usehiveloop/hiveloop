@@ -10,7 +10,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
-	"github.com/usehiveloop/hiveloop/internal/crypto"
+	"github.com/usehivy/hivy/internal/crypto"
 )
 
 func withChiURLParam(r *http.Request, key, value string) *http.Request {

@@ -5,14 +5,14 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehivy/hivy/internal/model"
 )
 
 // RAGSyncState adapts the sync-state subset of Onyx's
 // `ConnectorCredentialPair` at backend/onyx/db/models.py:723-837.
 //
 // ARCHITECTURAL NOTE: Onyx bundles identity + schedule + sync state
-// into a single `ConnectorCredentialPair` row. Hiveloop splits those
+// into a single `ConnectorCredentialPair` row. Hivy splits those
 // concerns: identity lives on `InConnection`, schedule + config live
 // on `RAGSource`, and sync state (this struct) is a 1:1 sibling of
 // `RAGSource` keyed by `rag_source_id`. The uniqueness of
@@ -26,7 +26,7 @@ import (
 type RAGSyncState struct {
 	ID uuid.UUID `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
 
-	// OrgID — Hiveloop addition per universal constraint (every RAG row
+	// OrgID — Hivy addition per universal constraint (every RAG row
 	// carries org_id with CASCADE). Onyx uses schema-per-tenant.
 	OrgID uuid.UUID `gorm:"type:uuid;not null;index"`
 
@@ -96,6 +96,6 @@ type RAGSyncState struct {
 	UpdatedAt time.Time
 }
 
-// TableName — follow Hiveloop convention (`orgs`, `in_connections`,
+// TableName — follow Hivy convention (`orgs`, `in_connections`,
 // etc.); RAG tables prefixed `rag_`.
 func (RAGSyncState) TableName() string { return "rag_sync_states" }

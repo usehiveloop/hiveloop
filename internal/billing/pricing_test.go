@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/usehiveloop/hiveloop/internal/billing"
+	"github.com/usehivy/hivy/internal/billing"
 )
 
 func TestTokensToCredits_GLM5_1Precision(t *testing.T) {

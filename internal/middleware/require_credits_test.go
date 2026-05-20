@@ -8,7 +8,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/usehiveloop/hiveloop/internal/middleware"
+	"github.com/usehivy/hivy/internal/middleware"
 )
 
 // fakeBalance is an in-memory BalanceChecker for middleware tests.

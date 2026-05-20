@@ -7,7 +7,7 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
-	"github.com/usehiveloop/hiveloop/internal/goroutine"
+	"github.com/usehivy/hivy/internal/goroutine"
 )
 
 // ServerCache caches built MCP server instances by JTI to avoid rebuilding on every request.

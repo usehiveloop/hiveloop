@@ -12,11 +12,11 @@ import (
 	"github.com/oklog/ulid/v2"
 	"gorm.io/gorm"
 
-	"github.com/usehiveloop/hiveloop/internal/goroutine"
-	"github.com/usehiveloop/hiveloop/internal/logging"
-	"github.com/usehiveloop/hiveloop/internal/model"
-	"github.com/usehiveloop/hiveloop/internal/observe"
-	"github.com/usehiveloop/hiveloop/internal/registry"
+	"github.com/usehivy/hivy/internal/goroutine"
+	"github.com/usehivy/hivy/internal/logging"
+	"github.com/usehivy/hivy/internal/model"
+	"github.com/usehivy/hivy/internal/observe"
+	"github.com/usehivy/hivy/internal/registry"
 )
 
 const generationBatchSize = 50

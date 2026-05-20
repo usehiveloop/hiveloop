@@ -17,15 +17,15 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
-	"github.com/usehiveloop/hiveloop/internal/billing"
-	"github.com/usehiveloop/hiveloop/internal/credentials"
-	"github.com/usehiveloop/hiveloop/internal/crypto"
-	"github.com/usehiveloop/hiveloop/internal/handler"
-	"github.com/usehiveloop/hiveloop/internal/mcp/catalog"
-	"github.com/usehiveloop/hiveloop/internal/model"
-	"github.com/usehiveloop/hiveloop/internal/registry"
-	"github.com/usehiveloop/hiveloop/internal/system"
-	"github.com/usehiveloop/hiveloop/internal/system/tasks"
+	"github.com/usehivy/hivy/internal/billing"
+	"github.com/usehivy/hivy/internal/credentials"
+	"github.com/usehivy/hivy/internal/crypto"
+	"github.com/usehivy/hivy/internal/handler"
+	"github.com/usehivy/hivy/internal/mcp/catalog"
+	"github.com/usehivy/hivy/internal/model"
+	"github.com/usehivy/hivy/internal/registry"
+	"github.com/usehivy/hivy/internal/system"
+	"github.com/usehivy/hivy/internal/system/tasks"
 )
 
 type promptWriterHarness struct {

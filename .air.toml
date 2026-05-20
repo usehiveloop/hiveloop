@@ -2,9 +2,9 @@ root = "."
 tmp_dir = "tmp"
 
 [build]
-  cmd = "go build -o ./tmp/hiveloop ./cmd/server"
-  bin = "./tmp/hiveloop"
-  full_bin = "LOG_LEVEL=debug LOG_FORMAT=text ./tmp/hiveloop"
+  cmd = "go build -o ./tmp/hivy ./cmd/server"
+  bin = "./tmp/hivy"
+  full_bin = "LOG_LEVEL=debug LOG_FORMAT=text ./tmp/hivy"
   include_ext = ["go", "json"]
   exclude_dir = ["tmp", "bin", "node_modules", "apps", "packages", "docs", "scripts", "docker", "examples", "marketing", "patches", "strix_runs", "certs"]
   exclude_regex = ["_test\\.go$"]

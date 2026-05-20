@@ -1,22 +1,22 @@
-# Onyx → Hiveloop: RAG Port Plan (Phases 0–1)
+# Onyx → Hivy: RAG Port Plan (Phases 0–1)
 
 **Author:** architecture session, April 2026
 **Scope of this document:** Phase 0 (scaffolding) and Phase 1 (data layer) only. Later phases planned separately once Phase 1 lands.
 **Source project:** `/Users/bahdcoder/code/onyx` — MIT-licensed
-**Target project:** `/Users/bahdcoder/code/hiveloop.com`
+**Target project:** `/Users/bahdcoder/code/usehivy.com`
 
-We are cloning Onyx's ingestion + ACL + permission-sync architecture into Hiveloop's Go/gorm/chi/asynq monolith, adapting where our architecture differs, and changing three substitutions:
+We are cloning Onyx's ingestion + ACL + permission-sync architecture into Hivy's Go/gorm/chi/asynq monolith, adapting where our architecture differs, and changing three substitutions:
 
-| Onyx | Hiveloop |
+| Onyx | Hivy |
 |---|---|
 | Vespa (vector store) | **LanceDB** (unofficial Go bindings, storage on **R2** prod / **MinIO** dev) |
 | Vespa ACL filter | LanceDB payload filter over `acl: list<string>` |
 | `ConnectorCredentialPair` + `Connector` + `Credential` | `InConnection` + `InIntegration` (already exist) + a new sibling `RAGSyncState` |
 | Celery | Asynq (already in use) |
-| SQLAlchemy multi-tenancy (schema-per-tenant) | Hiveloop's existing org-row-level scoping (`org_id` on every row) |
+| SQLAlchemy multi-tenancy (schema-per-tenant) | Hivy's existing org-row-level scoping (`org_id` on every row) |
 | Postgres-per-tenant | Shared Postgres, `org_id` column + index |
-| Onyx `User` | Hiveloop `User` + `OrgMembership` |
-| Onyx `UserGroup` (EE) | **Not cloned for Phase 1** — Hiveloop's RBAC (`OrgMembership.Role`) stays as-is for org-level permissions; RAG introduces *document-level* ACLs as a separate new axis. |
+| Onyx `User` | Hivy `User` + `OrgMembership` |
+| Onyx `UserGroup` (EE) | **Not cloned for Phase 1** — Hivy's RBAC (`OrgMembership.Role`) stays as-is for org-level permissions; RAG introduces *document-level* ACLs as a separate new axis. |
 
 **The rule for every line of this plan:** if we are porting behavior from Onyx, the Onyx source reference is cited inline. If we are deliberately deviating, the deviation is called out with `DEVIATION:` and a justification.
 
@@ -44,7 +44,7 @@ We are cloning Onyx's ingestion + ACL + permission-sync architecture into Hivelo
 
 ## Testing philosophy — **non-negotiable for every tranche**
 
-Hiveloop already runs tests against real services (see `internal/middleware/integration_test.go`: real Postgres at `localhost:5433`, real `model.AutoMigrate`). This is the only pattern we use.
+Hivy already runs tests against real services (see `internal/middleware/integration_test.go`: real Postgres at `localhost:5433`, real `model.AutoMigrate`). This is the only pattern we use.
 
 ### Hard rules
 
@@ -66,7 +66,7 @@ Hiveloop already runs tests against real services (see `internal/middleware/inte
 
 Phase 0 delivers two files that every subsequent tranche uses:
 
-- `internal/rag/testhelpers/db.go` — `ConnectTestDB(t *testing.T) *gorm.DB` that opens the existing Hiveloop test Postgres, runs `model.AutoMigrate` + `rag.AutoMigrate`, registers `t.Cleanup` to close. Parallels `internal/middleware/integration_test.go:31-60`.
+- `internal/rag/testhelpers/db.go` — `ConnectTestDB(t *testing.T) *gorm.DB` that opens the existing Hivy test Postgres, runs `model.AutoMigrate` + `rag.AutoMigrate`, registers `t.Cleanup` to close. Parallels `internal/middleware/integration_test.go:31-60`.
 - `internal/rag/testhelpers/fixtures.go` — typed fixture constructors: `NewTestOrg(t, db)`, `NewTestUser(t, db, orgID)`, `NewTestInIntegration(t, db)`, `NewTestInConnection(t, db, orgID, userID, integID)`. Each registers cleanup. Mirrors Onyx's `backend/tests/integration/common_utils/managers/` pattern.
 
 ### What "real business value" means per test type
@@ -125,7 +125,7 @@ internal/rag/
 ```
 
 **Mapping to Onyx directories:**
-| Hiveloop package | Onyx equivalent |
+| Hivy package | Onyx equivalent |
 |---|---|
 | `internal/rag/model/` | `backend/onyx/db/models.py` (RAG-relevant subset) |
 | `internal/rag/connectors/interfaces/` | `backend/onyx/connectors/interfaces.py` |
@@ -173,7 +173,7 @@ Build the two files that every Phase 1 tranche depends on.
 **`internal/rag/testhelpers/db.go`**
 
 ```go
-// ConnectTestDB returns a real Postgres connection with the full Hiveloop
+// ConnectTestDB returns a real Postgres connection with the full Hivy
 // schema migrated (model.AutoMigrate) plus the RAG schema (rag.AutoMigrate).
 // Uses the same DATABASE_URL convention as internal/middleware/integration_test.go.
 // Registers t.Cleanup to close the underlying *sql.DB.
@@ -208,7 +208,7 @@ File: `internal/rag/doc/TESTING.md` — restates the rules from this plan's Test
 Extend `docker-compose.yml` (or add `docker-compose.test.yml`):
 - Postgres on 5433 (already exists per `internal/middleware/integration_test.go:26`)
 - Redis on a test port (for Phase 2 locks, not used by Phase 1)
-- MinIO with a pre-created `hiveloop-rag-test` bucket (used by Phase 0 spike + Phase 2 vectorstore tests)
+- MinIO with a pre-created `hivy-rag-test` bucket (used by Phase 0 spike + Phase 2 vectorstore tests)
 - `make test-services-up` / `make test-services-down` targets
 
 Phase 1 tranches need only Postgres (already up). Phase 0 also starts MinIO for the LanceDB spike.
@@ -295,7 +295,7 @@ Hook into `internal/model/org.go:AutoMigrate` after the existing `db.AutoMigrate
 **Indexes:**
 - `idx_rag_document_org` on `(org_id)`
 - `idx_rag_document_needs_sync` partial: `(id) WHERE last_modified > last_synced OR last_synced IS NULL` — port of Onyx `ix_document_needs_sync` at `backend/onyx/db/models.py:1058-1062`
-- GIN on `external_user_emails` — Hiveloop explicit; Onyx relies on default ARRAY index
+- GIN on `external_user_emails` — Hivy explicit; Onyx relies on default ARRAY index
 - GIN on `external_user_group_ids` — same
 - `idx_rag_document_last_modified` — port of Onyx `index=True` at line 969
 
@@ -375,7 +375,7 @@ All fields from Onyx 2198-2278 ported; `search_settings_id:2222` adapts to `Embe
 - `idx_rag_index_attempt_conn_model_updated` — `(in_connection_id, embedding_model_id, time_updated DESC)`
 - `idx_rag_index_attempt_conn_model_poll` — `(in_connection_id, embedding_model_id, status, time_updated DESC)`
 - `idx_rag_index_attempt_active_coord` — `(in_connection_id, embedding_model_id, status)`
-- Hiveloop addition: `idx_rag_index_attempt_heartbeat` partial on `(status, last_progress_time) WHERE status='in_progress'` — watchdog scan
+- Hivy addition: `idx_rag_index_attempt_heartbeat` partial on `(status, last_progress_time) WHERE status='in_progress'` — watchdog scan
 
 **`IndexingStatus`** (verbatim `enums.py:38-62`): `not_started`, `in_progress`, `success`, `canceled`, `failed`, `completed_with_errors`. Methods `IsTerminal()`, `IsSuccessful()` ported.
 
@@ -418,7 +418,7 @@ All fields 2402-2432.
 - `SearchSettings`: `backend/onyx/db/models.py:2052-2187`
 - `Connector.validate_refresh_freq / validate_prune_freq`: `backend/onyx/db/models.py:1919-1929`
 
-**ARCHITECTURAL NOTE:** Onyx's `ConnectorCredentialPair` bundles identity + schedule + sync state. We split: identity stays on Hiveloop's `InConnection`; schedule moves to `RAGConnectionConfig`; sync state moves to `RAGSyncState`. Per-org embedding config goes to `RAGSearchSettings`.
+**ARCHITECTURAL NOTE:** Onyx's `ConnectorCredentialPair` bundles identity + schedule + sync state. We split: identity stays on Hivy's `InConnection`; schedule moves to `RAGConnectionConfig`; sync state moves to `RAGSyncState`. Per-org embedding config goes to `RAGSearchSettings`.
 
 **Files:**
 - `internal/rag/model/sync_state.go`
@@ -445,7 +445,7 @@ Skipped: `connector_id`, `credential_id`, `name` — all live on `InConnection`.
 
 #### `RAGConnectionConfig` (adapts `Connector.refresh_freq/prune_freq` + `CCPair.auto_sync_options`)
 
-Fields per plan: `InConnectionID` PK, `OrgID`, `IngestConfig` (JSONB, mirrors `Connector.connector_specific_config:1872`), `RefreshFreqSeconds`, `PruneFreqSeconds`, `PermSyncFreqSeconds` (Hiveloop addition), `ExternalGroupSyncFreqSeconds` (Hiveloop addition), `IndexingStart`, `KGProcessingEnabled` (reserved).
+Fields per plan: `InConnectionID` PK, `OrgID`, `IngestConfig` (JSONB, mirrors `Connector.connector_specific_config:1872`), `RefreshFreqSeconds`, `PruneFreqSeconds`, `PermSyncFreqSeconds` (Hivy addition), `ExternalGroupSyncFreqSeconds` (Hivy addition), `IndexingStart`, `KGProcessingEnabled` (reserved).
 
 **Validation methods** ported from `backend/onyx/db/models.py:1919-1929`:
 - `ValidateRefreshFreq() error` — returns error if `RefreshFreqSeconds != nil && *RefreshFreqSeconds < 60`
@@ -455,7 +455,7 @@ Fields per plan: `InConnectionID` PK, `OrgID`, `IngestConfig` (JSONB, mirrors `C
 
 **DEVIATION:** per-org instead of global; drop `IndexModelStatus` / `switchover_type` machinery (one-model-per-org invariant).
 
-Fields: `OrgID` PK, `EmbeddingModelID` FK, `EmbeddingDim`, `Normalize`, `QueryPrefix`, `PassagePrefix`, `EmbeddingPrecision`, `ReducedDimension`, `MultipassIndexing`, `RerankerModelID` (Hiveloop add), `HybridAlpha` (Hiveloop add, default 0.7), `IndexName`, `EnableContextualRAG` (reserved), `ContextualRAGLLMName` (reserved), `ContextualRAGLLMProvider` (reserved).
+Fields: `OrgID` PK, `EmbeddingModelID` FK, `EmbeddingDim`, `Normalize`, `QueryPrefix`, `PassagePrefix`, `EmbeddingPrecision`, `ReducedDimension`, `MultipassIndexing`, `RerankerModelID` (Hivy add), `HybridAlpha` (Hivy add, default 0.7), `IndexName`, `EnableContextualRAG` (reserved), `ContextualRAGLLMName` (reserved), `ContextualRAGLLMProvider` (reserved).
 
 **`EmbeddingPrecision`** — port of `enums.py:213-241`.
 
@@ -488,7 +488,7 @@ Fields: `OrgID` PK, `EmbeddingModelID` FK, `EmbeddingDim`, `Normalize`, `QueryPr
 - `internal/rag/model/public_external_user_group.go`
 - `internal/rag/acl/prefix.go`
 
-#### `RAGExternalUserGroup` (Hiveloop addition — no direct Onyx analog)
+#### `RAGExternalUserGroup` (Hivy addition — no direct Onyx analog)
 
 **DEVIATION:** Onyx has no table for group metadata; it's derived on-demand. We persist because (a) admin UI needs display names without source calls, (b) the stale-sweep pattern needs rows to sweep.
 
@@ -559,8 +559,8 @@ All pure, no DB.
 ### Tranche 1E — External identity + OAuthAccount extension
 
 **Onyx references:**
-- `OAuthAccount`: `backend/onyx/db/models.py:299-303` (Hiveloop's analog at `internal/model/oauth_account.go`)
-- External identity is a Hiveloop addition — Onyx derives it on-demand inside perm sync code
+- `OAuthAccount`: `backend/onyx/db/models.py:299-303` (Hivy's analog at `internal/model/oauth_account.go`)
+- External identity is a Hivy addition — Onyx derives it on-demand inside perm sync code
 
 **Files:**
 - `internal/rag/model/external_identity.go`
@@ -570,7 +570,7 @@ All pure, no DB.
 
 Add to existing struct: `ProviderUserEmail *string`, `ProviderUserLogin *string`, `VerifiedEmails pq.StringArray`, `LastSyncedAt *time.Time`. All nullable — migration-safe.
 
-#### `RAGExternalIdentity` (Hiveloop addition)
+#### `RAGExternalIdentity` (Hivy addition)
 
 Fields: `ID`, `OrgID`, `UserID` FK CASCADE, `InConnectionID` FK CASCADE, `Provider`, `ExternalUserID`, `ExternalUserLogin`, `ExternalUserEmails`, `UpdatedAt`.
 
@@ -741,7 +741,7 @@ Phase 1 introduces a new CI stage `test-rag` that:
 - Fails if coverage on any package with branchful code is < 100%
 - Runs `make test-services-down`
 
-Add to `.github/workflows/...` (confirm Hiveloop's CI lives there) alongside existing Hiveloop test workflows.
+Add to `.github/workflows/...` (confirm Hivy's CI lives there) alongside existing Hivy test workflows.
 
 ---
 
@@ -760,7 +760,7 @@ Add to `.github/workflows/...` (confirm Hiveloop's CI lives there) alongside exi
 - All tests in tranche-owned test files pass under `go test -race -cover`
 - Coverage 100% on branchful code in tranche-owned packages
 - No mocks used (except embedder/reranker interfaces — and Phase 1 doesn't touch those)
-- Integration tests run against real Postgres from the Hiveloop test docker-compose
+- Integration tests run against real Postgres from the Hivy test docker-compose
 
 **Total Phase 0 + Phase 1 estimate:** 2–3 engineering days with agent-assisted execution + parallel tranches.
 
@@ -769,14 +769,14 @@ Add to `.github/workflows/...` (confirm Hiveloop's CI lives there) alongside exi
 ## Deferred questions (answer before Phase 2)
 
 1. Per-org billing metering for embedding + storage costs — Polar integration pattern?
-2. External identity reconciliation UX when GitHub commit email ≠ Hiveloop login email — admin UI to manually link?
+2. External identity reconciliation UX when GitHub commit email ≠ Hivy login email — admin UI to manually link?
 3. Rate-limit budget per-provider per-org — global pool or per-org cap?
 
 ---
 
-## Onyx symbol-to-Hiveloop mapping (Phase 1 scope)
+## Onyx symbol-to-Hivy mapping (Phase 1 scope)
 
-| Onyx symbol | Onyx location | Hiveloop symbol | Hiveloop location |
+| Onyx symbol | Onyx location | Hivy symbol | Hivy location |
 |---|---|---|---|
 | `Document` | `models.py:939` | `RAGDocument` | `internal/rag/model/document.go` |
 | `HierarchyNode` | `models.py:839` | `RAGHierarchyNode` | `internal/rag/model/hierarchy_node.go` |
@@ -790,8 +790,8 @@ Add to `.github/workflows/...` (confirm Hiveloop's CI lives there) alongside exi
 | `SearchSettings` | `models.py:2052` | `RAGSearchSettings` | `internal/rag/model/search_settings.go` |
 | `User__ExternalUserGroupId` | `models.py:4320` | `RAGUserExternalUserGroup` | `internal/rag/model/user_external_user_group.go` |
 | `PublicExternalUserGroup` | `models.py:4352` | `RAGPublicExternalUserGroup` | `internal/rag/model/public_external_user_group.go` |
-| (Hiveloop addition) | — | `RAGExternalUserGroup` | `internal/rag/model/external_user_group.go` |
-| (Hiveloop addition) | — | `RAGExternalIdentity` | `internal/rag/model/external_identity.go` |
+| (Hivy addition) | — | `RAGExternalUserGroup` | `internal/rag/model/external_user_group.go` |
+| (Hivy addition) | — | `RAGExternalIdentity` | `internal/rag/model/external_identity.go` |
 | `SearchSettings.model_name/dim/provider_type` | `models.py:2056-2069` | `RAGEmbeddingModel` | `internal/rag/model/embedding_model.go` |
 | `OAuthAccount` | `models.py:299` | extension | `internal/model/oauth_account.go` |
 | `IndexingStatus` | `enums.py:38` | `IndexingStatus` | `internal/rag/model/enums.go` |
@@ -816,7 +816,7 @@ Add to `.github/workflows/...` (confirm Hiveloop's CI lives there) alongside exi
 
 | Onyx concern | Status |
 |---|---|
-| `UserGroup`, `User__UserGroup`, `UserGroup__ConnectorCredentialPair` | Not porting — Hiveloop RBAC stays |
+| `UserGroup`, `User__UserGroup`, `UserGroup__ConnectorCredentialPair` | Not porting — Hivy RBAC stays |
 | `DocumentSet`, `DocumentSet__*` | Deferred |
 | `Persona`, `Tool`, `ChatSession`, `ChatMessage`, `SearchDoc` | Never — out of scope |
 | `Tag`, `Document__Tag` | Deferred |
@@ -824,7 +824,7 @@ Add to `.github/workflows/...` (confirm Hiveloop's CI lives there) alongside exi
 | `Notification`, `StandardAnswer*`, `SlackChannelConfig*`, `SlackBot*` | Not porting |
 | `FederatedConnector*` | Not porting |
 | `OpenSearch*MigrationRecord` | N/A (LanceDB) |
-| `PersonalAccessToken`, `ApiKey`, `AccessToken` | N/A (Hiveloop has its own) |
+| `PersonalAccessToken`, `ApiKey`, `AccessToken` | N/A (Hivy has its own) |
 | `LLMProvider`, `ModelConfiguration`, `VoiceProvider`, `CloudEmbeddingProvider`, etc. | N/A |
 | `UsageReport` | Deferred |
-| MCP tables | N/A — Hiveloop has its own |
+| MCP tables | N/A — Hivy has its own |

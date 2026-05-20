@@ -11,7 +11,7 @@ import (
 	googleOAuth "golang.org/x/oauth2/google"
 	"gorm.io/gorm"
 
-	"github.com/usehiveloop/hiveloop/internal/billing"
+	"github.com/usehivy/hivy/internal/billing"
 )
 
 // oauthProfile holds the normalised user info fetched from an OAuth provider.

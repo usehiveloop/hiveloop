@@ -4,8 +4,8 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/usehiveloop/hiveloop/internal/rag/connectors/interfaces"
-	"github.com/usehiveloop/hiveloop/internal/spider"
+	"github.com/usehivy/hivy/internal/rag/connectors/interfaces"
+	"github.com/usehivy/hivy/internal/spider"
 )
 
 // canonicalURL normalises a URL so re-crawls hit the same qdrant point

@@ -1,15 +1,15 @@
-# Onyx → Hiveloop: RAG Port Plan (Phase 2 — Rust `rag-engine` service + Go client)
+# Onyx → Hivy: RAG Port Plan (Phase 2 — Rust `rag-engine` service + Go client)
 
 **Author:** architecture session, April 2026
 **Scope of this document:** Phase 2 only. Phase 0 (scaffolding + LanceDB spike) and
 Phase 1 (Postgres data layer) are covered in `plans/onyx-port.md`. Phase 2 stands up
 the vector-store sidecar service that Phase 0's spike (RED — see
-`/Users/bahdcoder/code/hiveloop-rag-phase0/internal/rag/doc/SPIKE_RESULT.md`) forced
+`/Users/bahdcoder/code/hivy-rag-phase0/internal/rag/doc/SPIKE_RESULT.md`) forced
 us to commit to. Phases 3+ (the three-loop ingest/perm-sync/prune scheduler,
 connectors, retrieval surface) are planned separately.
 
 **Source project:** `/Users/bahdcoder/code/onyx` — MIT-licensed
-**Target project:** `/Users/bahdcoder/code/hiveloop.com` (Go monolith)
+**Target project:** `/Users/bahdcoder/code/usehivy.com` (Go monolith)
 **New subproject (this phase):** `services/rag-engine/` — Rust binary, tonic gRPC
 
 Why Phase 2 exists and why it's Rust: Phase 0's gating spike against
@@ -45,7 +45,7 @@ sidecar and its Go client.
 | Vector DB access | Official Rust `lancedb` crate, out-of-process | Spike RED → Option C |
 | Vector backing store | Cloudflare R2 (prod), MinIO (dev/test) — S3-compatible | `ARCHITECTURE.md §5` |
 | Service language | Rust, stable channel | This plan |
-| Service name + path | `rag-engine` at `services/rag-engine/` inside Hiveloop monorepo | This plan |
+| Service name + path | `rag-engine` at `services/rag-engine/` inside Hivy monorepo | This plan |
 | Transport | gRPC via `tonic` + `prost` | This plan |
 | Ingest RPC shape | Unary batch (500–1000 docs/call), ≤10s SLO, per-doc results | This plan §gRPC |
 | Embedding default | SiliconFlow `Qwen/Qwen3-Embedding-4B` (2560d) | Phase 1G seeded models |
@@ -57,7 +57,7 @@ sidecar and its Go client.
 | HTTP client (embed/rerank) | `reqwest` + `reqwest-middleware` + `reqwest-retry` | This plan |
 | Async runtime | `tokio` | This plan |
 | Config | `figment` (env + TOML + defaults) | This plan |
-| Tracing/metrics | `tracing` + `tracing-opentelemetry` + `prometheus` | Correlates with existing Hiveloop OTel |
+| Tracing/metrics | `tracing` + `tracing-opentelemetry` + `prometheus` | Correlates with existing Hivy OTel |
 | Identity model | Rust is identity-blind; ACL is Go-responsibility | This plan |
 | Dataset naming | `rag_chunks__<provider>_<model_slug>__<dim>` — deterministic per Phase 1G `deriveDatasetName` | Phase 1G test `TestRAGEmbeddingModel_DatasetNameDerivation` |
 | Dataset partitioning | One LanceDB dataset per `(embedding_model_id, dim)` tuple, org-scoped via `org_id` column + filter | This plan |
@@ -69,7 +69,7 @@ sidecar and its Go client.
 Onyx ships `DOC_EMBEDDING_CONTEXT_SIZE = 512`, `CHUNK_OVERLAP = 0`
 (`backend/shared_configs/configs.py:42`, `backend/onyx/indexing/chunker.py:28`).
 Per architecture session lock we adopt **512 tokens, 20% overlap (102 tokens)**
-as the Hiveloop default. Rationale: Onyx's 0-overlap leans on mini-chunks
+as the Hivy default. Rationale: Onyx's 0-overlap leans on mini-chunks
 (`MINI_CHUNK_SIZE = 150`, `app_configs.py:821`) to recover adjacency signal;
 we keep both — overlap AND mini-chunks — for maximum retrieval quality. Per
 the locked architectural decision, Phase 2E ports Onyx's full
@@ -82,7 +82,7 @@ the locked architectural decision, Phase 2E ports Onyx's full
 **This section is verbatim from Phase 1's plan for Go, plus a Rust-side variant
 appended. All hard rules carry forward unchanged.**
 
-Hiveloop already runs tests against real services (see
+Hivy already runs tests against real services (see
 `internal/middleware/integration_test.go`: real Postgres at `localhost:5433`,
 real `model.AutoMigrate`). This is the only pattern we use.
 
@@ -169,7 +169,7 @@ real `model.AutoMigrate`). This is the only pattern we use.
 
 | Responsibility | Owner | Trust level | Notes |
 |---|---|---|---|
-| User identity, sessions, OAuth | Go | Trusted | Hiveloop already owns this |
+| User identity, sessions, OAuth | Go | Trusted | Hivy already owns this |
 | Org / membership / role authz | Go | Trusted | `internal/model/org.go`, `internal/model/org_membership.go` |
 | Building the ACL string set for a query | Go | Trusted | `internal/rag/acl/prefix.go` from Phase 1D + Phase 3 query builder |
 | Building the ACL string set for a chunk at index time | Go | Trusted | Same — passed into `Ingest` over gRPC as opaque strings |
@@ -187,24 +187,24 @@ real `model.AutoMigrate`). This is the only pattern we use.
 **The Rust service is identity-blind.** It accepts `acl: list<string>` as an
 opaque field and uses them only in LanceDB `array_has` filter expressions. It
 does NOT know which tokens are user emails vs group names vs public markers, and
-it does NOT resolve Hiveloop users or orgs. The org_id field is treated as a
+it does NOT resolve Hivy users or orgs. The org_id field is treated as a
 partition key, not an authz subject — it's what we filter on, but the Rust
 server never asks "is this caller allowed to see org X?". **The Go client is
 solely responsible for attaching the correct `org_id` and `acl` on every call.**
 
 Consequence: if the Go-side authz layer is bypassed (e.g. a rogue service speaks
-gRPC to the Rust engine directly without going through Hiveloop's API), every
+gRPC to the Rust engine directly without going through Hivy's API), every
 chunk in every org is readable. Phase 2F therefore requires mTLS or shared
 secret auth on the gRPC channel in prod. In dev/test the server listens on
 loopback only.
 
 ### ACL invariant (restate from Phase 1D)
 
-Hiveloop writes and reads ACL tokens byte-identical to Onyx's format — see
+Hivy writes and reads ACL tokens byte-identical to Onyx's format — see
 `ARCHITECTURE.md §4`. Tokens on a chunk look like:
 
     user_email:alice@example.com
-    external_group:github_org_hiveloop_team_core
+    external_group:github_org_hivy_team_core
     PUBLIC
 
 Go-side prefix functions from Phase 1D (`internal/rag/acl/prefix.go`,
@@ -225,8 +225,8 @@ File: `services/rag-engine/proto/rag_engine.proto`. Go codegen drops into
 
 ```proto
 syntax = "proto3";
-package hiveloop.rag.v1;
-option go_package = "github.com/usehiveloop/hiveloop/internal/rag/ragpb";
+package hivy.rag.v1;
+option go_package = "github.com/usehivy/hivy/internal/rag/ragpb";
 
 import "google/protobuf/timestamp.proto";
 
@@ -671,7 +671,7 @@ metadata: map<utf8, utf8> (nullable; stored as struct<keys, values> on disk)
 Port of the column surface Onyx ships in Vespa (see
 `backend/onyx/document_index/vespa/app_config/schemas/danswer_chunk.sd` —
 specifically the `acl`, `is_public`, `semantic_id`, `doc_updated_at` fields).
-Hiveloop simplifies: we drop Vespa-specific fields (`boost`, `hidden`,
+Hivy simplifies: we drop Vespa-specific fields (`boost`, `hidden`,
 `primary_owners`, `secondary_owners`) from Phase 2; they come back in Phase 3
 as typed metadata or via `UpdateACL` siblings.
 
@@ -1216,7 +1216,7 @@ gRPC health check reflects downstream reachability.
 | `rag_inflight_ingests` | gauge | — | backpressure visibility |
 | `rag_idempotency_cache_hits_total` | counter | `rpc` | retry detection |
 
-**Tracing.** Every RPC handler wrapped in `#[tracing::instrument(skip_all, fields(rpc = "Search", org_id, dataset_name, deadline_ms))]`. Spans exported to OTLP when `telemetry.otlp_endpoint` non-empty. Spans carry `x-hiveloop-request-id` header from interceptor — this is how we correlate with Go-side OTel (Hiveloop's existing `internal/observability/` package already emits this).
+**Tracing.** Every RPC handler wrapped in `#[tracing::instrument(skip_all, fields(rpc = "Search", org_id, dataset_name, deadline_ms))]`. Spans exported to OTLP when `telemetry.otlp_endpoint` non-empty. Spans carry `x-hivy-request-id` header from interceptor — this is how we correlate with Go-side OTel (Hivy's existing `internal/observability/` package already emits this).
 
 **Health.** `grpc.health.v1` service registered. A background task pings LanceDB (`list_tables` against the default dataset path) every 10s; status flips to `NOT_SERVING` if ping errors for N consecutive rounds. On startup, server starts as `NOT_SERVING`, flips to `SERVING` once the first ping succeeds.
 
@@ -1257,7 +1257,7 @@ single small image.
 - `services/rag-engine/crates/rag-engine-server/src/panics.rs` — `std::panic::set_hook` catching + logging + metric
 - `services/rag-engine/Dockerfile` — multi-stage with `cargo-chef` for layer caching
 - `services/rag-engine/.dockerignore`
-- `services/rag-engine/docker-compose.override.yml` (fragment merged into hiveloop.com/docker-compose.yml)
+- `services/rag-engine/docker-compose.override.yml` (fragment merged into usehivy.com/docker-compose.yml)
 
 **Shutdown behavior.** On SIGTERM:
 1. Health status → `NOT_SERVING` (load balancer drains).
@@ -1329,7 +1329,7 @@ EXPOSE 7443 7444 9464
       - "7444:7444"
       - "9464:9464"
     environment:
-      RAG_ENGINE__LANCE__BACKEND: "s3://hiveloop-rag-test/lancedb"
+      RAG_ENGINE__LANCE__BACKEND: "s3://hivy-rag-test/lancedb"
       AWS_ENDPOINT_URL: "http://minio:9000"
       AWS_ACCESS_KEY_ID: minio
       AWS_SECRET_ACCESS_KEY: miniosecret
@@ -1403,7 +1403,7 @@ rag-e2e:
 ### Tranche 2I — Go client `internal/rag/ragclient/`
 
 **Goal:** a typed, pooled, retry-aware, circuit-broken gRPC client that
-Hiveloop business code uses to talk to `rag-engine`.
+Hivy business code uses to talk to `rag-engine`.
 
 **Files:**
 
@@ -1422,7 +1422,7 @@ Hiveloop business code uses to talk to `rag-engine`.
 - `google.golang.org/grpc/health/grpc_health_v1` — for health polling
 - `github.com/sony/gobreaker` — circuit breaker (verify current version)
 - `google.golang.org/protobuf` — already present
-- Existing Hiveloop observability per `internal/observability/`
+- Existing Hivy observability per `internal/observability/`
 
 **Client API (shape):**
 
@@ -1552,7 +1552,7 @@ per `go test` run via sync.Once.
 ```go
 // StartRagEngineInTestMode builds services/rag-engine once per test run,
 // launches it on an ephemeral port with --embedder=fake --reranker=fake
-// --backend=s3://hiveloop-rag-test/lancedb-${uuid}/ pointed at the test
+// --backend=s3://hivy-rag-test/lancedb-${uuid}/ pointed at the test
 // MinIO. Returns a connected Client. Registers t.Cleanup to:
 //   1. Close the client.
 //   2. Send SIGTERM to the process and wait up to 30s.
@@ -1646,7 +1646,7 @@ Implementation notes:
 | `IngestBatch` partial failure leaves mixed state across docs | medium | medium | Per-doc results isolate failures; LanceDB writes per-doc `merge_insert` so each doc is atomic. Go retries only failed `doc_id`s in a follow-up batch with a fresh `idempotency_key`; full-batch replay with the original key returns the cached response via the LRU. |
 | ACL filter injection | low | critical | `filters.rs` is a typed builder; `custom_sql_filter` is rejected in Phase 2. Unit test enumerates injection attempts. |
 | Dataset-per-model explosion (5 seeded × N orgs) | low | low | Dataset count bounded by `min(num_orgs × 1 model, num_seeded_models)` — one model per org invariant caps it. Prometheus `rag_lance_datasets_total` gauge monitors. |
-| Deployment: two binaries now (Hiveloop + rag-engine) | medium | low | docker-compose + Fly/Kamal target each as a separate service; graceful shutdown lets rolling deploys work without dropped ingests. |
+| Deployment: two binaries now (Hivy + rag-engine) | medium | low | docker-compose + Fly/Kamal target each as a separate service; graceful shutdown lets rolling deploys work without dropped ingests. |
 
 ---
 
@@ -1671,7 +1671,7 @@ point where every tranche's deliverable is proven to compose.
 - `make rag-engine-lint` clean
 - `go test ./internal/rag/ragclient/...` green
 - `make rag-e2e` green (ingest → search → update ACL → delete → assert)
-- docker-compose brings up Postgres + MinIO + rag-engine + Hiveloop, end-to-end ingest via Go client works
+- docker-compose brings up Postgres + MinIO + rag-engine + Hivy, end-to-end ingest via Go client works
 - Docs: `ARCHITECTURE.md` appended with Decision 7 (Rust sidecar lock), `services/rag-engine/doc/OPS.md`, `services/rag-engine/doc/LANCE_NOTES.md`, `services/rag-engine/doc/CHUNKING.md`
 - Coverage 100% branchful on every Rust crate + `ragclient` Go package
 - No mocks outside `FakeEmbedder` / `FakeReranker`
@@ -1705,8 +1705,8 @@ point where every tranche's deliverable is proven to compose.
 
 ## Closing
 
-Phase 2 is the hinge point between "Hiveloop has RAG models in Postgres" and
-"Hiveloop can answer questions about connected data with ACL enforcement at
+Phase 2 is the hinge point between "Hivy has RAG models in Postgres" and
+"Hivy can answer questions about connected data with ACL enforcement at
 scale." Phase 0 discovered we can't do that in pure Go against LanceDB today;
 Phase 2 builds the bridge that unblocks the rest of the system without
 sacrificing the "storage-is-a-bucket" property that made LanceDB attractive

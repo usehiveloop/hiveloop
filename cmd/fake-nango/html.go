@@ -3,7 +3,7 @@ package main
 import "net/http"
 
 // renderAuthHTML mirrors what real Nango ships in
-// connections.usehiveloop.com/packages/server/lib/utils/html.ts —
+// connections.usehivy.com/packages/server/lib/utils/html.ts —
 // notifies window.opener via postMessage AND a BroadcastChannel,
 // then self-closes. Connect UI listens on both channels; the SDK uses
 // the WebSocket but the popup still needs to render and close cleanly.

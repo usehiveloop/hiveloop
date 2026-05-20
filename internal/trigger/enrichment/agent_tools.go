@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/usehiveloop/hiveloop/internal/trigger/hiveloop"
+	"github.com/usehivy/hivy/internal/trigger/hivy"
 )
 
-func buildEnrichmentToolDefs(connections []hiveloop.ConnectionWithActions) []hiveloop.ToolDef {
+func buildEnrichmentToolDefs(connections []hivy.ConnectionWithActions) []hivy.ToolDef {
 	connIDs := make([]string, 0, len(connections))
 	var actionDescriptions []string
 	for _, conn := range connections {
@@ -27,7 +27,7 @@ func buildEnrichmentToolDefs(connections []hiveloop.ConnectionWithActions) []hiv
 	connIDsJSON, _ := json.Marshal(connIDs)
 	actionsDoc := strings.Join(actionDescriptions, "\n")
 
-	return []hiveloop.ToolDef{
+	return []hivy.ToolDef{
 		{
 			Name:        "fetch",
 			Description: fmt.Sprintf("Execute a read action against a connected integration. Returns the JSON response.\n\nAvailable actions:\n%s", actionsDoc),

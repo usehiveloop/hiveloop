@@ -3,7 +3,7 @@ package rag
 import (
 	"testing"
 
-	"github.com/usehiveloop/hiveloop/internal/rag/qdrant"
+	"github.com/usehivy/hivy/internal/rag/qdrant"
 )
 
 func TestGroupKnowledgeHitsBySource(t *testing.T) {

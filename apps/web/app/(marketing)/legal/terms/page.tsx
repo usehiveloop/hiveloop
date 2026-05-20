@@ -33,21 +33,21 @@ export default function TermsPage() {
       <article className="max-w-2xl mx-auto px-4 pb-24">
         <div className="prose-custom flex flex-col gap-6">
           <p className="text-base sm:text-lg text-muted-foreground leading-[1.8]">
-            Welcome to HiveLoop. By accessing or using our platform, you agree to be bound by these Terms of Service.
+            Welcome to Hivy. By accessing or using our platform, you agree to be bound by these Terms of Service.
           </p>
 
           <h2 className="font-heading text-2xl sm:text-3xl font-bold text-foreground mt-8 -tracking-[0.5px]">
             1. Acceptance of Terms
           </h2>
           <p className="text-base sm:text-lg text-muted-foreground leading-[1.8]">
-            By creating an account or using HiveLoop, you agree to these terms and our Privacy Policy. If you do not agree, do not use our services.
+            By creating an account or using Hivy, you agree to these terms and our Privacy Policy. If you do not agree, do not use our services.
           </p>
 
           <h2 className="font-heading text-2xl sm:text-3xl font-bold text-foreground mt-8 -tracking-[0.5px]">
             2. Use of Service
           </h2>
           <p className="text-base sm:text-lg text-muted-foreground leading-[1.8]">
-            You may use HiveLoop to create and deploy AI employees. You are responsible for the content and actions of agents you create. You agree not to use the platform for illegal purposes or to violate any third-party rights.
+            You may use Hivy to create and deploy AI employees. You are responsible for the content and actions of agents you create. You agree not to use the platform for illegal purposes or to violate any third-party rights.
           </p>
 
           <h2 className="font-heading text-2xl sm:text-3xl font-bold text-foreground mt-8 -tracking-[0.5px]">
@@ -75,7 +75,7 @@ export default function TermsPage() {
             6. Limitation of Liability
           </h2>
           <p className="text-base sm:text-lg text-muted-foreground leading-[1.8]">
-            HiveLoop is provided &ldquo;as is&rdquo; without warranties. We are not liable for any indirect, incidental, or consequential damages arising from your use of the platform.
+            Hivy is provided &ldquo;as is&rdquo; without warranties. We are not liable for any indirect, incidental, or consequential damages arising from your use of the platform.
           </p>
 
           <h2 className="font-heading text-2xl sm:text-3xl font-bold text-foreground mt-8 -tracking-[0.5px]">
@@ -96,7 +96,7 @@ export default function TermsPage() {
             Contact Us
           </h2>
           <p className="text-base sm:text-lg text-muted-foreground leading-[1.8]">
-            For questions about these terms, contact us at legal@hiveloop.com.
+            For questions about these terms, contact us at legal@usehivy.com.
           </p>
         </div>
       </article>

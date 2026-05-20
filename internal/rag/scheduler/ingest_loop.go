@@ -9,10 +9,10 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
-	"github.com/usehiveloop/hiveloop/internal/enqueue"
-	"github.com/usehiveloop/hiveloop/internal/logging"
-	ragmodel "github.com/usehiveloop/hiveloop/internal/rag/model"
-	ragtasks "github.com/usehiveloop/hiveloop/internal/rag/tasks"
+	"github.com/usehivy/hivy/internal/enqueue"
+	"github.com/usehivy/hivy/internal/logging"
+	ragmodel "github.com/usehivy/hivy/internal/rag/model"
+	ragtasks "github.com/usehivy/hivy/internal/rag/tasks"
 )
 
 var errIngestReservationSkipped = errors.New("ingest reservation skipped")

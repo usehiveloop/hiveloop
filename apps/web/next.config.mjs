@@ -7,7 +7,7 @@ const nextConfig = {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: 'assets.usehiveloop.com',
+        hostname: 'assets.usehivy.com',
         pathname: '/**',
       },
     ],
@@ -16,7 +16,7 @@ const nextConfig = {
     return [
       {
         source: '/demo',
-        destination: 'https://hiveloop.zohobookings.com/#/discovery-call',
+        destination: 'https://hivy.zohobookings.com/#/discovery-call',
         permanent: false,
       },
     ];
@@ -29,7 +29,7 @@ export default withSentryConfig(withMDX(nextConfig), {
   // For all available options, see:
   // https://www.npmjs.com/package/@sentry/webpack-plugin#options
 
-  url: process.env.SENTRY_URL ?? "https://sentry.usehiveloop.com/",
+  url: process.env.SENTRY_URL ?? "https://sentry.usehivy.com/",
 
   // Bugsink accepts Sentry-compatible source map uploads, but it does not use
   // Sentry org/project values for matching. Debug IDs injected into source maps

@@ -7,7 +7,7 @@ if [ -z "$TOKEN" ]; then
   exit 1
 fi
 
-: "${HIVELOOP_GIT_CREDENTIALS_URL:?gh-wrapper: missing HIVELOOP_GIT_CREDENTIALS_URL}"
+: "${HIVY_GIT_CREDENTIALS_URL:?gh-wrapper: missing HIVY_GIT_CREDENTIALS_URL}"
 
 cwd="$(pwd 2>/dev/null || printf '/')"
 payload="$(
@@ -45,7 +45,7 @@ status="$(
     -H "Authorization: Bearer $TOKEN" \
     -H "Content-Type: application/json" \
     --data "$payload" \
-    "$HIVELOOP_GIT_CREDENTIALS_URL"
+    "$HIVY_GIT_CREDENTIALS_URL"
 )" || {
   rc=$?
   echo "gh-wrapper: failed to request GitHub token from control plane" >&2

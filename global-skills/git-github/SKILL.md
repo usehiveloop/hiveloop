@@ -225,7 +225,7 @@ test -f .github/PULL_REQUEST_TEMPLATE.md && cat .github/PULL_REQUEST_TEMPLATE.md
 
 Every PR image, video, GIF, before/after screenshot, demo recording, etc. must be uploaded through our **assets drive** so the URL is stable, owned by us, and tied to the current employee/task asset folder.
 
-**Load the `asset-uploads` skill before generating the PR body.** It documents the exact `curl` invocation, the env vars (`HIVELOOP_DRIVE_UPLOAD_URL`, `UPLOAD_BEARER`), the response shape, and the conventions for organising assets into folders. Do not try to reconstruct the upload protocol from memory — load the skill, follow it.
+**Load the `asset-uploads` skill before generating the PR body.** It documents the exact `curl` invocation, the env vars (`HIVY_DRIVE_UPLOAD_URL`, `UPLOAD_BEARER`), the response shape, and the conventions for organising assets into folders. Do not try to reconstruct the upload protocol from memory — load the skill, follow it.
 
 Workflow:
 
@@ -240,7 +240,7 @@ URL=$(
     -H "Authorization: Bearer $UPLOAD_BEARER" \
     -H "Content-Type: image/png" \
     --upload-file ./screenshot.png \
-    "$HIVELOOP_DRIVE_UPLOAD_URL/pr/screenshot.png" \
+    "$HIVY_DRIVE_UPLOAD_URL/pr/screenshot.png" \
   | jq -r .asset_url
 )
 

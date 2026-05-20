@@ -6,8 +6,8 @@ import (
 
 	"gorm.io/gorm"
 
-	"github.com/usehiveloop/hiveloop/internal/model"
-	"github.com/usehiveloop/hiveloop/internal/token"
+	"github.com/usehivy/hivy/internal/model"
+	"github.com/usehivy/hivy/internal/token"
 )
 
 // TokenAuth returns middleware that authenticates requests using sandbox proxy tokens (JWTs).

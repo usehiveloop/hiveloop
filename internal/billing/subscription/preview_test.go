@@ -5,7 +5,7 @@ import (
 	"errors"
 	"testing"
 
-	subpkg "github.com/usehiveloop/hiveloop/internal/billing/subscription"
+	subpkg "github.com/usehivy/hivy/internal/billing/subscription"
 )
 
 func TestService_PreviewChange_UpgradeIssuesQuote(t *testing.T) {

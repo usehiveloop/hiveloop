@@ -97,9 +97,9 @@ type IntrospectionResponse struct {
 
 // IntrospectionSchema represents the __schema field.
 type IntrospectionSchema struct {
-	QueryType    *TypeRef          `json:"queryType"`
-	MutationType *TypeRef          `json:"mutationType"`
-	Types        []IntrospectType  `json:"types"`
+	QueryType    *TypeRef         `json:"queryType"`
+	MutationType *TypeRef         `json:"mutationType"`
+	Types        []IntrospectType `json:"types"`
 }
 
 // TypeRef is a named type reference.
@@ -111,11 +111,11 @@ type TypeRef struct {
 
 // IntrospectType represents a type in the schema.
 type IntrospectType struct {
-	Kind        string             `json:"kind"`
-	Name        string             `json:"name"`
-	Description string             `json:"description"`
-	Fields      []IntrospectField  `json:"fields"`
-	InputFields []IntrospectInput  `json:"inputFields"`
+	Kind        string            `json:"kind"`
+	Name        string            `json:"name"`
+	Description string            `json:"description"`
+	Fields      []IntrospectField `json:"fields"`
+	InputFields []IntrospectInput `json:"inputFields"`
 }
 
 // IntrospectField represents a field on a type.

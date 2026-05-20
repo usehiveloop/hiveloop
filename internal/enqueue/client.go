@@ -7,7 +7,7 @@ import (
 
 	"github.com/hibiken/asynq"
 
-	sentryobs "github.com/usehiveloop/hiveloop/internal/observability/sentry"
+	sentryobs "github.com/usehivy/hivy/internal/observability/sentry"
 )
 
 type TaskEnqueuer interface {

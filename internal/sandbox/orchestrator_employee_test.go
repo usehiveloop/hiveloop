@@ -9,8 +9,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/usehiveloop/hiveloop/internal/employeeruntime"
-	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehivy/hivy/internal/employeeruntime"
+	"github.com/usehivy/hivy/internal/model"
 )
 
 func TestCreateEmployeeSandbox_ClonesSelectedGitHubProfileRepositories(t *testing.T) {

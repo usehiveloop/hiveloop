@@ -18,18 +18,18 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
-	"github.com/usehiveloop/hiveloop/internal/auth"
-	"github.com/usehiveloop/hiveloop/internal/config"
-	"github.com/usehiveloop/hiveloop/internal/credentials"
-	"github.com/usehiveloop/hiveloop/internal/crypto"
-	"github.com/usehiveloop/hiveloop/internal/employeeruntime"
-	"github.com/usehiveloop/hiveloop/internal/enqueue"
-	"github.com/usehiveloop/hiveloop/internal/handler"
-	"github.com/usehiveloop/hiveloop/internal/middleware"
-	"github.com/usehiveloop/hiveloop/internal/model"
-	"github.com/usehiveloop/hiveloop/internal/nango"
-	"github.com/usehiveloop/hiveloop/internal/registry"
-	"github.com/usehiveloop/hiveloop/internal/sandbox"
+	"github.com/usehivy/hivy/internal/auth"
+	"github.com/usehivy/hivy/internal/config"
+	"github.com/usehivy/hivy/internal/credentials"
+	"github.com/usehivy/hivy/internal/crypto"
+	"github.com/usehivy/hivy/internal/employeeruntime"
+	"github.com/usehivy/hivy/internal/enqueue"
+	"github.com/usehivy/hivy/internal/handler"
+	"github.com/usehivy/hivy/internal/middleware"
+	"github.com/usehivy/hivy/internal/model"
+	"github.com/usehivy/hivy/internal/nango"
+	"github.com/usehivy/hivy/internal/registry"
+	"github.com/usehivy/hivy/internal/sandbox"
 )
 
 type stubEmployeeProvider struct {
@@ -207,9 +207,9 @@ func newEmployeeHarness(t *testing.T) *employeeHarness {
 	kms := newTestKMS(t)
 
 	cfg := &config.Config{
-		EmployeeSandboxBaseImagePrefix: "hiveloop-employee-sandbox-test-small-v1",
-		BridgeHost:                     "cp.hiveloop.test",
-		ProxyHost:                      "proxy.hiveloop.test",
+		EmployeeSandboxBaseImagePrefix: "hivy-employee-sandbox-test-small-v1",
+		BridgeHost:                     "cp.hivy.test",
+		ProxyHost:                      "proxy.hivy.test",
 		SlackAppToken:                  "xapp-test-token",
 	}
 	orch := sandbox.NewOrchestrator(db, provider, nil, encKey, cfg)

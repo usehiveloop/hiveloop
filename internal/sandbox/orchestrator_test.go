@@ -12,13 +12,13 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
-	"github.com/usehiveloop/hiveloop/internal/config"
-	"github.com/usehiveloop/hiveloop/internal/crypto"
-	"github.com/usehiveloop/hiveloop/internal/model"
-	"github.com/usehiveloop/hiveloop/internal/turso"
+	"github.com/usehivy/hivy/internal/config"
+	"github.com/usehivy/hivy/internal/crypto"
+	"github.com/usehivy/hivy/internal/model"
+	"github.com/usehivy/hivy/internal/turso"
 )
 
-const testDBURL = "postgres://hiveloop:localdev@localhost:5433/hiveloop_test?sslmode=disable" // #nosec G101 -- local test DB fixture
+const testDBURL = "postgres://hivy:localdev@localhost:5433/hivy_test?sslmode=disable" // #nosec G101 -- local test DB fixture
 
 func setupTestDB(t *testing.T) *gorm.DB {
 	t.Helper()
@@ -37,7 +37,6 @@ func setupTestDB(t *testing.T) *gorm.DB {
 	if err := model.AutoMigrate(db); err != nil {
 		t.Fatalf("migrate: %v", err)
 	}
-	db.Exec("DELETE FROM sandboxes")
 	t.Cleanup(func() { sqlDB.Close() })
 	return db
 }
@@ -101,9 +100,9 @@ func setupOrchestrator(t *testing.T) (*Orchestrator, *mockProvider, *gorm.DB) {
 	tursoProvisioner := turso.NewProvisioner(tursoClient, "default", db)
 
 	cfg := &config.Config{
-		BridgeBaseImagePrefix:           "hiveloop-bridge-1-0-0-small-v1",
-		BridgeBaseDedicatedImagePrefix:  "hiveloop-bridge-1-0-0-small-v1",
-		BridgeHost:                      "test.hiveloop.com",
+		BridgeBaseImagePrefix:           "hivy-bridge-1-0-0-small-v1",
+		BridgeBaseDedicatedImagePrefix:  "hivy-bridge-1-0-0-small-v1",
+		BridgeHost:                      "test.usehivy.com",
 		DedicatedSandboxGracePeriodMins: 5,
 	}
 

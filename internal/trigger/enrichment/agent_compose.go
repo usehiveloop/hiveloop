@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/usehiveloop/hiveloop/internal/trigger/hiveloop"
+	"github.com/usehivy/hivy/internal/trigger/hivy"
 )
 
-func newComposeHandler(composedMessage *string, _ *slog.Logger) hiveloop.ToolHandler {
+func newComposeHandler(composedMessage *string, _ *slog.Logger) hivy.ToolHandler {
 	return func(_ context.Context, _ string, raw json.RawMessage) (string, bool, error) {
 		var args struct {
 			Message string `json:"message"`

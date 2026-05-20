@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 set +e
 
-debug_dir="${HIVELOOP_DEBUG_OUT:-/tmp/employee-sandbox-debug-$(date -u +%Y%m%dT%H%M%SZ)}"
+debug_dir="${HIVY_DEBUG_OUT:-/tmp/employee-sandbox-debug-$(date -u +%Y%m%dT%H%M%SZ)}"
 archive="${debug_dir}.tar.gz"
-sandbox_id="${HIVELOOP_DEBUG_SANDBOX_ID:-${DAYTONA_SANDBOX_ID:-unknown}}"
-sensitive="${HIVELOOP_DEBUG_SENSITIVE:-0}"
+sandbox_id="${HIVY_DEBUG_SANDBOX_ID:-${DAYTONA_SANDBOX_ID:-unknown}}"
+sensitive="${HIVY_DEBUG_SENSITIVE:-0}"
 
 rm -rf "$debug_dir" "$archive"
 mkdir -p "$debug_dir"/{system,processes,env,health,workspace,tooling,logs,data,tmp}
@@ -82,7 +82,7 @@ fi
   echo
   echo "Missing critical env keys:"
   missing=0
-  for key in RUNTIME_SECRET SLACK_BOT_TOKEN SLACK_APP_TOKEN HIVELOOP_PROXY_API_KEY AGENT_MODEL AGENT_BASE_URL AGENT_API_KEY_ENV EMPLOYEE_ID CLOUD_CONTROL_PLANE_URL BRIDGE_API_KEY UPLOAD_BEARER WORKSPACE_ROOT DB_PATH RUNTIME_BIND_ADDR HIVELOOP_SANDBOX_ID HIVELOOP_ORG_ID HIVELOOP_EMPLOYEE_ID HIVELOOP_DRIVE_UPLOAD_URL; do
+  for key in RUNTIME_SECRET SLACK_BOT_TOKEN SLACK_APP_TOKEN HIVY_PROXY_API_KEY AGENT_MODEL AGENT_BASE_URL AGENT_API_KEY_ENV EMPLOYEE_ID CLOUD_CONTROL_PLANE_URL BRIDGE_API_KEY UPLOAD_BEARER WORKSPACE_ROOT DB_PATH RUNTIME_BIND_ADDR HIVY_SANDBOX_ID HIVY_ORG_ID HIVY_EMPLOYEE_ID HIVY_DRIVE_UPLOAD_URL; do
     eval "value=\${$key:-}"
     if [ -z "$value" ]; then
       echo "- $key"

@@ -81,7 +81,7 @@ func (f *Forwarder) ForwardJSON(ctx context.Context, call ForwardCall) (*Complet
 }
 
 // ForwardStream runs a streaming call. As upstream OpenAI SSE chunks arrive
-// the forwarder rewrites them to Hiveloop's envelope and writes them to w
+// the forwarder rewrites them to Hivy's envelope and writes them to w
 // (which must implement http.Flusher), and tees the deltas into a buffer
 // that becomes the cached result on clean completion. The returned
 // CompletionResult is only populated when the upstream stream finished
@@ -227,4 +227,3 @@ func attachAuth(req *http.Request, scheme, apiKey string) {
 		req.Header.Set("Authorization", "Bearer "+apiKey)
 	}
 }
-

@@ -9,9 +9,9 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
-	"github.com/usehiveloop/hiveloop/internal/model"
-	"github.com/usehiveloop/hiveloop/internal/rag/embedclient"
-	"github.com/usehiveloop/hiveloop/internal/rag/qdrant"
+	"github.com/usehivy/hivy/internal/model"
+	"github.com/usehivy/hivy/internal/rag/embedclient"
+	"github.com/usehivy/hivy/internal/rag/qdrant"
 )
 
 // NewKnowledgeToolsFunc registers org-scoped knowledge-base tools on MCP servers.

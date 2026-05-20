@@ -18,7 +18,7 @@
 //
 // Ports backend/onyx/connectors/interfaces.py — specifically the
 // CheckpointedConnector, SlimConnector, and related abstract-base
-// protocols from Onyx. The Hiveloop port is Go-idiomatic (channels +
+// protocols from Onyx. The Hivy port is Go-idiomatic (channels +
 // generics + interface constraints rather than Python generators +
 // ABCs) while preserving the exact semantic contract so downstream
 // behavior matches upstream Onyx where we've deliberately ported it.

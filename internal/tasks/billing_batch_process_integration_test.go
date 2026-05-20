@@ -10,10 +10,10 @@ import (
 	"github.com/hibiken/asynq"
 	"gorm.io/gorm"
 
-	"github.com/usehiveloop/hiveloop/internal/billing"
-	"github.com/usehiveloop/hiveloop/internal/config"
-	"github.com/usehiveloop/hiveloop/internal/model"
-	"github.com/usehiveloop/hiveloop/internal/tasks"
+	"github.com/usehivy/hivy/internal/billing"
+	"github.com/usehivy/hivy/internal/config"
+	"github.com/usehivy/hivy/internal/model"
+	"github.com/usehivy/hivy/internal/tasks"
 )
 
 // 30k input + 4k output @ glm-5.1-precision = 123 credits per pricing.go.

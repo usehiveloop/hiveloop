@@ -11,10 +11,10 @@ import (
 )
 
 type PasswordReset struct {
-	ID        uuid.UUID  `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
-	UserID    uuid.UUID  `gorm:"type:uuid;not null;index"`
-	TokenHash string     `gorm:"not null;uniqueIndex"`
-	ExpiresAt time.Time  `gorm:"not null"`
+	ID        uuid.UUID `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
+	UserID    uuid.UUID `gorm:"type:uuid;not null;index"`
+	TokenHash string    `gorm:"not null;uniqueIndex"`
+	ExpiresAt time.Time `gorm:"not null"`
 	UsedAt    *time.Time
 	CreatedAt time.Time
 }

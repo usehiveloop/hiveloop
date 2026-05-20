@@ -2,8 +2,8 @@
   "CORSRules": [
     {
       "AllowedOrigins": [
-        "https://usehiveloop.com",
-        "https://*.usehiveloop.com",
+        "https://usehivy.com",
+        "https://*.usehivy.com",
         "http://localhost:3000"
       ],
       "AllowedMethods": ["GET", "HEAD"],

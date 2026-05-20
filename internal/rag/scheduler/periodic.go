@@ -7,9 +7,9 @@ import (
 	"github.com/hibiken/asynq"
 	"gorm.io/gorm"
 
-	"github.com/usehiveloop/hiveloop/internal/enqueue"
-	"github.com/usehiveloop/hiveloop/internal/logging"
-	ragtasks "github.com/usehiveloop/hiveloop/internal/rag/tasks"
+	"github.com/usehivy/hivy/internal/enqueue"
+	"github.com/usehivy/hivy/internal/logging"
+	ragtasks "github.com/usehivy/hivy/internal/rag/tasks"
 )
 
 type Deps struct {

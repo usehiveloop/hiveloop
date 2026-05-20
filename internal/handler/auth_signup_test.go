@@ -8,12 +8,12 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
-	"github.com/usehiveloop/hiveloop/internal/billing"
-	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehivy/hivy/internal/billing"
+	"github.com/usehivy/hivy/internal/model"
 )
 
 //nolint:gosec // G101: local-dev DSN, mirrors api_keys_test.go testDBURL.
-const internalTestDBURL = "postgres://hiveloop:localdev@localhost:5433/hiveloop_test?sslmode=disable"
+const internalTestDBURL = "postgres://hivy:localdev@localhost:5433/hivy_test?sslmode=disable"
 
 func connectInternalTestDB(t *testing.T) *gorm.DB {
 	t.Helper()
@@ -58,7 +58,7 @@ func seedFreePlan(t *testing.T, db *gorm.DB, welcome int64) {
 func seedSignupUser(t *testing.T, db *gorm.DB) *model.User {
 	t.Helper()
 	user := &model.User{
-		Email: "signup-" + uuid.NewString() + "@test.hiveloop.com",
+		Email: "signup-" + uuid.NewString() + "@test.usehivy.com",
 		Name:  "Signup Test",
 	}
 	if err := db.Create(user).Error; err != nil {

@@ -2,7 +2,7 @@
   "openapi": "3.0.0",
   "info": {
     "description": "Proxy bridge for LLM API credentials.",
-    "title": "HiveLoop API",
+    "title": "Hivy API",
     "contact": {},
     "version": "1.0"
   },
@@ -8076,7 +8076,7 @@
   },
   "servers": [
     {
-      "url": "https://api.dev.hiveloop.com"
+      "url": "https://api.dev.usehivy.com"
     }
   ],
   "components": {

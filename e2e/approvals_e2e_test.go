@@ -10,8 +10,8 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/usehiveloop/hiveloop/e2e/fakebridge"
-	bridgepkg "github.com/usehiveloop/hiveloop/internal/bridge"
+	"github.com/usehivy/hivy/e2e/fakebridge"
+	bridgepkg "github.com/usehivy/hivy/internal/bridge"
 )
 
 func runApprovalRoundtrip(t *testing.T, decision string) {

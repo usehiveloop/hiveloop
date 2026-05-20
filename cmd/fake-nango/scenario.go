@@ -10,10 +10,10 @@ import (
 )
 
 type scenarioYAML struct {
-	Name         string                 `yaml:"name,omitempty"`
-	Integrations []scenarioIntegration  `yaml:"integrations,omitempty"`
-	Connections  []scenarioConnection   `yaml:"connections,omitempty"`
-	Proxy        []scenarioFixture      `yaml:"proxy,omitempty"`
+	Name         string                `yaml:"name,omitempty"`
+	Integrations []scenarioIntegration `yaml:"integrations,omitempty"`
+	Connections  []scenarioConnection  `yaml:"connections,omitempty"`
+	Proxy        []scenarioFixture     `yaml:"proxy,omitempty"`
 }
 
 type scenarioIntegration struct {

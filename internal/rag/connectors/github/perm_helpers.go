@@ -3,8 +3,8 @@ package github
 import (
 	"strconv"
 
-	"github.com/usehiveloop/hiveloop/internal/rag/acl"
-	"github.com/usehiveloop/hiveloop/internal/rag/model"
+	"github.com/usehivy/hivy/internal/rag/acl"
+	"github.com/usehivy/hivy/internal/rag/model"
 )
 
 // Group-id constructors run output through acl.BuildExtGroupName +

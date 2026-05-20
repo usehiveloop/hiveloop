@@ -12,11 +12,11 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 
-	"github.com/usehiveloop/hiveloop/internal/handler"
-	"github.com/usehiveloop/hiveloop/internal/mcp/catalog"
-	"github.com/usehiveloop/hiveloop/internal/middleware"
-	"github.com/usehiveloop/hiveloop/internal/model"
-	"github.com/usehiveloop/hiveloop/internal/nango"
+	"github.com/usehivy/hivy/internal/handler"
+	"github.com/usehivy/hivy/internal/mcp/catalog"
+	"github.com/usehivy/hivy/internal/middleware"
+	"github.com/usehivy/hivy/internal/model"
+	"github.com/usehivy/hivy/internal/nango"
 )
 
 func TestInConnectionHandler_Create_Success(t *testing.T) {
@@ -193,7 +193,7 @@ func TestInConnectionHandler_Create_WithMeta(t *testing.T) {
 
 	body, _ := json.Marshal(map[string]any{
 		"nango_connection_id": "nango-conn-meta",
-		"meta":                map[string]any{"resources": map[string]any{"repos": []string{"hiveloop"}}},
+		"meta":                map[string]any{"resources": map[string]any{"repos": []string{"hivy"}}},
 	})
 	req := httptest.NewRequest(http.MethodPost, "/v1/in/integrations/"+integ.ID.String()+"/connections", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")

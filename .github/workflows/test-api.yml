@@ -14,15 +14,15 @@ env:
   PORT: 8080
   LOG_LEVEL: info
   LOG_FORMAT: json
-  POSTGRES_USER: hiveloop
+  POSTGRES_USER: hivy
   POSTGRES_PASSWORD: localdev
-  POSTGRES_DB: hiveloop
+  POSTGRES_DB: hivy
   POSTGRES_PORT: 5433
   DB_HOST: localhost
   DB_PORT: 5433
-  DB_USER: hiveloop
+  DB_USER: hivy
   DB_PASSWORD: localdev
-  DB_NAME: hiveloop
+  DB_NAME: hivy
   DB_SSLMODE: disable
   KMS_TYPE: aead
   KMS_KEY: OEx8eTY9N8RbDN6nM9Xwq3qP0c0w4uQ3Yl5o2l5P5Y8=
@@ -36,8 +36,8 @@ env:
   JWT_SIGNING_KEY: local-dev-signing-key-for-tests-only
   CORS_ORIGINS: http://localhost:3000
   # AUTH_RSA_PRIVATE_KEY is generated per-job (see "Generate auth RSA key" steps)
-  AUTH_ISSUER: hiveloop
-  AUTH_AUDIENCE: https://api.usehiveloop.com
+  AUTH_ISSUER: hivy
+  AUTH_AUDIENCE: https://api.usehivy.com
   NANGO_ENDPOINT: http://localhost:13003
   NANGO_SECRET_KEY: 00000000-0000-4000-8000-000000000001
   OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
@@ -160,7 +160,7 @@ jobs:
           # Live external-provider RAG tests remain opt-in behind env gates;
           # local Postgres, Redis, MinIO, and Qdrant-backed tests run here.
           PACKAGES=$(go list ./internal/... \
-            | grep -vE '^github.com/usehiveloop/hiveloop/internal/handler$' \
+            | grep -vE '^github.com/usehivy/hivy/internal/handler$' \
             | awk -v s=${{ matrix.shard }} -v n=4 'NR % n == s')
           echo "Running shard ${{ matrix.shard }} packages:"
           echo "$PACKAGES"

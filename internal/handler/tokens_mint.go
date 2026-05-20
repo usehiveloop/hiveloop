@@ -8,11 +8,11 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
-	"github.com/usehiveloop/hiveloop/internal/logging"
-	"github.com/usehiveloop/hiveloop/internal/mcp"
-	"github.com/usehiveloop/hiveloop/internal/middleware"
-	"github.com/usehiveloop/hiveloop/internal/model"
-	"github.com/usehiveloop/hiveloop/internal/token"
+	"github.com/usehivy/hivy/internal/logging"
+	"github.com/usehivy/hivy/internal/mcp"
+	"github.com/usehivy/hivy/internal/middleware"
+	"github.com/usehivy/hivy/internal/model"
+	"github.com/usehivy/hivy/internal/token"
 )
 
 // @Summary Mint a proxy token

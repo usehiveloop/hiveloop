@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/usehiveloop/hiveloop/internal/auth"
-	"github.com/usehiveloop/hiveloop/internal/logging"
-	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehivy/hivy/internal/auth"
+	"github.com/usehivy/hivy/internal/logging"
+	"github.com/usehivy/hivy/internal/model"
 )
 
 // @Summary Log in

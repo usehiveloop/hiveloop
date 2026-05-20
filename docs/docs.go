@@ -10788,10 +10788,10 @@ const docTemplate = `{
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
-	Host:             "api.dev.hiveloop.com",
+	Host:             "api.dev.usehivy.com",
 	BasePath:         "/",
 	Schemes:          []string{"https"},
-	Title:            "HiveLoop API",
+	Title:            "Hivy API",
 	Description:      "Proxy bridge for LLM API credentials.",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,

@@ -2,7 +2,7 @@
 
 These instructions are for coding agents. Follow them strictly.
 
-HiveLoop is a Go-first platform with a Go API/worker, Next.js web app, Rust sandbox runtimes, local integration simulators, and Docker/native infrastructure.
+Hivy is a Go-first platform with a Go API/worker, Next.js web app, Rust sandbox runtimes, local integration simulators, and Docker/native infrastructure.
 
 ## List of services and what they do
 
@@ -65,7 +65,7 @@ Backend commands: `go test ./internal/... -count=1`, `go test ./internal/... -ra
 
 Use targeted tests while iterating: `go test ./internal/handler -count=1 -run 'TestName'`, `go test ./internal/tasks -count=1 -run 'TestName'`, `go test ./internal/rag/... -count=1`.
 
-Integration tests often require Postgres/Redis and commonly assume `postgres://hiveloop:localdev@localhost:5433/hiveloop_test?sslmode=disable`.
+Integration tests often require Postgres/Redis and commonly assume `postgres://hivy:localdev@localhost:5433/hivy_test?sslmode=disable`.
 
 Docker-backed test infrastructure: `make test-setup`.
 

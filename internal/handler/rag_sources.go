@@ -7,10 +7,10 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
-	"github.com/usehiveloop/hiveloop/internal/billing"
-	"github.com/usehiveloop/hiveloop/internal/enqueue"
-	"github.com/usehiveloop/hiveloop/internal/model"
-	ragmodel "github.com/usehiveloop/hiveloop/internal/rag/model"
+	"github.com/usehivy/hivy/internal/billing"
+	"github.com/usehivy/hivy/internal/enqueue"
+	"github.com/usehivy/hivy/internal/model"
+	ragmodel "github.com/usehivy/hivy/internal/rag/model"
 )
 
 type RAGSourceHandler struct {

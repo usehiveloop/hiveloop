@@ -5,7 +5,7 @@ import (
 
 	"github.com/hibiken/asynq"
 
-	"github.com/usehiveloop/hiveloop/internal/enqueue"
+	"github.com/usehivy/hivy/internal/enqueue"
 )
 
 func AsynqRedisOpt() asynq.RedisClientOpt {

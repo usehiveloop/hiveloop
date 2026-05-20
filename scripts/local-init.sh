@@ -59,18 +59,18 @@ start_cluster() {
 ensure_user() {
   local exists
   exists="$(run_as_postgres psql -p "$PG_PORT" -tAc \
-    "SELECT 1 FROM pg_roles WHERE rolname='hiveloop'" 2>/dev/null || true)"
+    "SELECT 1 FROM pg_roles WHERE rolname='hivy'" 2>/dev/null || true)"
   [ "$exists" = "1" ] && return 0
   run_as_postgres psql -p "$PG_PORT" -c \
-    "CREATE USER hiveloop WITH SUPERUSER PASSWORD 'localdev';" >&2
+    "CREATE USER hivy WITH SUPERUSER PASSWORD 'localdev';" >&2
 }
 
 ensure_database() {
   local exists
   exists="$(run_as_postgres psql -p "$PG_PORT" -tAc \
-    "SELECT 1 FROM pg_database WHERE datname='hiveloop'" 2>/dev/null || true)"
+    "SELECT 1 FROM pg_database WHERE datname='hivy'" 2>/dev/null || true)"
   [ "$exists" = "1" ] && return 0
-  run_as_postgres createdb -p "$PG_PORT" -O hiveloop hiveloop
+  run_as_postgres createdb -p "$PG_PORT" -O hivy hivy
 }
 
 require_pg_ctlcluster

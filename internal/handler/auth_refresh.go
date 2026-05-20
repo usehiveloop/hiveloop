@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/usehiveloop/hiveloop/internal/auth"
-	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehivy/hivy/internal/auth"
+	"github.com/usehivy/hivy/internal/model"
 )
 
 // @Summary Refresh tokens

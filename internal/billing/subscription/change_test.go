@@ -7,7 +7,7 @@ import (
 
 	"github.com/google/uuid"
 
-	sub "github.com/usehiveloop/hiveloop/internal/billing/subscription"
+	sub "github.com/usehivy/hivy/internal/billing/subscription"
 )
 
 // fixtures for the change matrix.
@@ -92,38 +92,38 @@ func TestPreviewChange_PeriodEnded(t *testing.T) {
 
 func TestPreviewChange_UpgradeProrated(t *testing.T) {
 	tests := []struct {
-		name             string
-		from, to         sub.PlanView
-		now              time.Time
-		wantKind         sub.ChangeKind
-		wantAmount       int64
-		wantCreditGrant  int64
+		name            string
+		from, to        sub.PlanView
+		now             time.Time
+		wantKind        sub.ChangeKind
+		wantAmount      int64
+		wantCreditGrant int64
 	}{
 		{
-			name:            "starter→pro halfway",
-			from:            planStarterNGN, to: planProNGN, now: midPeriod,
+			name: "starter→pro halfway",
+			from: planStarterNGN, to: planProNGN, now: midPeriod,
 			wantKind:        sub.KindUpgrade,
 			wantAmount:      750_000, // (2_000_000 - 500_000) * 1/2
 			wantCreditGrant: 2_000,   // (5_000 - 1_000) * 1/2
 		},
 		{
-			name:            "starter→pro at period start (full new period)",
-			from:            planStarterNGN, to: planProNGN, now: periodStart,
+			name: "starter→pro at period start (full new period)",
+			from: planStarterNGN, to: planProNGN, now: periodStart,
 			wantKind:        sub.KindUpgrade,
 			wantAmount:      1_500_000, // 2_000_000 - 500_000
 			wantCreditGrant: 4_000,
 		},
 		{
-			name:            "starter→premium quarter through (75% remaining)",
-			from:            planStarterNGN, to: planPremiumNGN,
+			name: "starter→premium quarter through (75% remaining)",
+			from: planStarterNGN, to: planPremiumNGN,
 			now:             periodStart.Add(7*24*time.Hour + 12*time.Hour),
 			wantKind:        sub.KindUpgrade,
 			wantAmount:      3_375_000, // (5_000_000 - 500_000) * 0.75
 			wantCreditGrant: 14_250,    // (20_000 - 1_000) * 0.75
 		},
 		{
-			name:            "starter→premium nearly at period end",
-			from:            planStarterNGN, to: planPremiumNGN,
+			name: "starter→premium nearly at period end",
+			from: planStarterNGN, to: planPremiumNGN,
 			now:             periodEnd.Add(-time.Hour),
 			wantKind:        sub.KindUpgrade,
 			wantAmount:      6_250, // (4_500_000) * 1h/720h

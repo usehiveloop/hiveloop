@@ -10,8 +10,8 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
-	"github.com/usehiveloop/hiveloop/internal/model"
-	skillpkg "github.com/usehiveloop/hiveloop/internal/skills"
+	"github.com/usehivy/hivy/internal/model"
+	skillpkg "github.com/usehivy/hivy/internal/skills"
 )
 
 func TestEmployeeOutboundMemoryCheckpoints(t *testing.T) {
@@ -214,7 +214,7 @@ func connectEmployeeSkillSyncTestDB(t *testing.T) *gorm.DB {
 	t.Helper()
 	dsn := os.Getenv("DATABASE_URL")
 	if dsn == "" {
-		dsn = "postgres://hiveloop:localdev@localhost:5433/hiveloop_test?sslmode=disable"
+		dsn = "postgres://hivy:localdev@localhost:5433/hivy_test?sslmode=disable"
 	}
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {

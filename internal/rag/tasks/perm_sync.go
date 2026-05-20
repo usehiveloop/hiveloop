@@ -7,10 +7,10 @@ import (
 
 	"github.com/hibiken/asynq"
 
-	"github.com/usehiveloop/hiveloop/internal/logging"
-	"github.com/usehiveloop/hiveloop/internal/rag/connectors/interfaces"
-	ragmodel "github.com/usehiveloop/hiveloop/internal/rag/model"
-	"github.com/usehiveloop/hiveloop/internal/rag/qdrant"
+	"github.com/usehivy/hivy/internal/logging"
+	"github.com/usehivy/hivy/internal/rag/connectors/interfaces"
+	ragmodel "github.com/usehivy/hivy/internal/rag/model"
+	"github.com/usehivy/hivy/internal/rag/qdrant"
 )
 
 type aclUpdate struct {

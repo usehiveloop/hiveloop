@@ -13,9 +13,9 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/usehiveloop/hiveloop/internal/mcp/catalog"
-	"github.com/usehiveloop/hiveloop/internal/mcpserver"
-	"github.com/usehiveloop/hiveloop/internal/nango"
+	"github.com/usehivy/hivy/internal/mcp/catalog"
+	"github.com/usehivy/hivy/internal/mcpserver"
+	"github.com/usehivy/hivy/internal/nango"
 )
 
 type capturedRequest struct {
@@ -64,9 +64,9 @@ func TestEnrichActions_RailwayDeploymentFailed(t *testing.T) {
 	refs := map[string]string{
 		"deployment_id":    "deploy-0df056be",
 		"project_id":       "proj-55776e03",
-		"project_name":     "hiveloop.com",
+		"project_name":     "usehivy.com",
 		"service_id":       "svc-b6c22e03",
-		"service_name":     "web.hiveloop.com",
+		"service_name":     "web.usehivy.com",
 		"environment_id":   "env-3c177170",
 		"environment_name": "production",
 		"workspace_id":     "ws-71ad85f8",
@@ -208,7 +208,7 @@ func TestEnrichActions_RailwayDeploymentFailed(t *testing.T) {
 	}, results)
 
 	assertContains(t, composedMessage, "## Deployment.failed", "event header")
-	assertContains(t, composedMessage, "web.hiveloop.com", "service name in refs")
+	assertContains(t, composedMessage, "web.usehivy.com", "service name in refs")
 	assertContains(t, composedMessage, "mock-result", "API result data")
 
 	for _, label := range []string{"build_logs", "runtime_logs", "project_topology", "recent_deployments"} {

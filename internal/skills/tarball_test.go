@@ -159,10 +159,10 @@ func TestParseSkillTarball_RootSubpath(t *testing.T) {
 
 func TestParseSkillTarball_Subpath(t *testing.T) {
 	tarball := buildTarball(t, "foo-bar-abc123", map[string]string{
-		"skills/greet/SKILL.md":          "---\nname: greet\n---\nbody",
-		"skills/greet/reference/api.md":  "refs",
-		"skills/other/SKILL.md":          "other",
-		"unrelated/ignore.txt":           "nope",
+		"skills/greet/SKILL.md":         "---\nname: greet\n---\nbody",
+		"skills/greet/reference/api.md": "refs",
+		"skills/other/SKILL.md":         "other",
+		"unrelated/ignore.txt":          "nope",
 	})
 
 	parsed, err := parseSkillTarball(bytes.NewReader(tarball), "skills/greet")

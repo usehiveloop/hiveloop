@@ -9,14 +9,14 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
-	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehivy/hivy/internal/model"
 )
 
 const bugsinkProvider = "bugsink"
 
 // BugsinkDashboardBaseURL returns the real Bugsink instance base URL attached
 // to the employee. It deliberately does not return BUGSINK_URL, because
-// BUGSINK_URL is the Hiveloop proxy URL used for API calls.
+// BUGSINK_URL is the Hivy proxy URL used for API calls.
 func BugsinkDashboardBaseURL(ctx context.Context, db *gorm.DB, orgID uuid.UUID, agent model.Agent) string {
 	if db == nil || orgID == uuid.Nil {
 		return ""

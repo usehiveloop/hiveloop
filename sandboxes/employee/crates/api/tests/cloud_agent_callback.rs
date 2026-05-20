@@ -49,7 +49,7 @@ async fn put_config_reloads_outbound_channels() {
     definition.outbound_channels = vec![OutboundChannelSpec {
         name: "control-plane-memory".to_string(),
         kind: OutboundChannelKind::Webhook {
-            url: "https://api.usehiveloop.com/internal/webhooks/employee/sandbox-id".to_string(),
+            url: "https://api.usehivy.com/internal/webhooks/employee/sandbox-id".to_string(),
             secret_env: "RUNTIME_SECRET".to_string(),
             extra_headers: Default::default(),
         },

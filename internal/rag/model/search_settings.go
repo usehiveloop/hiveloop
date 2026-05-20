@@ -14,7 +14,7 @@ import (
 //  1. Per-org, not global. OrgID is the primary key; one settings row
 //     per org. Onyx supports multiple SearchSettings rows coexisting
 //     via IndexModelStatus (PAST / PRESENT / FUTURE), which powers
-//     their model-switchover workflow. Hiveloop's "one model per org
+//     their model-switchover workflow. Hivy's "one model per org
 //     for the lifetime of their index" invariant means we don't need
 //     the IndexModelStatus/SwitchoverType machinery. If an org wants a
 //     new embedding model, ops deletes their chunks and re-ingests;
@@ -27,7 +27,7 @@ import (
 //     table is created by embedder.Migrate before rag model.Migrate
 //     installs this FK (see rag.AutoMigrate).
 //
-//  4. Hiveloop additions: RerankerModelID (per-org reranker choice —
+//  4. Hivy additions: RerankerModelID (per-org reranker choice —
 //     Qwen3-Reranker-0.6B default), HybridAlpha (BM25/vector weight
 //     for hybrid search, default 0.7), and the three ContextualRAG
 //     fields reserved for a future port of Onyx models.py:2094-2101.
@@ -68,18 +68,18 @@ type RAGSearchSettings struct {
 	// "mini + large chunks" strategy.
 	MultipassIndexing bool `gorm:"not null;default:true"`
 
-	// RerankerModelID — Hiveloop addition. Points at a reranker
+	// RerankerModelID — Hivy addition. Points at a reranker
 	// registered in the same rag_embedding_models catalog (or a
 	// separate reranker catalog in future). Nullable = no reranking.
 	RerankerModelID *string `gorm:"type:varchar(128)"`
 
-	// HybridAlpha — Hiveloop addition. Weight on the vector score in
+	// HybridAlpha — Hivy addition. Weight on the vector score in
 	// hybrid search (0 = pure BM25, 1 = pure vector). Default 0.7 per
 	// plan's "locked stack decisions" table.
 	HybridAlpha float64 `gorm:"type:double precision;not null;default:0.7"`
 
 	// IndexName — port of Onyx models.py:2065. Names the underlying
-	// vector-store dataset (LanceDB dataset name). For Hiveloop this
+	// vector-store dataset (LanceDB dataset name). For Hivy this
 	// is derived from `rag_embedding_models.DatasetName` at ingest
 	// time; persisted here so ops can pin an org to a specific index
 	// during ops work.
@@ -97,5 +97,5 @@ type RAGSearchSettings struct {
 	UpdatedAt time.Time
 }
 
-// TableName — Hiveloop `rag_*` convention.
+// TableName — Hivy `rag_*` convention.
 func (RAGSearchSettings) TableName() string { return "rag_search_settings" }

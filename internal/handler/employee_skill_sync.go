@@ -12,8 +12,8 @@ import (
 	"github.com/lib/pq"
 	"gorm.io/gorm"
 
-	"github.com/usehiveloop/hiveloop/internal/model"
-	skillpkg "github.com/usehiveloop/hiveloop/internal/skills"
+	"github.com/usehivy/hivy/internal/model"
+	skillpkg "github.com/usehivy/hivy/internal/skills"
 )
 
 type employeeSkillSyncPayload struct {

@@ -7,8 +7,8 @@ import (
 	"github.com/sourcegraph/conc/pool"
 	"gorm.io/gorm"
 
-	"github.com/usehiveloop/hiveloop/internal/logging"
-	"github.com/usehiveloop/hiveloop/internal/middleware"
+	"github.com/usehivy/hivy/internal/logging"
+	"github.com/usehivy/hivy/internal/middleware"
 )
 
 // UsageHandler serves org usage and stats.

@@ -18,7 +18,7 @@ type User = components["schemas"]["userResponse"]
 type Org = components["schemas"]["orgMemberDTO"]
 type Plan = components["schemas"]["planDTO"]
 
-const ACTIVE_ORG_COOKIE = "hiveloop_active_org"
+const ACTIVE_ORG_COOKIE = "hivy_active_org"
 
 function getOrgIdFromCookie(): string | null {
   if (typeof document === "undefined") return null

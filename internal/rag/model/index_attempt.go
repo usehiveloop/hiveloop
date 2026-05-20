@@ -16,21 +16,21 @@ import (
 // backend/onyx/db/models.py:2189-2343.
 //
 // DEVIATIONS vs Onyx:
-//   - PK is a uuid (not an autoincrement int). Hiveloop convention —
+//   - PK is a uuid (not an autoincrement int). Hivy convention —
 //     every table uses uuid.UUID PKs. Zero semantic impact.
 //   - `connector_credential_pair_id` becomes `rag_source_id` because
-//     Hiveloop keys every RAG table off the top-level RAGSource.
+//     Hivy keys every RAG table off the top-level RAGSource.
 //   - `search_settings_id` becomes `embedding_model_id` → FK to
 //     `rag_embedding_models(id)`. The FK is installed by the model
 //     package's Migrate entry point after the embedding-model catalog
 //     has been created.
-//   - OrgID column added; Onyx uses schema-per-tenant, Hiveloop uses
+//   - OrgID column added; Onyx uses schema-per-tenant, Hivy uses
 //     row-level org_id with a CASCADE FK to orgs(id).
 type RAGIndexAttempt struct {
 	// ID — Onyx models.py:2198
 	ID uuid.UUID `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
 
-	// OrgID — Hiveloop addition for row-level tenancy.
+	// OrgID — Hivy addition for row-level tenancy.
 	OrgID uuid.UUID `gorm:"type:uuid;not null;index;constraint:OnDelete:CASCADE"`
 
 	// RAGSourceID — adapts Onyx `connector_credential_pair_id`
@@ -109,7 +109,7 @@ type RAGIndexAttempt struct {
 }
 
 // TableName pins the Postgres table name. All RAG tables use the
-// rag_ prefix for namespace isolation from the core Hiveloop schema.
+// rag_ prefix for namespace isolation from the core Hivy schema.
 func (RAGIndexAttempt) TableName() string { return "rag_index_attempts" }
 
 // IsFinished is the Go port of Onyx's `is_finished` method at

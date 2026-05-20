@@ -12,14 +12,14 @@ import (
 	mcpsdk "github.com/modelcontextprotocol/go-sdk/mcp"
 	"gorm.io/gorm"
 
-	"github.com/usehiveloop/hiveloop/internal/logging"
-	"github.com/usehiveloop/hiveloop/internal/mcp/catalog"
-	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehivy/hivy/internal/logging"
+	"github.com/usehivy/hivy/internal/mcp/catalog"
+	"github.com/usehivy/hivy/internal/model"
 )
 
 // ReplyMCPHandler exposes per-connection write tools scoped to a conversation's
-// source channel. When the Hiveloop executor creates a conversation, it attaches
-// this MCP server as "hiveloop-reply" so the specialist agent can post messages
+// source channel. When the Hivy executor creates a conversation, it attaches
+// this MCP server as "hivy-reply" so the specialist agent can post messages
 // back to the channel (Slack thread, GitHub issue, etc.) using the source
 // connection's credentials.
 //
@@ -67,7 +67,7 @@ func (handler *ReplyMCPHandler) serverFactory(request *http.Request) *mcpsdk.Ser
 	}
 
 	server := mcpsdk.NewServer(&mcpsdk.Implementation{
-		Name:    "hiveloop-reply-" + provider,
+		Name:    "hivy-reply-" + provider,
 		Version: "v1.0.0",
 	}, nil)
 
@@ -124,7 +124,7 @@ func makeReplyToolHandler(connectionID, provider, actionKey string) func(context
 
 func emptyReplyServer() *mcpsdk.Server {
 	return mcpsdk.NewServer(&mcpsdk.Implementation{
-		Name:    "hiveloop-reply-empty",
+		Name:    "hivy-reply-empty",
 		Version: "v1.0.0",
 	}, nil)
 }

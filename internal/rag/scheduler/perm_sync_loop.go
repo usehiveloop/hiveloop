@@ -8,10 +8,10 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
-	"github.com/usehiveloop/hiveloop/internal/enqueue"
-	"github.com/usehiveloop/hiveloop/internal/logging"
-	"github.com/usehiveloop/hiveloop/internal/rag/connectors/interfaces"
-	ragtasks "github.com/usehiveloop/hiveloop/internal/rag/tasks"
+	"github.com/usehivy/hivy/internal/enqueue"
+	"github.com/usehivy/hivy/internal/logging"
+	"github.com/usehivy/hivy/internal/rag/connectors/interfaces"
+	ragtasks "github.com/usehivy/hivy/internal/rag/tasks"
 )
 
 type CapabilityCheck func(kind string) bool

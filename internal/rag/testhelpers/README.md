@@ -24,8 +24,8 @@ import (
     "context"
     "testing"
 
-    "github.com/usehiveloop/hiveloop/internal/rag/ragpb"
-    "github.com/usehiveloop/hiveloop/internal/rag/testhelpers"
+    "github.com/usehivy/hivy/internal/rag/ragpb"
+    "github.com/usehivy/hivy/internal/rag/testhelpers"
 )
 
 func TestMyFlow(t *testing.T) {
@@ -66,7 +66,7 @@ Set `RAG_ENGINE_BRANCH` to point at another worktree (useful during
 parallel tranche development):
 
 ```bash
-RAG_ENGINE_BRANCH=/Users/you/code/hiveloop-rag-2f \
+RAG_ENGINE_BRANCH=/Users/you/code/hivy-rag-2f \
   go test -race -p 1 -count=1 ./internal/rag -run TestE2E_
 ```
 
@@ -83,7 +83,7 @@ server-internal state.
 ## Per-test MinIO isolation
 
 Every `StartRagEngineInTestMode` call allocates a UUID-based S3 prefix
-under `hiveloop-rag-test/`. Cleanup deletes the prefix contents via
+under `hivy-rag-test/`. Cleanup deletes the prefix contents via
 `DeleteObjects`. Override `RagEngineConfig.LancePrefix` to reuse an
 existing prefix when that's desired (e.g. the cleanup-integration test
 that seeds data before the helper runs).

@@ -9,10 +9,10 @@ import (
 	"github.com/go-chi/chi/v5"
 	"gorm.io/gorm"
 
-	"github.com/usehiveloop/hiveloop/internal/middleware"
-	"github.com/usehiveloop/hiveloop/internal/model"
-	ragdb "github.com/usehiveloop/hiveloop/internal/rag/db"
-	ragmodel "github.com/usehiveloop/hiveloop/internal/rag/model"
+	"github.com/usehivy/hivy/internal/middleware"
+	"github.com/usehivy/hivy/internal/model"
+	ragdb "github.com/usehivy/hivy/internal/rag/db"
+	ragmodel "github.com/usehivy/hivy/internal/rag/model"
 )
 
 type updateRAGSourceRequest struct {

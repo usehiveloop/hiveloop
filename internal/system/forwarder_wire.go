@@ -59,7 +59,7 @@ type openAIStreamDelta struct {
 	Content string `json:"content"`
 }
 
-// --- Hiveloop SSE envelope ---
+// --- Hivy SSE envelope ---
 
 type sseDelta struct {
 	Delta string `json:"delta"`

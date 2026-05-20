@@ -5,7 +5,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/usehiveloop/hiveloop/internal/slackapp"
+	"github.com/usehivy/hivy/internal/slackapp"
 )
 
 func TestSlackChannelHandler_AvailableChannels_PublicAndJoinedPrivate(t *testing.T) {

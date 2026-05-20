@@ -11,15 +11,15 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
-	"github.com/usehiveloop/hiveloop/internal/config"
-	"github.com/usehiveloop/hiveloop/internal/credentials"
-	"github.com/usehiveloop/hiveloop/internal/crypto"
-	"github.com/usehiveloop/hiveloop/internal/employeeprompts"
-	"github.com/usehiveloop/hiveloop/internal/hindsight"
-	"github.com/usehiveloop/hiveloop/internal/model"
-	"github.com/usehiveloop/hiveloop/internal/nango"
-	slackprov "github.com/usehiveloop/hiveloop/internal/slackapp"
-	"github.com/usehiveloop/hiveloop/internal/token"
+	"github.com/usehivy/hivy/internal/config"
+	"github.com/usehivy/hivy/internal/credentials"
+	"github.com/usehivy/hivy/internal/crypto"
+	"github.com/usehivy/hivy/internal/employeeprompts"
+	"github.com/usehivy/hivy/internal/hindsight"
+	"github.com/usehivy/hivy/internal/model"
+	"github.com/usehivy/hivy/internal/nango"
+	slackprov "github.com/usehivy/hivy/internal/slackapp"
+	"github.com/usehivy/hivy/internal/token"
 )
 
 const (
@@ -244,7 +244,7 @@ func Compile(ctx context.Context, deps CompileDeps, agent *model.Agent) (*Employ
 	}
 	mcpServers := jsonArray(agent.McpServers)
 	if ourMCP := buildEmployeeMCPServer(ctx, deps, agent); ourMCP != nil {
-		mcpServers = upsertHiveloopMCPServer(mcpServers, ourMCP)
+		mcpServers = upsertHivyMCPServer(mcpServers, ourMCP)
 	}
 	description := managedEmployeeDescription
 	fragments := buildPromptFragments(ctx, deps.DB, agent, description)
@@ -276,7 +276,7 @@ func Compile(ctx context.Context, deps CompileDeps, agent *model.Agent) (*Employ
 }
 
 func ControlPlaneOutboundChannels(cfg *config.Config, sandboxID uuid.UUID) []any {
-	bridgeHost := "api.usehiveloop.com"
+	bridgeHost := "api.usehivy.com"
 	if cfg != nil && strings.TrimSpace(cfg.BridgeHost) != "" {
 		bridgeHost = strings.TrimRight(strings.TrimSpace(cfg.BridgeHost), "/")
 	}
@@ -475,7 +475,7 @@ func buildEmployeeMCPServer(ctx context.Context, deps CompileDeps, agent *model.
 	}
 	url := fmt.Sprintf("%s/%s", strings.TrimRight(deps.Cfg.MCPBaseURL, "/"), tok.JTI)
 	return map[string]any{
-		"name":      "hiveloop",
+		"name":      "hivy",
 		"transport": "streamable_http",
 		"url":       url,
 		"headers": map[string]string{
@@ -489,11 +489,11 @@ func employeeMCPAuthorizationHeader() string {
 	return "Bearer ${" + ProxyAPIKeyEnv + "}"
 }
 
-func upsertHiveloopMCPServer(servers []any, server any) []any {
+func upsertHivyMCPServer(servers []any, server any) []any {
 	out := make([]any, 0, len(servers)+1)
 	for _, existing := range servers {
 		if m, ok := existing.(map[string]any); ok {
-			if name, _ := m["name"].(string); name == "hiveloop" {
+			if name, _ := m["name"].(string); name == "hivy" {
 				continue
 			}
 		}
@@ -503,7 +503,7 @@ func upsertHiveloopMCPServer(servers []any, server any) []any {
 }
 
 func proxyModel(cfg *config.Config, modelID string) ModelConfig {
-	baseURL := "https://proxy.hiveloop.com/v1"
+	baseURL := "https://proxy.usehivy.com/v1"
 	if cfg != nil && cfg.ProxyHost != "" {
 		baseURL = "https://" + strings.TrimRight(cfg.ProxyHost, "/") + "/v1"
 	}

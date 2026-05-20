@@ -20,7 +20,7 @@ import (
 
 	toolbox "github.com/daytonaio/daytona/libs/toolbox-api-client-go"
 
-	"github.com/usehiveloop/hiveloop/internal/employeeruntime"
+	"github.com/usehivy/hivy/internal/employeeruntime"
 )
 
 type remoteEnvPayload struct {

@@ -1,7 +1,7 @@
 package sandbox
 
 import (
-	bridgepkg "github.com/usehiveloop/hiveloop/internal/bridge"
+	bridgepkg "github.com/usehivy/hivy/internal/bridge"
 )
 
 func applyAgentConfigDefaults(cfg *bridgepkg.AgentConfig, providerID, modelName string) *bridgepkg.AgentConfig {

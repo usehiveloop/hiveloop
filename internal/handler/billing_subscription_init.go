@@ -7,9 +7,9 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/usehiveloop/hiveloop/internal/billing/subscription"
-	"github.com/usehiveloop/hiveloop/internal/logging"
-	"github.com/usehiveloop/hiveloop/internal/middleware"
+	"github.com/usehivy/hivy/internal/billing/subscription"
+	"github.com/usehivy/hivy/internal/logging"
+	"github.com/usehivy/hivy/internal/middleware"
 )
 
 type initUpgradeRequest struct {

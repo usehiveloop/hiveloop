@@ -2,7 +2,7 @@
 # GLOBAL OPTIONS
 # =============================================================================
 {
-    email admin@usehiveloop.com
+    email admin@usehivy.com
 
     # Enable admin API for dynamic config (custom domain management via /load)
     admin 0.0.0.0:2019
@@ -49,26 +49,26 @@
     }
 }
 
-# acme-dns API proxy (for Hiveloop backend to register subdomains)
-acme-dns-api.daytona.usehiveloop.com {
+# acme-dns API proxy (for Hivy backend to register subdomains)
+acme-dns-api.daytona.usehivy.com {
     tls {
         dns cloudflare {env.CLOUDFLARE_API_TOKEN}
     }
 
-    @auth header X-Internal-Secret {env.HIVELOOP_INTERNAL_SECRET}
+    @auth header X-Internal-Secret {env.HIVY_INTERNAL_SECRET}
     handle @auth {
         reverse_proxy acme-dns:443
     }
     respond 403
 }
 
-# Caddy admin API proxy (for Hiveloop backend to POST /load configs)
-caddy-admin.daytona.usehiveloop.com {
+# Caddy admin API proxy (for Hivy backend to POST /load configs)
+caddy-admin.daytona.usehivy.com {
     tls {
         dns cloudflare {env.CLOUDFLARE_API_TOKEN}
     }
 
-    @auth header X-Internal-Secret {env.HIVELOOP_INTERNAL_SECRET}
+    @auth header X-Internal-Secret {env.HIVY_INTERNAL_SECRET}
     handle @auth {
         reverse_proxy localhost:2019
     }
@@ -108,7 +108,7 @@ caddy-admin.daytona.usehiveloop.com {
 # =============================================================================
 # CUSTOM PREVIEW DOMAINS
 # Added dynamically via Caddy admin API /load when users verify domains.
-# Hiveloop backend rebuilds full JSON config and POSTs to /load.
+# Hivy backend rebuilds full JSON config and POSTs to /load.
 # This Caddyfile is only the initial/base config.
 # =============================================================================
 

@@ -16,8 +16,8 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 
-	"github.com/usehiveloop/hiveloop/internal/crypto"
-	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehivy/hivy/internal/crypto"
+	"github.com/usehivy/hivy/internal/model"
 )
 
 func TestEmployeeOutboundWebhookBatch_IngestsCoalescedStreamWithoutPerDeltaRows(t *testing.T) {
@@ -79,7 +79,7 @@ func TestEmployeeOutboundWebhookBatch_IngestsCoalescedStreamWithoutPerDeltaRows(
 	req := httptest.NewRequest(http.MethodPost, "/internal/webhooks/employee/"+sandbox.ID.String()+"/batch", bytes.NewReader(body))
 	req.Header.Set("Content-Encoding", "gzip")
 	req.Header.Set("Content-Type", "application/x-ndjson")
-	req.Header.Set("X-Hiveloop-Signature", "sha256="+hmacHex(bridgeKey, body))
+	req.Header.Set("X-Hivy-Signature", "sha256="+hmacHex(bridgeKey, body))
 	rr := httptest.NewRecorder()
 	r.ServeHTTP(rr, req)
 	if rr.Code != http.StatusOK {
@@ -131,7 +131,7 @@ func TestEmployeeOutboundWebhookBatch_RejectsBadSignature(t *testing.T) {
 	body := gzipNDJSON(t, employeeOutboundEvent{EventType: "agent.stream.token", Payload: mustJSON(t, map[string]any{"session_id": "s"}), At: time.Now().UTC()})
 	req := httptest.NewRequest(http.MethodPost, "/internal/webhooks/employee/"+sandbox.ID.String()+"/batch", bytes.NewReader(body))
 	req.Header.Set("Content-Encoding", "gzip")
-	req.Header.Set("X-Hiveloop-Signature", "sha256="+hmacHex("wrong-secret", body))
+	req.Header.Set("X-Hivy-Signature", "sha256="+hmacHex("wrong-secret", body))
 	rr := httptest.NewRecorder()
 	r.ServeHTTP(rr, req)
 	if rr.Code != http.StatusUnauthorized {

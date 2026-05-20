@@ -62,7 +62,7 @@ func main() {
 	}
 
 	stamp := time.Now().UTC().Format("20060102T150405Z")
-	remoteScript := fmt.Sprintf("/tmp/hiveloop-employee-debug-pack-%s.sh", stamp)
+	remoteScript := fmt.Sprintf("/tmp/hivy-employee-debug-pack-%s.sh", stamp)
 	remoteBase := fmt.Sprintf("/tmp/employee-sandbox-debug-%s-%s", *sandboxID, stamp)
 	remoteArchive := remoteBase + ".tar.gz"
 
@@ -76,7 +76,7 @@ func main() {
 		sensitive = "1"
 	}
 	runCommand := fmt.Sprintf(
-		"HIVELOOP_DEBUG_OUT=%s HIVELOOP_DEBUG_SANDBOX_ID=%s HIVELOOP_DEBUG_SENSITIVE=%s bash %s",
+		"HIVY_DEBUG_OUT=%s HIVY_DEBUG_SANDBOX_ID=%s HIVY_DEBUG_SENSITIVE=%s bash %s",
 		shellQuote(remoteBase),
 		shellQuote(*sandboxID),
 		shellQuote(sensitive),

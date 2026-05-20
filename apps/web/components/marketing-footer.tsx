@@ -4,20 +4,20 @@ import { Logo } from "@/components/logo"
 const footerLinks = {
   resources: [
     { label: "Blog", href: "/blog" },
-    { label: "Community", href: "https://discord.gg/hiveloop", external: true },
-    { label: "GitHub", href: "https://github.com/usehiveloop", external: true },
+    { label: "Community", href: "https://discord.gg/hivy", external: true },
+    { label: "GitHub", href: "https://github.com/usehivy", external: true },
   ],
   company: [
     { label: "Privacy Policy", href: "/legal/privacy" },
     { label: "Terms of Service", href: "/legal/terms" },
-    { label: "Contact", href: "mailto:hello@hiveloop.com", external: true },
+    { label: "Contact", href: "mailto:hello@usehivy.com", external: true },
   ],
 }
 
 const socialLinks = [
   {
     label: "GitHub",
-    href: "https://github.com/usehiveloop",
+    href: "https://github.com/usehivy",
     icon: (
       <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
         <title>github</title>
@@ -27,7 +27,7 @@ const socialLinks = [
   },
   {
     label: "X",
-    href: "https://x.com/hiveloop",
+    href: "https://x.com/hivy",
     icon: (
       <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor">
         <title>x</title>
@@ -37,7 +37,7 @@ const socialLinks = [
   },
   {
     label: "Discord",
-    href: "https://discord.gg/hiveloop",
+    href: "https://discord.gg/hivy",
     icon: (
       <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
         <title>discord</title>
@@ -94,11 +94,11 @@ export function MarketingFooter() {
         <div className="mx-auto flex w-full max-w-424 flex-col-reverse items-center justify-between gap-4 px-4 py-5 sm:flex-row lg:px-0">
           <div className="flex items-center gap-4">
             <span className="text-xs text-muted-foreground">
-              &copy; {new Date().getFullYear()} HiveLoop Inc.
+              &copy; {new Date().getFullYear()} Hivy Inc.
             </span>
             <span className="hidden text-border sm:inline">|</span>
             <a
-              href="https://status.hiveloop.com"
+              href="https://status.usehivy.com"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"

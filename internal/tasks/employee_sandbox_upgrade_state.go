@@ -15,10 +15,10 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 
-	"github.com/usehiveloop/hiveloop/internal/employeeruntime"
-	"github.com/usehiveloop/hiveloop/internal/logging"
-	"github.com/usehiveloop/hiveloop/internal/model"
-	"github.com/usehiveloop/hiveloop/internal/sandbox"
+	"github.com/usehivy/hivy/internal/employeeruntime"
+	"github.com/usehivy/hivy/internal/logging"
+	"github.com/usehivy/hivy/internal/model"
+	"github.com/usehivy/hivy/internal/sandbox"
 )
 
 func (h *EmployeeSandboxUpgradeHandler) loadAndStart(ctx context.Context, payload EmployeeSandboxUpgradePayload) (*model.EmployeeSandboxUpgrade, *model.Agent, *model.Sandbox, error) {
@@ -147,7 +147,7 @@ func (h *EmployeeSandboxUpgradeHandler) runSmokeTest(ctx context.Context, sb *mo
 	body, err := json.Marshal(map[string]any{
 		"text":            "upgrade smoke test",
 		"conversation_id": "upgrade-smoke-" + sb.ID.String(),
-		"user":            "hiveloop-control-plane",
+		"user":            "hivy-control-plane",
 		"raw": map[string]any{
 			"upgrade_smoke": true,
 			"sandbox_id":    sb.ID.String(),

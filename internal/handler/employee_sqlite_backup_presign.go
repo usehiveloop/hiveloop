@@ -11,8 +11,8 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 
-	"github.com/usehiveloop/hiveloop/internal/logging"
-	"github.com/usehiveloop/hiveloop/internal/storage"
+	"github.com/usehivy/hivy/internal/logging"
+	"github.com/usehivy/hivy/internal/storage"
 )
 
 const employeeSQLiteBackupPresignTTL = 15 * time.Minute

@@ -18,21 +18,21 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
-	"github.com/usehiveloop/hiveloop/internal/cache"
-	"github.com/usehiveloop/hiveloop/internal/counter"
-	"github.com/usehiveloop/hiveloop/internal/crypto"
-	"github.com/usehiveloop/hiveloop/internal/handler"
-	"github.com/usehiveloop/hiveloop/internal/mcp/catalog"
-	"github.com/usehiveloop/hiveloop/internal/middleware"
-	"github.com/usehiveloop/hiveloop/internal/model"
-	"github.com/usehiveloop/hiveloop/internal/nango"
-	"github.com/usehiveloop/hiveloop/internal/proxy"
-	"github.com/usehiveloop/hiveloop/internal/registry"
-	"github.com/usehiveloop/hiveloop/internal/token"
+	"github.com/usehivy/hivy/internal/cache"
+	"github.com/usehivy/hivy/internal/counter"
+	"github.com/usehivy/hivy/internal/crypto"
+	"github.com/usehivy/hivy/internal/handler"
+	"github.com/usehivy/hivy/internal/mcp/catalog"
+	"github.com/usehivy/hivy/internal/middleware"
+	"github.com/usehivy/hivy/internal/model"
+	"github.com/usehivy/hivy/internal/nango"
+	"github.com/usehivy/hivy/internal/proxy"
+	"github.com/usehivy/hivy/internal/registry"
+	"github.com/usehivy/hivy/internal/token"
 )
 
 const (
-	testDBURL      = "postgres://hiveloop:localdev@localhost:5433/hiveloop_test?sslmode=disable" //nolint:gosec // G101: local-only test fixture, not a real credential
+	testDBURL      = "postgres://hivy:localdev@localhost:5433/hivy_test?sslmode=disable" //nolint:gosec // G101: local-only test fixture, not a real credential
 	testRedisAddr  = "localhost:6379"
 	testSigningKey = "e2e-signing-key-for-tests"
 )

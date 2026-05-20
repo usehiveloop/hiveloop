@@ -4,7 +4,7 @@ import (
 	"context"
 	"log/slog"
 
-	"github.com/usehiveloop/hiveloop/internal/observability/sentry"
+	"github.com/usehivy/hivy/internal/observability/sentry"
 )
 
 // loggerKey is the context key used to attach a contextual *slog.Logger.

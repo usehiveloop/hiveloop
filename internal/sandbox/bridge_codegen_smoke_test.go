@@ -11,9 +11,9 @@ import (
 
 	"github.com/google/uuid"
 
-	bridgepkg "github.com/usehiveloop/hiveloop/internal/bridge"
-	"github.com/usehiveloop/hiveloop/internal/config"
-	"github.com/usehiveloop/hiveloop/internal/model"
+	bridgepkg "github.com/usehivy/hivy/internal/bridge"
+	"github.com/usehivy/hivy/internal/config"
+	"github.com/usehivy/hivy/internal/model"
 )
 
 // TestBridgeCodegenSmoke_NewWireShape locks the new ACP-harness wire shape

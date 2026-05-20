@@ -6,8 +6,8 @@ import (
 
 	"github.com/hibiken/asynq"
 
-	"github.com/usehiveloop/hiveloop/internal/config"
-	"github.com/usehiveloop/hiveloop/internal/rag/scheduler"
+	"github.com/usehivy/hivy/internal/config"
+	"github.com/usehivy/hivy/internal/rag/scheduler"
 )
 
 func PeriodicTaskConfigs(cfg *config.Config, ragSched *scheduler.Deps) []*asynq.PeriodicTaskConfig {

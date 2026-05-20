@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/usehiveloop/hiveloop/internal/rag/connectors/interfaces"
-	"github.com/usehiveloop/hiveloop/internal/spider"
+	"github.com/usehivy/hivy/internal/rag/connectors/interfaces"
+	"github.com/usehivy/hivy/internal/spider"
 )
 
 func (c *WebsiteConnector) Run(

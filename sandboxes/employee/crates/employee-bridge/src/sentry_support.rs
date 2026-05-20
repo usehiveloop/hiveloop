@@ -288,16 +288,16 @@ fn f32_env(key: &str) -> Option<f32> {
 
 fn runtime_sentry_tags() -> Vec<(&'static str, String)> {
     let mut tags = Vec::new();
-    if let Some(org_id) = non_empty_env("HIVELOOP_ORG_ID") {
+    if let Some(org_id) = non_empty_env("HIVY_ORG_ID") {
         tags.push(("org_id", org_id));
     }
-    if let Some(employee_id) = non_empty_env("HIVELOOP_EMPLOYEE_ID") {
+    if let Some(employee_id) = non_empty_env("HIVY_EMPLOYEE_ID") {
         tags.push(("employee_id", employee_id));
     }
     if let Some(runtime_employee_id) = non_empty_env("EMPLOYEE_ID") {
         tags.push(("runtime_employee_id", runtime_employee_id));
     }
-    if let Some(sandbox_id) = non_empty_env("HIVELOOP_SANDBOX_ID") {
+    if let Some(sandbox_id) = non_empty_env("HIVY_SANDBOX_ID") {
         tags.push(("sandbox_id", sandbox_id));
     }
     tags
@@ -347,13 +347,13 @@ mod tests {
     }
 
     #[test]
-    fn runtime_sentry_tags_use_hiveloop_identity_env() {
+    fn runtime_sentry_tags_use_hivy_identity_env() {
         let _guard = env_lock().lock().unwrap();
         EnvGuard::clear_all();
-        std::env::set_var("HIVELOOP_ORG_ID", "org-123");
-        std::env::set_var("HIVELOOP_EMPLOYEE_ID", "employee-123");
+        std::env::set_var("HIVY_ORG_ID", "org-123");
+        std::env::set_var("HIVY_EMPLOYEE_ID", "employee-123");
         std::env::set_var("EMPLOYEE_ID", "runtime-employee-123");
-        std::env::set_var("HIVELOOP_SANDBOX_ID", "sandbox-123");
+        std::env::set_var("HIVY_SANDBOX_ID", "sandbox-123");
 
         let tags = runtime_sentry_tags();
 
@@ -443,10 +443,10 @@ mod tests {
                 "SENTRY_DEBUG",
                 "SENTRY_SPOTLIGHT",
                 "SENTRY_SPOTLIGHT_URL",
-                "HIVELOOP_ORG_ID",
-                "HIVELOOP_EMPLOYEE_ID",
+                "HIVY_ORG_ID",
+                "HIVY_EMPLOYEE_ID",
                 "EMPLOYEE_ID",
-                "HIVELOOP_SANDBOX_ID",
+                "HIVY_SANDBOX_ID",
             ] {
                 std::env::remove_var(key);
             }

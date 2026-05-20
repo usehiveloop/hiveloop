@@ -5,7 +5,7 @@ description: Use when reading or triaging Linear issues, projects, teams, workfl
 
 # Linear GraphQL
 
-Use Linear through the Hiveloop-provided GraphQL endpoint at `$LINEAR_URL`.
+Use Linear through the Hivy-provided GraphQL endpoint at `$LINEAR_URL`.
 
 `LINEAR_URL` and `LINEAR_TOKEN` are provided by the runtime for the configured Linear connection. Always call the provided `LINEAR_URL` exactly; do not substitute another workspace or token.
 
@@ -15,7 +15,7 @@ Required:
 
 | Variable | Purpose |
 |---|---|
-| `LINEAR_URL` | Linear GraphQL endpoint provided by Hiveloop |
+| `LINEAR_URL` | Linear GraphQL endpoint provided by Hivy |
 | `LINEAR_TOKEN` | Bearer token for the provided Linear endpoint |
 
 Initialize once:

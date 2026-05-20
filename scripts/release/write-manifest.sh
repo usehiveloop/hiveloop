@@ -21,12 +21,12 @@ cat >"${out}" <<EOF
   "prerelease": ${RELEASE_IS_PRERELEASE},
   "latest": ${latest},
   "images": {
-    "api": "ghcr.io/usehiveloop/hiveloop:${RELEASE_TAG}",
-    "apiSemver": "ghcr.io/usehiveloop/hiveloop:${RELEASE_VERSION}",
-    "sandboxBridge": "ghcr.io/usehiveloop/sandbox-bridge:${RELEASE_TAG}",
-    "sandboxBridgeSemver": "ghcr.io/usehiveloop/sandbox-bridge:${RELEASE_VERSION}",
-    "employeeSandbox": "ghcr.io/usehiveloop/employee-sandbox:${RELEASE_TAG}",
-    "employeeSandboxSemver": "ghcr.io/usehiveloop/employee-sandbox:${RELEASE_VERSION}"
+    "api": "ghcr.io/usehivy/hivy:${RELEASE_TAG}",
+    "apiSemver": "ghcr.io/usehivy/hivy:${RELEASE_VERSION}",
+    "sandboxBridge": "ghcr.io/usehivy/sandbox-bridge:${RELEASE_TAG}",
+    "sandboxBridgeSemver": "ghcr.io/usehivy/sandbox-bridge:${RELEASE_VERSION}",
+    "employeeSandbox": "ghcr.io/usehivy/employee-sandbox:${RELEASE_TAG}",
+    "employeeSandboxSemver": "ghcr.io/usehivy/employee-sandbox:${RELEASE_VERSION}"
   },
   "bridgeAssets": {
     "linuxAmd64": "bridge-${RELEASE_TAG}-x86_64-unknown-linux-gnu.tar.gz",
@@ -36,22 +36,22 @@ cat >"${out}" <<EOF
   },
   "runtimeConfig": {
     "BRIDGE_BINARY_VERSION": "${RELEASE_TAG}",
-    "BRIDGE_BASE_IMAGE_PREFIX": "hiveloop-bridge-${RELEASE_DASHED}-small-v1",
-    "BRIDGE_BASE_DEDICATED_IMAGE_PREFIX": "hiveloop-bridge-${RELEASE_DASHED}-small-v1",
-    "EMPLOYEE_SANDBOX_BASE_IMAGE_PREFIX": "hiveloop-employee-sandbox-${RELEASE_DASHED}-small-v1"
+    "BRIDGE_BASE_IMAGE_PREFIX": "hivy-bridge-${RELEASE_DASHED}-small-v1",
+    "BRIDGE_BASE_DEDICATED_IMAGE_PREFIX": "hivy-bridge-${RELEASE_DASHED}-small-v1",
+    "EMPLOYEE_SANDBOX_BASE_IMAGE_PREFIX": "hivy-employee-sandbox-${RELEASE_DASHED}-small-v1"
   },
   "snapshots": {
     "runtime": {
-      "small": "hiveloop-bridge-${RELEASE_DASHED}-small-v1",
-      "medium": "hiveloop-bridge-${RELEASE_DASHED}-medium-v1",
-      "large": "hiveloop-bridge-${RELEASE_DASHED}-large-v1",
-      "xlarge": "hiveloop-bridge-${RELEASE_DASHED}-xlarge-v1"
+      "small": "hivy-bridge-${RELEASE_DASHED}-small-v1",
+      "medium": "hivy-bridge-${RELEASE_DASHED}-medium-v1",
+      "large": "hivy-bridge-${RELEASE_DASHED}-large-v1",
+      "xlarge": "hivy-bridge-${RELEASE_DASHED}-xlarge-v1"
     },
     "employee": {
-      "small": "hiveloop-employee-sandbox-${RELEASE_DASHED}-small-v1",
-      "medium": "hiveloop-employee-sandbox-${RELEASE_DASHED}-medium-v1",
-      "large": "hiveloop-employee-sandbox-${RELEASE_DASHED}-large-v1",
-      "xlarge": "hiveloop-employee-sandbox-${RELEASE_DASHED}-xlarge-v1"
+      "small": "hivy-employee-sandbox-${RELEASE_DASHED}-small-v1",
+      "medium": "hivy-employee-sandbox-${RELEASE_DASHED}-medium-v1",
+      "large": "hivy-employee-sandbox-${RELEASE_DASHED}-large-v1",
+      "xlarge": "hivy-employee-sandbox-${RELEASE_DASHED}-xlarge-v1"
     }
   }
 }

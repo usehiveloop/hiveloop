@@ -6,7 +6,7 @@ import (
 	"log/slog"
 	"runtime/debug"
 
-	sentryobs "github.com/usehiveloop/hiveloop/internal/observability/sentry"
+	sentryobs "github.com/usehivy/hivy/internal/observability/sentry"
 )
 
 // Go runs fn in a new goroutine with panic recovery. ctx propagates parent

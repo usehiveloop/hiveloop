@@ -9,7 +9,7 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/usehiveloop/hiveloop/internal/billing"
+	"github.com/usehivy/hivy/internal/billing"
 )
 
 type customerPayload struct {

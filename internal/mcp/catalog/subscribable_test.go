@@ -16,13 +16,13 @@ func TestSubscribableResource_GitHub(t *testing.T) {
 		wantCanonicalTmpl string
 		wantIDExample     string
 	}{
-		{"github_issue", "github/{owner}/{repo}/issue/{number}", "hiveloop/hiveloop#42"},
-		{"github_pull_request", "github/{owner}/{repo}/pull/{number}", "hiveloop/hiveloop#99"},
-		{"github_discussion", "github/{owner}/{repo}/discussion/{number}", "hiveloop/hiveloop#14"},
-		{"github_release", "github/{owner}/{repo}/release/{tag}", "hiveloop/hiveloop@v1.2.0"},
-		{"github_commit", "github/{owner}/{repo}/commit/{sha}", "hiveloop/hiveloop@abc123d"},
-		{"github_branch", "github/{owner}/{repo}/branch/{branch}", "hiveloop/hiveloop:main"},
-		{"github_repository", "github/{owner}/{repo}", "hiveloop/hiveloop"},
+		{"github_issue", "github/{owner}/{repo}/issue/{number}", "usehivy/hivy#42"},
+		{"github_pull_request", "github/{owner}/{repo}/pull/{number}", "usehivy/hivy#99"},
+		{"github_discussion", "github/{owner}/{repo}/discussion/{number}", "usehivy/hivy#14"},
+		{"github_release", "github/{owner}/{repo}/release/{tag}", "usehivy/hivy@v1.2.0"},
+		{"github_commit", "github/{owner}/{repo}/commit/{sha}", "usehivy/hivy@abc123d"},
+		{"github_branch", "github/{owner}/{repo}/branch/{branch}", "usehivy/hivy:main"},
+		{"github_repository", "github/{owner}/{repo}", "usehivy/hivy"},
 	}
 
 	for _, tt := range tests {

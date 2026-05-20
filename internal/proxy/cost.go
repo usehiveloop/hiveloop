@@ -1,15 +1,15 @@
 package proxy
 
 import (
-	"github.com/usehiveloop/hiveloop/internal/registry"
+	"github.com/usehivy/hivy/internal/registry"
 )
 
 // Cached token discount factors by provider.
 // These represent the fraction of the input price charged for cached tokens.
 var cachedTokenDiscount = map[string]float64{
-	"anthropic":    0.10, // 90% discount
-	"openai":       0.50, // 50% discount
-	"google":       0.25, // 75% discount
+	"anthropic":     0.10, // 90% discount
+	"openai":        0.50, // 50% discount
+	"google":        0.25, // 75% discount
 	"google-vertex": 0.25,
 }
 

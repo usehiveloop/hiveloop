@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/usehiveloop/hiveloop/internal/logging"
-	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehivy/hivy/internal/logging"
+	"github.com/usehivy/hivy/internal/model"
 )
 
 func captureEmployeeWebhookIngest(ctx context.Context, stage string, sb *model.Sandbox, event *employeeOutboundEvent, sessionID, source string, err error) {

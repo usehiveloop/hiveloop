@@ -7,9 +7,9 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/usehiveloop/hiveloop/internal/billing"
-	subpkg "github.com/usehiveloop/hiveloop/internal/billing/subscription"
-	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehivy/hivy/internal/billing"
+	subpkg "github.com/usehivy/hivy/internal/billing/subscription"
+	"github.com/usehivy/hivy/internal/model"
 )
 
 // seedRenewSub creates an active subscription whose current_period_end has

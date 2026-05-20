@@ -1,0 +1,8 @@
+{
+  "title": "Slack",
+  "description": "slack",
+  "pages": [
+    "v1/slack/channels/get",
+    "v1/slack/channels/join/post"
+  ]
+}

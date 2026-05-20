@@ -3,8 +3,8 @@ package email
 import (
 	"context"
 
-	"github.com/usehiveloop/hiveloop/internal/enqueue"
-	"github.com/usehiveloop/hiveloop/internal/tasks"
+	"github.com/usehivy/hivy/internal/enqueue"
+	"github.com/usehivy/hivy/internal/tasks"
 )
 
 // AsynqSender implements Sender by enqueueing email tasks for async delivery.

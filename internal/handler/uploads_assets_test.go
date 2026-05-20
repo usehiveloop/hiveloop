@@ -12,7 +12,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehivy/hivy/internal/model"
 )
 
 func (s *streamHarness) post(t *testing.T, urlPath, bodyJSON, bearer string) *httptest.ResponseRecorder {

@@ -14,10 +14,10 @@ import (
 	"github.com/go-chi/chi/v5"
 	"gorm.io/gorm"
 
-	"github.com/usehiveloop/hiveloop/internal/billing"
-	"github.com/usehiveloop/hiveloop/internal/email"
-	"github.com/usehiveloop/hiveloop/internal/handler"
-	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehivy/hivy/internal/billing"
+	"github.com/usehivy/hivy/internal/email"
+	"github.com/usehivy/hivy/internal/handler"
+	"github.com/usehivy/hivy/internal/model"
 )
 
 // ---------------------------------------------------------------------------
@@ -42,7 +42,7 @@ func newOTPHarness(t *testing.T) *otpTestHarness {
 
 	authHandler := handler.NewAuthHandler(
 		db, pk, signingKey,
-		"hiveloop-test", "http://localhost:8080",
+		"hivy-test", "http://localhost:8080",
 		15*time.Minute, 720*time.Hour,
 		&email.LogSender{},
 		"http://localhost:3000",

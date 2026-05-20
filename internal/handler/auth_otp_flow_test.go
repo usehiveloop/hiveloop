@@ -6,12 +6,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehivy/hivy/internal/model"
 )
 
 func TestOTP_FullFlow_NewUser(t *testing.T) {
 	h := newOTPHarness(t)
-	testEmail := "otp-new-user@test.hiveloop.com"
+	testEmail := "otp-new-user@test.usehivy.com"
 	h.cleanup(t, testEmail)
 	t.Cleanup(func() { h.cleanup(t, testEmail) })
 
@@ -96,7 +96,7 @@ func TestOTP_FullFlow_NewUser(t *testing.T) {
 
 func TestOTP_FullFlow_ExistingUser(t *testing.T) {
 	h := newOTPHarness(t)
-	testEmail := "otp-existing@test.hiveloop.com"
+	testEmail := "otp-existing@test.usehivy.com"
 	t.Cleanup(func() { h.cleanup(t, testEmail) })
 
 	user := model.User{Email: testEmail, Name: "Existing"}

@@ -11,7 +11,7 @@ import (
 // those public shares show up in search results.
 //
 // Verbatim port of Onyx `PublicExternalUserGroup` at
-// backend/onyx/db/models.py:4352-4380. Hiveloop adapts `cc_pair_id` to
+// backend/onyx/db/models.py:4352-4380. Hivy adapts `cc_pair_id` to
 // `rag_source_id`. The `stale` flag + indexes are direct ports; see
 // the stale-sweep doc on `RAGUserExternalUserGroup` for the
 // security-critical sync pattern.

@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/usehiveloop/hiveloop/internal/observe"
+	"github.com/usehivy/hivy/internal/observe"
 )
 
 func TestCaptureTransport_NonStreaming_OpenAI(t *testing.T) {

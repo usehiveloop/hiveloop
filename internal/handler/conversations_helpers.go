@@ -7,10 +7,10 @@ import (
 	"github.com/go-chi/chi/v5"
 	"gorm.io/gorm"
 
-	bridgepkg "github.com/usehiveloop/hiveloop/internal/bridge"
-	"github.com/usehiveloop/hiveloop/internal/logging"
-	"github.com/usehiveloop/hiveloop/internal/middleware"
-	"github.com/usehiveloop/hiveloop/internal/model"
+	bridgepkg "github.com/usehivy/hivy/internal/bridge"
+	"github.com/usehivy/hivy/internal/logging"
+	"github.com/usehivy/hivy/internal/middleware"
+	"github.com/usehivy/hivy/internal/model"
 )
 
 // loadConversation loads and validates a conversation from the URL param + org context.

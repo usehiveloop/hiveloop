@@ -11,10 +11,10 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
-	"github.com/usehiveloop/hiveloop/internal/auth"
-	"github.com/usehiveloop/hiveloop/internal/handler"
-	"github.com/usehiveloop/hiveloop/internal/middleware"
-	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehivy/hivy/internal/auth"
+	"github.com/usehivy/hivy/internal/handler"
+	"github.com/usehivy/hivy/internal/middleware"
+	"github.com/usehivy/hivy/internal/model"
 )
 
 type orgUpdateHarness struct {
@@ -88,7 +88,7 @@ func TestOrgUpdate_NameAndLogoSucceed(t *testing.T) {
 
 	rr := h.doPatch(t, user.ID, org.ID, "admin", map[string]any{
 		"name":     "Renamed Inc",
-		"logo_url": "https://assets.usehiveloop.com/pub/o/" + org.ID.String() + "/logo.png",
+		"logo_url": "https://assets.usehivy.com/pub/o/" + org.ID.String() + "/logo.png",
 	})
 
 	if rr.Code != http.StatusOK {
@@ -126,7 +126,7 @@ func TestOrgUpdate_LogoOnly(t *testing.T) {
 	org, user := h.createOrg(t, "owner")
 
 	rr := h.doPatch(t, user.ID, org.ID, "owner", map[string]any{
-		"logo_url": "https://assets.usehiveloop.com/pub/o/abc/logo.png",
+		"logo_url": "https://assets.usehivy.com/pub/o/abc/logo.png",
 	})
 
 	if rr.Code != http.StatusOK {
@@ -148,7 +148,7 @@ func TestOrgUpdate_EmptyLogoClears(t *testing.T) {
 	org, user := h.createOrg(t, "admin")
 
 	h.db.Model(&model.Org{}).Where("id = ?", org.ID).
-		Update("logo_url", "https://assets.usehiveloop.com/pub/o/abc/old.png")
+		Update("logo_url", "https://assets.usehivy.com/pub/o/abc/old.png")
 
 	emptyLogo := ""
 	rr := h.doPatch(t, user.ID, org.ID, "admin", map[string]any{

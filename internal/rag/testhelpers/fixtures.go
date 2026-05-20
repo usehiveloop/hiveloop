@@ -10,12 +10,12 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
-	"github.com/usehiveloop/hiveloop/internal/model"
-	ragmodel "github.com/usehiveloop/hiveloop/internal/rag/model"
+	"github.com/usehivy/hivy/internal/model"
+	ragmodel "github.com/usehivy/hivy/internal/rag/model"
 )
 
 // randSuffix returns a short hex identifier so concurrent tests do not
-// collide on the Hiveloop `unique` constraints (e.g. Org.Name,
+// collide on the Hivy `unique` constraints (e.g. Org.Name,
 // User.Email, InIntegration.UniqueKey).
 func randSuffix(t *testing.T) string {
 	t.Helper()
@@ -43,7 +43,7 @@ func NewTestOrg(t *testing.T, db *gorm.DB) *model.Org {
 	}
 
 	t.Cleanup(func() {
-		// Delete direct dependents before the org itself. Hiveloop uses
+		// Delete direct dependents before the org itself. Hivy uses
 		// a mix of ON DELETE CASCADE (modern models) and no FK action
 		// (older ones), so we belt-and-suspenders the common
 		// RAG-adjacent tables.
@@ -66,7 +66,7 @@ func NewTestUser(t *testing.T, db *gorm.DB, orgID uuid.UUID) *model.User {
 	suffix := randSuffix(t)
 	now := time.Now()
 	user := &model.User{
-		Email:            fmt.Sprintf("user-%s@test.hiveloop", suffix),
+		Email:            fmt.Sprintf("user-%s@test.hivy", suffix),
 		Name:             "Test User " + suffix,
 		EmailConfirmedAt: &now,
 	}

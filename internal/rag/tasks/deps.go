@@ -6,12 +6,12 @@ import (
 	"github.com/hibiken/asynq"
 	"gorm.io/gorm"
 
-	"github.com/usehiveloop/hiveloop/internal/billing"
-	"github.com/usehiveloop/hiveloop/internal/crypto"
-	"github.com/usehiveloop/hiveloop/internal/nango"
-	"github.com/usehiveloop/hiveloop/internal/rag/embedclient"
-	"github.com/usehiveloop/hiveloop/internal/rag/qdrant"
-	"github.com/usehiveloop/hiveloop/internal/spider"
+	"github.com/usehivy/hivy/internal/billing"
+	"github.com/usehivy/hivy/internal/crypto"
+	"github.com/usehivy/hivy/internal/nango"
+	"github.com/usehivy/hivy/internal/rag/embedclient"
+	"github.com/usehivy/hivy/internal/rag/qdrant"
+	"github.com/usehivy/hivy/internal/spider"
 )
 
 type Deps struct {

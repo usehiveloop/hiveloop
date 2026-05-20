@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/usehiveloop/hiveloop/internal/rag/connectors/interfaces"
+	"github.com/usehivy/hivy/internal/rag/connectors/interfaces"
 )
 
 type fakeProxy struct {

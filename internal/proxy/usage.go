@@ -73,9 +73,9 @@ func parseStreamingChunk(providerID string, data []byte) UsageData {
 func parseOpenAIUsage(body []byte) UsageData {
 	var resp struct {
 		Usage *struct {
-			PromptTokens            int `json:"prompt_tokens"`
-			CompletionTokens        int `json:"completion_tokens"`
-			PromptTokensDetails     *struct {
+			PromptTokens        int `json:"prompt_tokens"`
+			CompletionTokens    int `json:"completion_tokens"`
+			PromptTokensDetails *struct {
 				CachedTokens int `json:"cached_tokens"`
 			} `json:"prompt_tokens_details"`
 			CompletionTokensDetails *struct {
@@ -175,10 +175,10 @@ func parseAnthropicStreamChunk(data []byte) UsageData {
 func parseGoogleUsage(body []byte) UsageData {
 	var resp struct {
 		UsageMetadata *struct {
-			PromptTokenCount     int `json:"promptTokenCount"`
-			CandidatesTokenCount int `json:"candidatesTokenCount"`
+			PromptTokenCount        int `json:"promptTokenCount"`
+			CandidatesTokenCount    int `json:"candidatesTokenCount"`
 			CachedContentTokenCount int `json:"cachedContentTokenCount"`
-			TotalTokenCount      int `json:"totalTokenCount"`
+			TotalTokenCount         int `json:"totalTokenCount"`
 		} `json:"usageMetadata"`
 	}
 	if err := json.Unmarshal(body, &resp); err != nil || resp.UsageMetadata == nil {

@@ -7,7 +7,7 @@ import (
 
 	"github.com/hibiken/asynq"
 
-	"github.com/usehiveloop/hiveloop/internal/logging"
+	"github.com/usehivy/hivy/internal/logging"
 )
 
 // EmailSenderFunc is a function that sends an ad-hoc email.

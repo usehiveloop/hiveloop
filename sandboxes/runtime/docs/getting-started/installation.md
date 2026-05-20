@@ -52,8 +52,8 @@ rustc --version
 ## Step 2: Clone the Repository
 
 ```bash
-git clone https://github.com/usehiveloop/hiveloop.git
-cd hiveloop/sandboxes/runtime
+git clone https://github.com/usehivy/hivy.git
+cd hivy/sandboxes/runtime
 ```
 
 ---

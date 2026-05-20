@@ -6,8 +6,8 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"github.com/usehiveloop/hiveloop/internal/model"
-	"github.com/usehiveloop/hiveloop/internal/system"
+	"github.com/usehivy/hivy/internal/model"
+	"github.com/usehivy/hivy/internal/system"
 )
 
 // ---------------------------------------------------------------------------
@@ -129,7 +129,7 @@ func TestSystemTask_CacheHit_StreamingShape(t *testing.T) {
 	if got := atomic.LoadInt32(h.hits); got != 1 {
 		t.Fatalf("streaming cache hit must not call upstream; hits=%d", got)
 	}
-	deltas, done := parseHiveloopSSE(t, rr.Body.String())
+	deltas, done := parseHivySSE(t, rr.Body.String())
 	if len(deltas) != 1 {
 		t.Fatalf("cached SSE: delta count = %d, want 1", len(deltas))
 	}

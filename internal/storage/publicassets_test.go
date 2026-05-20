@@ -12,7 +12,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/usehiveloop/hiveloop/internal/storage"
+	"github.com/usehivy/hivy/internal/storage"
 )
 
 const (

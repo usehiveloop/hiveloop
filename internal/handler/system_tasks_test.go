@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/usehiveloop/hiveloop/internal/model"
-	"github.com/usehiveloop/hiveloop/internal/system"
+	"github.com/usehivy/hivy/internal/model"
+	"github.com/usehivy/hivy/internal/system"
 )
 
 // ---------------------------------------------------------------------------
@@ -54,7 +54,7 @@ func TestSystemTask_NonStreaming_HappyPath(t *testing.T) {
 	}
 }
 
-func TestSystemTask_Streaming_RewritesToHiveloopShape(t *testing.T) {
+func TestSystemTask_Streaming_RewritesToHivyShape(t *testing.T) {
 	h := newSystemTaskHarness(t, func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/event-stream")
 		_, _ = io.WriteString(w, `data: {"model":"m","choices":[{"delta":{"content":"`+escapeJSON("## Role\nYou are deploy-watcher.\n\n")+`"}}]}
@@ -79,7 +79,7 @@ data: [DONE]
 	if got := rr.Header().Get("Content-Type"); !strings.HasPrefix(got, "text/event-stream") {
 		t.Fatalf("Content-Type = %q", got)
 	}
-	deltas, done := parseHiveloopSSE(t, rr.Body.String())
+	deltas, done := parseHivySSE(t, rr.Body.String())
 	if len(deltas) != 2 {
 		t.Fatalf("delta count = %d, want 2; body=%q", len(deltas), rr.Body.String())
 	}

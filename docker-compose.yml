@@ -2,8 +2,8 @@ services:
   postgres:
     image: pgvector/pgvector:pg17
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-hiveloop}
-      POSTGRES_USER: ${POSTGRES_USER:-hiveloop}
+      POSTGRES_DB: ${POSTGRES_DB:-hivy}
+      POSTGRES_USER: ${POSTGRES_USER:-hivy}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
     ports:
       - "${POSTGRES_PORT:-5433}:5432"
@@ -11,7 +11,7 @@ services:
       - pgdata:/var/lib/postgresql/data
       - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/01-init.sql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-hiveloop}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-hivy}"]
       interval: 2s
       timeout: 5s
       retries: 15
@@ -27,17 +27,17 @@ services:
       timeout: 5s
       retries: 5
 
-  # --- Real Nango runtime (custom HiveLoop integrations image) ---
+  # --- Real Nango runtime (custom Hivy integrations image) ---
   # Used for tests that must exercise Nango's real request validation instead
   # of the in-process fake/mock.
   nango:
-    image: ghcr.io/usehiveloop/integrations:latest
+    image: ghcr.io/usehivy/integrations:latest
     environment:
       PORT: "3003"
       SERVER_PORT: "3003"
       NANGO_DB_HOST: postgres
       NANGO_DB_PORT: "5432"
-      NANGO_DB_USER: ${POSTGRES_USER:-hiveloop}
+      NANGO_DB_USER: ${POSTGRES_USER:-hivy}
       NANGO_DB_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
       NANGO_DB_NAME: nango
       NANGO_DB_SSL: "false"
@@ -72,8 +72,8 @@ services:
         condition: service_healthy
     entrypoint: >
       /bin/sh -c "
-      psql -h postgres -U ${POSTGRES_USER:-hiveloop} -d ${POSTGRES_DB:-hiveloop} -tc \"SELECT 1 FROM pg_database WHERE datname = 'nango'\" | grep -q 1 ||
-      psql -h postgres -U ${POSTGRES_USER:-hiveloop} -d ${POSTGRES_DB:-hiveloop} -c \"CREATE DATABASE nango OWNER ${POSTGRES_USER:-hiveloop}\"
+      psql -h postgres -U ${POSTGRES_USER:-hivy} -d ${POSTGRES_DB:-hivy} -tc \"SELECT 1 FROM pg_database WHERE datname = 'nango'\" | grep -q 1 ||
+      psql -h postgres -U ${POSTGRES_USER:-hivy} -d ${POSTGRES_DB:-hivy} -c \"CREATE DATABASE nango OWNER ${POSTGRES_USER:-hivy}\"
       "
     restart: "no"
 
@@ -96,7 +96,7 @@ services:
     environment:
       HINDSIGHT_API_HOST: 0.0.0.0
       HINDSIGHT_API_PORT: ${HINDSIGHT_API_PORT:-8888}
-      HINDSIGHT_API_DATABASE_URL: postgresql://${POSTGRES_USER:-hiveloop}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/${POSTGRES_DB:-hiveloop}
+      HINDSIGHT_API_DATABASE_URL: postgresql://${POSTGRES_USER:-hivy}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/${POSTGRES_DB:-hivy}
       HINDSIGHT_API_DATABASE_SCHEMA: ${HINDSIGHT_API_DATABASE_SCHEMA:-hindsight}
       HINDSIGHT_API_RUN_MIGRATIONS_ON_STARTUP: "true"
     ports:
@@ -144,7 +144,7 @@ services:
       retries: 15
 
   # --- One-shot bucket creator for MinIO ---
-  # Creates the hiveloop-rag-test bucket the Phase 0 LanceDB spike and later
+  # Creates the hivy-rag-test bucket the Phase 0 LanceDB spike and later
   # RAG integration tests use. Exits 0 once the bucket exists.
   minio-setup:
     image: minio/mc:latest
@@ -154,7 +154,7 @@ services:
     entrypoint: >
       /bin/sh -c "
       mc alias set local http://minio:9000 minioadmin minioadmin &&
-      mc mb --ignore-existing local/hiveloop-rag-test &&
+      mc mb --ignore-existing local/hivy-rag-test &&
       mc mb --ignore-existing local/public-files-test &&
       mc anonymous set download local/public-files-test &&
       echo 'buckets ready'

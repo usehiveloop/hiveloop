@@ -48,7 +48,7 @@ supervise() {
 }
 
 pg_can_connect() {
-  PGPASSWORD=localdev psql -h 127.0.0.1 -p "$1" -U hiveloop -d hiveloop \
+  PGPASSWORD=localdev psql -h 127.0.0.1 -p "$1" -U hivy -d hivy \
     -tAc 'SELECT 1' >/dev/null 2>&1
 }
 
@@ -65,7 +65,7 @@ ensure_postgres() {
   echo "  initializing native cluster..."
   PG_PORT="$("$ROOT/scripts/local-init.sh" 2>&1 | tee /dev/stderr | tail -1)"
   pg_can_connect "$PG_PORT" \
-    || { echo "  ✗ postgres still not reachable as hiveloop@hiveloop" >&2; exit 1; }
+    || { echo "  ✗ postgres still not reachable as hivy@hivy" >&2; exit 1; }
   echo "$PG_PORT" > "$RUN_DIR/pg.port"
   echo "  ✓ ready on :$PG_PORT"
 }
@@ -92,8 +92,8 @@ ensure_redis() {
 build_binaries() {
   echo "==> build"
   go build -o "$RUN_DIR/fake-nango" ./cmd/fake-nango
-  go build -o "$RUN_DIR/hiveloop"   ./cmd/server
-  echo "  ✓ fake-nango + hiveloop"
+  go build -o "$RUN_DIR/hivy"   ./cmd/server
+  echo "  ✓ fake-nango + hivy"
 }
 
 start_fake_nango() {
@@ -137,9 +137,9 @@ LOG_LEVEL=info
 LOG_FORMAT=text
 DB_HOST=localhost
 DB_PORT=$PG_PORT
-DB_USER=hiveloop
+DB_USER=hivy
 DB_PASSWORD=localdev
-DB_NAME=hiveloop
+DB_NAME=hivy
 DB_SSLMODE=disable
 KMS_TYPE=aead
 REDIS_ADDR=localhost:$REDIS_PORT
@@ -150,7 +150,7 @@ JWT_SIGNING_KEY=local-dev-signing-key
 CORS_ORIGINS=http://localhost:$FRONTEND_PORT
 AUTO_CONFIRM_EMAIL=true
 PLATFORM_ADMIN_EMAILS=agent-test@example.com
-AUTH_ISSUER=hiveloop
+AUTH_ISSUER=hivy
 AUTH_AUDIENCE=http://localhost:$BACKEND_PORT
 FRONTEND_URL=http://localhost:$FRONTEND_PORT
 NANGO_ENDPOINT=http://localhost:$FAKE_NANGO_PORT
@@ -170,7 +170,7 @@ start_backend() {
   fi
   local args
   args=$(grep -v '^\s*#' "$RUN_DIR/backend.env" | grep -v '^\s*$')
-  supervise "backend" env $args "$RUN_DIR/hiveloop" serve
+  supervise "backend" env $args "$RUN_DIR/hivy" serve
   wait_http "http://localhost:$BACKEND_PORT/healthz" "backend" 15
 }
 

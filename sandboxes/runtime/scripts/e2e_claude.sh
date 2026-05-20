@@ -114,7 +114,7 @@ push_agent() {
       "id": "${AGENT_ID}",
       "name": "Test Claude",
       "harness": "claude",
-      "system_prompt": "You are a helpful, terse assistant. Always answer in under 50 words. When the user asks you to remember or recall something, use the available memory tools (mcp__hiveloop__memory_retain, mcp__hiveloop__memory_recall, mcp__hiveloop__memory_retrieve) instead of relying on your own context.",
+      "system_prompt": "You are a helpful, terse assistant. Always answer in under 50 words. When the user asks you to remember or recall something, use the available memory tools (mcp__hivy__memory_retain, mcp__hivy__memory_recall, mcp__hivy__memory_retrieve) instead of relying on your own context.",
       "provider": {
         "provider_type": "anthropic",
         "model": "${ANTHROPIC_MODEL}",
@@ -303,31 +303,31 @@ assert_event "event: turn_completed" "Phase 3: got turn_completed"
 
 
 # ──────────────────────────────────────────
-# Phase 4: custom MCP server (hiveloop memory tools)
+# Phase 4: custom MCP server (hivy memory tools)
 # Restart container with bypassPermissions so MCP tools just run; assert
 # the agent invokes the named MCP tools across two separate conversations.
 # ──────────────────────────────────────────
 echo
-echo "═══ Phase 4: custom MCP (hiveloop memory) ═══"
+echo "═══ Phase 4: custom MCP (hivy memory) ═══"
 docker rm -f "${CONTAINER_NAME}" >/dev/null 2>&1 || true
 start_container "bypassPermissions"
 
-if [[ -z "${HIVELOOP_MCP_URL:-}" || -z "${HIVELOOP_MCP_TOKEN:-}" ]]; then
-    echo "✗ HIVELOOP_MCP_URL and HIVELOOP_MCP_TOKEN are required for Phase 4" >&2
+if [[ -z "${HIVY_MCP_URL:-}" || -z "${HIVY_MCP_TOKEN:-}" ]]; then
+    echo "✗ HIVY_MCP_URL and HIVY_MCP_TOKEN are required for Phase 4" >&2
     exit 2
 fi
-HIVELOOP_MCP=$(python3 -c "
+HIVY_MCP=$(python3 -c "
 import json, os
 print(json.dumps([{
-    'name': 'hiveloop',
+    'name': 'hivy',
     'transport': {
         'type': 'streamable_http',
-        'url': os.environ['HIVELOOP_MCP_URL'],
-        'headers': {'Authorization': f\"Bearer {os.environ['HIVELOOP_MCP_TOKEN']}\"},
+        'url': os.environ['HIVY_MCP_URL'],
+        'headers': {'Authorization': f\"Bearer {os.environ['HIVY_MCP_TOKEN']}\"},
     },
 }]))
 ")
-push_agent "bypassPermissions" "${HIVELOOP_MCP}"
+push_agent "bypassPermissions" "${HIVY_MCP}"
 
 # Phase 4a — retain
 echo "── 4a: retain a fact ──"

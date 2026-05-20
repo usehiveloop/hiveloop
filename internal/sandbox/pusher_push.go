@@ -7,11 +7,11 @@ import (
 
 	"github.com/google/uuid"
 
-	bridgepkg "github.com/usehiveloop/hiveloop/internal/bridge"
-	"github.com/usehiveloop/hiveloop/internal/credentials"
-	"github.com/usehiveloop/hiveloop/internal/logging"
-	"github.com/usehiveloop/hiveloop/internal/model"
-	subagents "github.com/usehiveloop/hiveloop/internal/sub-agents"
+	bridgepkg "github.com/usehivy/hivy/internal/bridge"
+	"github.com/usehivy/hivy/internal/credentials"
+	"github.com/usehivy/hivy/internal/logging"
+	"github.com/usehivy/hivy/internal/model"
+	subagents "github.com/usehivy/hivy/internal/sub-agents"
 )
 
 func (p *Pusher) pushAgentToSandbox(ctx context.Context, agent *model.Agent, sb *model.Sandbox) error {
@@ -116,7 +116,7 @@ func (p *Pusher) buildAgentDefinition(ctx context.Context, agent *model.Agent, o
 	effectiveIntegrations := mergeAgentIntegrationsForAccess(agent, owningEmployee)
 	hasIntegrations := len(effectiveIntegrations) > 0
 	if hasIntegrations && p.cfg.MCPBaseURL != "" && jti != "" {
-		ourMCP := buildHiveLoopMCPServer(p.cfg.MCPBaseURL, jti, proxyToken)
+		ourMCP := buildHivyMCPServer(p.cfg.MCPBaseURL, jti, proxyToken)
 		if mcpServers == nil {
 			servers := []bridgepkg.McpServerDefinition{ourMCP}
 			mcpServers = &servers

@@ -3,8 +3,8 @@ package billing_test
 import (
 	"testing"
 
-	"github.com/usehiveloop/hiveloop/internal/billing"
-	"github.com/usehiveloop/hiveloop/internal/billing/fake"
+	"github.com/usehivy/hivy/internal/billing"
+	"github.com/usehivy/hivy/internal/billing/fake"
 )
 
 func TestRegistry_RegisterAndGet(t *testing.T) {

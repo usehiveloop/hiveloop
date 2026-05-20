@@ -11,7 +11,7 @@ import (
 // GitHub team, a Google Drive shared-drive membership) that has been
 // discovered inside a specific RAGSource.
 //
-// HIVELOOP ADDITION: Onyx has no direct analog — Onyx derives external
+// HIVY ADDITION: Onyx has no direct analog — Onyx derives external
 // group display data on-demand inside the perm-sync code path. We
 // persist it because (a) the admin UI wants to render display names
 // without making source-API calls, and (b) the stale-sweep pattern used

@@ -10,12 +10,12 @@ import (
 
 	"github.com/awnumar/memguard"
 
-	"github.com/usehiveloop/hiveloop/internal/bootstrap"
-	"github.com/usehiveloop/hiveloop/internal/enqueue"
-	"github.com/usehiveloop/hiveloop/internal/goroutine"
-	"github.com/usehiveloop/hiveloop/internal/logging"
-	"github.com/usehiveloop/hiveloop/internal/middleware"
-	sentryobs "github.com/usehiveloop/hiveloop/internal/observability/sentry"
+	"github.com/usehivy/hivy/internal/bootstrap"
+	"github.com/usehivy/hivy/internal/enqueue"
+	"github.com/usehivy/hivy/internal/goroutine"
+	"github.com/usehivy/hivy/internal/logging"
+	"github.com/usehivy/hivy/internal/middleware"
+	sentryobs "github.com/usehivy/hivy/internal/observability/sentry"
 )
 
 func init() {
@@ -23,10 +23,10 @@ func init() {
 	sentryobs.SetOrgExtractor(middleware.OrgID)
 }
 
-// @title HiveLoop API
+// @title Hivy API
 // @version 1.0
 // @description Proxy bridge for LLM API credentials.
-// @host api.dev.hiveloop.com
+// @host api.dev.usehivy.com
 // @BasePath /
 // @schemes https
 //
@@ -52,7 +52,7 @@ func main() {
 
 	if cmd == "version" {
 		// nolint:forbidigo // legitimate user-facing CLI version output
-		fmt.Printf("hiveloop %s (%s)\n", version, commit)
+		fmt.Printf("hivy %s (%s)\n", version, commit)
 		return
 	}
 
@@ -69,7 +69,7 @@ func run(cmd string) error {
 		return err
 	}
 	logging.Init(cfg.LogLevel, cfg.LogFormat)
-	slog.Info("starting hiveloop", "version", version, "commit", commit, "mode", cmd)
+	slog.Info("starting hivy", "version", version, "commit", commit, "mode", cmd)
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()

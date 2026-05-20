@@ -3,7 +3,7 @@ package handler
 import (
 	"testing"
 
-	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehivy/hivy/internal/model"
 )
 
 func TestValidateJSONSchema_Nil(t *testing.T) {

@@ -1,6 +1,6 @@
 {
   "name": "bugsink",
-  "description": "Query Bugsink projects, issues, events, stacktraces, and issue metadata through the canonical Bugsink API using BUGSINK_URL, BUGSINK_TOKEN, curl, and jq; construct dashboard links with BUGSINK_DASHBOARD_BASE_URL, never the Hiveloop proxy URL.",
+  "description": "Query Bugsink projects, issues, events, stacktraces, and issue metadata through the canonical Bugsink API using BUGSINK_URL, BUGSINK_TOKEN, curl, and jq; construct dashboard links with BUGSINK_DASHBOARD_BASE_URL, never the Hivy proxy URL.",
   "root": "./SKILL.md",
   "files": []
 }

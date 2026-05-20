@@ -1,4 +1,4 @@
-# Hiveloop Pricing Model
+# Hivy Pricing Model
 
 **Last updated:** 2026-04-24
 **Status:** Active (replaces the per-agent / per-run Polar-era model)

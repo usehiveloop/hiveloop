@@ -10,14 +10,14 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"gorm.io/gorm"
 
-	"github.com/usehiveloop/hiveloop/internal/counter"
-	"github.com/usehiveloop/hiveloop/internal/logging"
-	mcppkg "github.com/usehiveloop/hiveloop/internal/mcp"
-	"github.com/usehiveloop/hiveloop/internal/mcp/catalog"
-	"github.com/usehiveloop/hiveloop/internal/mcpserver"
-	"github.com/usehiveloop/hiveloop/internal/middleware"
-	"github.com/usehiveloop/hiveloop/internal/model"
-	"github.com/usehiveloop/hiveloop/internal/nango"
+	"github.com/usehivy/hivy/internal/counter"
+	"github.com/usehivy/hivy/internal/logging"
+	mcppkg "github.com/usehivy/hivy/internal/mcp"
+	"github.com/usehivy/hivy/internal/mcp/catalog"
+	"github.com/usehivy/hivy/internal/mcpserver"
+	"github.com/usehivy/hivy/internal/middleware"
+	"github.com/usehivy/hivy/internal/model"
+	"github.com/usehivy/hivy/internal/nango"
 )
 
 // MCPHandler handles MCP protocol requests for scoped proxy tokens.

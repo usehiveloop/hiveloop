@@ -12,10 +12,10 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 
-	"github.com/usehiveloop/hiveloop/e2e/fakebridge"
-	"github.com/usehiveloop/hiveloop/internal/handler"
-	"github.com/usehiveloop/hiveloop/internal/model"
-	"github.com/usehiveloop/hiveloop/internal/streaming"
+	"github.com/usehivy/hivy/e2e/fakebridge"
+	"github.com/usehivy/hivy/internal/handler"
+	"github.com/usehivy/hivy/internal/model"
+	"github.com/usehivy/hivy/internal/streaming"
 )
 
 // TestWebhookSequence_NoGaps fires 30 strictly-increasing events through

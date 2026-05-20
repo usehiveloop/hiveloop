@@ -11,10 +11,10 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
-	"github.com/usehiveloop/hiveloop/internal/enqueue"
-	"github.com/usehiveloop/hiveloop/internal/middleware"
-	"github.com/usehiveloop/hiveloop/internal/model"
-	"github.com/usehiveloop/hiveloop/internal/sandbox"
+	"github.com/usehivy/hivy/internal/enqueue"
+	"github.com/usehivy/hivy/internal/middleware"
+	"github.com/usehivy/hivy/internal/model"
+	"github.com/usehivy/hivy/internal/sandbox"
 )
 
 func commandsToString(cmds []string) string {
@@ -168,7 +168,7 @@ func (h *SandboxTemplateHandler) Create(w http.ResponseWriter, r *http.Request) 
 		tmpl.Config = model.JSON{}
 	}
 
-	tmpl.Slug = fmt.Sprintf("hiveloop-tmpl-%s", uuid.New().String()[:8])
+	tmpl.Slug = fmt.Sprintf("hivy-tmpl-%s", uuid.New().String()[:8])
 
 	if err := h.db.Create(&tmpl).Error; err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to create sandbox template"})

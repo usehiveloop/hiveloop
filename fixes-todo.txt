@@ -1,4 +1,4 @@
-Hiveloop Security / Reliability Fixes TODO
+Hivy Security / Reliability Fixes TODO
 
 P0
 
@@ -148,7 +148,7 @@ Current Architecture Scan TODOs
 Context
 -------
 - Scan date: 2026-05-13.
-- Scope: /Users/bahdcoder/code/hiveloop.com and /Users/bahdcoder/code/employee.hiveloop.com.
+- Scope: /Users/bahdcoder/code/usehivy.com and /Users/bahdcoder/code/employee.usehivy.com.
 
 
 P0

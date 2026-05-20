@@ -9,7 +9,7 @@ const (
 	EmployeeEnvRuntimeSecret              = "RUNTIME_SECRET"
 	EmployeeEnvSlackBotToken              = "SLACK_BOT_TOKEN"
 	EmployeeEnvSlackAppToken              = "SLACK_APP_TOKEN"
-	EmployeeEnvProxyAPIKey                = "HIVELOOP_PROXY_API_KEY"
+	EmployeeEnvProxyAPIKey                = "HIVY_PROXY_API_KEY"
 	EmployeeEnvAgentModel                 = "AGENT_MODEL"
 	EmployeeEnvAgentBaseURL               = "AGENT_BASE_URL"
 	EmployeeEnvAgentAPIKeyEnv             = "AGENT_API_KEY_ENV"
@@ -23,14 +23,14 @@ const (
 	EmployeeEnvWorkspaceRoot              = "WORKSPACE_ROOT"
 	EmployeeEnvDBPath                     = "DB_PATH"
 	EmployeeEnvRuntimeBindAddr            = "RUNTIME_BIND_ADDR"
-	EmployeeEnvSandboxID                  = "HIVELOOP_SANDBOX_ID"
-	EmployeeEnvOrgID                      = "HIVELOOP_ORG_ID"
-	EmployeeEnvHiveloopEmployeeID         = "HIVELOOP_EMPLOYEE_ID"
-	EmployeeEnvGitUsername                = "HIVELOOP_GIT_USERNAME"
-	EmployeeEnvGitEmail                   = "HIVELOOP_GIT_EMAIL"
-	EmployeeEnvGitCredentialsURL          = "HIVELOOP_GIT_CREDENTIALS_URL"
+	EmployeeEnvSandboxID                  = "HIVY_SANDBOX_ID"
+	EmployeeEnvOrgID                      = "HIVY_ORG_ID"
+	EmployeeEnvHivyEmployeeID             = "HIVY_EMPLOYEE_ID"
+	EmployeeEnvGitUsername                = "HIVY_GIT_USERNAME"
+	EmployeeEnvGitEmail                   = "HIVY_GIT_EMAIL"
+	EmployeeEnvGitCredentialsURL          = "HIVY_GIT_CREDENTIALS_URL"
 	EmployeeEnvGitHubNoKeyring            = "GH_NO_KEYRING"
-	EmployeeEnvDriveUploadURL             = "HIVELOOP_DRIVE_UPLOAD_URL"
+	EmployeeEnvDriveUploadURL             = "HIVY_DRIVE_UPLOAD_URL"
 	EmployeeEnvBugsinkURL                 = "BUGSINK_URL"
 	EmployeeEnvBugsinkDashboardBaseURL    = "BUGSINK_DASHBOARD_BASE_URL"
 	EmployeeEnvBugsinkToken               = "BUGSINK_TOKEN"
@@ -106,7 +106,7 @@ var employeeEnvCatalog = []EmployeeEnvSpec{
 	{Key: EmployeeEnvRuntimeBindAddr, Source: EmployeeEnvSourceControlPlaneInjected},
 	{Key: EmployeeEnvSandboxID, Source: EmployeeEnvSourceControlPlaneInjected},
 	{Key: EmployeeEnvOrgID, Source: EmployeeEnvSourceControlPlaneInjected},
-	{Key: EmployeeEnvHiveloopEmployeeID, Source: EmployeeEnvSourceControlPlaneInjected},
+	{Key: EmployeeEnvHivyEmployeeID, Source: EmployeeEnvSourceControlPlaneInjected},
 	{Key: EmployeeEnvGitUsername, Source: EmployeeEnvSourceControlPlaneInjected},
 	{Key: EmployeeEnvGitEmail, Source: EmployeeEnvSourceControlPlaneInjected},
 	{Key: EmployeeEnvGitCredentialsURL, Source: EmployeeEnvSourceControlPlaneInjected},

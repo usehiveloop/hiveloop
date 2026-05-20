@@ -15,16 +15,16 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 
-	"github.com/usehiveloop/hiveloop/internal/auth"
-	"github.com/usehiveloop/hiveloop/internal/billing"
-	"github.com/usehiveloop/hiveloop/internal/email"
-	"github.com/usehiveloop/hiveloop/internal/handler"
-	"github.com/usehiveloop/hiveloop/internal/middleware"
+	"github.com/usehivy/hivy/internal/auth"
+	"github.com/usehivy/hivy/internal/billing"
+	"github.com/usehivy/hivy/internal/email"
+	"github.com/usehivy/hivy/internal/handler"
+	"github.com/usehivy/hivy/internal/middleware"
 )
 
 const (
-	orgTestIssuer   = "hiveloop-e2e-org-test"
-	orgTestAudience = "hiveloop-e2e"
+	orgTestIssuer   = "hivy-e2e-org-test"
+	orgTestAudience = "hivy-e2e"
 )
 
 type orgHarness struct {

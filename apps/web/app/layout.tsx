@@ -27,8 +27,8 @@ const sora = Sora({
 
 export const metadata: Metadata = {
   title: {
-    default: "Hiveloop",
-    template: "%s — Hiveloop",
+    default: "Hivy",
+    template: "%s — Hivy",
   },
   description: "Hire AI employees for your team. Autonomous agents that learn, understand your organization, and take initiative.",
   icons: {

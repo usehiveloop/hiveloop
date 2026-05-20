@@ -14,7 +14,7 @@ import (
 	daytonaerrors "github.com/daytonaio/daytona/libs/sdk-go/pkg/errors"
 	sdktypes "github.com/daytonaio/daytona/libs/sdk-go/pkg/types"
 
-	"github.com/usehiveloop/hiveloop/internal/sandbox"
+	"github.com/usehivy/hivy/internal/sandbox"
 )
 
 const signedURLTTLSeconds = 3600

@@ -229,8 +229,8 @@
 - [ ] Document Ansible execution checklist items (ansible/plan.md)
 
 ## Coverage
-- [ ] Scanned 110 listed paths total (/tmp/hiveloop-functionality/infra-docs-root.txt)
-- [ ] Inspected 109 text or empty files (/tmp/hiveloop-functionality/infra-docs-root.txt)
+- [ ] Scanned 110 listed paths total (/tmp/hivy-functionality/infra-docs-root.txt)
+- [ ] Inspected 109 text or empty files (/tmp/hivy-functionality/infra-docs-root.txt)
 - [ ] Metadata-only inspection for binary executable (fake-nango)
-- [ ] No listed paths were missing (/tmp/hiveloop-functionality/infra-docs-root.txt)
+- [ ] No listed paths were missing (/tmp/hivy-functionality/infra-docs-root.txt)
 - [ ] Empty file had no inspectable content (spider.txt)

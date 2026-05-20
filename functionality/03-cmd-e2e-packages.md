@@ -112,7 +112,7 @@
 - [ ] Lock npm SDK dependency graph (packages/sdk/package-lock.json)
 - [ ] Configure SDK package exports tooling (packages/sdk/package.json)
 - [ ] Lock pnpm SDK dependency graph (packages/sdk/pnpm-lock.yaml)
-- [ ] Construct HiveLoop SDK resource client (packages/sdk/src/client.ts)
+- [ ] Construct Hivy SDK resource client (packages/sdk/src/client.ts)
 - [ ] Type generated OpenAPI contract paths schemas (packages/sdk/src/generated/schema.d.ts)
 - [ ] Export SDK client and public types (packages/sdk/src/index.ts)
 - [ ] Wrap agents CRUD and setup APIs (packages/sdk/src/resources/agents.ts)
@@ -165,5 +165,5 @@
 - [ ] Configure browser SDK Vitest jsdom (packages/frontend/vitest.config.ts)
 
 ## Coverage
-- [ ] Scanned all one hundred fifty-eight listed files (/tmp/hiveloop-functionality/cmd-e2e-packages.txt)
-- [ ] No listed files were unavailable during inspection (/tmp/hiveloop-functionality/cmd-e2e-packages.txt)
+- [ ] Scanned all one hundred fifty-eight listed files (/tmp/hivy-functionality/cmd-e2e-packages.txt)
+- [ ] No listed files were unavailable during inspection (/tmp/hivy-functionality/cmd-e2e-packages.txt)

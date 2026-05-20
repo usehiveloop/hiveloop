@@ -16,14 +16,14 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
-	"github.com/usehiveloop/hiveloop/internal/auth"
-	"github.com/usehiveloop/hiveloop/internal/middleware"
-	"github.com/usehiveloop/hiveloop/internal/model"
-	"github.com/usehiveloop/hiveloop/internal/token"
+	"github.com/usehivy/hivy/internal/auth"
+	"github.com/usehivy/hivy/internal/middleware"
+	"github.com/usehivy/hivy/internal/model"
+	"github.com/usehivy/hivy/internal/token"
 )
 
 const (
-	testDBURL      = "postgres://hiveloop:localdev@localhost:5433/hiveloop_test?sslmode=disable" // #nosec G101 -- local test DB fixture
+	testDBURL      = "postgres://hivy:localdev@localhost:5433/hivy_test?sslmode=disable" // #nosec G101 -- local test DB fixture
 	testSigningKey = "local-dev-signing-key-change-in-prod"
 )
 
@@ -88,7 +88,7 @@ func newAuthHelper(t *testing.T) *authTestHelper {
 	}
 }
 
-// createTestOrg creates an HiveLoop Org in Postgres and mints a JWT for it.
+// createTestOrg creates an Hivy Org in Postgres and mints a JWT for it.
 func (ah *authTestHelper) createTestOrg(t *testing.T, db *gorm.DB, name, role string) (model.Org, string) {
 	t.Helper()
 

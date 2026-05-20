@@ -10,10 +10,10 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
-	"github.com/usehiveloop/hiveloop/internal/billing"
-	"github.com/usehiveloop/hiveloop/internal/logging"
-	"github.com/usehiveloop/hiveloop/internal/rag/connectors/interfaces"
-	ragmodel "github.com/usehiveloop/hiveloop/internal/rag/model"
+	"github.com/usehivy/hivy/internal/billing"
+	"github.com/usehivy/hivy/internal/logging"
+	"github.com/usehivy/hivy/internal/rag/connectors/interfaces"
+	ragmodel "github.com/usehivy/hivy/internal/rag/model"
 )
 
 var errIngestAttemptAlreadyClaimed = errors.New("ingest attempt already claimed")

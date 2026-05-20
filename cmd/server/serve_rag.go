@@ -5,14 +5,14 @@ import (
 
 	"gorm.io/gorm"
 
-	"github.com/usehiveloop/hiveloop/internal/billing"
-	"github.com/usehiveloop/hiveloop/internal/config"
-	"github.com/usehiveloop/hiveloop/internal/enqueue"
-	"github.com/usehiveloop/hiveloop/internal/handler"
-	ragtools "github.com/usehiveloop/hiveloop/internal/rag"
-	"github.com/usehiveloop/hiveloop/internal/rag/embedclient"
-	"github.com/usehiveloop/hiveloop/internal/rag/qdrant"
-	ragscheduler "github.com/usehiveloop/hiveloop/internal/rag/scheduler"
+	"github.com/usehivy/hivy/internal/billing"
+	"github.com/usehivy/hivy/internal/config"
+	"github.com/usehivy/hivy/internal/enqueue"
+	"github.com/usehivy/hivy/internal/handler"
+	ragtools "github.com/usehivy/hivy/internal/rag"
+	"github.com/usehivy/hivy/internal/rag/embedclient"
+	"github.com/usehivy/hivy/internal/rag/qdrant"
+	ragscheduler "github.com/usehivy/hivy/internal/rag/scheduler"
 )
 
 func setupRAGRuntime(

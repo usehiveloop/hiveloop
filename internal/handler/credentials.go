@@ -9,14 +9,14 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
-	"github.com/usehiveloop/hiveloop/internal/cache"
-	"github.com/usehiveloop/hiveloop/internal/counter"
-	"github.com/usehiveloop/hiveloop/internal/crypto"
-	"github.com/usehiveloop/hiveloop/internal/logging"
-	"github.com/usehiveloop/hiveloop/internal/middleware"
-	"github.com/usehiveloop/hiveloop/internal/model"
-	"github.com/usehiveloop/hiveloop/internal/proxy"
-	"github.com/usehiveloop/hiveloop/internal/registry"
+	"github.com/usehivy/hivy/internal/cache"
+	"github.com/usehivy/hivy/internal/counter"
+	"github.com/usehivy/hivy/internal/crypto"
+	"github.com/usehivy/hivy/internal/logging"
+	"github.com/usehivy/hivy/internal/middleware"
+	"github.com/usehivy/hivy/internal/model"
+	"github.com/usehivy/hivy/internal/proxy"
+	"github.com/usehivy/hivy/internal/registry"
 )
 
 type CredentialHandler struct {

@@ -49,7 +49,7 @@ type convTap struct {
 	done      chan struct{}
 
 	mu          sync.Mutex
-	cursor      string                      // last entry ID the tap has read (advances monotonically)
+	cursor      string // last entry ID the tap has read (advances monotonically)
 	subscribers map[*subscriber]struct{}
 }
 

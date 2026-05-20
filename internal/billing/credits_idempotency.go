@@ -6,7 +6,7 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
-	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehivy/hivy/internal/model"
 )
 
 func ledgerEntryExists(tx *gorm.DB, orgID uuid.UUID, reason, refType, refID string) (bool, error) {

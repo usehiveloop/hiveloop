@@ -14,9 +14,9 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
-	"github.com/usehiveloop/hiveloop/internal/billing"
-	"github.com/usehiveloop/hiveloop/internal/handler"
-	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehivy/hivy/internal/billing"
+	"github.com/usehivy/hivy/internal/handler"
+	"github.com/usehivy/hivy/internal/model"
 )
 
 // ---------------------------------------------------------------------------
@@ -42,7 +42,7 @@ func newOAuthHarness(t *testing.T) *oauthTestHarness {
 
 	h := handler.NewOAuthHandler(
 		db, pk, signingKey,
-		"hiveloop-test", "http://localhost:8080",
+		"hivy-test", "http://localhost:8080",
 		15*time.Minute, 720*time.Hour,
 		"http://localhost:3000",
 		"", "", // no GitHub creds
@@ -80,7 +80,7 @@ func newOAuthHarnessWithProviders(t *testing.T) *oauthTestHarness {
 
 	h := handler.NewOAuthHandler(
 		db, pk, signingKey,
-		"hiveloop-test", "http://localhost:8080",
+		"hivy-test", "http://localhost:8080",
 		15*time.Minute, 720*time.Hour,
 		"http://localhost:3000",
 		"gh-client-id", "gh-client-secret",

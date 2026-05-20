@@ -243,7 +243,7 @@
 - [ ] Fetch manifest references locally or remotely (global-skills/upload/load.go)
 - [ ] Retry remote reference downloads workflow (global-skills/upload/load.go)
 - [ ] Build normalized inline skill bundles (global-skills/upload/load.go)
-- [ ] Require Hiveloop skills API key (global-skills/upload/main.go)
+- [ ] Require Hivy skills API key (global-skills/upload/main.go)
 - [ ] Resolve global-skills directory location workflow (global-skills/upload/main.go)
 - [ ] Load skills before API upserts (global-skills/upload/main.go)
 - [ ] Upsert skills concurrently with semaphore (global-skills/upload/main.go)
@@ -908,5 +908,5 @@
 
 ## Coverage
 
-- [ ] Files scanned total equals fifty-four (/tmp/hiveloop-functionality/skills-guides.txt)
-- [ ] Files unable to inspect: none (/tmp/hiveloop-functionality/skills-guides.txt)
+- [ ] Files scanned total equals fifty-four (/tmp/hivy-functionality/skills-guides.txt)
+- [ ] Files unable to inspect: none (/tmp/hivy-functionality/skills-guides.txt)

@@ -9,9 +9,9 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/usehiveloop/hiveloop/internal/mcp/catalog"
-	"github.com/usehiveloop/hiveloop/internal/nango"
-	"github.com/usehiveloop/hiveloop/internal/trigger/hiveloop"
+	"github.com/usehivy/hivy/internal/mcp/catalog"
+	"github.com/usehivy/hivy/internal/nango"
+	"github.com/usehivy/hivy/internal/trigger/hivy"
 )
 
 // EnrichmentAgent gathers context for webhook-triggered specialist employees.
@@ -31,7 +31,7 @@ type EnrichmentInput struct {
 	EventAction string
 	OrgID       uuid.UUID
 	Refs        map[string]string
-	Connections []hiveloop.ConnectionWithActions
+	Connections []hivy.ConnectionWithActions
 }
 
 // EnrichmentResult is the output of the enrichment agent.
@@ -54,10 +54,10 @@ func NewEnrichmentAgent(nangoClient *nango.Client, actionsCatalog *catalog.Catal
 // group are passed per-call because they are resolved from the org's
 // credentials at runtime. The provider group ("anthropic", "openai", "gemini",
 // etc.) selects the provider-optimized system prompt.
-func (agent *EnrichmentAgent) Enrich(ctx context.Context, client hiveloop.CompletionClient, modelID string, providerGroup string, input EnrichmentInput, logger *slog.Logger) (*EnrichmentResult, error) {
+func (agent *EnrichmentAgent) Enrich(ctx context.Context, client hivy.CompletionClient, modelID string, providerGroup string, input EnrichmentInput, logger *slog.Logger) (*EnrichmentResult, error) {
 	started := time.Now()
 
-	connMap := make(map[string]hiveloop.ConnectionWithActions, len(input.Connections))
+	connMap := make(map[string]hivy.ConnectionWithActions, len(input.Connections))
 	for _, conn := range input.Connections {
 		connMap[conn.Connection.ID.String()] = conn
 	}
@@ -66,7 +66,7 @@ func (agent *EnrichmentAgent) Enrich(ctx context.Context, client hiveloop.Comple
 	var fetchResults []fetchResultEntry
 	fetchCount := 0
 
-	handlers := map[string]hiveloop.ToolHandler{
+	handlers := map[string]hivy.ToolHandler{
 		"fetch":   agent.newFetchHandler(ctx, input.OrgID, connMap, &fetchResults, &fetchCount, logger),
 		"compose": newComposeHandler(&composedMessage, logger),
 	}
@@ -76,13 +76,13 @@ func (agent *EnrichmentAgent) Enrich(ctx context.Context, client hiveloop.Comple
 	systemPrompt := getEnrichmentPrompt(providerGroup)
 	userMessage := buildUserMessage(input)
 
-	messages := []hiveloop.Message{
+	messages := []hivy.Message{
 		{Role: "system", Content: systemPrompt},
 		{Role: "user", Content: userMessage},
 	}
 
 	for turn := 0; turn < agent.maxTurns; turn++ {
-		resp, err := client.ChatCompletion(ctx, hiveloop.CompletionRequest{
+		resp, err := client.ChatCompletion(ctx, hivy.CompletionRequest{
 			Model:      modelID,
 			Messages:   messages,
 			Tools:      tools,
@@ -110,7 +110,7 @@ func (agent *EnrichmentAgent) Enrich(ctx context.Context, client hiveloop.Comple
 				logger.WarnContext(ctx, "enrichment unknown tool called",
 					"tool", toolCall.Name,
 				)
-				messages = append(messages, hiveloop.Message{
+				messages = append(messages, hivy.Message{
 					Role:       "tool",
 					ToolCallID: toolCall.ID,
 					Name:       toolCall.Name,
@@ -122,7 +122,7 @@ func (agent *EnrichmentAgent) Enrich(ctx context.Context, client hiveloop.Comple
 			result, done, handlerErr := handler(ctx, toolCall.ID, json.RawMessage(toolCall.Arguments))
 
 			if handlerErr != nil {
-				messages = append(messages, hiveloop.Message{
+				messages = append(messages, hivy.Message{
 					Role:       "tool",
 					ToolCallID: toolCall.ID,
 					Name:       toolCall.Name,
@@ -131,7 +131,7 @@ func (agent *EnrichmentAgent) Enrich(ctx context.Context, client hiveloop.Comple
 				continue
 			}
 
-			messages = append(messages, hiveloop.Message{
+			messages = append(messages, hivy.Message{
 				Role:       "tool",
 				ToolCallID: toolCall.ID,
 				Name:       toolCall.Name,

@@ -8,7 +8,7 @@ import (
 
 	chimw "github.com/go-chi/chi/v5/middleware"
 
-	"github.com/usehiveloop/hiveloop/internal/logging"
+	"github.com/usehivy/hivy/internal/logging"
 )
 
 // RequestLog returns middleware that writes a single canonical structured

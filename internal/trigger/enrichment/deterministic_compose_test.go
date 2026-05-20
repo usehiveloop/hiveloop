@@ -10,7 +10,7 @@ func TestComposeEnrichedMessage_AllSuccessful(t *testing.T) {
 		Provider:  "railway",
 		EventType: "Deployment.failed",
 		Refs: map[string]string{
-			"service_name": "web.hiveloop.com",
+			"service_name": "web.usehivy.com",
 			"branch":       "main",
 		},
 	}
@@ -23,7 +23,7 @@ func TestComposeEnrichedMessage_AllSuccessful(t *testing.T) {
 
 	assertContains(t, msg, "## Deployment.failed", "event header")
 	assertContains(t, msg, "service_name", "refs key")
-	assertContains(t, msg, "web.hiveloop.com", "refs value")
+	assertContains(t, msg, "web.usehivy.com", "refs value")
 	assertContains(t, msg, "### build_logs", "build_logs section")
 	assertContains(t, msg, "### service_details", "service_details section")
 	assertContains(t, msg, "```json", "JSON code block")

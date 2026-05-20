@@ -16,29 +16,29 @@ import (
 //
 // DEVIATION vs Onyx:
 //   - We exclude the `document_set` and `user_group` SyncType values
-//     because Hiveloop has no DocumentSet and no UserGroup concept.
+//     because Hivy has no DocumentSet and no UserGroup concept.
 //     See SyncType in enums_index_attempt.go.
-//   - OrgID column added; Onyx uses schema-per-tenant, Hiveloop uses
+//   - OrgID column added; Onyx uses schema-per-tenant, Hivy uses
 //     row-level tenancy.
-//   - PK is a uuid, not an autoincrement int (Hiveloop convention).
+//   - PK is a uuid, not an autoincrement int (Hivy convention).
 type RAGSyncRecord struct {
 	// ID — Onyx models.py:2450.
 	ID uuid.UUID `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
 
-	// OrgID — Hiveloop addition. Every sync runs inside a single org;
+	// OrgID — Hivy addition. Every sync runs inside a single org;
 	// the scheduler fans out per-org.
 	OrgID uuid.UUID `gorm:"type:uuid;not null;index;constraint:OnDelete:CASCADE"`
 
 	// EntityID — the subject of the sync. Onyx models.py:2452 stored
 	// an int (document_set_id / user_group_id / …); we store a uuid
-	// because every Hiveloop entity is uuid-keyed. Interpretation is
+	// because every Hivy entity is uuid-keyed. Interpretation is
 	// driven by SyncType: for `connector_deletion` / `pruning` /
 	// `external_permissions` / `external_group` the EntityID refers to
 	// an InConnection.
 	EntityID uuid.UUID `gorm:"type:uuid;not null"`
 
 	// SyncType — Onyx models.py:2454. See SyncType in
-	// enums_index_attempt.go for the Hiveloop subset.
+	// enums_index_attempt.go for the Hivy subset.
 	SyncType SyncType `gorm:"type:text;not null"`
 
 	// SyncStatus — Onyx models.py:2455.

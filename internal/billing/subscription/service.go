@@ -9,8 +9,8 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
-	"github.com/usehiveloop/hiveloop/internal/billing"
-	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehivy/hivy/internal/billing"
+	"github.com/usehivy/hivy/internal/model"
 )
 
 // 15 min: covers popup → verify roundtrip, short enough that pricing changes propagate.
@@ -50,8 +50,8 @@ func NewService(db *gorm.DB, registry *billing.Registry, credits *billing.Credit
 	}
 }
 
-func (s *Service) SetClock(fn func() time.Time)    { s.clock = fn }
-func (s *Service) SetQuoteTTL(d time.Duration)     { s.quoteTTL = d }
+func (s *Service) SetClock(fn func() time.Time) { s.clock = fn }
+func (s *Service) SetQuoteTTL(d time.Duration)  { s.quoteTTL = d }
 
 func (s *Service) PreviewChange(ctx context.Context, orgID uuid.UUID, targetSlug string) (*model.SubscriptionChangeQuote, *ChangePreview, error) {
 	now := s.clock()

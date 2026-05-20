@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/usehiveloop/hiveloop/internal/rag/connectors/interfaces"
+	"github.com/usehivy/hivy/internal/rag/connectors/interfaces"
 )
 
 // RunnableCheckpointed is the non-generic adapter the ingest handler

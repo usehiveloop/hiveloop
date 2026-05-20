@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/usehiveloop/hiveloop/internal/middleware"
+	"github.com/usehivy/hivy/internal/middleware"
 )
 
 func TestE2E_Credential_Pagination(t *testing.T) {

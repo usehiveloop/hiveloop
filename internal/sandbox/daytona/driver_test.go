@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/usehiveloop/hiveloop/internal/sandbox"
+	"github.com/usehivy/hivy/internal/sandbox"
 )
 
 // TestDriverImplementsProvider verifies at compile time that Driver satisfies sandbox.Provider.
@@ -17,9 +17,9 @@ func TestSnapshotParamsFromCreateOpts_PassesEnvVarsUnchanged(t *testing.T) {
 		Name:       "employee-test",
 		SnapshotID: "employee-snapshot",
 		EnvVars: map[string]string{
-			"RUNTIME_SECRET":         "secret",
-			"HIVELOOP_PROXY_API_KEY": "ptok_test",
-			"AGENT_API_KEY_ENV":      "HIVELOOP_PROXY_API_KEY",
+			"RUNTIME_SECRET":     "secret",
+			"HIVY_PROXY_API_KEY": "ptok_test",
+			"AGENT_API_KEY_ENV":  "HIVY_PROXY_API_KEY",
 		},
 		Labels: map[string]string{"harness": "employee-sandbox"},
 	}

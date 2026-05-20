@@ -9,8 +9,8 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/usehiveloop/hiveloop/internal/mcpserver"
-	"github.com/usehiveloop/hiveloop/internal/trigger/hiveloop"
+	"github.com/usehivy/hivy/internal/mcpserver"
+	"github.com/usehivy/hivy/internal/trigger/hivy"
 )
 
 type fetchResultEntry struct {
@@ -21,11 +21,11 @@ type fetchResultEntry struct {
 func (agent *EnrichmentAgent) newFetchHandler(
 	ctx context.Context,
 	orgID uuid.UUID,
-	connMap map[string]hiveloop.ConnectionWithActions,
+	connMap map[string]hivy.ConnectionWithActions,
 	fetchResults *[]fetchResultEntry,
 	fetchCount *int,
 	_ *slog.Logger,
-) hiveloop.ToolHandler {
+) hivy.ToolHandler {
 	return func(_ context.Context, _ string, raw json.RawMessage) (string, bool, error) {
 		var args struct {
 			ConnectionID string         `json:"connection_id"`

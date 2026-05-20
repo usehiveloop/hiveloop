@@ -9,12 +9,12 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
-	"github.com/usehiveloop/hiveloop/internal/billing"
-	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehivy/hivy/internal/billing"
+	"github.com/usehivy/hivy/internal/model"
 )
 
 //nolint:gosec // G101: local-dev DSN, mirrors other integration tests
-const testDBURL = "postgres://hiveloop:localdev@localhost:5433/hiveloop_test?sslmode=disable"
+const testDBURL = "postgres://hivy:localdev@localhost:5433/hivy_test?sslmode=disable"
 
 func connectCreditsTestDB(t *testing.T) *gorm.DB {
 	t.Helper()

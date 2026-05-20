@@ -3,7 +3,7 @@ set -euo pipefail
 
 manifest="${1:?usage: update-railway-runtime-config.sh <release-manifest.json>}"
 environment="${RAILWAY_ENVIRONMENT:-production}"
-services="${RAILWAY_SERVICES:-api.usehiveloop.com asynq.usehiveloop.com admin.api.usehiveloop.com}"
+services="${RAILWAY_SERVICES:-api.usehivy.com asynq.usehivy.com admin.api.usehivy.com}"
 wait_seconds="${RAILWAY_DEPLOY_WAIT_SECONDS:-900}"
 poll_seconds="${RAILWAY_DEPLOY_POLL_SECONDS:-10}"
 

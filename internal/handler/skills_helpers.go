@@ -10,8 +10,8 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
-	"github.com/usehiveloop/hiveloop/internal/model"
-	"github.com/usehiveloop/hiveloop/internal/skills"
+	"github.com/usehivy/hivy/internal/model"
+	"github.com/usehivy/hivy/internal/skills"
 )
 
 func toSkillResponse(s model.Skill, latestVersion *model.SkillVersion) skillResponse {

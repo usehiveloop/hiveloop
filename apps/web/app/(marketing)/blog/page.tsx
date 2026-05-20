@@ -23,17 +23,17 @@ function formatDate(iso: string): string {
 }
 
 export const metadata: Metadata = {
-  title: "Blog — HiveLoop",
+  title: "Blog — Hivy",
   description:
-    "Engineering deep dives, product updates, and tutorials from the HiveLoop team.",
+    "Engineering deep dives, product updates, and tutorials from the Hivy team.",
   alternates: { canonical: "/blog" },
   openGraph: {
-    title: "Blog — HiveLoop",
+    title: "Blog — Hivy",
     description:
-      "Engineering deep dives, product updates, and tutorials from the HiveLoop team.",
+      "Engineering deep dives, product updates, and tutorials from the Hivy team.",
     url: "/blog",
     type: "website",
-    siteName: "HiveLoop",
+    siteName: "Hivy",
   },
 }
 

@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/usehiveloop/hiveloop/internal/mcp/catalog"
-	"github.com/usehiveloop/hiveloop/internal/nango"
+	"github.com/usehivy/hivy/internal/mcp/catalog"
+	"github.com/usehivy/hivy/internal/nango"
 )
 
 // ExecuteAction runs a catalog action against a provider via Nango proxy.

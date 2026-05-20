@@ -8,8 +8,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/usehiveloop/hiveloop/internal/logging"
-	"github.com/usehiveloop/hiveloop/internal/rag/connectors/interfaces"
+	"github.com/usehivy/hivy/internal/logging"
+	"github.com/usehivy/hivy/internal/rag/connectors/interfaces"
 )
 
 // pollOverlap absorbs clock skew + GitHub indexing latency between

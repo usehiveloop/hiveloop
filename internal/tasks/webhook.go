@@ -14,8 +14,8 @@ import (
 
 	"github.com/hibiken/asynq"
 
-	"github.com/usehiveloop/hiveloop/internal/crypto"
-	"github.com/usehiveloop/hiveloop/internal/logging"
+	"github.com/usehivy/hivy/internal/crypto"
+	"github.com/usehivy/hivy/internal/logging"
 )
 
 // WebhookForwardHandler delivers enriched webhook payloads to org endpoints.
@@ -56,8 +56,8 @@ func (h *WebhookForwardHandler) Handle(ctx context.Context, t *asynq.Task) error
 		return fmt.Errorf("create forward request: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("X-HiveLoop-Signature", signature)
-	req.Header.Set("X-HiveLoop-Timestamp", fmt.Sprintf("%d", timestamp))
+	req.Header.Set("X-Hivy-Signature", signature)
+	req.Header.Set("X-Hivy-Timestamp", fmt.Sprintf("%d", timestamp))
 
 	resp, err := h.httpClient.Do(req)
 	if err != nil {

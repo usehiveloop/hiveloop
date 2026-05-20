@@ -13,11 +13,11 @@ import (
 	"github.com/hibiken/asynq"
 	"gorm.io/gorm"
 
-	"github.com/usehiveloop/hiveloop/internal/config"
-	"github.com/usehiveloop/hiveloop/internal/employeeruntime"
-	"github.com/usehiveloop/hiveloop/internal/enqueue"
-	"github.com/usehiveloop/hiveloop/internal/model"
-	"github.com/usehiveloop/hiveloop/internal/sandbox"
+	"github.com/usehivy/hivy/internal/config"
+	"github.com/usehivy/hivy/internal/employeeruntime"
+	"github.com/usehivy/hivy/internal/enqueue"
+	"github.com/usehivy/hivy/internal/model"
+	"github.com/usehivy/hivy/internal/sandbox"
 )
 
 type proxyRefreshRuntime struct {
@@ -135,7 +135,7 @@ func newEmployeeProxyTokenRefreshFixture(t *testing.T, envStatus int) *employeeP
 	t.Helper()
 	db := openTasksMemoryTestDB(t)
 	encKey := testTasksEncKey(t)
-	cfg := &config.Config{ProxyHost: "proxy.hiveloop.test"}
+	cfg := &config.Config{ProxyHost: "proxy.hivy.test"}
 	runtime := &proxyRefreshRuntime{envStatus: envStatus}
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {

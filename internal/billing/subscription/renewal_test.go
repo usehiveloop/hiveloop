@@ -6,24 +6,24 @@ import (
 
 	"github.com/google/uuid"
 
-	sub "github.com/usehiveloop/hiveloop/internal/billing/subscription"
+	sub "github.com/usehivy/hivy/internal/billing/subscription"
 )
 
 var (
-	rNow      = time.Date(2026, 5, 1, 12, 0, 0, 0, time.UTC)
-	rDueEnd   = rNow.Add(-time.Minute) // period ended a minute ago
+	rNow       = time.Date(2026, 5, 1, 12, 0, 0, 0, time.UTC)
+	rDueEnd    = rNow.Add(-time.Minute) // period ended a minute ago
 	rFutureEnd = rNow.Add(24 * time.Hour)
 
 	planFree = sub.PlanView{
-		ID: uuid.MustParse("11111111-1111-1111-1111-111111111111"),
+		ID:   uuid.MustParse("11111111-1111-1111-1111-111111111111"),
 		Slug: "free", PriceMinor: 0, Currency: "NGN", MonthlyCredits: 100,
 	}
 	planPro = sub.PlanView{
-		ID: uuid.MustParse("33333333-3333-3333-3333-333333333333"),
+		ID:   uuid.MustParse("33333333-3333-3333-3333-333333333333"),
 		Slug: "pro", PriceMinor: 2_000_000, Currency: "NGN", MonthlyCredits: 5_000,
 	}
 	planStarter = sub.PlanView{
-		ID: uuid.MustParse("22222222-2222-2222-2222-222222222222"),
+		ID:   uuid.MustParse("22222222-2222-2222-2222-222222222222"),
 		Slug: "starter", PriceMinor: 500_000, Currency: "NGN", MonthlyCredits: 1_000,
 	}
 )

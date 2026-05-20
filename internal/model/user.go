@@ -7,8 +7,8 @@ import (
 )
 
 type User struct {
-	ID               uuid.UUID  `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
-	Email            string     `gorm:"not null;uniqueIndex"`
+	ID               uuid.UUID `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
+	Email            string    `gorm:"not null;uniqueIndex"`
 	PasswordHash     string
 	Name             string
 	EmailConfirmedAt *time.Time

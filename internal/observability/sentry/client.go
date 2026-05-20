@@ -10,7 +10,7 @@ import (
 
 	sentrygo "github.com/getsentry/sentry-go"
 
-	"github.com/usehiveloop/hiveloop/internal/config"
+	"github.com/usehivy/hivy/internal/config"
 )
 
 type ClientOptions struct {

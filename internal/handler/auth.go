@@ -9,9 +9,9 @@ import (
 
 	"gorm.io/gorm"
 
-	"github.com/usehiveloop/hiveloop/internal/billing"
-	"github.com/usehiveloop/hiveloop/internal/email"
-	"github.com/usehiveloop/hiveloop/internal/goroutine"
+	"github.com/usehivy/hivy/internal/billing"
+	"github.com/usehivy/hivy/internal/email"
+	"github.com/usehivy/hivy/internal/goroutine"
 )
 
 type loginAttempt struct {

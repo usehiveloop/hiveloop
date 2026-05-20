@@ -12,13 +12,13 @@ import (
 	"github.com/hibiken/asynq"
 	"gorm.io/gorm"
 
-	"github.com/usehiveloop/hiveloop/internal/billing"
-	"github.com/usehiveloop/hiveloop/internal/logging"
-	"github.com/usehiveloop/hiveloop/internal/middleware"
-	"github.com/usehiveloop/hiveloop/internal/model"
-	"github.com/usehiveloop/hiveloop/internal/rag/connectors/website"
-	ragmodel "github.com/usehiveloop/hiveloop/internal/rag/model"
-	ragtasks "github.com/usehiveloop/hiveloop/internal/rag/tasks"
+	"github.com/usehivy/hivy/internal/billing"
+	"github.com/usehivy/hivy/internal/logging"
+	"github.com/usehivy/hivy/internal/middleware"
+	"github.com/usehivy/hivy/internal/model"
+	"github.com/usehivy/hivy/internal/rag/connectors/website"
+	ragmodel "github.com/usehivy/hivy/internal/rag/model"
+	ragtasks "github.com/usehivy/hivy/internal/rag/tasks"
 )
 
 const defaultRefreshFreqSeconds = 600

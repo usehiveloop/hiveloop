@@ -10,14 +10,14 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/usehiveloop/hiveloop/internal/config"
-	"github.com/usehiveloop/hiveloop/internal/employeeruntime"
-	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehivy/hivy/internal/config"
+	"github.com/usehivy/hivy/internal/employeeruntime"
+	"github.com/usehivy/hivy/internal/model"
 )
 
 const (
 	// BridgePort overrides the bridge binary's 8080 default via
-	// BRIDGE_LISTEN_ADDR. Kept at the original hiveloop port (25434).
+	// BRIDGE_LISTEN_ADDR. Kept at the original hivy port (25434).
 	BridgePort = 25434
 
 	bridgeHealthTimeout    = 90 * time.Second
@@ -79,7 +79,7 @@ func setAgentEnvVars(envVars map[string]string, agent *model.Agent, cfg *config.
 	if agent == nil {
 		return
 	}
-	envVars[employeeruntime.EmployeeEnvHiveloopEmployeeID] = agent.ID.String()
+	envVars[employeeruntime.EmployeeEnvHivyEmployeeID] = agent.ID.String()
 	envVars[employeeruntime.EmployeeEnvGitCredentialsURL] = fmt.Sprintf("https://%s/internal/git-credentials/%s", cfg.BridgeHost, agent.ID)
 	envVars[employeeruntime.EmployeeEnvBugsinkURL] = fmt.Sprintf("https://%s/internal/bugsink-proxy/%s", cfg.BridgeHost, agent.ID)
 	envVars[employeeruntime.EmployeeEnvBugsinkToken] = envVars["BRIDGE_CONTROL_PLANE_API_KEY"]
@@ -87,31 +87,31 @@ func setAgentEnvVars(envVars map[string]string, agent *model.Agent, cfg *config.
 	envVars[employeeruntime.EmployeeEnvLinearToken] = envVars["BRIDGE_CONTROL_PLANE_API_KEY"]
 	envVars[employeeruntime.EmployeeEnvNotionAPIURL] = fmt.Sprintf("https://%s/internal/notion-proxy/%s", cfg.BridgeHost, agent.ID)
 	envVars[employeeruntime.EmployeeEnvNotionToken] = envVars["BRIDGE_CONTROL_PLANE_API_KEY"]
-	envVars["HIVELOOP_RAILWAY_API_URL"] = fmt.Sprintf("https://%s/internal/railway-proxy/%s", cfg.BridgeHost, agent.ID)
-	envVars["HIVELOOP_RAILWAY_API_KEY"] = envVars["BRIDGE_CONTROL_PLANE_API_KEY"]
-	envVars["HIVELOOP_VERCEL_API_KEY"] = envVars["BRIDGE_CONTROL_PLANE_API_KEY"]
+	envVars["HIVY_RAILWAY_API_URL"] = fmt.Sprintf("https://%s/internal/railway-proxy/%s", cfg.BridgeHost, agent.ID)
+	envVars["HIVY_RAILWAY_API_KEY"] = envVars["BRIDGE_CONTROL_PLANE_API_KEY"]
+	envVars["HIVY_VERCEL_API_KEY"] = envVars["BRIDGE_CONTROL_PLANE_API_KEY"]
 	envVars[employeeruntime.EmployeeEnvGitHubNoKeyring] = "1"
 }
 
 func setDriveEndpoint(envVars map[string]string, sandboxID uuid.UUID, cfg *config.Config) {
-	envVars["HIVELOOP_DRIVE_ENDPOINT"] = fmt.Sprintf("https://%s/internal/sandbox-drive/%s", cfg.BridgeHost, sandboxID)
+	envVars["HIVY_DRIVE_ENDPOINT"] = fmt.Sprintf("https://%s/internal/sandbox-drive/%s", cfg.BridgeHost, sandboxID)
 }
 
 // setAssetsUploadURL exposes the conversation-asset endpoint base. The
 // bridge appends the per-session conversation_id and the agent's chosen
 // "<folder>/<filename>" tail so the final PUT URL is:
 //
-//	$HIVELOOP_ASSETS_UPLOAD_URL/{conversationID}/assets/{folder}/{filename}
+//	$HIVY_ASSETS_UPLOAD_URL/{conversationID}/assets/{folder}/{filename}
 //
 // Auth uses the same bridge API key already exported as
 // BRIDGE_CONTROL_PLANE_API_KEY.
 func setAssetsUploadURL(envVars map[string]string, cfg *config.Config) {
-	envVars["HIVELOOP_ASSETS_UPLOAD_URL"] = fmt.Sprintf("https://%s/internal/conversations", cfg.BridgeHost)
-	envVars["HIVELOOP_EMPLOYEE_ASSETS_UPLOAD_URL"] = fmt.Sprintf("https://%s/internal/employees", cfg.BridgeHost)
+	envVars["HIVY_ASSETS_UPLOAD_URL"] = fmt.Sprintf("https://%s/internal/conversations", cfg.BridgeHost)
+	envVars["HIVY_EMPLOYEE_ASSETS_UPLOAD_URL"] = fmt.Sprintf("https://%s/internal/employees", cfg.BridgeHost)
 }
 
 func employeeDriveUploadURL(cfg *config.Config, employeeID uuid.UUID, folder string) string {
-	bridgeHost := "api.usehiveloop.com"
+	bridgeHost := "api.usehivy.com"
 	if cfg != nil && strings.TrimSpace(cfg.BridgeHost) != "" {
 		bridgeHost = strings.TrimRight(strings.TrimSpace(cfg.BridgeHost), "/")
 	}

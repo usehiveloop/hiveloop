@@ -91,7 +91,7 @@ func AllServices() []ServiceConfig {
 		},
 		{
 			Name:           "bugsink",
-			SpecSource:     "https://sentry.usehiveloop.com/api/canonical/0/schema/",
+			SpecSource:     "https://sentry.usehivy.com/api/canonical/0/schema/",
 			NangoProviders: []string{"bugsink"},
 		},
 		{

@@ -6,13 +6,13 @@ import (
 
 	"github.com/redis/go-redis/v9"
 
-	"github.com/usehiveloop/hiveloop/internal/logging"
+	"github.com/usehivy/hivy/internal/logging"
 )
 
 const (
-	CredentialChannel = "hiveloop:invalidate:credential"
-	TokenChannel      = "hiveloop:invalidate:token"
-	APIKeyChannel     = "hiveloop:invalidate:apikey"
+	CredentialChannel = "hivy:invalidate:credential"
+	TokenChannel      = "hivy:invalidate:token"
+	APIKeyChannel     = "hivy:invalidate:apikey"
 )
 
 // Invalidator handles cross-instance cache invalidation via Redis pub/sub.

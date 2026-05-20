@@ -11,5 +11,5 @@
 
 ## Coverage
 - [ ] Total tracked repository files audited (2422 tracked files)
-- [ ] Area workers scanned disjoint manifests completely (/tmp/hiveloop-functionality)
+- [ ] Area workers scanned disjoint manifests completely (/tmp/hivy-functionality)
 - [ ] Generated checklists reference every tracked file (functionality)

@@ -8,8 +8,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/usehiveloop/hiveloop/internal/sandbox"
-	"github.com/usehiveloop/hiveloop/internal/storage"
+	"github.com/usehivy/hivy/internal/sandbox"
+	"github.com/usehivy/hivy/internal/storage"
 )
 
 type employeeUpgradeProvider struct {

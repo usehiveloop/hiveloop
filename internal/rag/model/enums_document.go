@@ -150,4 +150,3 @@ func (s DocumentSource) IsValid() bool {
 	_, ok := allDocumentSources[s]
 	return ok
 }
-

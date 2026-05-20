@@ -1,10 +1,10 @@
-# Onyx → Hiveloop: RAG Port Plan (Phase 3 — `RAGSource` + Three-Loop Scheduler + GitHub Connector)
+# Onyx → Hivy: RAG Port Plan (Phase 3 — `RAGSource` + Three-Loop Scheduler + GitHub Connector)
 
 **Author:** architecture session, April 2026
 **Scope:** Phase 3 only — the real production scheduler + the first real connector.
 **Prior phases:** `plans/onyx-port.md` (Phase 0+1), `plans/onyx-port-phase2.md` (Phase 2 Rust rag-engine).
 
-Phase 2 delivered a high-performance RAG pipeline that can accept pushed documents via `IngestBatch`. Phase 3 delivers the **orchestration layer** that keeps documents in sync with their real sources (GitHub, Notion, Slack, Confluence, etc.), plus the **first real connector** (GitHub) wired end-to-end. After Phase 3, Hiveloop goes from "a RAG engine you can push docs into" to "a RAG product that automatically ingests your company's data."
+Phase 2 delivered a high-performance RAG pipeline that can accept pushed documents via `IngestBatch`. Phase 3 delivers the **orchestration layer** that keeps documents in sync with their real sources (GitHub, Notion, Slack, Confluence, etc.), plus the **first real connector** (GitHub) wired end-to-end. After Phase 3, Hivy goes from "a RAG engine you can push docs into" to "a RAG product that automatically ingests your company's data."
 
 ---
 
@@ -432,7 +432,7 @@ For tests that need a connector, register a **StubConnector** in the test setup 
 
 **Definition of done:**
 - All 13 tests green on real Postgres + real Redis
-- `asynq-monitor` UI works (existing Hiveloop asynq monitor surface, new task types show up)
+- `asynq-monitor` UI works (existing Hivy asynq monitor surface, new task types show up)
 - Heartbeat + lock coordination proven under concurrent test
 
 **Estimated effort:** 2 weeks
@@ -593,7 +593,7 @@ All GitHub API calls go through `nango.Client.ProxyRequest(...)`. Never a direct
 
 ### Endpoints
 
-All behind the existing Hiveloop `RequireAuth` + `ResolveOrg` middleware, plus new `rag:source:*` scopes for API keys.
+All behind the existing Hivy `RequireAuth` + `ResolveOrg` middleware, plus new `rag:source:*` scopes for API keys.
 
 ```
 POST   /v1/rag/sources                           Create (kind-dispatched payload)
@@ -683,7 +683,7 @@ Integration tests against real Postgres + real Redis + real asynq + real test Ru
 ```go
 func TestE2E_GitHubFullLoop(t *testing.T) {
     // Uses a dedicated test GitHub account (configured via env: GITHUB_TEST_TOKEN,
-    // GITHUB_TEST_REPO="hiveloop-rag-test/fixture-repo").
+    // GITHUB_TEST_REPO="hivy-rag-test/fixture-repo").
     // This repo has a known set of PRs + issues seeded by a test helper.
 
     db := testhelpers.ConnectTestDB(t)
@@ -754,9 +754,9 @@ This test proves all three loops work end-to-end against real GitHub: ingest, pe
 
 ---
 
-## Onyx symbol-to-Hiveloop mapping (Phase 3 additions)
+## Onyx symbol-to-Hivy mapping (Phase 3 additions)
 
-| Onyx symbol | Onyx location | Hiveloop symbol | Hiveloop location |
+| Onyx symbol | Onyx location | Hivy symbol | Hivy location |
 |---|---|---|---|
 | `ConnectorCredentialPair` (identity + config subset) | `models.py:723-837` | `RAGSource` | `internal/rag/model/rag_source.go` |
 | `Connector.connector_specific_config` JSONB | `models.py:1872` | `RAGSource.Config` | same file |

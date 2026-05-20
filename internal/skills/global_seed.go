@@ -13,7 +13,7 @@ import (
 
 	"gorm.io/gorm"
 
-	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehivy/hivy/internal/model"
 )
 
 const globalSkillFetchTimeout = 20 * time.Second

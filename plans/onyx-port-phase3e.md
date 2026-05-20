@@ -41,9 +41,9 @@ Behind the existing `MultiAuth → RequireEmailConfirmed → ResolveOrgFlexible 
 
 ### Onyx mapping is denser here than in earlier tranches
 
-The Onyx surface for this is `backend/onyx/server/documents/cc_pair.py` (read/update/manual-trigger) plus `connector.py` (create/list). Several ports are 1:1 in shape but renamed and re-scoped to a Hiveloop concept:
+The Onyx surface for this is `backend/onyx/server/documents/cc_pair.py` (read/update/manual-trigger) plus `connector.py` (create/list). Several ports are 1:1 in shape but renamed and re-scoped to a Hivy concept:
 
-| Onyx | Hiveloop |
+| Onyx | Hivy |
 |---|---|
 | `Connector` row + `Credential` row + a separate `ConnectorCredentialPair` joining the two | `RAGSource` row directly references `InConnection` (which already pairs an InIntegration with a Nango connection). One row, not three. |
 | `PUT /admin/cc-pair/{id}/status` flipping `ConnectorCredentialPairStatus` | `PATCH /v1/rag/sources/:id` with `{ "status": "PAUSED" }` |
@@ -51,9 +51,9 @@ The Onyx surface for this is `backend/onyx/server/documents/cc_pair.py` (read/up
 | Two-step "create connector + associate credential" with a duplicate-check on the join | single-step create; the partial unique index `uq_rag_sources_in_connection` (3A) enforces the duplicate-check at DB level |
 | `POST /admin/connector/run-once` taking `connector_id` + `credential_ids[]` + `from_beginning` | `POST /v1/rag/sources/:id/sync` taking `{ from_beginning: bool }` |
 | `POST /admin/cc-pair/{id}/prune` | `POST /v1/rag/sources/:id/prune` |
-| `POST /admin/cc-pair/{id}/sync-permissions` (EE) | `POST /v1/rag/sources/:id/perm-sync`; non-EE because Hiveloop has no EE/CE split here |
+| `POST /admin/cc-pair/{id}/sync-permissions` (EE) | `POST /v1/rag/sources/:id/perm-sync`; non-EE because Hivy has no EE/CE split here |
 
-The Hiveloop version is structurally simpler because the `RAGSource` model already collapses what Onyx splits into three tables.
+The Hivy version is structurally simpler because the `RAGSource` model already collapses what Onyx splits into three tables.
 
 ### Authn lives in middleware; handlers don't re-check
 
@@ -132,7 +132,7 @@ Largest: `rag_sources_test.go` ~280 lines, just under the ceiling.
 
 ### Database query helpers go in `internal/rag/db/`
 
-Per the Hiveloop convention (`CLAUDE.md`: "Put ALL db operations under the `backend/onyx/db` directory"), database queries don't live in the handler. New file:
+Per the Hivy convention (`CLAUDE.md`: "Put ALL db operations under the `backend/onyx/db` directory"), database queries don't live in the handler. New file:
 
 ```
 internal/rag/db/
@@ -157,7 +157,7 @@ Pure gorm queries, all org-scoped. Each function takes `db *gorm.DB` and `orgID 
 | `ListAttemptsForSource(db, orgID, sourceID, page, pageSize) ([]RAGIndexAttempt, int64, error)` | paginated attempts | `cc_pair.py:82` paginated index-attempts endpoint |
 | `GetAttemptForSource(db, orgID, sourceID, attemptID) (*RAGIndexAttempt, error)` | single attempt with org+source guard | inferred from Onyx's pattern |
 | `ListAttemptErrors(db, attemptID, page, pageSize) ([]RAGIndexAttemptError, int64, error)` | paginated per-doc errors | `cc_pair.py:499` `get_cc_pair_indexing_errors` |
-| `ListSupportedIntegrations(db) ([]InIntegration, error)` | InIntegrations where `supports_rag_source = true AND deleted_at IS NULL` | (no Onyx analogue — this is Hiveloop-specific UI plumbing) |
+| `ListSupportedIntegrations(db) ([]InIntegration, error)` | InIntegrations where `supports_rag_source = true AND deleted_at IS NULL` | (no Onyx analogue — this is Hivy-specific UI plumbing) |
 
 `ListOptions` covers `Page int, PageSize int, StatusFilter *RAGSourceStatus, KindFilter *RAGSourceKind`. Defaults: page 0, size 20, no filters.
 
@@ -276,9 +276,9 @@ Real Postgres (`make test-services-up`), real chi router in-process, fake `TaskE
 
 ---
 
-## Onyx ↔ Hiveloop reference index
+## Onyx ↔ Hivy reference index
 
-| Onyx | Hiveloop (after 3E) |
+| Onyx | Hivy (after 3E) |
 |---|---|
 | `backend/onyx/server/documents/connector.py:1550` (`POST /admin/connector`) | `internal/handler/rag_sources_create.go` `Create` |
 | `backend/onyx/server/documents/cc_pair.py:540` (associate credential → CC-pair) | folded into `Create` — single-step in our model |
@@ -293,7 +293,7 @@ Real Postgres (`make test-services-up`), real chi router in-process, fake `TaskE
 | `backend/onyx/server/documents/cc_pair.py:499` (paginated errors) | folded into `GetAttempt` (errors in the detail response) |
 | `backend/onyx/db/models.py:1916` (refresh_freq validation) | `internal/rag/model/rag_source.go` `ValidateRefreshFreq` (3A — already present) |
 | `backend/onyx/db/connector_credential_pair.py:563` (duplicate CC-pair rejection) | DB partial unique index `uq_rag_sources_in_connection` (3A — already present) |
-| `backend/onyx/db/enums.py:374-375` (`ADD_CONNECTORS`, `MANAGE_CONNECTORS` permissions) | `RequireOrgAdmin` middleware (Hiveloop has org-admin granularity, not feature-specific permissions) |
+| `backend/onyx/db/enums.py:374-375` (`ADD_CONNECTORS`, `MANAGE_CONNECTORS` permissions) | `RequireOrgAdmin` middleware (Hivy has org-admin granularity, not feature-specific permissions) |
 
 ---
 

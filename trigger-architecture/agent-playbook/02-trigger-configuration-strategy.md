@@ -70,7 +70,7 @@ Conditions are where you turn "events that might be relevant" into "events that 
 
 ### Condition-writing principles
 
-**1. Exclude yourself.** Every condition block should filter out the agent's own activity on the surface it's watching. If your agent posts comments on PRs, its triggers should have a condition like `sender.login not_equals hiveloop-bot[bot]`. Without this, the agent will reply to its own comments, and you have an infinite loop. See [04-safety-and-loop-prevention.md](04-safety-and-loop-prevention.md) for the details.
+**1. Exclude yourself.** Every condition block should filter out the agent's own activity on the surface it's watching. If your agent posts comments on PRs, its triggers should have a condition like `sender.login not_equals hivy-bot[bot]`. Without this, the agent will reply to its own comments, and you have an infinite loop. See [04-safety-and-loop-prevention.md](04-safety-and-loop-prevention.md) for the details.
 
 **2. Exclude bots you don't care about.** Dependabot, Renovate, Mergify, and similar bots generate a lot of noise. A code review agent that triages Dependabot PRs is probably not what the customer wants. Filter them out with `sender.login not_one_of [dependabot[bot], renovate[bot], mergify[bot]]`.
 
@@ -88,8 +88,8 @@ Conditions are where you turn "events that might be relevant" into "events that 
 | Exact non-match | `not_equals` | `pull_request.draft not_equals true` |
 | One of a set | `one_of` | `labels.*.name one_of [bug, urgent]` |
 | None of a set (bots!) | `not_one_of` | `sender.login not_one_of [dependabot[bot]]` |
-| Substring check | `contains` | `comment.body contains "@hiveloop"` |
-| Substring absence | `not_contains` | `comment.body not_contains "[skip-hiveloop]"` |
+| Substring check | `contains` | `comment.body contains "@hivy"` |
+| Substring absence | `not_contains` | `comment.body not_contains "[skip-hivy]"` |
 | Regex match | `matches` | `pull_request.head.ref matches "^feature/"` |
 | Field is present | `exists` | `issue.pull_request exists` |
 | Field is absent | `not_exists` | `issue.pull_request not_exists` |
@@ -115,7 +115,7 @@ Conditions are where you turn "events that might be relevant" into "events that 
   value: Bot
 - path: sender.login
   operator: not_equals
-  value: hiveloop-bot[bot]
+  value: hivy-bot[bot]
 ```
 
 **"Only feature branches":**
@@ -369,7 +369,7 @@ conditions:
       value: main
     - path: sender.login
       operator: not_equals
-      value: hiveloop-review-bot[bot]
+      value: hivy-review-bot[bot]
 
 context:
   - as: pr

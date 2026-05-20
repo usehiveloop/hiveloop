@@ -1,5 +1,5 @@
 // Package fakebridge implements a scriptable HTTP server that speaks the
-// new ACP-harness bridge wire contract for hiveloop's e2e tests. The real
+// new ACP-harness bridge wire contract for hivy's e2e tests. The real
 // bridge binary is not yet released against this contract, so we mock it.
 package fakebridge
 
@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	bridgepkg "github.com/usehiveloop/hiveloop/internal/bridge"
+	bridgepkg "github.com/usehivy/hivy/internal/bridge"
 )
 
 type BridgeEvent struct {
@@ -74,7 +74,7 @@ type Server struct {
 	EnforceOneAgent bool
 
 	// SignSecret must match the EncryptedBridgeAPIKey decrypted on the
-	// hiveloop side so PostWebhook signatures verify.
+	// hivy side so PostWebhook signatures verify.
 	SignSecret []byte
 
 	WebhookURL string

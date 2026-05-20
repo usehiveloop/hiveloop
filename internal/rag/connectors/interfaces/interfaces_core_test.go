@@ -5,7 +5,6 @@ import (
 	"reflect"
 	"testing"
 	"time"
-
 )
 
 func TestDocumentOrFailure_ConstructorsAreMutuallyExclusive(t *testing.T) {

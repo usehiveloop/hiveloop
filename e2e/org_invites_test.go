@@ -14,17 +14,17 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 
-	"github.com/usehiveloop/hiveloop/internal/auth"
-	"github.com/usehiveloop/hiveloop/internal/billing"
-	"github.com/usehiveloop/hiveloop/internal/email"
-	"github.com/usehiveloop/hiveloop/internal/handler"
-	"github.com/usehiveloop/hiveloop/internal/middleware"
-	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehivy/hivy/internal/auth"
+	"github.com/usehivy/hivy/internal/billing"
+	"github.com/usehivy/hivy/internal/email"
+	"github.com/usehivy/hivy/internal/handler"
+	"github.com/usehivy/hivy/internal/middleware"
+	"github.com/usehivy/hivy/internal/model"
 )
 
 const (
-	inviteTestIssuer   = "hiveloop-e2e-invite-test"
-	inviteTestAudience = "hiveloop-e2e"
+	inviteTestIssuer   = "hivy-e2e-invite-test"
+	inviteTestAudience = "hivy-e2e"
 )
 
 type inviteHarness struct {

@@ -8,7 +8,7 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
-	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehivy/hivy/internal/model"
 )
 
 // Provisioner manages per-workspace Turso database provisioning.
@@ -37,7 +37,7 @@ func (p *Provisioner) EnsureStorage(ctx context.Context, orgID uuid.UUID) (stora
 	}
 
 	// Create a new Turso database
-	dbName := "hiveloop-" + shortID(orgID)
+	dbName := "hivy-" + shortID(orgID)
 	database, err := p.client.CreateDatabase(ctx, dbName, p.group)
 	if err != nil {
 		return "", "", fmt.Errorf("provisioning turso database: %w", err)

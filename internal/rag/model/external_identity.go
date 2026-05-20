@@ -7,12 +7,12 @@ import (
 	"github.com/lib/pq"
 )
 
-// RAGExternalIdentity is a Hiveloop-only addition. Onyx resolves Hiveloop-user
+// RAGExternalIdentity is a Hivy-only addition. Onyx resolves Hivy-user
 // → source-native-identity on-demand inside its perm-sync code; we persist
 // the mapping so our sync tasks have an O(1) lookup for ACL matching.
 //
-// One row per (Hiveloop user, InConnection). The same GitHub user in two
-// different Hiveloop orgs is two distinct rows — enforced by the org-scoped
+// One row per (Hivy user, InConnection). The same GitHub user in two
+// different Hivy orgs is two distinct rows — enforced by the org-scoped
 // (provider, external_user_id, org_id) unique.
 //
 // References (for the caller's context, not a direct port):
@@ -28,7 +28,7 @@ type RAGExternalIdentity struct {
 
 	OrgID uuid.UUID `gorm:"type:uuid;not null;index:idx_rag_external_identity_org;uniqueIndex:uq_rag_external_identity_provider_ext_id_org"`
 
-	// UserID → users.id. CASCADE because deleting a Hiveloop user must
+	// UserID → users.id. CASCADE because deleting a Hivy user must
 	// drop every cached identity they had.
 	UserID uuid.UUID `gorm:"type:uuid;not null;uniqueIndex:uq_rag_external_identity_user_source"`
 

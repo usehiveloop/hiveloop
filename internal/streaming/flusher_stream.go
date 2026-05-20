@@ -9,9 +9,9 @@ import (
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
 
-	"github.com/usehiveloop/hiveloop/internal/bridgeevents"
-	"github.com/usehiveloop/hiveloop/internal/logging"
-	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehivy/hivy/internal/bridgeevents"
+	"github.com/usehivy/hivy/internal/logging"
+	"github.com/usehivy/hivy/internal/model"
 )
 
 func (f *Flusher) flushStream(ctx context.Context, convID string) {
@@ -87,15 +87,15 @@ func (f *Flusher) flushStream(ctx context.Context, convID string) {
 		}
 
 		dbEvent := model.ConversationEvent{
-			OrgID:                conv.OrgID,
-			ConversationID:       conv.ID,
-			EventID:              full.EventID,
-			EventType:            eventType,
-			AgentID:              full.AgentID,
+			OrgID:                 conv.OrgID,
+			ConversationID:        conv.ID,
+			EventID:               full.EventID,
+			EventType:             eventType,
+			AgentID:               full.AgentID,
 			RuntimeConversationID: full.ConversationID,
-			Timestamp:            full.Timestamp,
-			SequenceNumber:       full.SequenceNumber,
-			Data:                 model.RawJSON(full.Data),
+			Timestamp:             full.Timestamp,
+			SequenceNumber:        full.SequenceNumber,
+			Data:                  model.RawJSON(full.Data),
 		}
 		entryIDs = append(entryIDs, msg.ID)
 

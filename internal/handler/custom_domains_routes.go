@@ -10,7 +10,7 @@ func (h *CustomDomainHandler) authProxyRoute(host, upstream string) map[string]a
 				"handler": "subroute",
 				"routes": []any{
 					map[string]any{
-						"match": []any{map[string]any{"header": map[string][]string{"X-Internal-Secret": {"{env.HIVELOOP_INTERNAL_SECRET}"}}}},
+						"match": []any{map[string]any{"header": map[string][]string{"X-Internal-Secret": {"{env.HIVY_INTERNAL_SECRET}"}}}},
 						"handle": []any{map[string]any{
 							"handler":   "reverse_proxy",
 							"upstreams": []any{map[string]string{"dial": upstream}},
@@ -52,7 +52,7 @@ func (h *CustomDomainHandler) simpleProxyRoute(host, upstream string, websocket 
 
 func (h *CustomDomainHandler) dexRoute() map[string]any {
 	return map[string]any{
-		"match": []any{map[string]any{"host": []string{"dex.daytona.hiveloop.com"}}},
+		"match": []any{map[string]any{"host": []string{"dex.daytona.usehivy.com"}}},
 		"handle": []any{
 			map[string]any{
 				"handler": "subroute",
@@ -62,7 +62,7 @@ func (h *CustomDomainHandler) dexRoute() map[string]any {
 							"handler": "headers",
 							"response": map[string]any{
 								"set": map[string][]string{
-									"Access-Control-Allow-Origin":  {"https://api.daytona.hiveloop.com"},
+									"Access-Control-Allow-Origin":  {"https://api.daytona.usehivy.com"},
 									"Access-Control-Allow-Methods": {"GET, OPTIONS"},
 									"Access-Control-Allow-Headers": {"Content-Type, Authorization"},
 								},

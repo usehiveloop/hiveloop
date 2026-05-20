@@ -56,14 +56,14 @@ RUN mkdir -p /work/.claude /work/.opencode /work/tmp /workspace
 WORKDIR /work
 
 COPY --from=builder /bridge /usr/local/bin/bridge
-COPY docker/runtime/git-credential-hiveloop /usr/local/bin/git-credential-hiveloop
+COPY docker/runtime/git-credential-hivy /usr/local/bin/git-credential-hivy
 COPY docker/runtime/gh-wrapper /usr/local/bin/gh-wrapper
 RUN chmod +x /usr/local/bin/bridge \
-    && chmod +x /usr/local/bin/git-credential-hiveloop \
+    && chmod +x /usr/local/bin/git-credential-hivy \
     && chmod +x /usr/local/bin/gh-wrapper \
-    && git config --system credential.helper /usr/local/bin/git-credential-hiveloop \
+    && git config --system credential.helper /usr/local/bin/git-credential-hivy \
     && ln -sf /usr/local/bin/gh-wrapper /usr/local/bin/gh
 
 EXPOSE 8080
 ENTRYPOINT ["/usr/bin/tini", "--"]
-CMD ["/bin/sh", "-c", "git config --system user.name \"$HIVELOOP_GIT_USERNAME\"; git config --system user.email \"$HIVELOOP_GIT_EMAIL\"; exec /usr/local/bin/bridge"]
+CMD ["/bin/sh", "-c", "git config --system user.name \"$HIVY_GIT_USERNAME\"; git config --system user.email \"$HIVY_GIT_EMAIL\"; exec /usr/local/bin/bridge"]

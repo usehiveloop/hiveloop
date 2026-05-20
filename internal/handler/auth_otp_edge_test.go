@@ -6,12 +6,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehivy/hivy/internal/model"
 )
 
 func TestOTP_WrongCode(t *testing.T) {
 	h := newOTPHarness(t)
-	testEmail := "otp-wrong@test.hiveloop.com"
+	testEmail := "otp-wrong@test.usehivy.com"
 	t.Cleanup(func() { h.cleanup(t, testEmail) })
 
 	h.doRequest(t, "POST", "/auth/otp/request", map[string]string{"email": testEmail})
@@ -29,7 +29,7 @@ func TestOTP_WrongCode(t *testing.T) {
 
 func TestOTP_ExpiredCode(t *testing.T) {
 	h := newOTPHarness(t)
-	testEmail := "otp-expired@test.hiveloop.com"
+	testEmail := "otp-expired@test.usehivy.com"
 	t.Cleanup(func() { h.cleanup(t, testEmail) })
 
 	h.doRequest(t, "POST", "/auth/otp/request", map[string]string{"email": testEmail})
@@ -52,7 +52,7 @@ func TestOTP_ExpiredCode(t *testing.T) {
 
 func TestOTP_NewRequestInvalidatesOld(t *testing.T) {
 	h := newOTPHarness(t)
-	testEmail := "otp-invalidate@test.hiveloop.com"
+	testEmail := "otp-invalidate@test.usehivy.com"
 	h.cleanup(t, testEmail) // Remove stale data from prior runs
 	t.Cleanup(func() { h.cleanup(t, testEmail) })
 

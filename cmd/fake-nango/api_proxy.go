@@ -20,10 +20,10 @@ func proxyHandler(st *store) http.HandlerFunc {
 		f, ok := st.findFixture(r.Method, path)
 		if !ok {
 			writeJSON(w, http.StatusNotFound, map[string]any{
-				"error":   "no fixture",
-				"method":  r.Method,
-				"path":    path,
-				"hint":    "POST a scenario via /_admin/load or /_admin/fixtures",
+				"error":  "no fixture",
+				"method": r.Method,
+				"path":   path,
+				"hint":   "POST a scenario via /_admin/load or /_admin/fixtures",
 			})
 			return
 		}

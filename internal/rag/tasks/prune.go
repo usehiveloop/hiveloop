@@ -10,9 +10,9 @@ import (
 	qdrantgo "github.com/qdrant/go-client/qdrant"
 	"gorm.io/gorm"
 
-	"github.com/usehiveloop/hiveloop/internal/rag/connectors/interfaces"
-	ragmodel "github.com/usehiveloop/hiveloop/internal/rag/model"
-	"github.com/usehiveloop/hiveloop/internal/rag/qdrant"
+	"github.com/usehivy/hivy/internal/rag/connectors/interfaces"
+	ragmodel "github.com/usehivy/hivy/internal/rag/model"
+	"github.com/usehivy/hivy/internal/rag/qdrant"
 )
 
 func (d *Deps) HandlePrune(ctx context.Context, t *asynq.Task) error {

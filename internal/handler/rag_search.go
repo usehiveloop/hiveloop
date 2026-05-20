@@ -7,9 +7,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/usehiveloop/hiveloop/internal/middleware"
-	"github.com/usehiveloop/hiveloop/internal/rag/embedclient"
-	"github.com/usehiveloop/hiveloop/internal/rag/qdrant"
+	"github.com/usehivy/hivy/internal/middleware"
+	"github.com/usehivy/hivy/internal/rag/embedclient"
+	"github.com/usehivy/hivy/internal/rag/qdrant"
 )
 
 type RAGSearchHandler struct {

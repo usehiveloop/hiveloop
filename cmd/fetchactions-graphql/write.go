@@ -42,10 +42,10 @@ type ServiceMetadata struct {
 
 // ProviderFile is the output format for each <provider>.actions.json.
 type ProviderFile struct {
-	DisplayName string                       `json:"display_name"`
-	Resources   map[string]ResourceDef       `json:"resources"`
-	Actions     map[string]ActionDef         `json:"actions"`
-	Schemas     map[string]SchemaDefinition  `json:"schemas,omitempty"`
+	DisplayName string                      `json:"display_name"`
+	Resources   map[string]ResourceDef      `json:"resources"`
+	Actions     map[string]ActionDef        `json:"actions"`
+	Schemas     map[string]SchemaDefinition `json:"schemas,omitempty"`
 }
 
 // loadMetadata reads metadata.json.

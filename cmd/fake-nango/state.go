@@ -8,12 +8,12 @@ import (
 )
 
 type integration struct {
-	UniqueKey   string         `json:"unique_key"`
-	Provider    string         `json:"provider"`
-	DisplayName string         `json:"display_name"`
-	Credentials map[string]any `json:"credentials,omitempty"`
-	WebhookURL  string         `json:"webhook_url"`
-	WebhookSecret string       `json:"webhook_secret"`
+	UniqueKey     string         `json:"unique_key"`
+	Provider      string         `json:"provider"`
+	DisplayName   string         `json:"display_name"`
+	Credentials   map[string]any `json:"credentials,omitempty"`
+	WebhookURL    string         `json:"webhook_url"`
+	WebhookSecret string         `json:"webhook_secret"`
 }
 
 type connection struct {
@@ -25,11 +25,11 @@ type connection struct {
 }
 
 type connectSession struct {
-	Token              string
-	AllowedIntegrations []string
-	EndUserID          string
+	Token                string
+	AllowedIntegrations  []string
+	EndUserID            string
 	ExistingConnectionID string
-	CreatedAt          time.Time
+	CreatedAt            time.Time
 }
 
 type oauthSession struct {
@@ -43,8 +43,8 @@ type oauthSession struct {
 }
 
 type outcome struct {
-	Result      string         // "approve" | "reject"
-	ErrorType   string         // when reject
+	Result      string // "approve" | "reject"
+	ErrorType   string // when reject
 	ErrorDesc   string
 	Credentials map[string]any // injected on approve
 }
@@ -67,8 +67,8 @@ type proxyFixture struct {
 type store struct {
 	mu sync.RWMutex
 
-	integrations    map[string]*integration   // by uniqueKey
-	connections     map[string]*connection    // by connectionID
+	integrations    map[string]*integration    // by uniqueKey
+	connections     map[string]*connection     // by connectionID
 	connectSessions map[string]*connectSession // by token
 	oauthSessions   map[string]*oauthSession   // by state
 

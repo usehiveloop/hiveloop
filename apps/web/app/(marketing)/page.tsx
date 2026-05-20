@@ -120,13 +120,13 @@ export default function Home() {
             {/* Section header */}
             <div className="flex flex-col items-center gap-5 sm:gap-6 max-w-3xl text-center px-4">
               <p className="font-mono text-[11px] font-medium uppercase tracking-[1.5px] text-primary">
-                Why Hiveloop
+                Why Hivy
               </p>
               <h2 className="font-heading text-[24px] sm:text-[32px] lg:text-[44px] font-bold text-foreground leading-[1.15] -tracking-[0.5px] sm:-tracking-[1px]">
                 AI employees that learn, understand, take initiative.
               </h2>
               <p className="text-base sm:text-lg text-muted-foreground leading-relaxed max-w-2xl">
-                Unlike generic AI tools, Hiveloop employees learn your ways of working,
+                Unlike generic AI tools, Hivy employees learn your ways of working,
                 understand your organization, and take initiative on their own.
               </p>
             </div>

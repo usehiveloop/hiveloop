@@ -1,12 +1,12 @@
 # Hindsight Self-Hosted on Railway
 
-Self-hosted deployment of [Hindsight](https://github.com/vectorize-io/hindsight) — a biomimetic memory system for AI agents — running on Railway within the HiveLoop production project.
+Self-hosted deployment of [Hindsight](https://github.com/vectorize-io/hindsight) — a biomimetic memory system for AI agents — running on Railway within the Hivy production project.
 
 ## Architecture
 
 ```
 +--------------------------------------------------------+
-|  Railway Project (hiveloop.dev / production)           |
+|  Railway Project (hivy.dev / production)           |
 |                                                        |
 |  +-------------------------+   +---------------------+ |
 |  |  hindsight (slim)       |   |  Railway Postgres   | |
@@ -16,7 +16,7 @@ Self-hosted deployment of [Hindsight](https://github.com/vectorize-io/hindsight)
 |               ^                                        |
 |               | private network                        |
 |  +------------+------------+                           |
-|  |  hiveloop (Go backend)  |                           |
+|  |  hivy (Go backend)  |                           |
 |  +-------------------------+                           |
 +--------------------------------------------------------+
          |              |              |
@@ -55,7 +55,7 @@ The **slim** image (~500MB) does not bundle local ML models. It requires externa
 
 | Port | Access | Used by |
 |------|--------|---------|
-| **8888** (API) | Private only (`hindsight.railway.internal:8888`) | HiveLoop backend, CP (localhost) |
+| **8888** (API) | Private only (`hindsight.railway.internal:8888`) | Hivy backend, CP (localhost) |
 | **9999** (Control Plane) | Public domain (temporary) | Browser — memory bank management UI |
 
 The API is never exposed publicly. Security is provided by Railway's private networking.
@@ -152,9 +152,9 @@ Expected output:
  pg_trgm | public
 ```
 
-## HiveLoop Integration
+## Hivy Integration
 
-HiveLoop connects to the Hindsight API over Railway's private network:
+Hivy connects to the Hindsight API over Railway's private network:
 
 ```
 HINDSIGHT_API_URL=http://hindsight.railway.internal:8888
@@ -181,7 +181,7 @@ No API key is needed — the API is not authenticated (private networking provid
 
 ```bash
 # 1. Link to the Railway project
-railway link --project <hiveloop-project-id>
+railway link --project <hivy-project-id>
 
 # 2. Provision Postgres
 railway add --database postgres

@@ -8,12 +8,12 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"gorm.io/gorm"
 
-	"github.com/usehiveloop/hiveloop/internal/counter"
-	"github.com/usehiveloop/hiveloop/internal/logging"
-	mcppkg "github.com/usehiveloop/hiveloop/internal/mcp"
-	"github.com/usehiveloop/hiveloop/internal/mcp/catalog"
-	"github.com/usehiveloop/hiveloop/internal/model"
-	"github.com/usehiveloop/hiveloop/internal/nango"
+	"github.com/usehivy/hivy/internal/counter"
+	"github.com/usehivy/hivy/internal/logging"
+	mcppkg "github.com/usehivy/hivy/internal/mcp"
+	"github.com/usehivy/hivy/internal/mcp/catalog"
+	"github.com/usehivy/hivy/internal/model"
+	"github.com/usehivy/hivy/internal/nango"
 )
 
 // MemoryToolsFunc is a callback that registers memory tools on a server.
@@ -46,7 +46,7 @@ func BuildServer(
 	addKnowledgeTools KnowledgeToolsFunc,
 ) (*mcp.Server, error) {
 	server := mcp.NewServer(&mcp.Implementation{
-		Name:    "hiveloop",
+		Name:    "hivy",
 		Version: "v1.0.0",
 	}, nil)
 

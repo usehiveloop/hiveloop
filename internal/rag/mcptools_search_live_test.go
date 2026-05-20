@@ -7,16 +7,16 @@ import (
 	"testing"
 	"time"
 
-	"github.com/usehiveloop/hiveloop/internal/rag/embedclient"
-	"github.com/usehiveloop/hiveloop/internal/rag/qdrant"
+	"github.com/usehivy/hivy/internal/rag/embedclient"
+	"github.com/usehivy/hivy/internal/rag/qdrant"
 )
 
 func TestSearchKnowledgeBase_LiveSlackCollection(t *testing.T) {
-	if os.Getenv("HIVELOOP_E2E_KB_SEARCH") != "1" {
-		t.Skip("set HIVELOOP_E2E_KB_SEARCH=1 to run live knowledge-base search")
+	if os.Getenv("HIVY_E2E_KB_SEARCH") != "1" {
+		t.Skip("set HIVY_E2E_KB_SEARCH=1 to run live knowledge-base search")
 	}
-	collection := requiredSearchEnv(t, "HIVELOOP_E2E_KB_COLLECTION")
-	orgID := requiredSearchEnv(t, "HIVELOOP_E2E_KB_ORG_ID")
+	collection := requiredSearchEnv(t, "HIVY_E2E_KB_COLLECTION")
+	orgID := requiredSearchEnv(t, "HIVY_E2E_KB_ORG_ID")
 	llmURL := requiredSearchEnv(t, "LLM_API_URL")
 	llmKey := requiredSearchEnv(t, "LLM_API_KEY")
 	llmModel := requiredSearchEnv(t, "LLM_MODEL")

@@ -28,7 +28,7 @@ jobs:
       - name: determine tags
         id: tags
         run: |
-          IMAGE=ghcr.io/usehiveloop/hiveloop
+          IMAGE=ghcr.io/usehivy/hivy
           COMMIT=${GITHUB_SHA::7}
 
           echo "tags=${IMAGE}:dev,${IMAGE}:sha-${COMMIT}" >> "$GITHUB_OUTPUT"

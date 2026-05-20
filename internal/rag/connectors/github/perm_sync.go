@@ -3,7 +3,7 @@ package github
 import (
 	"context"
 
-	"github.com/usehiveloop/hiveloop/internal/rag/connectors/interfaces"
+	"github.com/usehivy/hivy/internal/rag/connectors/interfaces"
 )
 
 // mapVisibility produces the same group IDs SyncExternalGroups emits
@@ -183,4 +183,3 @@ func (c *GithubConnector) emitTeamGroups(
 		})
 	}
 }
-

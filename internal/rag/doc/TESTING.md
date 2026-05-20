@@ -3,7 +3,7 @@
 Every future agent reads this before writing a test for the RAG
 subsystem.
 
-Hiveloop already runs tests against real services (see
+Hivy already runs tests against real services (see
 `internal/middleware/integration_test.go`: real Postgres at
 `localhost:5433`, real `model.AutoMigrate`). This is the only pattern we
 use.
@@ -50,7 +50,7 @@ use.
 Phase 0 delivers two files that every subsequent tranche uses:
 
 - `internal/rag/testhelpers/db.go` — `ConnectTestDB(t *testing.T) *gorm.DB`
-  that opens the existing Hiveloop test Postgres, runs
+  that opens the existing Hivy test Postgres, runs
   `model.AutoMigrate` + `rag.AutoMigrate`, registers `t.Cleanup` to
   close. Parallels `internal/middleware/integration_test.go:31-60`.
 - `internal/rag/testhelpers/fixtures.go` — typed fixture constructors:

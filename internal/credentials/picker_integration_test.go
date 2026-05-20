@@ -5,7 +5,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/usehiveloop/hiveloop/internal/credentials"
+	"github.com/usehivy/hivy/internal/credentials"
 )
 
 func TestIntegration_Picker_ReturnsSystemCredentialForMatchingGroup(t *testing.T) {

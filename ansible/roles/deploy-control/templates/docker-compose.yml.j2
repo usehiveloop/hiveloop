@@ -243,7 +243,7 @@ services:
 
   # =========================================================================
   # ACME-DNS (authoritative DNS for certificate challenge delegation)
-  # Users CNAME _acme-challenge.their.domain → <uuid>.acme.usehiveloop.com
+  # Users CNAME _acme-challenge.their.domain → <uuid>.acme.usehivy.com
   # =========================================================================
   acme-dns:
     image: joohoi/acme-dns:latest
@@ -263,7 +263,7 @@ services:
 
   # =========================================================================
   # CADDY (PUBLIC INGRESS — TLS TERMINATION — DYNAMIC DOMAIN ROUTING)
-  # Custom domains added dynamically via /load from Hiveloop backend
+  # Custom domains added dynamically via /load from Hivy backend
   # =========================================================================
   caddy:
     build:
@@ -285,4 +285,4 @@ services:
       - caddy_config:/config
     environment:
       CLOUDFLARE_API_TOKEN: "{{ cloudflare_api_token }}"
-      HIVELOOP_INTERNAL_SECRET: "{{ hiveloop_internal_secret | default('') }}"
+      HIVY_INTERNAL_SECRET: "{{ hivy_internal_secret | default('') }}"

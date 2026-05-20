@@ -39,9 +39,9 @@ RELEASE_DASHED=${dashed}
 RELEASE_IS_PRERELEASE=${is_prerelease}
 RELEASE_COMMIT=${commit}
 RELEASE_SHORT_COMMIT=${short_commit}
-API_IMAGE=ghcr.io/usehiveloop/hiveloop:${tag}
-SANDBOX_BRIDGE_IMAGE=ghcr.io/usehiveloop/sandbox-bridge:${tag}
-EMPLOYEE_SANDBOX_IMAGE=ghcr.io/usehiveloop/employee-sandbox:${tag}
-BRIDGE_SNAPSHOT_SMALL=hiveloop-bridge-${dashed}-small-v1
-EMPLOYEE_SANDBOX_SNAPSHOT_SMALL=hiveloop-employee-sandbox-${dashed}-small-v1
+API_IMAGE=ghcr.io/usehivy/hivy:${tag}
+SANDBOX_BRIDGE_IMAGE=ghcr.io/usehivy/sandbox-bridge:${tag}
+EMPLOYEE_SANDBOX_IMAGE=ghcr.io/usehivy/employee-sandbox:${tag}
+BRIDGE_SNAPSHOT_SMALL=hivy-bridge-${dashed}-small-v1
+EMPLOYEE_SANDBOX_SNAPSHOT_SMALL=hivy-employee-sandbox-${dashed}-small-v1
 EOF

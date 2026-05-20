@@ -12,7 +12,7 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
-	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehivy/hivy/internal/model"
 )
 
 func upsertGlobalSkill(ctx context.Context, db *gorm.DB, loaded loadedGlobalSkill) (created bool, changed bool, err error) {

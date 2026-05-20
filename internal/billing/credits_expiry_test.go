@@ -6,7 +6,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehivy/hivy/internal/model"
 )
 
 // Tests live in package billing (not billing_test) so they can exercise the
@@ -63,7 +63,7 @@ func TestReplayBuckets_ExpirableSpentBeforePermanent(t *testing.T) {
 	planID, topupID := uuid.New(), uuid.New()
 	exp := mustParseTime(t, "2026-04-01T00:00:00Z")
 	entries := []model.CreditLedgerEntry{
-		{ID: topupID, Amount: 500, Reason: ReasonTopup, CreatedAt: mustParseTime(t, "2026-02-15T00:00:00Z")},                       // permanent, older
+		{ID: topupID, Amount: 500, Reason: ReasonTopup, CreatedAt: mustParseTime(t, "2026-02-15T00:00:00Z")},                      // permanent, older
 		{ID: planID, Amount: 1000, Reason: ReasonPlanGrant, ExpiresAt: &exp, CreatedAt: mustParseTime(t, "2026-03-01T00:00:00Z")}, // expirable, newer
 		{ID: uuid.New(), Amount: -200, Reason: ReasonLLMTokens, CreatedAt: mustParseTime(t, "2026-03-10T00:00:00Z")},
 	}

@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/usehiveloop/hiveloop/internal/billing"
-	subpkg "github.com/usehiveloop/hiveloop/internal/billing/subscription"
-	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehivy/hivy/internal/billing"
+	subpkg "github.com/usehivy/hivy/internal/billing/subscription"
+	"github.com/usehivy/hivy/internal/model"
 )
 
 func TestService_Renew_ChargesAndAdvancesPeriod(t *testing.T) {
@@ -269,4 +269,3 @@ func TestService_Renew_NoAuthorizationMarksPastDue(t *testing.T) {
 		t.Errorf("Status = %q, want past_due", fresh.Status)
 	}
 }
-

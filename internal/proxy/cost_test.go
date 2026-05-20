@@ -4,7 +4,7 @@ import (
 	"math"
 	"testing"
 
-	"github.com/usehiveloop/hiveloop/internal/registry"
+	"github.com/usehivy/hivy/internal/registry"
 )
 
 func TestCalculateCost_OpenAI(t *testing.T) {

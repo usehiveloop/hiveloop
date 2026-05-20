@@ -116,7 +116,7 @@
 - [ ] Excludes runtime Docker build context artifacts (sandboxes/runtime/docker/.dockerignore)
 - [ ] Builds runtime container with tools installed (sandboxes/runtime/docker/Dockerfile)
 - [ ] Wraps GitHub CLI with runtime policy (sandboxes/runtime/docker/runtime/gh-wrapper)
-- [ ] Supplies Git credentials to runtime sandboxes (sandboxes/runtime/docker/runtime/git-credential-hiveloop)
+- [ ] Supplies Git credentials to runtime sandboxes (sandboxes/runtime/docker/runtime/git-credential-hivy)
 - [ ] Describes runtime documentation site structure (sandboxes/runtime/docs/DOCUMENTATION_LAYOUT.md)
 - [ ] Introduces runtime documentation navigation and purpose (sandboxes/runtime/docs/README.md)
 - [ ] Defines runtime documentation table of contents (sandboxes/runtime/docs/SUMMARY.md)
@@ -344,7 +344,7 @@
 - [ ] Verifies background process registry behavior (sandboxes/employee/crates/tools/tests/process_registry_integration.rs)
 - [ ] Tracks pending database and storage improvements (sandboxes/employee/db-todos.txt)
 - [ ] Wraps GitHub CLI with employee policy (sandboxes/employee/docker/runtime/gh-wrapper)
-- [ ] Supplies Git credentials inside employee runtime (sandboxes/employee/docker/runtime/git-credential-hiveloop)
+- [ ] Supplies Git credentials inside employee runtime (sandboxes/employee/docker/runtime/git-credential-hivy)
 - [ ] Provides generated employee OpenAPI contract (sandboxes/employee/openapi.json)
 - [ ] Documents OpenRouter proxy debugging workflow (sandboxes/employee/openrouter-proxy/README.md)
 - [ ] Summarizes OpenRouter cache usage from logs (sandboxes/employee/openrouter-proxy/analyze_cache.py)
@@ -359,10 +359,10 @@
 - [ ] Tests employee runtime image security boundaries (sandboxes/employee/scripts/test_runtime_image.sh)
 
 ## Services
-- [ ] Confirms no service files were assigned (/tmp/hiveloop-functionality/sandboxes-services.txt)
+- [ ] Confirms no service files were assigned (/tmp/hivy-functionality/sandboxes-services.txt)
 
 ## Coverage
-- [ ] Scanned 356 assigned files successfully (/tmp/hiveloop-functionality/sandboxes-services.txt)
-- [ ] Inspected 204 runtime inventory files (/tmp/hiveloop-functionality/sandboxes-services.txt)
-- [ ] Inspected 152 employee runtime files (/tmp/hiveloop-functionality/sandboxes-services.txt)
-- [ ] Could not inspect zero files (/tmp/hiveloop-functionality/sandboxes-services.txt)
+- [ ] Scanned 356 assigned files successfully (/tmp/hivy-functionality/sandboxes-services.txt)
+- [ ] Inspected 204 runtime inventory files (/tmp/hivy-functionality/sandboxes-services.txt)
+- [ ] Inspected 152 employee runtime files (/tmp/hivy-functionality/sandboxes-services.txt)
+- [ ] Could not inspect zero files (/tmp/hivy-functionality/sandboxes-services.txt)

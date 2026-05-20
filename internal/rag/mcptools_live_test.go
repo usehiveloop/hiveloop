@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/usehiveloop/hiveloop/internal/rag/qdrant"
+	"github.com/usehivy/hivy/internal/rag/qdrant"
 )
 
 func liveKnowledgeQdrantClient(t *testing.T) *qdrant.Client {

@@ -10,9 +10,9 @@ import (
 	"github.com/hibiken/asynq"
 	"gorm.io/gorm"
 
-	"github.com/usehiveloop/hiveloop/internal/logging"
-	"github.com/usehiveloop/hiveloop/internal/rag/connectors/interfaces"
-	ragmodel "github.com/usehiveloop/hiveloop/internal/rag/model"
+	"github.com/usehivy/hivy/internal/logging"
+	"github.com/usehivy/hivy/internal/rag/connectors/interfaces"
+	ragmodel "github.com/usehivy/hivy/internal/rag/model"
 )
 
 // pollOverlap rewinds the window-start past the previous run's

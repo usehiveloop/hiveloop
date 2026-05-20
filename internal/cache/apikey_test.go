@@ -6,7 +6,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/usehiveloop/hiveloop/internal/cache"
+	"github.com/usehivy/hivy/internal/cache"
 )
 
 func TestAPIKeyCache_SetAndGet(t *testing.T) {
@@ -15,8 +15,8 @@ func TestAPIKeyCache_SetAndGet(t *testing.T) {
 	id := uuid.New()
 	orgID := uuid.New()
 	entry := &cache.CachedAPIKey{
-		ID:    id,
-		OrgID: orgID,
+		ID:     id,
+		OrgID:  orgID,
 		Scopes: []string{"connect", "credentials"},
 	}
 

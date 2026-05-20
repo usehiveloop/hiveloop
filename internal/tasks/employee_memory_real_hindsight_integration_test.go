@@ -11,8 +11,8 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
-	"github.com/usehiveloop/hiveloop/internal/hindsight"
-	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehivy/hivy/internal/hindsight"
+	"github.com/usehivy/hivy/internal/model"
 )
 
 func TestRealHindsightEmployeeMemoryCheckpointFlow(t *testing.T) {
@@ -362,7 +362,7 @@ func productionMemorySessions() []productionSession {
 		{user: "Maya", text: "This onboarding screen is stuck when org creation returns duplicate name. It shouldn't pretend we're still launching.", tools: []string{"read_file: checked onboarding mutation", "edit_file: surfaced create-org error state"}, reply: "Fixed. Duplicate org-name errors now stop the launch state and show the API error.", noise: []string{"nice"}},
 		{user: "Nora", text: "If anything touches billing or credits, I want DB-level idempotency, not just handler checks.", tools: []string{"read_file: inspected billing migration", "bash: verified unique index coverage"}, reply: "Confirmed. Billing and credits changes need Postgres-backed idempotency before release.", noise: []string{"please remember this"}},
 		{user: "Daniel", text: "Can you dispatch browser tests for the new topbar? I don't want the main sandbox stuck running Playwright for ten minutes.", tools: []string{"cloud_agent_launch_task: launched topbar browser regression task", "cloud_agent_task_status: checked initial status"}, reply: "Dispatched. I’ll monitor it and keep this thread for coordination.", noise: []string{"ty"}},
-		{user: "Aisha", text: "The employee sandbox must use proxy.usehiveloop.com with a ptok token. If OPENROUTER_API_KEY appears in sandbox env, that's a release blocker.", tools: []string{"read_file: checked employee runtime compile env", "bash: verified sandbox env var names"}, reply: "Verified. Sandbox env uses HIVELOOP_PROXY_API_KEY and no provider key.", noise: []string{"important"}},
+		{user: "Aisha", text: "The employee sandbox must use proxy.usehivy.com with a ptok token. If OPENROUTER_API_KEY appears in sandbox env, that's a release blocker.", tools: []string{"read_file: checked employee runtime compile env", "bash: verified sandbox env var names"}, reply: "Verified. Sandbox env uses HIVY_PROXY_API_KEY and no provider key.", noise: []string{"important"}},
 		{user: "Kim", text: "Small style thing: don't write a paragraph when the answer is just 'Done'. You sound like support chat sometimes.", tools: []string{"memory_retain: retained communication preference"}, reply: "Done. Shorter, more direct.", noise: []string{"+1", "exactly"}},
 		{user: "Maya", text: "Can you check why switching workspaces still shows onboarding even though the org is onboarded?", tools: []string{"read_file: inspected active workspace state", "edit_file: refetched onboarding status after workspace switch"}, reply: "Fixed. Workspace switching now refetches onboarding state before rendering the flow.", noise: []string{"works locally"}},
 		{user: "Nora", text: "The invoice-failure alert is mine. If it fires again, loop me in first and include the org id plus failed invoice id.", tools: []string{"search_knowledge_base: found invoice alert runbook", "post_status_update: drafted compact incident handoff"}, reply: "Got it. Nora is first contact for invoice-failure alerts, with org id and failed invoice id included.", noise: []string{"ok"}},

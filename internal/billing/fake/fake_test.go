@@ -6,8 +6,8 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/usehiveloop/hiveloop/internal/billing"
-	"github.com/usehiveloop/hiveloop/internal/billing/fake"
+	"github.com/usehivy/hivy/internal/billing"
+	"github.com/usehivy/hivy/internal/billing/fake"
 )
 
 // Confirm the fake satisfies the Provider interface at compile time.

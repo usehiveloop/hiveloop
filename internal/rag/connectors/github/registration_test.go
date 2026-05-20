@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/usehiveloop/hiveloop/internal/rag/connectors/interfaces"
+	"github.com/usehivy/hivy/internal/rag/connectors/interfaces"
 )
 
 func TestRegistration_GithubKindResolves(t *testing.T) {

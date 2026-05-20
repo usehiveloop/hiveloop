@@ -11,12 +11,12 @@ import (
 	"github.com/lib/pq"
 	"gorm.io/gorm"
 
-	"github.com/usehiveloop/hiveloop/internal/employeeruntime"
-	"github.com/usehiveloop/hiveloop/internal/enqueue"
-	"github.com/usehiveloop/hiveloop/internal/logging"
-	"github.com/usehiveloop/hiveloop/internal/mcp/catalog"
-	"github.com/usehiveloop/hiveloop/internal/model"
-	"github.com/usehiveloop/hiveloop/internal/sandbox"
+	"github.com/usehivy/hivy/internal/employeeruntime"
+	"github.com/usehivy/hivy/internal/enqueue"
+	"github.com/usehivy/hivy/internal/logging"
+	"github.com/usehivy/hivy/internal/mcp/catalog"
+	"github.com/usehivy/hivy/internal/model"
+	"github.com/usehivy/hivy/internal/sandbox"
 )
 
 const triggerConversationSource = "trigger"
@@ -182,8 +182,8 @@ func (h *EmployeeTriggerDispatchHandler) deliver(ctx context.Context, payload Em
 	resp, err := client.PostHTTPMessage(ctx, employeeruntime.HTTPMessageRequest{
 		Text:            compiled.Text,
 		ConversationID:  conv.RuntimeConversationID,
-		User:            "hiveloop-trigger",
-		UserDisplayName: "Hiveloop Trigger",
+		User:            "hivy-trigger",
+		UserDisplayName: "Hivy Trigger",
 		Raw:             compiled.Raw,
 	})
 	if err != nil {

@@ -9,9 +9,9 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
-	"github.com/usehiveloop/hiveloop/internal/middleware"
-	ragdb "github.com/usehiveloop/hiveloop/internal/rag/db"
-	ragmodel "github.com/usehiveloop/hiveloop/internal/rag/model"
+	"github.com/usehivy/hivy/internal/middleware"
+	ragdb "github.com/usehivy/hivy/internal/rag/db"
+	ragmodel "github.com/usehivy/hivy/internal/rag/model"
 )
 
 // @Summary List RAG sources

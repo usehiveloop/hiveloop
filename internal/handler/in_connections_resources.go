@@ -7,9 +7,9 @@ import (
 	"github.com/go-chi/chi/v5"
 	"gorm.io/gorm"
 
-	"github.com/usehiveloop/hiveloop/internal/logging"
-	"github.com/usehiveloop/hiveloop/internal/middleware"
-	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehivy/hivy/internal/logging"
+	"github.com/usehivy/hivy/internal/middleware"
+	"github.com/usehivy/hivy/internal/model"
 )
 
 // @Summary List available resources for a connection
@@ -18,7 +18,7 @@ import (
 // @Produce json
 // @Param id path string true "In-Connection ID"
 // @Param type path string true "Resource type (e.g., repository, project)"
-// @Success 200 {object} github_com_usehiveloop_hiveloop_internal_resources.DiscoveryResult
+// @Success 200 {object} github_com_usehivy_hivy_internal_resources.DiscoveryResult
 // @Failure 400 {object} errorResponse
 // @Failure 401 {object} errorResponse
 // @Failure 404 {object} errorResponse

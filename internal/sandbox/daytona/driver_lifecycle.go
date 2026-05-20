@@ -9,7 +9,7 @@ import (
 
 	toolbox "github.com/daytonaio/daytona/libs/toolbox-api-client-go"
 
-	"github.com/usehiveloop/hiveloop/internal/sandbox"
+	"github.com/usehivy/hivy/internal/sandbox"
 )
 
 const executeCommandTimeout = 120 * time.Second

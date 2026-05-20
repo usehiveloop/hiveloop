@@ -24,7 +24,7 @@ fi
 echo ""
 echo "==> Waiting for services to be healthy..."
 
-until docker compose exec -T postgres pg_isready -U hiveloop -q 2>/dev/null; do sleep 1; done
+until docker compose exec -T postgres pg_isready -U hivy -q 2>/dev/null; do sleep 1; done
 echo "  ✓ Postgres"
 
 until docker compose exec -T redis redis-cli ping 2>/dev/null | grep -q PONG; do sleep 1; done

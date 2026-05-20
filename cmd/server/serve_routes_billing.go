@@ -3,7 +3,7 @@ package main
 import (
 	"github.com/go-chi/chi/v5"
 
-	"github.com/usehiveloop/hiveloop/internal/handler"
+	"github.com/usehivy/hivy/internal/handler"
 )
 
 // mountBillingRoutes registers /v1/billing/* under the JWT-protected router.

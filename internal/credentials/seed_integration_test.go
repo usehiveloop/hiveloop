@@ -3,8 +3,8 @@ package credentials_test
 import (
 	"testing"
 
-	"github.com/usehiveloop/hiveloop/internal/credentials"
-	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehivy/hivy/internal/credentials"
+	"github.com/usehivy/hivy/internal/model"
 )
 
 func TestIntegration_SeedPlatformOrg_CreatesRow(t *testing.T) {

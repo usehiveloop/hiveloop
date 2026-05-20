@@ -52,7 +52,7 @@ type Source interface {
 // backend/onyx/connectors/interfaces.py:43-114. We don't port the full
 // Onyx surface (load_credentials, parse_metadata, oauth methods, raw
 // file callback, etc.) — those live above or below this layer in
-// Hiveloop's architecture (Nango handles creds; parse_metadata is a
+// Hivy's architecture (Nango handles creds; parse_metadata is a
 // pure helper; OAuth is handled at the InConnection layer).
 type Connector interface {
 	// Kind returns the connector identifier (e.g. "github"). This

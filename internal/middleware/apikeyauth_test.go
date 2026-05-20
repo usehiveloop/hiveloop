@@ -12,11 +12,11 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/usehiveloop/hiveloop/internal/auth"
-	"github.com/usehiveloop/hiveloop/internal/cache"
-	"github.com/usehiveloop/hiveloop/internal/enqueue"
-	"github.com/usehiveloop/hiveloop/internal/middleware"
-	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehivy/hivy/internal/auth"
+	"github.com/usehivy/hivy/internal/cache"
+	"github.com/usehivy/hivy/internal/enqueue"
+	"github.com/usehivy/hivy/internal/middleware"
+	"github.com/usehivy/hivy/internal/model"
 )
 
 // --------------------------------------------------------------------------
@@ -29,11 +29,11 @@ func TestIntegration_APIKeyAuth_ValidKey(t *testing.T) {
 
 	orgID := uuid.New()
 	org := model.Org{
-		ID:         orgID,
-		Name:       fmt.Sprintf("apikey-valid-%s", uuid.New().String()[:8]),
+		ID:   orgID,
+		Name: fmt.Sprintf("apikey-valid-%s", uuid.New().String()[:8]),
 
-		RateLimit:  1000,
-		Active:     true,
+		RateLimit: 1000,
+		Active:    true,
 	}
 	if err := db.Create(&org).Error; err != nil {
 		t.Fatalf("failed to create org: %v", err)
@@ -103,11 +103,11 @@ func TestIntegration_APIKeyAuth_CacheHit(t *testing.T) {
 
 	orgID := uuid.New()
 	org := model.Org{
-		ID:         orgID,
-		Name:       fmt.Sprintf("apikey-cache-%s", uuid.New().String()[:8]),
+		ID:   orgID,
+		Name: fmt.Sprintf("apikey-cache-%s", uuid.New().String()[:8]),
 
-		RateLimit:  1000,
-		Active:     true,
+		RateLimit: 1000,
+		Active:    true,
 	}
 	if err := db.Create(&org).Error; err != nil {
 		t.Fatalf("failed to create org: %v", err)
@@ -224,11 +224,11 @@ func TestIntegration_APIKeyAuth_RevokedKey(t *testing.T) {
 
 	orgID := uuid.New()
 	org := model.Org{
-		ID:         orgID,
-		Name:       fmt.Sprintf("apikey-revoked-%s", uuid.New().String()[:8]),
+		ID:   orgID,
+		Name: fmt.Sprintf("apikey-revoked-%s", uuid.New().String()[:8]),
 
-		RateLimit:  1000,
-		Active:     true,
+		RateLimit: 1000,
+		Active:    true,
 	}
 	if err := db.Create(&org).Error; err != nil {
 		t.Fatalf("failed to create org: %v", err)
@@ -276,11 +276,11 @@ func TestIntegration_APIKeyAuth_ExpiredKey(t *testing.T) {
 
 	orgID := uuid.New()
 	org := model.Org{
-		ID:         orgID,
-		Name:       fmt.Sprintf("apikey-expired-%s", uuid.New().String()[:8]),
+		ID:   orgID,
+		Name: fmt.Sprintf("apikey-expired-%s", uuid.New().String()[:8]),
 
-		RateLimit:  1000,
-		Active:     true,
+		RateLimit: 1000,
+		Active:    true,
 	}
 	if err := db.Create(&org).Error; err != nil {
 		t.Fatalf("failed to create org: %v", err)
@@ -328,11 +328,11 @@ func TestIntegration_APIKeyAuth_InactiveOrg(t *testing.T) {
 
 	orgID := uuid.New()
 	org := model.Org{
-		ID:         orgID,
-		Name:       fmt.Sprintf("apikey-inactive-%s", uuid.New().String()[:8]),
+		ID:   orgID,
+		Name: fmt.Sprintf("apikey-inactive-%s", uuid.New().String()[:8]),
 
-		RateLimit:  1000,
-		Active:     true,
+		RateLimit: 1000,
+		Active:    true,
 	}
 	if err := db.Create(&org).Error; err != nil {
 		t.Fatalf("failed to create org: %v", err)

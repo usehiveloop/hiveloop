@@ -3,7 +3,7 @@ package email
 import (
 	"context"
 
-	"github.com/usehiveloop/hiveloop/internal/logging"
+	"github.com/usehivy/hivy/internal/logging"
 )
 
 // LogSender logs emails via slog instead of sending them.

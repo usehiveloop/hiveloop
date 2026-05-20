@@ -5,11 +5,11 @@ description: Use when investigating Bugsink errors, issues, projects, events, st
 
 # Bugsink issue investigation
 
-Use Bugsink through the Hiveloop-provided Bugsink proxy at `$BUGSINK_URL/api/canonical/0`.
+Use Bugsink through the Hivy-provided Bugsink proxy at `$BUGSINK_URL/api/canonical/0`.
 
-`BUGSINK_URL` is provided by the Hiveloop runtime. Always call the provided `BUGSINK_URL` exactly; the runtime handles forwarding for the configured Bugsink connection.
+`BUGSINK_URL` is provided by the Hivy runtime. Always call the provided `BUGSINK_URL` exactly; the runtime handles forwarding for the configured Bugsink connection.
 
-`BUGSINK_DASHBOARD_BASE_URL` is the real Bugsink dashboard base URL. Use it only for human-facing links. Never construct dashboard links from `BUGSINK_URL`; `BUGSINK_URL` is a Hiveloop API proxy and is not the Bugsink UI host.
+`BUGSINK_DASHBOARD_BASE_URL` is the real Bugsink dashboard base URL. Use it only for human-facing links. Never construct dashboard links from `BUGSINK_URL`; `BUGSINK_URL` is a Hivy API proxy and is not the Bugsink UI host.
 
 ## Environment
 
@@ -17,7 +17,7 @@ Required:
 
 | Variable | Purpose |
 |---|---|
-| `BUGSINK_URL` | Hiveloop-provided Bugsink proxy base URL |
+| `BUGSINK_URL` | Hivy-provided Bugsink proxy base URL |
 | `BUGSINK_TOKEN` | Bearer token for the provided Bugsink endpoint |
 
 Optional:
@@ -58,7 +58,7 @@ curl -fsS "$BUGSINK_API/projects/" \
 
 Construct human-facing Bugsink links with `BUGSINK_DASHBOARD_BASE_URL`, not `BUGSINK_URL`.
 
-If `BUGSINK_DASHBOARD_BASE_URL` is unset, say that the dashboard base URL is unavailable and provide the issue/project/event IDs instead. Do not substitute the Hiveloop proxy URL.
+If `BUGSINK_DASHBOARD_BASE_URL` is unset, say that the dashboard base URL is unavailable and provide the issue/project/event IDs instead. Do not substitute the Hivy proxy URL.
 
 Known link patterns:
 

@@ -6,7 +6,7 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 
-	ragmodel "github.com/usehiveloop/hiveloop/internal/rag/model"
+	ragmodel "github.com/usehivy/hivy/internal/rag/model"
 )
 
 // SeedRegistry upserts every entry from Registry() into the

@@ -12,7 +12,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/usehiveloop/hiveloop/internal/logging"
+	"github.com/usehivy/hivy/internal/logging"
 )
 
 // Client wraps the Nango API for managing integrations.

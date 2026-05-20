@@ -114,7 +114,7 @@ That single file is the entire surface for that task. Adding a `summarise` task 
 - `internal/system/render.go` — default prompt renderer (text/template + arg substitution).
 - `internal/system/tasks/<task>.go` — one file per task. Imports `internal/system`; calls `system.Register` from `init`.
 - `internal/handler/system_tasks.go` — the new HTTP handler.
-- Blank import `_ "github.com/usehiveloop/hiveloop/internal/system/tasks"` from `cmd/server` so the `init()` functions in each task file run at process start.
+- Blank import `_ "github.com/usehivy/hivy/internal/system/tasks"` from `cmd/server` so the `init()` functions in each task file run at process start.
 
 ### Handler flow
 1. Resolve task by `{taskName}` from the registry → 404 + `task_not_found` if unknown.
@@ -124,7 +124,7 @@ That single file is the entire surface for that task. Adding a `summarise` task 
    - On `ErrNoSystemCredential` → **503 + `system_credential_unavailable`**.
 5. Resolve model from `task.ModelTier` against the registry's curated provider catalog. Missing → **503 + `system_model_unavailable`**.
 6. **Cache check**: compute key = SHA-256 of canonical `(task.Name, task.Version, model_id, args_canonical_json)`. If `task.CacheTTL > 0` and the key exists, replay from cache (per the SSE/JSON branches above), record an `audit_entries` row with `cached:true`, return.
-7. Build the upstream request via `task.Build(args)` (or the default renderer): system prompt, rendered user prompt, `max_tokens`, `temperature`, `stream` (Hiveloop's `stream` flag is also forwarded as OpenAI's `stream` so the upstream actually streams when we do).
+7. Build the upstream request via `task.Build(args)` (or the default renderer): system prompt, rendered user prompt, `max_tokens`, `temperature`, `stream` (Hivy's `stream` flag is also forwarded as OpenAI's `stream` so the upstream actually streams when we do).
 8. `forwarder.Forward(ctx, credential, providerURL, requestBody, stream, w)`:
    - `http.Request` with `Authorization` injected by `proxy.AttachAuth`.
    - Wrapped in `proxy.CaptureTransport` so the existing usage parser writes spend.
@@ -152,7 +152,7 @@ That single file is the entire surface for that task. Adding a `summarise` task 
 Smallest set that pins real invariants. Per the existing `internal/rag/doc/TESTING.md` philosophy + the project's "business-behavior only" rule:
 
 - **Handler-level tests** against a fake upstream HTTP server (real Postgres, real registry, real middleware chain):
-  - `TestSystemTask_StreamsHiveloopShape` — `stream:true`; fake upstream emits OpenAI SSE chunks; assert response is `text/event-stream` with Hiveloop-shaped `data: {"delta":"..."}` chunks (not raw OpenAI `choices[0].delta.content`), terminated by `data: {"done":true,"usage":{...}}`.
+  - `TestSystemTask_StreamsHivyShape` — `stream:true`; fake upstream emits OpenAI SSE chunks; assert response is `text/event-stream` with Hivy-shaped `data: {"delta":"..."}` chunks (not raw OpenAI `choices[0].delta.content`), terminated by `data: {"done":true,"usage":{...}}`.
   - `TestSystemTask_BuffersWhenNotStreaming` — `stream:false`; single JSON response, body shape `{text, usage}`.
   - `TestSystemTask_NoSystemCredential_Returns503` — empty `credentials` table; assert 503 + `error_code = "system_credential_unavailable"`.
   - `TestSystemTask_RevokedSystemCredentialIgnored` — one revoked + one active for the same group; verify the active one is used (the fake upstream sees the matching `Authorization`).
@@ -175,7 +175,7 @@ That's the floor. No need for a separate test of `cheapestModel` or `Picker`; th
 ## Locked decisions
 
 1. **Provider shape**: OpenAI-compat only. All system creds today (OpenAI, OpenRouter, Groq, SiliconFlow) speak `POST /v1/chat/completions` with the same wire shape. The forwarder builds OpenAI-shaped requests; it does not branch per provider in V1.
-2. **SSE shape**: rewrap into a Hiveloop-shaped envelope. The forwarder consumes the upstream OpenAI SSE chunks, extracts `choices[0].delta.content`, and emits:
+2. **SSE shape**: rewrap into a Hivy-shaped envelope. The forwarder consumes the upstream OpenAI SSE chunks, extracts `choices[0].delta.content`, and emits:
    ```
    data: {"delta":"<chunk text>"}\n\n
    ...

@@ -21,7 +21,7 @@ func (h *EmployeeOutboundWebhookHandler) HandleBatch(w http.ResponseWriter, r *h
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "failed to read body"})
 		return
 	}
-	if !h.verifySignature(ctx, sb, body, r.Header.Get("X-Hiveloop-Signature")) {
+	if !h.verifySignature(ctx, sb, body, r.Header.Get("X-Hivy-Signature")) {
 		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "invalid signature"})
 		return
 	}

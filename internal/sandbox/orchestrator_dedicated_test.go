@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehivy/hivy/internal/model"
 )
 
 func TestCreateDedicatedSandbox(t *testing.T) {
@@ -173,11 +173,11 @@ func TestCreateDedicatedSandbox_InheritsGitIdentityFromEmployee(t *testing.T) {
 	})
 
 	env := provider.createCalls[len(provider.createCalls)-1].EnvVars
-	if env["HIVELOOP_GIT_USERNAME"] != "hivy" {
-		t.Fatalf("HIVELOOP_GIT_USERNAME = %q, want hivy", env["HIVELOOP_GIT_USERNAME"])
+	if env["HIVY_GIT_USERNAME"] != "hivy" {
+		t.Fatalf("HIVY_GIT_USERNAME = %q, want hivy", env["HIVY_GIT_USERNAME"])
 	}
-	if env["HIVELOOP_GIT_EMAIL"] != "hivy@users.noreply.github.com" {
-		t.Fatalf("HIVELOOP_GIT_EMAIL = %q, want hivy@users.noreply.github.com", env["HIVELOOP_GIT_EMAIL"])
+	if env["HIVY_GIT_EMAIL"] != "hivy@users.noreply.github.com" {
+		t.Fatalf("HIVY_GIT_EMAIL = %q, want hivy@users.noreply.github.com", env["HIVY_GIT_EMAIL"])
 	}
 }
 

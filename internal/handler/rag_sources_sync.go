@@ -11,11 +11,11 @@ import (
 	"github.com/hibiken/asynq"
 	"gorm.io/gorm"
 
-	"github.com/usehiveloop/hiveloop/internal/logging"
-	"github.com/usehiveloop/hiveloop/internal/middleware"
-	ragdb "github.com/usehiveloop/hiveloop/internal/rag/db"
-	ragmodel "github.com/usehiveloop/hiveloop/internal/rag/model"
-	ragtasks "github.com/usehiveloop/hiveloop/internal/rag/tasks"
+	"github.com/usehivy/hivy/internal/logging"
+	"github.com/usehivy/hivy/internal/middleware"
+	ragdb "github.com/usehivy/hivy/internal/rag/db"
+	ragmodel "github.com/usehivy/hivy/internal/rag/model"
+	ragtasks "github.com/usehivy/hivy/internal/rag/tasks"
 )
 
 // uniqueTriggerTTL bounds the "user clicks the button five times"

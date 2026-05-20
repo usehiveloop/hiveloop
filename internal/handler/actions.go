@@ -6,7 +6,7 @@ import (
 	"sort"
 
 	chi "github.com/go-chi/chi/v5"
-	"github.com/usehiveloop/hiveloop/internal/mcp/catalog"
+	"github.com/usehivy/hivy/internal/mcp/catalog"
 )
 
 // ActionsHandler serves the embedded actions catalog.

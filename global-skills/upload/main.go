@@ -1,13 +1,13 @@
 // Command upload reads all skill.json manifests from the skills/ directory,
 // fetches remote reference files, assembles bundles, and upserts them via the
-// Hiveloop API. Existing skills (matched by name) are updated with a new
+// Hivy API. Existing skills (matched by name) are updated with a new
 // inline version; missing skills are created.
 //
 // Usage:
 //
 //	go run ./skills/upload
 //
-// Requires HIVELOOP_SKILLS_API_KEY in the environment (or loaded via .env).
+// Requires HIVY_SKILLS_API_KEY in the environment (or loaded via .env).
 package main
 
 import (
@@ -20,15 +20,15 @@ import (
 )
 
 const (
-	apiBase    = "https://api.usehiveloop.com"
+	apiBase    = "https://api.usehivy.com"
 	batchSize  = 5
 	maxRetries = 3
 )
 
 func main() {
-	apiKey := os.Getenv("HIVELOOP_SKILLS_API_KEY")
+	apiKey := os.Getenv("HIVY_SKILLS_API_KEY")
 	if apiKey == "" {
-		log.Fatal("HIVELOOP_SKILLS_API_KEY is required")
+		log.Fatal("HIVY_SKILLS_API_KEY is required")
 	}
 
 	scriptDir, err := os.Getwd()

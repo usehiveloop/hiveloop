@@ -85,14 +85,14 @@ every perm change triggers a re-embed. LanceDB's cheap metadata-only
 
 ## 4. ACL string format invariant
 
-**Decision.** Hiveloop writes and reads ACL tokens byte-identical to
+**Decision.** Hivy writes and reads ACL tokens byte-identical to
 Onyx's format. The prefix functions live in `internal/rag/acl/prefix.go`
 and are a verbatim port of `backend/onyx/access/utils.py`.
 
 Tokens on a chunk look like:
 
     user_email:alice@example.com
-    external_group:github_org_hiveloop_team_core
+    external_group:github_org_hivy_team_core
     PUBLIC
 
 The `PUBLIC` literal is `PUBLIC_DOC_PAT` from
@@ -126,18 +126,18 @@ Onyx uses a similar single-backend approach — see
 configurable prefixes.
 
 **Dev/test.** MinIO runs in docker-compose with a pre-created
-`hiveloop-rag-test` bucket. The Phase 0 spike hits it directly.
+`hivy-rag-test` bucket. The Phase 0 spike hits it directly.
 
 ---
 
 ## 6. Shared Postgres + `org_id` column vs schema-per-tenant
 
 **DEVIATION** from Onyx. Onyx provisions a Postgres schema per tenant and
-uses SQLAlchemy's schema-switching middleware. We keep Hiveloop's
+uses SQLAlchemy's schema-switching middleware. We keep Hivy's
 existing pattern — shared Postgres, `org_id uuid` column on every row,
 row-level `WHERE org_id = ?` filtering everywhere. Rationale:
 
-- Hiveloop already has this pattern (`internal/model/`).
+- Hivy already has this pattern (`internal/model/`).
 - LanceDB's per-org dataset already provides physical isolation for the
   large data (vectors).
 - Schema-per-tenant would force a parallel migration runner.
@@ -153,9 +153,9 @@ descendant row).
 These are tracked here so future agents don't re-litigate them.
 
 - Reranker: Qwen3-Reranker-0.6B via SiliconFlow. Pluggable.
-- Chat / answer generation: out of scope entirely. Hiveloop already has
+- Chat / answer generation: out of scope entirely. Hivy already has
   its own chat subsystem; RAG only exposes `Search() -> []Chunk`.
 - Connector auth: Nango only. No direct provider HTTP clients.
-- UserGroup RBAC (Onyx EE): not ported. Hiveloop's `OrgMembership.Role`
+- UserGroup RBAC (Onyx EE): not ported. Hivy's `OrgMembership.Role`
   covers org-level access; RAG introduces document-level ACLs as a
   separate axis (see Decision 4).

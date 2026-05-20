@@ -7,8 +7,8 @@ import (
 
 	"github.com/redis/go-redis/v9"
 
-	"github.com/usehiveloop/hiveloop/internal/logging"
-	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehivy/hivy/internal/logging"
+	"github.com/usehivy/hivy/internal/model"
 )
 
 func (f *Flusher) accumulateChunk(ctx context.Context, convID, dataStr string) {
@@ -67,15 +67,15 @@ func buildRecoveredEvent(conv *model.AgentConversation, terminal model.Conversat
 		sequenceNumber--
 	}
 	return model.ConversationEvent{
-		OrgID:                conv.OrgID,
-		ConversationID:       conv.ID,
-		EventID:              "recovered-" + messageID,
-		EventType:            "response_completed",
-		AgentID:              terminal.AgentID,
+		OrgID:                 conv.OrgID,
+		ConversationID:        conv.ID,
+		EventID:               "recovered-" + messageID,
+		EventType:             "response_completed",
+		AgentID:               terminal.AgentID,
 		RuntimeConversationID: conv.RuntimeConversationID,
-		Timestamp:            timestamp,
-		SequenceNumber:       sequenceNumber,
-		Data:                 model.RawJSON(data),
+		Timestamp:             timestamp,
+		SequenceNumber:        sequenceNumber,
+		Data:                  model.RawJSON(data),
 	}
 }
 

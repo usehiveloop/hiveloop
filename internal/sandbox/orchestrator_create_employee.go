@@ -9,10 +9,10 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/usehiveloop/hiveloop/internal/config"
-	"github.com/usehiveloop/hiveloop/internal/employeeruntime"
-	"github.com/usehiveloop/hiveloop/internal/logging"
-	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehivy/hivy/internal/config"
+	"github.com/usehivy/hivy/internal/employeeruntime"
+	"github.com/usehivy/hivy/internal/logging"
+	"github.com/usehivy/hivy/internal/model"
 )
 
 const (
@@ -129,8 +129,8 @@ func (o *Orchestrator) CreateEmployeeSandbox(ctx context.Context, agent *model.A
 }
 
 func employeeSandboxEnvVars(cfg *config.Config, runtimeSecret string, sb *model.Sandbox, orgID uuid.UUID, agent *model.Agent, secrets *employeeruntime.StartupSecrets, gitIdentity *employeeGitIdentity, bugsinkDashboardURL string) map[string]string {
-	bridgeHost := "api.usehiveloop.com"
-	proxyHost := "proxy.hiveloop.com"
+	bridgeHost := "api.usehivy.com"
+	proxyHost := "proxy.usehivy.com"
 	if cfg != nil {
 		if cfg.BridgeHost != "" {
 			bridgeHost = cfg.BridgeHost
@@ -160,7 +160,7 @@ func employeeSandboxEnvVars(cfg *config.Config, runtimeSecret string, sb *model.
 		employeeruntime.EmployeeEnvRuntimeBindAddr:          fmt.Sprintf("0.0.0.0:%d", EmployeeSandboxPort),
 		employeeruntime.EmployeeEnvSandboxID:                sb.ID.String(),
 		employeeruntime.EmployeeEnvOrgID:                    orgID.String(),
-		employeeruntime.EmployeeEnvHiveloopEmployeeID:       agent.ID.String(),
+		employeeruntime.EmployeeEnvHivyEmployeeID:           agent.ID.String(),
 		employeeruntime.EmployeeEnvGitUsername:              employeeGitUsername(agent, gitIdentity),
 		employeeruntime.EmployeeEnvGitEmail:                 employeeGitEmail(agent, gitIdentity),
 		employeeruntime.EmployeeEnvGitCredentialsURL:        fmt.Sprintf("https://%s/internal/git-credentials/%s", bridgeHost, agent.ID),
@@ -183,7 +183,7 @@ func employeeSandboxEnvVars(cfg *config.Config, runtimeSecret string, sb *model.
 }
 
 func buildEmployeeSandboxName(agent *model.Agent) string {
-	return fmt.Sprintf("hiveloop-employee-%s-%s-%d", sanitizeName(agent.Name), shortID(agent.ID), time.Now().Unix())
+	return fmt.Sprintf("hivy-employee-%s-%s-%d", sanitizeName(agent.Name), shortID(agent.ID), time.Now().Unix())
 }
 
 func (o *Orchestrator) waitForEmployeeRuntimeLive(ctx context.Context, sb *model.Sandbox) error {

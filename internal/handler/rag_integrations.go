@@ -3,7 +3,7 @@ package handler
 import (
 	"net/http"
 
-	ragdb "github.com/usehiveloop/hiveloop/internal/rag/db"
+	ragdb "github.com/usehivy/hivy/internal/rag/db"
 )
 
 // @Summary List RAG-supported integrations

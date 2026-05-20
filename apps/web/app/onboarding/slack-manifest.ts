@@ -5,17 +5,17 @@ type AgentManifestInput = {
 
 const SLACK_MANIFEST_TEMPLATE = {
   display_information: {
-    name: "Hiveloop Employee",
-    description: "Your Hiveloop employee on Slack",
+    name: "Hivy Employee",
+    description: "Your Hivy employee on Slack",
     background_color: "#9f2d00",
   },
   features: {
     bot_user: {
-      display_name: "Hiveloop Employee",
+      display_name: "Hivy Employee",
       always_online: true,
     },
     assistant_view: {
-      assistant_description: "Chat with your Hiveloop employee in threads and DMs.",
+      assistant_description: "Chat with your Hivy employee in threads and DMs.",
       suggested_prompts: [],
     },
   },
@@ -83,7 +83,7 @@ const SLACK_MANIFEST_TEMPLATE = {
 const SLACK_DESCRIPTION_MAX = 135
 
 export function buildSlackAppManifest({ name, description }: AgentManifestInput) {
-  const trimmedName = name.trim() || "Hiveloop Employee"
+  const trimmedName = name.trim() || "Hivy Employee"
   const trimmedDescription = description?.trim() || `${trimmedName} on Slack`
   const overflows = trimmedDescription.length > SLACK_DESCRIPTION_MAX
   const shortDescription = overflows

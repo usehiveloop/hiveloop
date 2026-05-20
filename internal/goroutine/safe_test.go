@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/usehiveloop/hiveloop/internal/goroutine"
+	"github.com/usehivy/hivy/internal/goroutine"
 )
 
 func TestGo_RecoversPanic(t *testing.T) {

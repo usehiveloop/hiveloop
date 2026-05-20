@@ -7,11 +7,11 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/usehiveloop/hiveloop/internal/enqueue"
-	coremodel "github.com/usehiveloop/hiveloop/internal/model"
-	ragmodel "github.com/usehiveloop/hiveloop/internal/rag/model"
-	ragtasks "github.com/usehiveloop/hiveloop/internal/rag/tasks"
-	"github.com/usehiveloop/hiveloop/internal/rag/testhelpers"
+	"github.com/usehivy/hivy/internal/enqueue"
+	coremodel "github.com/usehivy/hivy/internal/model"
+	ragmodel "github.com/usehivy/hivy/internal/rag/model"
+	ragtasks "github.com/usehivy/hivy/internal/rag/tasks"
+	"github.com/usehivy/hivy/internal/rag/testhelpers"
 )
 
 func TestScanIngestDueReservesQueuedAttempt(t *testing.T) {

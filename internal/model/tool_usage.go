@@ -9,7 +9,7 @@ import (
 // ToolUsage records a single tool API call (e.g., Spider crawl, search, screenshot)
 // with full observability for per-org and per-agent billing and overage tracking.
 type ToolUsage struct {
-	ID       string    `gorm:"primaryKey" json:"id"`                                        // "tu_" + ULID
+	ID       string    `gorm:"primaryKey" json:"id"` // "tu_" + ULID
 	OrgID    uuid.UUID `gorm:"type:uuid;not null;index:idx_tu_org_created" json:"org_id"`
 	AgentID  string    `gorm:"not null;index:idx_tu_org_agent" json:"agent_id"`
 	TokenJTI string    `gorm:"column:token_jti;not null" json:"token_jti"`
@@ -20,7 +20,7 @@ type ToolUsage struct {
 
 	// Response metadata
 	PagesReturned int    `gorm:"default:0" json:"pages_returned"`
-	Status        string `gorm:"not null" json:"status"`                       // "success" or "error"
+	Status        string `gorm:"not null" json:"status"` // "success" or "error"
 	ErrorMessage  string `gorm:"type:text" json:"error_message,omitempty"`
 
 	// Timing

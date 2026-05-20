@@ -4,12 +4,12 @@ import (
 	"github.com/google/uuid"
 )
 
-// RAGUserExternalUserGroup maps a Hiveloop User (internal or
+// RAGUserExternalUserGroup maps a Hivy User (internal or
 // external-identified) to the external groups they belong to, scoped by
 // the RAGSource that discovered the membership.
 //
 // Verbatim port of Onyx `User__ExternalUserGroupId` at
-// backend/onyx/db/models.py:4320-4350. Hiveloop adapts `cc_pair_id` to
+// backend/onyx/db/models.py:4320-4350. Hivy adapts `cc_pair_id` to
 // `rag_source_id` so every RAG table uniformly keys off the top-level
 // RAGSource. The `stale` column and its two indexes are direct ports.
 //

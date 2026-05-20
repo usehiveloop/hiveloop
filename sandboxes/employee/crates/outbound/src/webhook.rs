@@ -11,8 +11,8 @@ use tracing::warn;
 use crate::{OutboundChannel, OutboundError, Result};
 
 const HTTP_TIMEOUT_SECONDS: u64 = 15;
-const SIGNATURE_HEADER: &str = "X-Hiveloop-Signature";
-const EVENT_TYPE_HEADER: &str = "X-Hiveloop-Event-Type";
+const SIGNATURE_HEADER: &str = "X-Hivy-Signature";
+const EVENT_TYPE_HEADER: &str = "X-Hivy-Event-Type";
 
 pub struct WebhookChannel {
     name: String,

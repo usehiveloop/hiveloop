@@ -23,8 +23,8 @@
 - [ ] Shell Python release scripts covered (scripts)
 
 ## Coverage Evidence
-- [ ] Tracked file manifest counted successfully (/tmp/hiveloop-functionality/tracked-files.txt)
-- [ ] Area manifest counts reconcile exactly (/tmp/hiveloop-functionality)
+- [ ] Tracked file manifest counted successfully (/tmp/hivy-functionality/tracked-files.txt)
+- [ ] Area manifest counts reconcile exactly (/tmp/hivy-functionality)
 - [ ] Repository checklist grep found zero missing (functionality)
 - [ ] Word-count audit found zero violations (functionality)
 - [ ] Agents reported zero uninspected assigned files (functionality)

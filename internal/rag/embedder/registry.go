@@ -38,7 +38,7 @@ type RegistryEntry struct {
 // strPtr is a small helper to build *string literals for prefix fields.
 func strPtr(s string) *string { return &s }
 
-// Registry returns the full set of embedding models Hiveloop ships with.
+// Registry returns the full set of embedding models Hivy ships with.
 // The default for new orgs is `siliconflow:qwen3-embedding-4b`
 // (Qwen3-Embedding-4B) per the plan's "Locked stack decisions".
 //

@@ -2680,11 +2680,11 @@ definitions:
       status:
         type: string
     type: object
-host: api.dev.hiveloop.com
+host: api.dev.usehivy.com
 info:
   contact: {}
   description: Proxy bridge for LLM API credentials.
-  title: HiveLoop API
+  title: Hivy API
   version: "1.0"
 paths:
   /auth/change-password:

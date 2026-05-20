@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/usehiveloop/hiveloop/internal/system"
+	"github.com/usehivy/hivy/internal/system"
 )
 
 type parsedDoneFrame struct {
@@ -14,9 +14,9 @@ type parsedDoneFrame struct {
 	Cached bool         `json:"cached"`
 }
 
-// parseHiveloopSSE walks the SSE body emitted by the system-task handler
+// parseHivySSE walks the SSE body emitted by the system-task handler
 // and extracts the per-chunk deltas plus the final done frame.
-func parseHiveloopSSE(t *testing.T, body string) ([]string, parsedDoneFrame) {
+func parseHivySSE(t *testing.T, body string) ([]string, parsedDoneFrame) {
 	t.Helper()
 	var deltas []string
 	var done parsedDoneFrame

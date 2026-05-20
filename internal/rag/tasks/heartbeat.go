@@ -9,8 +9,8 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
-	"github.com/usehiveloop/hiveloop/internal/logging"
-	ragmodel "github.com/usehiveloop/hiveloop/internal/rag/model"
+	"github.com/usehivy/hivy/internal/logging"
+	ragmodel "github.com/usehivy/hivy/internal/rag/model"
 )
 
 // stop is idempotent — safe to call from defer plus an explicit

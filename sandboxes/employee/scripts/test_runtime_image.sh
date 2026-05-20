@@ -92,9 +92,9 @@ fi
   -e SLACK_APP_TOKEN="${SLACK_APP_TOKEN:-dummy-slack-app-token}" \
   -e RUNTIME_SECRET="$SECRET" \
   -e BRIDGE_API_KEY="$SECRET" \
-  -e HIVELOOP_GIT_USERNAME="Runtime Smoke" \
-  -e HIVELOOP_GIT_EMAIL="runtime-smoke@usehiveloop.com" \
-  -e HIVELOOP_GIT_CREDENTIALS_URL="http://127.0.0.1:18081/git-credentials" \
+  -e HIVY_GIT_USERNAME="Runtime Smoke" \
+  -e HIVY_GIT_EMAIL="runtime-smoke@usehivy.com" \
+  -e HIVY_GIT_CREDENTIALS_URL="http://127.0.0.1:18081/git-credentials" \
   -e OPENROUTER_API_KEY="${OPENROUTER_API_KEY:-dummy}" \
   "$IMAGE" >/tmp/employee-bridge-runtime-container-id
 
@@ -137,12 +137,12 @@ curl -fsS \
 "$DOCKER_BIN" exec "$NAME" test -f /workspace/.skills/runtime-smoke/references/check.md
 "$DOCKER_BIN" exec "$NAME" grep -q "runtime-smoke" /workspace/.skills/runtime-smoke/SKILL.md
 "$DOCKER_BIN" exec "$NAME" grep -q "Runtime smoke ok" /workspace/.skills/runtime-smoke/references/check.md
-"$DOCKER_BIN" exec "$NAME" test -x /usr/local/bin/git-credential-hiveloop
+"$DOCKER_BIN" exec "$NAME" test -x /usr/local/bin/git-credential-hivy
 "$DOCKER_BIN" exec "$NAME" test -x /usr/local/bin/gh-wrapper
 "$DOCKER_BIN" exec "$NAME" test -L /usr/local/bin/gh
-"$DOCKER_BIN" exec "$NAME" sh -lc 'test "$(git config --system credential.helper)" = "/usr/local/bin/git-credential-hiveloop"'
+"$DOCKER_BIN" exec "$NAME" sh -lc 'test "$(git config --system credential.helper)" = "/usr/local/bin/git-credential-hivy"'
 "$DOCKER_BIN" exec "$NAME" sh -lc 'test "$(git config --system user.name)" = "Runtime Smoke"'
-"$DOCKER_BIN" exec "$NAME" sh -lc 'test "$(git config --system user.email)" = "runtime-smoke@usehiveloop.com"'
+"$DOCKER_BIN" exec "$NAME" sh -lc 'test "$(git config --system user.email)" = "runtime-smoke@usehivy.com"'
 
 "$DOCKER_BIN" run -d \
   "${run_args[@]}" \
@@ -150,18 +150,18 @@ curl -fsS \
   --entrypoint /bin/sh \
   -e RUNTIME_SECRET="$SECRET" \
   -e BRIDGE_API_KEY="$SECRET" \
-  -e HIVELOOP_GIT_USERNAME="Runtime Smoke" \
-  -e HIVELOOP_GIT_EMAIL="runtime-smoke@usehiveloop.com" \
-  -e HIVELOOP_GIT_CREDENTIALS_URL="http://127.0.0.1:18081/git-credentials" \
+  -e HIVY_GIT_USERNAME="Runtime Smoke" \
+  -e HIVY_GIT_EMAIL="runtime-smoke@usehivy.com" \
+  -e HIVY_GIT_CREDENTIALS_URL="http://127.0.0.1:18081/git-credentials" \
   "$IMAGE" \
-  -c 'git config --system user.name "$HIVELOOP_GIT_USERNAME"; git config --system user.email "$HIVELOOP_GIT_EMAIL"; sleep 300' >/tmp/employee-bridge-runtime-auth-container-id
+  -c 'git config --system user.name "$HIVY_GIT_USERNAME"; git config --system user.email "$HIVY_GIT_EMAIL"; sleep 300' >/tmp/employee-bridge-runtime-auth-container-id
 
-"$DOCKER_BIN" exec "$AUTH_NAME" test -x /usr/local/bin/git-credential-hiveloop
+"$DOCKER_BIN" exec "$AUTH_NAME" test -x /usr/local/bin/git-credential-hivy
 "$DOCKER_BIN" exec "$AUTH_NAME" test -x /usr/local/bin/gh-wrapper
 "$DOCKER_BIN" exec "$AUTH_NAME" test -L /usr/local/bin/gh
-"$DOCKER_BIN" exec "$AUTH_NAME" sh -lc 'test "$(git config --system credential.helper)" = "/usr/local/bin/git-credential-hiveloop"'
+"$DOCKER_BIN" exec "$AUTH_NAME" sh -lc 'test "$(git config --system credential.helper)" = "/usr/local/bin/git-credential-hivy"'
 "$DOCKER_BIN" exec "$AUTH_NAME" sh -lc 'test "$(git config --system user.name)" = "Runtime Smoke"'
-"$DOCKER_BIN" exec "$AUTH_NAME" sh -lc 'test "$(git config --system user.email)" = "runtime-smoke@usehiveloop.com"'
+"$DOCKER_BIN" exec "$AUTH_NAME" sh -lc 'test "$(git config --system user.email)" = "runtime-smoke@usehivy.com"'
 "$DOCKER_BIN" cp "$TMP_DIR/git_credentials_mock.py" "$AUTH_NAME:/tmp/git_credentials_mock.py"
 "$DOCKER_BIN" exec -d "$AUTH_NAME" python3 /tmp/git_credentials_mock.py /tmp/gh-wrapper-requests.jsonl
 for _ in $(seq 1 50); do

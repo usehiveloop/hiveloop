@@ -9,13 +9,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/usehiveloop/hiveloop/e2e/fakebridge"
-	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehivy/hivy/e2e/fakebridge"
+	"github.com/usehivy/hivy/internal/model"
 )
 
 // TestConversationLifecycle_PushSendStreamEnd drives the full
 // webhook -> Redis -> SSE pipeline against the fakebridge: webhook batch
-// arrives, hiveloop publishes events to Redis, the SSE consumer drains
+// arrives, hivy publishes events to Redis, the SSE consumer drains
 // them with monotonic sequence numbers, and the ConversationEnded webhook
 // flips status="ended".
 func TestConversationLifecycle_PushSendStreamEnd(t *testing.T) {
@@ -128,7 +128,7 @@ collectLoop:
 		}
 	}
 
-	// End via ConversationEnded webhook — driving DELETE through hiveloop's
+	// End via ConversationEnded webhook — driving DELETE through hivy's
 	// End() handler would require a real orchestrator.
 	endEvents := []fakebridge.BridgeEvent{
 		{

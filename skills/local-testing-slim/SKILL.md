@@ -1,6 +1,6 @@
 ---
 name: local-testing-slim
-description: Slim entry for local end-to-end testing of the hiveloop stack. Use when you've changed code in `internal/`, `cmd/server`, or `apps/web` and want to verify against running processes. Triggers include "test in the browser", "verify the flow", "smoke test", and anything touching auth, OAuth, integrations, webhooks, dispatch, or routing. Skip for unit-test-only or doc-only changes.
+description: Slim entry for local end-to-end testing of the hivy stack. Use when you've changed code in `internal/`, `cmd/server`, or `apps/web` and want to verify against running processes. Triggers include "test in the browser", "verify the flow", "smoke test", and anything touching auth, OAuth, integrations, webhooks, dispatch, or routing. Skip for unit-test-only or doc-only changes.
 ---
 
 # local-testing (slim)
@@ -36,7 +36,7 @@ Ports / logs (under `/tmp/agent-test/`): postgres `cat pg.port` (5432), redis 63
 
 ```bash
 PG_PORT=$(cat /tmp/agent-test/pg.port 2>/dev/null || echo 5432)
-PSQL="PGPASSWORD=localdev psql -h localhost -p $PG_PORT -U hiveloop -d hiveloop"
+PSQL="PGPASSWORD=localdev psql -h localhost -p $PG_PORT -U hivy -d hivy"
 redis-cli LRANGE asynq:default:scheduled 0 5   # or `make asynq-peek`
 ```
 

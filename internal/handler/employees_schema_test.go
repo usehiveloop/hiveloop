@@ -3,7 +3,7 @@ package handler
 import (
 	"testing"
 
-	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehivy/hivy/internal/model"
 )
 
 // Tests for valid schema acceptance - these verify business logic for allowed schemas

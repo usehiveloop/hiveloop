@@ -11,7 +11,7 @@ import (
 
 	qdrantgo "github.com/qdrant/go-client/qdrant"
 
-	"github.com/usehiveloop/hiveloop/internal/rag/qdrant"
+	"github.com/usehivy/hivy/internal/rag/qdrant"
 )
 
 func liveClient(t *testing.T) *qdrant.Client {

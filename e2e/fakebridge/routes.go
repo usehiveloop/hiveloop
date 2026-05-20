@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	bridgepkg "github.com/usehiveloop/hiveloop/internal/bridge"
+	bridgepkg "github.com/usehivy/hivy/internal/bridge"
 )
 
 func (s *Server) registerRoutes() {

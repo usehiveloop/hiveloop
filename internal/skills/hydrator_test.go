@@ -17,11 +17,11 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
-	"github.com/usehiveloop/hiveloop/internal/model"
-	"github.com/usehiveloop/hiveloop/internal/skills"
+	"github.com/usehivy/hivy/internal/model"
+	"github.com/usehivy/hivy/internal/skills"
 )
 
-const testDBURL = "postgres://hiveloop:localdev@localhost:5433/hiveloop_test?sslmode=disable" // #nosec G101 -- local test DB fixture
+const testDBURL = "postgres://hivy:localdev@localhost:5433/hivy_test?sslmode=disable" // #nosec G101 -- local test DB fixture
 
 func connectDB(t *testing.T) *gorm.DB {
 	t.Helper()
@@ -138,7 +138,7 @@ func TestHydrateFromGit(t *testing.T) {
 	orgID := createOrg(t, db)
 
 	sha := "deadbeefdeadbeefdeadbeefdeadbeefdeadbeef"
-	skillBody := "---\nname: greet\ndescription: say hi\nrequired_environment_variables:\n  - HIVELOOP_DRIVE_UPLOAD_URL\n  - UPLOAD_BEARER\n---\n# How to greet\nUse hello."
+	skillBody := "---\nname: greet\ndescription: say hi\nrequired_environment_variables:\n  - HIVY_DRIVE_UPLOAD_URL\n  - UPLOAD_BEARER\n---\n# How to greet\nUse hello."
 	tarball := buildFakeTarball(t, map[string]string{
 		"SKILL.md":       skillBody,
 		"scripts/run.sh": "#!/bin/sh\necho hi",
@@ -149,7 +149,7 @@ func TestHydrateFromGit(t *testing.T) {
 
 	fetcher := skills.NewGitFetcher("").WithAPIBase(server.URL)
 
-	repoURL := "https://github.com/usehiveloop/skill-greet"
+	repoURL := "https://github.com/usehivy/skill-greet"
 	skill := &model.Skill{
 		OrgID:      nil,
 		Slug:       "git-test-" + uuid.New().String()[:8],
@@ -189,7 +189,7 @@ func TestHydrateFromGit(t *testing.T) {
 		t.Errorf("references = %+v", parsed.References)
 	}
 	if len(parsed.RequiredEnvironmentVariables) != 2 ||
-		parsed.RequiredEnvironmentVariables[0] != "HIVELOOP_DRIVE_UPLOAD_URL" ||
+		parsed.RequiredEnvironmentVariables[0] != "HIVY_DRIVE_UPLOAD_URL" ||
 		parsed.RequiredEnvironmentVariables[1] != "UPLOAD_BEARER" {
 		t.Errorf("required environment variables = %+v", parsed.RequiredEnvironmentVariables)
 	}
@@ -216,7 +216,7 @@ func TestHydrateFromGit(t *testing.T) {
 // (<owner>-<repo>-<sha>/), which the fetcher/parser strips.
 func buildFakeTarball(t *testing.T, files map[string]string) []byte {
 	t.Helper()
-	topDir := fmt.Sprintf("usehiveloop-skill-greet-%s", uuid.New().String()[:8])
+	topDir := fmt.Sprintf("usehivy-skill-greet-%s", uuid.New().String()[:8])
 	var buf bytes.Buffer
 	gz := gzip.NewWriter(&buf)
 	tw := tar.NewWriter(gz)

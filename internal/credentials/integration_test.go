@@ -9,8 +9,8 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
-	"github.com/usehiveloop/hiveloop/internal/credentials"
-	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehivy/hivy/internal/credentials"
+	"github.com/usehivy/hivy/internal/model"
 )
 
 // Integration tests connect to a real Postgres instance to catch bugs the
@@ -24,7 +24,7 @@ import (
 // Password is a documented local-dev value; same one CI uses via env.
 //
 //nolint:gosec // G101: hardcoded local-dev DSN, mirrors sibling integration tests
-const testDBURL = "postgres://hiveloop:localdev@localhost:5433/hiveloop_test?sslmode=disable"
+const testDBURL = "postgres://hivy:localdev@localhost:5433/hivy_test?sslmode=disable"
 
 // connectTestDB opens a real Postgres connection and runs model.AutoMigrate.
 // It follows the same shape as the sibling helpers but only migrates the core

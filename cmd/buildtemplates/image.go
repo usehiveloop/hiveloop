@@ -6,7 +6,7 @@ import (
 
 	daytona "github.com/daytonaio/daytona/libs/sdk-go/pkg/daytona"
 
-	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehivy/hivy/internal/model"
 )
 
 const (
@@ -73,13 +73,13 @@ var sizes = model.TemplateSizes
 // The trailing -v1 is the runtime-contract revision; bump it when the image's
 // startup contract changes, not when the bridge binary version bumps.
 func snapshotName(version, size string) string {
-	return fmt.Sprintf("hiveloop-bridge-%s-%s-v1", strings.ReplaceAll(version, ".", "-"), size)
+	return fmt.Sprintf("hivy-bridge-%s-%s-v1", strings.ReplaceAll(version, ".", "-"), size)
 }
 
 func buildBridgeImage(version, bridgeVersion string, useLocalBridgeBinary bool) *daytona.DockerImage {
 	tag := "v" + strings.TrimPrefix(bridgeVersion, "v")
 	bridgeDownloadURL := fmt.Sprintf(
-		"https://github.com/usehiveloop/hiveloop/releases/download/%s/bridge-%s-x86_64-unknown-linux-gnu.tar.gz",
+		"https://github.com/usehivy/hivy/releases/download/%s/bridge-%s-x86_64-unknown-linux-gnu.tar.gz",
 		tag, tag,
 	)
 
@@ -91,8 +91,8 @@ func buildBridgeImage(version, bridgeVersion string, useLocalBridgeBinary bool) 
 	// to the same source manifest digest, Daytona reuses its cached mirror and
 	// never re-pulls from GHCR. Labels make that impossible without affecting
 	// runtime behavior or build-layer caching.
-	image = image.Label("com.hiveloop.image.version", version)
-	image = image.Label("com.hiveloop.bridge.version", bridgeVersion)
+	image = image.Label("com.hivy.image.version", version)
+	image = image.Label("com.hivy.bridge.version", bridgeVersion)
 
 	image = image.AptGet(basePackages)
 
@@ -169,14 +169,14 @@ func buildBridgeImage(version, bridgeVersion string, useLocalBridgeBinary bool) 
 	// Git credential helper fetches GitHub tokens from the control plane on
 	// demand using BRIDGE_CONTROL_PLANE_API_KEY (set by the orchestrator).
 	image = image.Run(
-		`printf '#!/bin/sh\ncurl -sf -X POST -H "Authorization: Bearer $BRIDGE_CONTROL_PLANE_API_KEY" "$HIVELOOP_GIT_CREDENTIALS_URL"\n' > /usr/local/bin/git-credential-hiveloop && ` +
-			`chmod +x /usr/local/bin/git-credential-hiveloop`,
+		`printf '#!/bin/sh\ncurl -sf -X POST -H "Authorization: Bearer $BRIDGE_CONTROL_PLANE_API_KEY" "$HIVY_GIT_CREDENTIALS_URL"\n' > /usr/local/bin/git-credential-hivy && ` +
+			`chmod +x /usr/local/bin/git-credential-hivy`,
 	)
-	image = image.Run("git config --system credential.helper /usr/local/bin/git-credential-hiveloop")
+	image = image.Run("git config --system credential.helper /usr/local/bin/git-credential-hivy")
 
 	// gh CLI wrapper fetches a fresh token per invocation.
 	image = image.Run(
-		`printf '#!/bin/sh\nexport GH_NO_KEYRING=1\nexport GH_TOKEN=$(curl -sf -X POST -H "Authorization: Bearer $BRIDGE_CONTROL_PLANE_API_KEY" "$HIVELOOP_GIT_CREDENTIALS_URL" | grep password | cut -d= -f2)\nexec /usr/bin/gh "$@"\n' > /usr/local/bin/gh-wrapper && ` +
+		`printf '#!/bin/sh\nexport GH_NO_KEYRING=1\nexport GH_TOKEN=$(curl -sf -X POST -H "Authorization: Bearer $BRIDGE_CONTROL_PLANE_API_KEY" "$HIVY_GIT_CREDENTIALS_URL" | grep password | cut -d= -f2)\nexec /usr/bin/gh "$@"\n' > /usr/local/bin/gh-wrapper && ` +
 			`chmod +x /usr/local/bin/gh-wrapper && ` +
 			`ln -sf /usr/local/bin/gh-wrapper /usr/local/bin/gh`,
 	)
@@ -208,8 +208,8 @@ func buildBridgeImage(version, bridgeVersion string, useLocalBridgeBinary bool) 
 	image = image.Entrypoint([]string{
 		"/usr/bin/tini", "--",
 		"/bin/sh", "-c",
-		"git config --system user.name \"$HIVELOOP_GIT_USERNAME\"; " +
-			"git config --system user.email \"$HIVELOOP_GIT_EMAIL\"; " +
+		"git config --system user.name \"$HIVY_GIT_USERNAME\"; " +
+			"git config --system user.email \"$HIVY_GIT_EMAIL\"; " +
 			"mkdir -p /work/.claude /work/.opencode /work/tmp && " +
 			"exec /usr/local/bin/bridge >> /tmp/bridge.log 2>&1",
 	})

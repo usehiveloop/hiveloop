@@ -157,7 +157,7 @@ fixes.
 ### Option C — Rust sidecar (high effort, high safety)
 
 Write a thin Rust daemon that links the upstream `lancedb` crate
-directly and exposes the seven operations over HTTP/gRPC. Hiveloop Go
+directly and exposes the seven operations over HTTP/gRPC. Hivy Go
 talks to the sidecar via the existing service-to-service patterns.
 Isolates the CGO layer entirely, eliminates the native-artifact
 dance, and gives us a stable API we control.

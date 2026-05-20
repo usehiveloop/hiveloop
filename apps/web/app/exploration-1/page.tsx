@@ -226,7 +226,7 @@ function BrandSwitcher() {
       <Avatar size="sm">
         <AvatarFallback className="bg-foreground text-background">H</AvatarFallback>
       </Avatar>
-      <span className="font-display text-sm font-medium tracking-tight">Hiveloop</span>
+      <span className="font-display text-sm font-medium tracking-tight">Hivy</span>
     </Button>
   )
 }

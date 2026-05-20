@@ -5,11 +5,11 @@
     "swagger": "2.0",
     "info": {
         "description": "Proxy bridge for LLM API credentials.",
-        "title": "HiveLoop API",
+        "title": "Hivy API",
         "contact": {},
         "version": "1.0"
     },
-    "host": "api.dev.hiveloop.com",
+    "host": "api.dev.usehivy.com",
     "basePath": "/",
     "paths": {
         "/auth/change-password": {

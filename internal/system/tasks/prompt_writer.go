@@ -1,7 +1,7 @@
 package tasks
 
 import (
-	"github.com/usehiveloop/hiveloop/internal/system"
+	"github.com/usehivy/hivy/internal/system"
 )
 
 var PromptWriter = system.Task{

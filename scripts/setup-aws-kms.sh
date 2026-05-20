@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# setup-aws-kms.sh — Create KMS keys and IAM entities for HiveLoop
+# setup-aws-kms.sh — Create KMS keys and IAM entities for Hivy
 #
 # Usage:
 #   ./setup-aws-kms.sh dev
@@ -11,7 +11,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_NAME="hiveloop"
+PROJECT_NAME="hivy"
 ENVIRONMENT="${1:-}"
 
 # Colors for output
@@ -70,7 +70,7 @@ get_aws_region() {
 create_kms_key() {
     local env=$1
     local key_alias="alias/${PROJECT_NAME}"
-    local key_description="HiveLoop master key for credential encryption (${env} environment)"
+    local key_description="Hivy master key for credential encryption (${env} environment)"
 
     log_info "Creating KMS key for ${env} environment..."
 
@@ -199,7 +199,7 @@ EOF
     else
         policy_arn=$(aws iam create-policy \
             --policy-name "$policy_name" \
-            --description "KMS access for HiveLoop ${env} environment" \
+            --description "KMS access for Hivy ${env} environment" \
             --policy-document "$policy_document" \
             --tags Key=Environment,Value="$env" Key=Application,Value="$PROJECT_NAME" \
             --query 'Policy.Arn' \
@@ -243,7 +243,7 @@ create_access_keys() {
     # Save to file
     local output_file="${SCRIPT_DIR}/aws-credentials-${env}.env"
     cat > "$output_file" <<EOF
-# HiveLoop AWS Credentials - ${env} environment
+# Hivy AWS Credentials - ${env} environment
 # Generated: $(date)
 # User: ${username}
 
@@ -252,7 +252,7 @@ AWS_ACCESS_KEY_ID=${access_key_id}
 AWS_SECRET_ACCESS_KEY=${secret_access_key}
 AWS_REGION=$(get_aws_region)
 
-# HiveLoop Configuration
+# Hivy Configuration
 KMS_TYPE=awskms
 KMS_KEY=alias/${PROJECT_NAME}
 EOF
@@ -276,7 +276,7 @@ print_summary() {
 
     echo ""
     echo "=========================================="
-    echo "  HiveLoop AWS Setup - ${env}"
+    echo "  Hivy AWS Setup - ${env}"
     echo "=========================================="
     echo ""
     echo "KMS Key ID:     ${key_id}"
@@ -348,7 +348,7 @@ setup_environment() {
 
 main() {
     echo "=========================================="
-    echo "  HiveLoop AWS Infrastructure Setup"
+    echo "  Hivy AWS Infrastructure Setup"
     echo "=========================================="
 
     # Validate arguments

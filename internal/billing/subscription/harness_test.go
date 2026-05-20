@@ -9,14 +9,14 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
-	"github.com/usehiveloop/hiveloop/internal/billing"
-	"github.com/usehiveloop/hiveloop/internal/billing/fake"
-	subpkg "github.com/usehiveloop/hiveloop/internal/billing/subscription"
-	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehivy/hivy/internal/billing"
+	"github.com/usehivy/hivy/internal/billing/fake"
+	subpkg "github.com/usehivy/hivy/internal/billing/subscription"
+	"github.com/usehivy/hivy/internal/model"
 )
 
 //nolint:gosec // local-dev DSN, mirrors other integration tests
-const testDBURL = "postgres://hiveloop:localdev@localhost:5433/hiveloop_test?sslmode=disable"
+const testDBURL = "postgres://hivy:localdev@localhost:5433/hivy_test?sslmode=disable"
 
 func connectTestDB(t *testing.T) *gorm.DB {
 	t.Helper()
@@ -121,7 +121,7 @@ func (h *harness) seedSub(t *testing.T, plan model.Plan, periodOffsetSecs int64)
 		CurrentPeriodStart: periodStart,
 		CurrentPeriodEnd:   periodEnd,
 		AuthorizationCode:  "AUTH_test",
-		PaymentChannel:       "card",
+		PaymentChannel:     "card",
 	}
 	if err := h.db.Create(&sub).Error; err != nil {
 		t.Fatalf("seed sub: %v", err)

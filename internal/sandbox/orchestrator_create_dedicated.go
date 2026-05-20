@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/usehiveloop/hiveloop/internal/logging"
-	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehivy/hivy/internal/logging"
+	"github.com/usehivy/hivy/internal/model"
 )
 
 func (o *Orchestrator) createSandbox(ctx context.Context, org *model.Org, agent *model.Agent, extraEnv map[string]string) (*model.Sandbox, error) {
@@ -196,7 +196,7 @@ func (o *Orchestrator) buildSandboxName(agent *model.Agent) string {
 	ts := time.Now().Unix()
 	if agent != nil {
 		safeName := sanitizeName(agent.Name)
-		return fmt.Sprintf("hiveloop-ded-%s-%s-%d", safeName, shortID(agent.ID), ts)
+		return fmt.Sprintf("hivy-ded-%s-%s-%d", safeName, shortID(agent.ID), ts)
 	}
-	return fmt.Sprintf("hiveloop-ded-%d", ts)
+	return fmt.Sprintf("hivy-ded-%d", ts)
 }

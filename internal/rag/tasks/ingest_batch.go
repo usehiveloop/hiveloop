@@ -8,9 +8,9 @@ import (
 
 	"github.com/pkoukk/tiktoken-go"
 
-	"github.com/usehiveloop/hiveloop/internal/rag/connectors/interfaces"
-	ragmodel "github.com/usehiveloop/hiveloop/internal/rag/model"
-	"github.com/usehiveloop/hiveloop/internal/rag/qdrant"
+	"github.com/usehivy/hivy/internal/rag/connectors/interfaces"
+	ragmodel "github.com/usehivy/hivy/internal/rag/model"
+	"github.com/usehivy/hivy/internal/rag/qdrant"
 )
 
 // 8192 - 2048 safety margin. Same encoding (cl100k_base) for every run,

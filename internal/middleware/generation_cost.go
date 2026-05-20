@@ -3,9 +3,9 @@ package middleware
 import (
 	"gorm.io/gorm"
 
-	"github.com/usehiveloop/hiveloop/internal/model"
-	"github.com/usehiveloop/hiveloop/internal/observe"
-	"github.com/usehiveloop/hiveloop/internal/registry"
+	"github.com/usehivy/hivy/internal/model"
+	"github.com/usehivy/hivy/internal/observe"
+	"github.com/usehivy/hivy/internal/registry"
 )
 
 // cachedTokenDiscount is the per-provider multiplier applied to cached input

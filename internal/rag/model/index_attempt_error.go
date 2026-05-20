@@ -16,7 +16,7 @@ import (
 // backend/onyx/db/models.py:2399-2438.
 //
 // DEVIATIONS vs Onyx:
-//   - PK is uuid, not autoincrement int (Hiveloop convention).
+//   - PK is uuid, not autoincrement int (Hivy convention).
 //   - `connector_credential_pair_id` becomes `rag_source_id`.
 //   - CASCADE on the attempt FK is explicit — if the parent attempt
 //     goes away (e.g. org deletion cascades through it), the error log
@@ -26,7 +26,7 @@ type RAGIndexAttemptError struct {
 	// ID — Onyx models.py:2402.
 	ID uuid.UUID `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
 
-	// OrgID — Hiveloop addition for row-level tenancy + fast
+	// OrgID — Hivy addition for row-level tenancy + fast
 	// org-scoped error listings in the admin UI.
 	OrgID uuid.UUID `gorm:"type:uuid;not null;index;constraint:OnDelete:CASCADE"`
 

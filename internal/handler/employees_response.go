@@ -3,7 +3,7 @@ package handler
 import (
 	"time"
 
-	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehivy/hivy/internal/model"
 )
 
 // employeeTriggerInput defines an employee trigger.

@@ -1,9 +1,9 @@
-Production database schema findings from hiveloop.com comparison
+Production database schema findings from usehivy.com comparison
 =================================================================
 
 Context
 -------
-- Compared production Railway Postgres schema against current local main AutoMigrate output in /Users/bahdcoder/code/hiveloop.com.
+- Compared production Railway Postgres schema against current local main AutoMigrate output in /Users/bahdcoder/code/usehivy.com.
 - Production had 63 tables.
 - Local current-main AutoMigrate had 52 tables.
 - No local-only tables, columns, or indexes were found.
@@ -136,7 +136,7 @@ Production-only non-RAG indexes
 Recommended implementation tasks
 --------------------------------
 
-1. Add a real RAG migration path in hiveloop.com.
+1. Add a real RAG migration path in usehivy.com.
    - Create an internal RAG migration function, for example internal/rag/migrate.go.
    - AutoMigrate at minimum:
      - RAGSource
@@ -174,12 +174,12 @@ Recommended implementation tasks
 Useful local code areas inspected
 ---------------------------------
 
-- /Users/bahdcoder/code/hiveloop.com/internal/model/org.go
-- /Users/bahdcoder/code/hiveloop.com/cmd/server/serve.go
-- /Users/bahdcoder/code/hiveloop.com/cmd/server/serve_routes_v1.go
-- /Users/bahdcoder/code/hiveloop.com/cmd/server/worker.go
-- /Users/bahdcoder/code/hiveloop.com/cmd/server/worker_rag.go
-- /Users/bahdcoder/code/hiveloop.com/apps/web/app/w/knowledge/page.tsx
-- /Users/bahdcoder/code/hiveloop.com/apps/web/app/w/knowledge/_components/add-connection-dialog.tsx
-- /Users/bahdcoder/code/hiveloop.com/apps/web/app/w/knowledge/_components/add-website-dialog.tsx
-- /Users/bahdcoder/code/hiveloop.com/apps/web/app/w/knowledge/_components/search-panel.tsx
+- /Users/bahdcoder/code/usehivy.com/internal/model/org.go
+- /Users/bahdcoder/code/usehivy.com/cmd/server/serve.go
+- /Users/bahdcoder/code/usehivy.com/cmd/server/serve_routes_v1.go
+- /Users/bahdcoder/code/usehivy.com/cmd/server/worker.go
+- /Users/bahdcoder/code/usehivy.com/cmd/server/worker_rag.go
+- /Users/bahdcoder/code/usehivy.com/apps/web/app/w/knowledge/page.tsx
+- /Users/bahdcoder/code/usehivy.com/apps/web/app/w/knowledge/_components/add-connection-dialog.tsx
+- /Users/bahdcoder/code/usehivy.com/apps/web/app/w/knowledge/_components/add-website-dialog.tsx
+- /Users/bahdcoder/code/usehivy.com/apps/web/app/w/knowledge/_components/search-panel.tsx

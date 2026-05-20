@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/usehiveloop/hiveloop/internal/billing"
+	"github.com/usehivy/hivy/internal/billing"
 )
 
 type initializeRequest struct {

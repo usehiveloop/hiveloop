@@ -6,8 +6,8 @@ import (
 
 	sentrygo "github.com/getsentry/sentry-go"
 
-	"github.com/usehiveloop/hiveloop/internal/model"
-	sentryobs "github.com/usehiveloop/hiveloop/internal/observability/sentry"
+	"github.com/usehivy/hivy/internal/model"
+	sentryobs "github.com/usehivy/hivy/internal/observability/sentry"
 )
 
 func annotateEmployeeSandboxUpgradeSentry(ctx context.Context, upgrade *model.EmployeeSandboxUpgrade, agent *model.Agent, oldSandbox *model.Sandbox) {

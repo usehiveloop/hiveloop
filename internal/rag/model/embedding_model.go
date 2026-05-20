@@ -3,7 +3,7 @@ package model
 import "time"
 
 // RAGEmbeddingModel is the catalog of embedding models supported by
-// Hiveloop's RAG pipeline. Each row is an admin-visible entry that
+// Hivy's RAG pipeline. Each row is an admin-visible entry that
 // RAGSearchSettings.EmbeddingModelID and RAGIndexAttempt.EmbeddingModelID
 // FK into.
 //

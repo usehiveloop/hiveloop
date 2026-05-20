@@ -10,9 +10,9 @@ import (
 	"github.com/lib/pq"
 	"gorm.io/gorm"
 
-	bridgepkg "github.com/usehiveloop/hiveloop/internal/bridge"
-	"github.com/usehiveloop/hiveloop/internal/config"
-	"github.com/usehiveloop/hiveloop/internal/model"
+	bridgepkg "github.com/usehivy/hivy/internal/bridge"
+	"github.com/usehivy/hivy/internal/config"
+	"github.com/usehivy/hivy/internal/model"
 )
 
 func TestPusherBuildAgentDefinition(t *testing.T) {
@@ -43,8 +43,8 @@ func TestPusherBuildAgentDefinition(t *testing.T) {
 	resources := model.JSON{
 		"conn-github-123": map[string]any{
 			"repository": []any{
-				map[string]any{"id": "hiveloop/bridge", "name": "bridge"},
-				map[string]any{"id": "hiveloop/hiveloop", "name": "hiveloop"},
+				map[string]any{"id": "usehivy/bridge", "name": "bridge"},
+				map[string]any{"id": "usehivy/hivy", "name": "hivy"},
 			},
 		},
 	}
@@ -107,8 +107,8 @@ func TestPusherBuildAgentDefinition(t *testing.T) {
 
 	assertContains(t, "system_prompt", def.SystemPrompt, "You are a DevOps engineer.")
 	assertContains(t, "system_prompt repo context", def.SystemPrompt, "CLONED REPOSITORIES")
-	assertContains(t, "system_prompt bridge repo", def.SystemPrompt, "hiveloop/bridge")
-	assertContains(t, "system_prompt hiveloop repo", def.SystemPrompt, "hiveloop/hiveloop")
+	assertContains(t, "system_prompt bridge repo", def.SystemPrompt, "usehivy/bridge")
+	assertContains(t, "system_prompt hivy repo", def.SystemPrompt, "usehivy/hivy")
 
 	if def.Permissions != nil {
 		t.Errorf("permissions should be nil (per-tool permissions are not pushed to bridge)")
@@ -117,7 +117,7 @@ func TestPusherBuildAgentDefinition(t *testing.T) {
 		t.Errorf("config.disabled_tools should be nil (per-tool permissions are not pushed to bridge)")
 	}
 
-	// Hiveloop MCP server should be injected because the agent has integrations.
+	// Hivy MCP server should be injected because the agent has integrations.
 	if def.McpServers == nil {
 		t.Fatal("mcp_servers should not be nil")
 	}
@@ -125,7 +125,7 @@ func TestPusherBuildAgentDefinition(t *testing.T) {
 	for i, mcp := range *def.McpServers {
 		mcpNames[i] = mcp.Name
 	}
-	assertSliceContains(t, "mcp_servers", mcpNames, "hiveloop")
+	assertSliceContains(t, "mcp_servers", mcpNames, "hivy")
 
 	if def.Skills == nil {
 		t.Fatal("skills should not be nil")
@@ -153,19 +153,19 @@ func TestPusherBuildAgentDefinition(t *testing.T) {
 		t.Errorf("AgentDefinition JSON must not contain a `subagents` field; got %s", defJSON)
 	}
 
-	var hiveloopMCP *bridgepkg.McpServerDefinition
+	var hivyMCP *bridgepkg.McpServerDefinition
 	for i := range *def.McpServers {
-		if (*def.McpServers)[i].Name == "hiveloop" {
-			hiveloopMCP = &(*def.McpServers)[i]
+		if (*def.McpServers)[i].Name == "hivy" {
+			hivyMCP = &(*def.McpServers)[i]
 			break
 		}
 	}
-	if hiveloopMCP == nil {
-		t.Fatal("expected hiveloop MCP server in def.McpServers when integrations are attached")
+	if hivyMCP == nil {
+		t.Fatal("expected hivy MCP server in def.McpServers when integrations are attached")
 	}
-	transport, err := hiveloopMCP.Transport.AsMcpTransport1()
+	transport, err := hivyMCP.Transport.AsMcpTransport1()
 	if err != nil {
-		t.Fatalf("hiveloop MCP transport must be streamable_http: %v", err)
+		t.Fatalf("hivy MCP transport must be streamable_http: %v", err)
 	}
 	if transport.Type != bridgepkg.StreamableHttp {
 		t.Errorf("transport.type = %q, want streamable_http", transport.Type)
@@ -177,7 +177,7 @@ func TestPusherBuildAgentDefinition(t *testing.T) {
 		t.Errorf("transport.url should end with jti %q; got %q", jti, transport.Url)
 	}
 	if transport.Headers == nil {
-		t.Fatal("hiveloop MCP transport must carry an Authorization header")
+		t.Fatal("hivy MCP transport must carry an Authorization header")
 	}
 	if (*transport.Headers)["Authorization"] != "Bearer "+proxyToken {
 		t.Errorf("Authorization header = %q, want bearer of proxy token", (*transport.Headers)["Authorization"])

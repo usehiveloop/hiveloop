@@ -12,7 +12,7 @@ import (
 //
 // The ProviderUserEmail / ProviderUserLogin / VerifiedEmails /
 // LastSyncedAt columns cache source-canonical identity metadata so
-// RAG permission sync can map a Hiveloop user to source-native ACL
+// RAG permission sync can map a Hivy user to source-native ACL
 // entries (e.g. GitHub work email vs personal) without re-hitting
 // the provider on every search. Onyx resolves these on-demand inside
 // perm-sync code (backend/onyx/db/models.py:299-303); we cache

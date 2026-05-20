@@ -9,8 +9,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/usehiveloop/hiveloop/internal/mcp/catalog"
-	"github.com/usehiveloop/hiveloop/internal/nango"
+	"github.com/usehivy/hivy/internal/mcp/catalog"
+	"github.com/usehivy/hivy/internal/nango"
 )
 
 // capturedBody records the JSON body sent to the Nango proxy.

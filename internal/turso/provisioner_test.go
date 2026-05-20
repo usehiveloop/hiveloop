@@ -13,10 +13,10 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
-	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehivy/hivy/internal/model"
 )
 
-const testDBURL = "postgres://hiveloop:localdev@localhost:5433/hiveloop_test?sslmode=disable" // #nosec G101 -- local test DB fixture
+const testDBURL = "postgres://hivy:localdev@localhost:5433/hivy_test?sslmode=disable" // #nosec G101 -- local test DB fixture
 
 func setupDB(t *testing.T) *gorm.DB {
 	t.Helper()
@@ -105,8 +105,8 @@ func TestProvisioner_EnsureStorage(t *testing.T) {
 	if ws.StorageURL != storageURL {
 		t.Errorf("DB storage URL mismatch: got %q", ws.StorageURL)
 	}
-	if !strings.HasPrefix(ws.TursoDatabaseName, "hiveloop-") {
-		t.Errorf("DB name should start with hiveloop-, got %q", ws.TursoDatabaseName)
+	if !strings.HasPrefix(ws.TursoDatabaseName, "hivy-") {
+		t.Errorf("DB name should start with hivy-, got %q", ws.TursoDatabaseName)
 	}
 
 	storageURL2, authToken2, err := provisioner.EnsureStorage(ctx, org.ID)
@@ -140,7 +140,7 @@ func TestProvisioner_DeleteStorage(t *testing.T) {
 
 	ws := model.WorkspaceStorage{
 		OrgID:             org.ID,
-		TursoDatabaseName: "hiveloop-del-" + suffix,
+		TursoDatabaseName: "hivy-del-" + suffix,
 		StorageURL:        "libsql://del.turso.io",
 		StorageAuthToken:  "token",
 	}

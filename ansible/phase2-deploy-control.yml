@@ -8,9 +8,9 @@
 #   - Phase 1 completed
 #   - .env sourced with all secrets
 #   - DNS records pointing to VPS (77.42.84.83):
-#     - api.daytona.usehiveloop.com
-#     - dex.daytona.usehiveloop.com
-#     - *.preview.usehiveloop.com
+#     - api.daytona.usehivy.com
+#     - dex.daytona.usehivy.com
+#     - *.preview.usehivy.com
 
 - name: "Phase 2: Deploy Control Plane"
   hosts: control
@@ -35,6 +35,6 @@
         - DAYTONA_ADMIN_API_KEY
         - DAYTONA_DEX_ADMIN_PASSWORD_HASH
         - CLOUDFLARE_API_TOKEN
-        - HIVELOOP_INTERNAL_SECRET
+        - HIVY_INTERNAL_SECRET
   roles:
     - deploy-control

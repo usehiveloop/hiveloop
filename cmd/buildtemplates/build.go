@@ -17,17 +17,17 @@ import (
 )
 
 const ghcrRegistry = "ghcr.io"
-const ghcrNamespace = "usehiveloop"
+const ghcrNamespace = "usehivy"
 
 func runBridge(ctx context.Context, args []string) {
 	fs := flag.NewFlagSet("bridge", flag.ExitOnError)
 	version := fs.String("version", "", "Image version (required, e.g. 1.0.0)")
-	bridgeVersion := fs.String("bridge-version", "", "usehiveloop/hiveloop release tag for the bridge binary (required, e.g. v1.0.0)")
+	bridgeVersion := fs.String("bridge-version", "", "usehivy/hivy release tag for the bridge binary (required, e.g. v1.0.0)")
 	bridgeBinary := fs.String("bridge-binary", "", "Optional local Linux x86_64 bridge binary to copy into the image instead of downloading a release asset")
 	size := fs.String("size", "all", "Snapshot sizes to register (small, medium, large, xlarge, all)")
-	buildImage := fs.Bool("build-image", true, "Build and push ghcr.io/usehiveloop/sandbox-bridge before registering snapshots")
+	buildImage := fs.Bool("build-image", true, "Build and push ghcr.io/usehivy/sandbox-bridge before registering snapshots")
 	registerSnapshots := fs.Bool("register-snapshots", true, "Register Daytona snapshots after pushing the image")
-	tagLatest := fs.Bool("latest", true, "Also tag and push ghcr.io/usehiveloop/sandbox-bridge:latest")
+	tagLatest := fs.Bool("latest", true, "Also tag and push ghcr.io/usehivy/sandbox-bridge:latest")
 	if err := fs.Parse(args); err != nil {
 		os.Exit(2)
 	}

@@ -7,8 +7,8 @@ import (
 
 	"github.com/caarlos0/env/v11"
 
-	"github.com/usehiveloop/hiveloop/internal/config"
-	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehivy/hivy/internal/config"
+	"github.com/usehivy/hivy/internal/model"
 )
 
 func TestImageRuntimeContract(t *testing.T) {
@@ -37,27 +37,27 @@ func TestImageRuntimeContract(t *testing.T) {
 	got := provider.createCalls[0].EnvVars
 
 	required := map[string]string{
-		"HOME":                  "/work",
-		"CLAUDE_CONFIG_DIR":     "/work/.claude",
-		"OPENCODE_CONFIG_DIR":   "/work/.opencode",
-		"NO_BROWSER":            "1",
-		"BRIDGE_LISTEN_ADDR":    "0.0.0.0:25434",
-		"BRIDGE_STORAGE_PATH":   "/work/bridge.db",
-		"HIVELOOP_GIT_USERNAME": sanitizeName(agent.Name),
+		"HOME":                "/work",
+		"CLAUDE_CONFIG_DIR":   "/work/.claude",
+		"OPENCODE_CONFIG_DIR": "/work/.opencode",
+		"NO_BROWSER":          "1",
+		"BRIDGE_LISTEN_ADDR":  "0.0.0.0:25434",
+		"BRIDGE_STORAGE_PATH": "/work/bridge.db",
+		"HIVY_GIT_USERNAME":   sanitizeName(agent.Name),
 	}
 	for k, want := range required {
 		if got[k] != want {
 			t.Errorf("env %s = %q, want %q", k, got[k], want)
 		}
 	}
-	if want := sanitizeName(agent.Name) + "@users.noreply.github.com"; got["HIVELOOP_GIT_EMAIL"] != want {
-		t.Errorf("env HIVELOOP_GIT_EMAIL = %q, want %q", got["HIVELOOP_GIT_EMAIL"], want)
+	if want := sanitizeName(agent.Name) + "@users.noreply.github.com"; got["HIVY_GIT_EMAIL"] != want {
+		t.Errorf("env HIVY_GIT_EMAIL = %q, want %q", got["HIVY_GIT_EMAIL"], want)
 	}
 
 	dropped := []string{
 		"BRIDGE_LSP_PORT",
 		"BRIDGE_LSP_ADDR",
-		"HIVELOOP_LSP_PORT",
+		"HIVY_LSP_PORT",
 	}
 	for _, k := range dropped {
 		if v, ok := got[k]; ok {
@@ -78,7 +78,7 @@ func TestImageRuntimeContract(t *testing.T) {
 		}
 	}
 
-	want := "hiveloop-bridge-1-0-0-small-v1"
+	want := "hivy-bridge-1-0-0-small-v1"
 	if orch.cfg.BridgeBaseDedicatedImagePrefix != want {
 		t.Errorf("cfg.BridgeBaseDedicatedImagePrefix = %q, want %q",
 			orch.cfg.BridgeBaseDedicatedImagePrefix, want)
@@ -99,7 +99,7 @@ func TestConfigImagePrefixDefault(t *testing.T) {
 		t.Logf("env.Parse warned: %v (expected — required vars missing)", err)
 	}
 
-	want := "hiveloop-bridge-1-0-0-small-v1"
+	want := "hivy-bridge-1-0-0-small-v1"
 	if cfg.BridgeBaseDedicatedImagePrefix != want {
 		t.Errorf("BridgeBaseDedicatedImagePrefix default = %q, want %q",
 			cfg.BridgeBaseDedicatedImagePrefix, want)

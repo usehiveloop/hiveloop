@@ -10,19 +10,19 @@ import (
 	"github.com/hibiken/asynq"
 	"github.com/hibiken/asynqmon"
 
-	"github.com/usehiveloop/hiveloop/internal/bootstrap"
-	"github.com/usehiveloop/hiveloop/internal/credentials"
-	"github.com/usehiveloop/hiveloop/internal/email"
-	"github.com/usehiveloop/hiveloop/internal/employeeruntime"
-	"github.com/usehiveloop/hiveloop/internal/enqueue"
-	"github.com/usehiveloop/hiveloop/internal/goroutine"
-	sentryobs "github.com/usehiveloop/hiveloop/internal/observability/sentry"
+	"github.com/usehivy/hivy/internal/bootstrap"
+	"github.com/usehivy/hivy/internal/credentials"
+	"github.com/usehivy/hivy/internal/email"
+	"github.com/usehivy/hivy/internal/employeeruntime"
+	"github.com/usehivy/hivy/internal/enqueue"
+	"github.com/usehivy/hivy/internal/goroutine"
+	sentryobs "github.com/usehivy/hivy/internal/observability/sentry"
 	// Blank import populates interfaces.Registry via init().
-	_ "github.com/usehiveloop/hiveloop/internal/rag/connectors"
-	ragscheduler "github.com/usehiveloop/hiveloop/internal/rag/scheduler"
-	ragtasks "github.com/usehiveloop/hiveloop/internal/rag/tasks"
-	"github.com/usehiveloop/hiveloop/internal/skills"
-	"github.com/usehiveloop/hiveloop/internal/tasks"
+	_ "github.com/usehivy/hivy/internal/rag/connectors"
+	ragscheduler "github.com/usehivy/hivy/internal/rag/scheduler"
+	ragtasks "github.com/usehivy/hivy/internal/rag/tasks"
+	"github.com/usehivy/hivy/internal/skills"
+	"github.com/usehivy/hivy/internal/tasks"
 )
 
 func runWork(ctx context.Context, deps *bootstrap.Deps) error {

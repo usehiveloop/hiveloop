@@ -8,8 +8,8 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/usehiveloop/hiveloop/internal/logging"
-	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehivy/hivy/internal/logging"
+	"github.com/usehivy/hivy/internal/model"
 )
 
 func (h *CustomDomainHandler) registerAcmeDNS(ctx context.Context) (*acmeDNSRegisterResponse, error) {
@@ -84,22 +84,22 @@ func (h *CustomDomainHandler) reloadCaddyConfig(ctx context.Context) error {
 func (h *CustomDomainHandler) buildCaddyConfig(customDomains []model.CustomDomain) map[string]any {
 	routes := []any{}
 
-	routes = append(routes, h.authProxyRoute("acme-dns-api.daytona.hiveloop.com", "acme-dns:443"))
-	routes = append(routes, h.authProxyRoute("caddy-admin.daytona.hiveloop.com", "localhost:2019"))
-	routes = append(routes, h.simpleProxyRoute("api.daytona.hiveloop.com", "api:3000", true))
+	routes = append(routes, h.authProxyRoute("acme-dns-api.daytona.usehivy.com", "acme-dns:443"))
+	routes = append(routes, h.authProxyRoute("caddy-admin.daytona.usehivy.com", "localhost:2019"))
+	routes = append(routes, h.simpleProxyRoute("api.daytona.usehivy.com", "api:3000", true))
 	routes = append(routes, h.dexRoute())
-	routes = append(routes, h.previewProxyRoute("*.preview.hiveloop.com"))
+	routes = append(routes, h.previewProxyRoute("*.preview.usehivy.com"))
 
 	for _, cd := range customDomains {
 		routes = append(routes, h.previewProxyRoute("*."+cd.Domain))
 	}
 
 	staticSubjects := []string{
-		"acme-dns-api.daytona.hiveloop.com",
-		"caddy-admin.daytona.hiveloop.com",
-		"api.daytona.hiveloop.com",
-		"dex.daytona.hiveloop.com",
-		"*.preview.hiveloop.com",
+		"acme-dns-api.daytona.usehivy.com",
+		"caddy-admin.daytona.usehivy.com",
+		"api.daytona.usehivy.com",
+		"dex.daytona.usehivy.com",
+		"*.preview.usehivy.com",
 	}
 
 	policies := []any{
@@ -108,7 +108,7 @@ func (h *CustomDomainHandler) buildCaddyConfig(customDomains []model.CustomDomai
 			"issuers": []any{
 				map[string]any{
 					"module": "acme",
-					"email":  "admin@hiveloop.com",
+					"email":  "admin@usehivy.com",
 					"challenges": map[string]any{
 						"dns": map[string]any{
 							"provider": map[string]any{
@@ -142,7 +142,7 @@ func (h *CustomDomainHandler) buildCaddyConfig(customDomains []model.CustomDomai
 			"issuers": []any{
 				map[string]any{
 					"module": "acme",
-					"email":  "admin@hiveloop.com",
+					"email":  "admin@usehivy.com",
 					"challenges": map[string]any{
 						"dns": map[string]any{
 							"provider": map[string]any{

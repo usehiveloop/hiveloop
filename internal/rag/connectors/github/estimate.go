@@ -7,7 +7,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/usehiveloop/hiveloop/internal/rag/connectors/interfaces"
+	"github.com/usehivy/hivy/internal/rag/connectors/interfaces"
 )
 
 func (c *GithubConnector) EstimateTotal(ctx context.Context, src interfaces.Source) (int, error) {

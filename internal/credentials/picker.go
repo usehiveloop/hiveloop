@@ -8,9 +8,9 @@ import (
 
 	"gorm.io/gorm"
 
-	"github.com/usehiveloop/hiveloop/internal/model"
-	"github.com/usehiveloop/hiveloop/internal/registry"
-	subagents "github.com/usehiveloop/hiveloop/internal/sub-agents"
+	"github.com/usehivy/hivy/internal/model"
+	"github.com/usehivy/hivy/internal/registry"
+	subagents "github.com/usehivy/hivy/internal/sub-agents"
 )
 
 var ErrNoSystemCredential = errors.New("credentials: no system credential configured")

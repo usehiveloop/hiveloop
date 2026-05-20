@@ -4,7 +4,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/usehiveloop/hiveloop/internal/rag/connectors/interfaces"
+	"github.com/usehivy/hivy/internal/rag/connectors/interfaces"
 )
 
 // docIDForPR is number-scoped (not ID-scoped) so the admin-facing
@@ -20,14 +20,14 @@ func docIDForIssue(repoFullName string, issue GithubIssue) string {
 func prToDocument(repoFullName string, pr GithubPR, access *interfaces.ExternalAccess) interfaces.Document {
 	updatedAt := pr.UpdatedAt
 	doc := interfaces.Document{
-		DocID:         docIDForPR(repoFullName, pr),
-		SemanticID:    pr.Title,
-		Link:          pr.HTMLURL,
-		Sections:      []interfaces.Section{{Text: pr.Body, Link: pr.HTMLURL}},
-		DocUpdatedAt:  &updatedAt,
-		PrimaryOwners: ownerEmails(pr.User),
+		DocID:           docIDForPR(repoFullName, pr),
+		SemanticID:      pr.Title,
+		Link:            pr.HTMLURL,
+		Sections:        []interfaces.Section{{Text: pr.Body, Link: pr.HTMLURL}},
+		DocUpdatedAt:    &updatedAt,
+		PrimaryOwners:   ownerEmails(pr.User),
 		SecondaryOwners: ownerEmailsList(pr.Assignees),
-		Metadata:      prMetadata(pr),
+		Metadata:        prMetadata(pr),
 	}
 	applyAccess(&doc, access)
 	return doc
@@ -36,14 +36,14 @@ func prToDocument(repoFullName string, pr GithubPR, access *interfaces.ExternalA
 func issueToDocument(repoFullName string, issue GithubIssue, access *interfaces.ExternalAccess) interfaces.Document {
 	updatedAt := issue.UpdatedAt
 	doc := interfaces.Document{
-		DocID:         docIDForIssue(repoFullName, issue),
-		SemanticID:    issue.Title,
-		Link:          issue.HTMLURL,
-		Sections:      []interfaces.Section{{Text: issue.Body, Link: issue.HTMLURL}},
-		DocUpdatedAt:  &updatedAt,
-		PrimaryOwners: ownerEmails(issue.User),
+		DocID:           docIDForIssue(repoFullName, issue),
+		SemanticID:      issue.Title,
+		Link:            issue.HTMLURL,
+		Sections:        []interfaces.Section{{Text: issue.Body, Link: issue.HTMLURL}},
+		DocUpdatedAt:    &updatedAt,
+		PrimaryOwners:   ownerEmails(issue.User),
 		SecondaryOwners: ownerEmailsList(issue.Assignees),
-		Metadata:      issueMetadata(issue),
+		Metadata:        issueMetadata(issue),
 	}
 	applyAccess(&doc, access)
 	return doc

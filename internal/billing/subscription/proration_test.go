@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	sub "github.com/usehiveloop/hiveloop/internal/billing/subscription"
+	sub "github.com/usehivy/hivy/internal/billing/subscription"
 )
 
 func TestProrationFraction(t *testing.T) {
@@ -12,10 +12,10 @@ func TestProrationFraction(t *testing.T) {
 	periodEnd := periodStart.Add(30 * 24 * time.Hour)
 
 	tests := []struct {
-		name              string
-		now               time.Time
+		name               string
+		now                time.Time
 		wantNum, wantDenom int64
-		wantApply1000     int64 // result of applying to 1000 minor units
+		wantApply1000      int64 // result of applying to 1000 minor units
 	}{
 		{
 			name:          "exact period start (full unused)",

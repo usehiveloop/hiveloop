@@ -12,11 +12,11 @@ import (
 	"github.com/daytonaio/daytona/libs/sdk-go/pkg/types"
 )
 
-const employeeSandboxImageRepo = "ghcr.io/usehiveloop/employee-sandbox"
+const employeeSandboxImageRepo = "ghcr.io/usehivy/employee-sandbox"
 
 func runEmployeeSandbox(ctx context.Context, args []string) {
 	fs := flag.NewFlagSet("employee-sandbox", flag.ExitOnError)
-	version := fs.String("version", "", "Tag of usehiveloop/employee-sandbox already published to GHCR (required, e.g. v0.0.1)")
+	version := fs.String("version", "", "Tag of usehivy/employee-sandbox already published to GHCR (required, e.g. v0.0.1)")
 	size := fs.String("size", "all", "Snapshot sizes to register (small, medium, large, xlarge, all)")
 	if err := fs.Parse(args); err != nil {
 		os.Exit(2)
@@ -93,5 +93,5 @@ func registerEmployeeSandboxSnapshots(ctx context.Context, version string, targe
 }
 
 func employeeSandboxSnapshotName(dashedVersion, size string) string {
-	return fmt.Sprintf("hiveloop-employee-sandbox-%s-%s-v1", dashedVersion, size)
+	return fmt.Sprintf("hivy-employee-sandbox-%s-%s-v1", dashedVersion, size)
 }

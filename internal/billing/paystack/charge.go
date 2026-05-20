@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/usehiveloop/hiveloop/internal/billing"
+	"github.com/usehivy/hivy/internal/billing"
 )
 
 type chargeAuthorizationRequest struct {

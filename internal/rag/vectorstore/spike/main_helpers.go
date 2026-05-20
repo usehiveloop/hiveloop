@@ -17,7 +17,7 @@
 //
 //	make rag-spike
 //
-// Which ensures MinIO is running with the hiveloop-rag-test bucket, sets
+// Which ensures MinIO is running with the hivy-rag-test bucket, sets
 // the CGO flags pointing at .lancedb-native/, and invokes:
 //
 //	go run ./internal/rag/vectorstore/spike
@@ -74,7 +74,7 @@ func randomRunID() string {
 
 func setupS3Env() (endpoint, bucket, accessKey, secretKey, region, runID, uri string) {
 	endpoint = envDefault("MINIO_ENDPOINT", "http://localhost:9000")
-	bucket = envDefault("MINIO_BUCKET", "hiveloop-rag-test")
+	bucket = envDefault("MINIO_BUCKET", "hivy-rag-test")
 	accessKey = envDefault("MINIO_ACCESS_KEY", "minioadmin")
 	secretKey = envDefault("MINIO_SECRET_KEY", "minioadmin")
 	region = envDefault("MINIO_REGION", "us-east-1")

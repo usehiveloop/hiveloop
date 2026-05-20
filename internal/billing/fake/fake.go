@@ -8,7 +8,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/usehiveloop/hiveloop/internal/billing"
+	"github.com/usehivy/hivy/internal/billing"
 )
 
 // Provider is an in-memory billing.Provider. Tests configure canned responses
@@ -20,7 +20,7 @@ type Provider struct {
 	checkouts []billing.CheckoutIntent
 	charges   []billing.ChargeAuthorizationRequest
 
-	NextCheckoutURL string
+	NextCheckoutURL   string
 	NextResolveResult *billing.ResolveCheckoutResult
 	NextResolveError  error
 

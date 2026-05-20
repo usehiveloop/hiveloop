@@ -14,7 +14,7 @@
 3D fills the GitHub slot — the first real connector — by implementing all three trait surfaces 3B defined:
 
 - `CheckpointedConnector[GithubCheckpoint]` — paginated PR + Issue fetch with resumable checkpoints, time-window filtering, per-doc failure isolation.
-- `PermSyncConnector` — translates GitHub repo visibility + team membership into the Hiveloop ACL model.
+- `PermSyncConnector` — translates GitHub repo visibility + team membership into the Hivy ACL model.
 - `SlimConnector` — cheap doc-ID-only listing for prune diffing.
 
 Plus the user-experience floor we agreed on: an `IndexingStart` column on `RAGSource` so admins of huge repos (`golang/go`, `rust-lang/rust`, etc.) can cap the initial-index window without us building a separate UI.
@@ -27,12 +27,12 @@ After 3D, the `enabled = true AND status = 'INITIAL_INDEXING'` partial index on 
 
 ### Auth model: Nango proxy, no token in our process
 
-Onyx accepts a raw `github_access_token` in `credentials["github_access_token"]` (`backend/onyx/connectors/github/connector.py:457-468`). Hiveloop does not. Every external integration goes through Nango's **proxy endpoint** — the platform owns OAuth, token refresh, revocation, and the wire to GitHub. The Nango access token never leaves Nango's process.
+Onyx accepts a raw `github_access_token` in `credentials["github_access_token"]` (`backend/onyx/connectors/github/connector.py:457-468`). Hivy does not. Every external integration goes through Nango's **proxy endpoint** — the platform owns OAuth, token refresh, revocation, and the wire to GitHub. The Nango access token never leaves Nango's process.
 
 The pattern is already in `internal/nango/client.go`:
 `ProxyRequest(ctx, method, providerConfigKey, connectionID, path, queryParams, body) → response`
 
-Hiveloop hands Nango the high-level intent (`GET /repos/acme/widget/pulls?state=all&page=1` for connection `xyz`), Nango injects the bearer header, hits GitHub, returns the response body + status + headers.
+Hivy hands Nango the high-level intent (`GET /repos/acme/widget/pulls?state=all&page=1` for connection `xyz`), Nango injects the bearer header, hits GitHub, returns the response body + status + headers.
 
 The connector consequence:
 
@@ -41,7 +41,7 @@ The connector consequence:
 3. The factory `Build(src Source, nango *nango.Client)` constructs the connector with the Nango client + connection ID. No token is fetched, persisted, or even named.
 4. Every GitHub call routes through `nango.ProxyRequest`.
 
-Operationally this is strictly better than holding a token in-process: nothing to log, nothing to leak in a goroutine dump, nothing to invalidate on rotation, no oauth2 round-trip to manage on 401. Onyx's `load_credentials(credentials: dict)` (`connector.py:457-468`) does not have a Hiveloop equivalent — there is no credentials dict; there is a connection ID.
+Operationally this is strictly better than holding a token in-process: nothing to log, nothing to leak in a goroutine dump, nothing to invalidate on rotation, no oauth2 round-trip to manage on 401. Onyx's `load_credentials(credentials: dict)` (`connector.py:457-468`) does not have a Hivy equivalent — there is no credentials dict; there is a connection ID.
 
 ### Direct types over `go-github`
 
@@ -132,11 +132,11 @@ Onyx group ID forms (`backend/ee/onyx/external_permissions/github/utils.py:249-2
 - `github__{org_id}_organization`
 - `github__{team-slug}` (raw team slug)
 
-Hiveloop's `BuildExtGroupName(group, source)` (3B) produces lowercase `"github_<groupName>"`. Same shape, lowercase enforced. The connector uses `acl.PrefixExternalGroup` directly — no GitHub-specific prefix logic in the connector body.
+Hivy's `BuildExtGroupName(group, source)` (3B) produces lowercase `"github_<groupName>"`. Same shape, lowercase enforced. The connector uses `acl.PrefixExternalGroup` directly — no GitHub-specific prefix logic in the connector body.
 
 Visibility translation (Onyx `utils.py:28-33`):
 
-| GitHub repo `visibility` | Hiveloop `ExternalAccess` |
+| GitHub repo `visibility` | Hivy `ExternalAccess` |
 |---|---|
 | `public` | `IsPublic = true`, no groups |
 | `private` | `IsPublic = false`, groups = `{collaborators, outside_collaborators, all team-slugs}` |
@@ -144,7 +144,7 @@ Visibility translation (Onyx `utils.py:28-33`):
 
 ### What we don't port from Onyx
 
-- **`indexing_start` validation tied to plan tier / time-bound** — Hiveloop has no per-tier ceiling concept yet. Add later if needed.
+- **`indexing_start` validation tied to plan tier / time-bound** — Hivy has no per-tier ceiling concept yet. Add later if needed.
 - **`repeated_error_state` connector-disable logic** — flagged in 3C plan as a follow-up; out of 3D scope. The watchdog 3C ships handles the in-flight crash case; the "this connector keeps failing every retry" pattern needs a counter on `RAGSource` and a transition to `status = 'ERROR'`. Worth ~50 LOC, but not gating 3D.
 - **PR review comments / file diffs** — Onyx fetches PR body only (`connector.py:268`). We match.
 - **Issue comments** — Onyx defines `_fetch_issue_comments` but never calls it from the main loop. We match (skip).
@@ -292,9 +292,9 @@ Same discipline as 3C — integration only, real Postgres + real Redis + real As
 
 ---
 
-## Onyx ↔ Hiveloop reference index
+## Onyx ↔ Hivy reference index
 
-| Onyx | Hiveloop (after 3D) |
+| Onyx | Hivy (after 3D) |
 |---|---|
 | `backend/onyx/connectors/github/connector.py:437-1026` (`GithubConnector` class) | `internal/rag/connectors/github/connector.go` `GithubConnector` |
 | `connector.py:457-468` (`load_credentials`) | `client.go` `newClientForConnection` + `proxy.go` `proxyClient` (auth lives in Nango; no token in our process) |

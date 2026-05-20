@@ -11,13 +11,13 @@ import (
 	chimw "github.com/go-chi/chi/v5/middleware"
 	"gorm.io/gorm"
 
-	"github.com/usehiveloop/hiveloop/internal/bootstrap"
-	"github.com/usehiveloop/hiveloop/internal/config"
-	"github.com/usehiveloop/hiveloop/internal/goroutine"
-	"github.com/usehiveloop/hiveloop/internal/handler"
-	"github.com/usehiveloop/hiveloop/internal/mcpserver"
-	"github.com/usehiveloop/hiveloop/internal/middleware"
-	sentryobs "github.com/usehiveloop/hiveloop/internal/observability/sentry"
+	"github.com/usehivy/hivy/internal/bootstrap"
+	"github.com/usehivy/hivy/internal/config"
+	"github.com/usehivy/hivy/internal/goroutine"
+	"github.com/usehivy/hivy/internal/handler"
+	"github.com/usehivy/hivy/internal/mcpserver"
+	"github.com/usehivy/hivy/internal/middleware"
+	sentryobs "github.com/usehivy/hivy/internal/observability/sentry"
 )
 
 func setupMCPServer(
@@ -41,7 +41,7 @@ func setupMCPServer(
 		r.Handle("/*", replyMCPHandler.StreamableHTTPHandler())
 		r.Handle("/", replyMCPHandler.StreamableHTTPHandler())
 	})
-	slog.Info("hiveloop reply MCP registered on /reply/{connectionID}")
+	slog.Info("hivy reply MCP registered on /reply/{connectionID}")
 
 	mcpRouter.Route("/{jti}", func(r chi.Router) {
 		r.Use(middleware.TokenAuth(signingKey, database))

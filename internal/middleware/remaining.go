@@ -4,7 +4,7 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/usehiveloop/hiveloop/internal/counter"
+	"github.com/usehivy/hivy/internal/counter"
 )
 
 // RemainingCheck returns middleware that enforces request caps on both the token
