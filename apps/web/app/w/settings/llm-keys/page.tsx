@@ -5,7 +5,7 @@ export default function Page() {
   return (
     <SettingsShell
       title="LLM keys"
-      description="Provider credentials your agents use to call models."
+      description="Provider credentials Hivy uses to call models."
       dividers={false}
     >
       <LlmKeysSettings />

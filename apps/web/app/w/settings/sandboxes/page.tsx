@@ -5,7 +5,7 @@ export default function Page() {
   return (
     <SettingsShell
       title="Sandboxes"
-      description="Reusable environments your agents can boot into."
+      description="Reusable environments Hivy can boot into."
       dividers={false}
     >
       <SandboxTemplatesList />

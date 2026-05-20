@@ -7,7 +7,6 @@ import {
   CreditCardIcon,
   LogoutIcon,
   Settings05Icon,
-  UserCircleIcon,
 } from "@hugeicons/core-free-icons"
 import { Logo } from "@/components/logo"
 import { Button } from "@/components/ui/button"
@@ -25,8 +24,12 @@ import { useAuth } from "@/lib/auth/auth-context"
 import { cn } from "@/lib/utils"
 
 const PRIMARY_NAV = [
-  { label: "Employees", href: "/w", match: "/w" },
+  { label: "Dashboard", href: "/w", match: "/w" },
+  { label: "Connections", href: "/w/connections", match: "/w/connections" },
   { label: "Knowledge", href: "/w/knowledge", match: "/w/knowledge" },
+  { label: "Skills", href: "/w/skills", match: "/w/skills" },
+  { label: "Sessions", href: "/w/sessions", match: "/w/sessions" },
+  { label: "Settings", href: "/w/settings/general", match: "/w/settings" },
 ]
 
 function initials(name?: string | null) {
@@ -198,10 +201,6 @@ function HeaderAccountMenu() {
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
-          <DropdownMenuItem render={<Link href="/w/settings/profile" />}>
-            <HugeiconsIcon icon={UserCircleIcon} strokeWidth={2} />
-            Profile
-          </DropdownMenuItem>
           <DropdownMenuItem render={<Link href="/w/settings/general" />}>
             <HugeiconsIcon icon={Settings05Icon} strokeWidth={2} />
             Settings

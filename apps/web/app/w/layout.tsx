@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation"
 
 import { AppTopbar } from "@/components/app-topbar"
 import { Loader } from "@/components/loader"
-import { OnboardingPanel } from "@/components/onboarding-panel"
 import { AuthProvider, useAuth } from "@/lib/auth/auth-context"
 
 function AuthGate({ children }: { children: React.ReactNode }) {
@@ -42,7 +41,6 @@ export default function WorkspaceLayout({
         <main className="flex min-h-0 flex-1 flex-col">
           <AuthGate>{children}</AuthGate>
         </main>
-        <OnboardingPanel />
       </div>
     </AuthProvider>
   )

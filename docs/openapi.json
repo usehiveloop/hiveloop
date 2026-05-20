@@ -3109,6 +3109,52 @@
         }
       }
     },
+    "/v1/dashboard": {
+      "get": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Returns Hivy dashboard metrics for the current organization.",
+        "tags": [
+          "dashboard"
+        ],
+        "summary": "Get dashboard summary",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/dashboardResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/employees": {
       "get": {
         "security": [
@@ -7426,6 +7472,129 @@
         }
       }
     },
+    "/v1/slack/channels": {
+      "get": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Returns public Slack channels plus private channels where Hivy is already a member.",
+        "tags": [
+          "slack"
+        ],
+        "summary": "List Slack channels",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/slackChannelsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/slack/channels/join": {
+      "post": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Invites Hivy to all public channels or selected channels. Joined private channels are treated as already available.",
+        "tags": [
+          "slack"
+        ],
+        "summary": "Join Slack channels",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/joinSlackChannelsRequest"
+              }
+            }
+          },
+          "description": "Join request",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/joinSlackChannelsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/system/tasks/{taskName}": {
       "post": {
         "security": [
@@ -9078,6 +9247,76 @@
           }
         }
       },
+      "dashboardConnectionsResponse": {
+        "type": "object",
+        "properties": {
+          "non_slack_connected": {
+            "type": "integer"
+          },
+          "slack_connected": {
+            "type": "boolean"
+          },
+          "total": {
+            "type": "integer"
+          }
+        }
+      },
+      "dashboardCreditsResponse": {
+        "type": "object",
+        "properties": {
+          "balance": {
+            "type": "integer"
+          },
+          "period_end": {
+            "type": "string"
+          },
+          "period_start": {
+            "type": "string"
+          },
+          "spent_this_period": {
+            "type": "integer"
+          }
+        }
+      },
+      "dashboardOnboardingResponse": {
+        "type": "object",
+        "properties": {
+          "extra_tools_connected": {
+            "type": "integer"
+          },
+          "extra_tools_required": {
+            "type": "integer"
+          },
+          "plan_selected": {
+            "type": "boolean"
+          }
+        }
+      },
+      "dashboardResponse": {
+        "type": "object",
+        "properties": {
+          "connections": {
+            "$ref": "#/components/schemas/dashboardConnectionsResponse"
+          },
+          "credits": {
+            "$ref": "#/components/schemas/dashboardCreditsResponse"
+          },
+          "onboarding": {
+            "$ref": "#/components/schemas/dashboardOnboardingResponse"
+          },
+          "schedules": {
+            "$ref": "#/components/schemas/dashboardSchedulesResponse"
+          }
+        }
+      },
+      "dashboardSchedulesResponse": {
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "integer"
+          }
+        }
+      },
       "dnsRecord": {
         "type": "object",
         "properties": {
@@ -9656,6 +9895,51 @@
             "type": "integer"
           },
           "write_count": {
+            "type": "integer"
+          }
+        }
+      },
+      "joinSlackChannelFailure": {
+        "type": "object",
+        "properties": {
+          "channel_id": {
+            "type": "string"
+          },
+          "error": {
+            "type": "string"
+          }
+        }
+      },
+      "joinSlackChannelsRequest": {
+        "type": "object",
+        "properties": {
+          "all_public": {
+            "type": "boolean"
+          },
+          "channel_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "joinSlackChannelsResponse": {
+        "type": "object",
+        "properties": {
+          "already_member": {
+            "type": "integer"
+          },
+          "failed": {
+            "type": "integer"
+          },
+          "failures": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/joinSlackChannelFailure"
+            }
+          },
+          "joined": {
             "type": "integer"
           }
         }
@@ -11276,6 +11560,46 @@
           },
           "version": {
             "type": "string"
+          }
+        }
+      },
+      "slackChannelResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "is_archived": {
+            "type": "boolean"
+          },
+          "is_member": {
+            "type": "boolean"
+          },
+          "is_private": {
+            "type": "boolean"
+          },
+          "name": {
+            "type": "string"
+          },
+          "num_members": {
+            "type": "integer"
+          },
+          "purpose": {
+            "type": "string"
+          },
+          "topic": {
+            "type": "string"
+          }
+        }
+      },
+      "slackChannelsResponse": {
+        "type": "object",
+        "properties": {
+          "channels": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/slackChannelResponse"
+            }
           }
         }
       },

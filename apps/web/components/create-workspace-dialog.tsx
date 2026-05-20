@@ -62,7 +62,7 @@ export function CreateWorkspaceDialog({ open, onOpenChange }: CreateWorkspaceDia
         <DialogHeader>
           <DialogTitle>Create workspace</DialogTitle>
           <DialogDescription>
-            A workspace is a shared space for your team to manage agents and connections.
+            A workspace is a shared space for your members, Hivy, and connections.
           </DialogDescription>
         </DialogHeader>
 

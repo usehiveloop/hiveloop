@@ -190,28 +190,20 @@ sqlite3 mydb.db "CREATE TABLE t(id INTEGER PRIMARY KEY, name TEXT);"
 
 ### Code Intelligence
 
-The dev-box ships three tools that together enable Greptile-level code review: a structural code graph, AST parsing for function-granularity chunking, and vector storage for semantic search over LLM-generated docstrings.
+The dev-box ships tools that support code review through AST parsing for function-granularity chunking and vector storage for semantic search over LLM-generated docstrings.
 
 | Tool | Notes |
 |------|-------|
-| codebase-memory-mcp | Builds a code graph (symbols, calls, refs, deps) from tree-sitter ASTs. Queryable via MCP tools. Single static binary. |
 | tree-sitter CLI | AST parsing across 100+ languages. Agents use it for function-granularity chunking before generating docstring embeddings. |
 | pgvector | PostgreSQL extension for vector similarity search. Stores docstring embeddings for semantic code retrieval. |
 
 **Typical agent workflow for code review:**
 
 ```sh
-# 1. Index the repo (structural graph — runs once after clone)
-codebase-memory-mcp index /path/to/repo
-
-# 2. Query the graph
-codebase-memory-mcp query "trace_call_path(function_name='handleRequest', direction='inbound')"
-codebase-memory-mcp query "search_graph(query='authentication')"
-
-# 3. Parse AST for function-granularity chunks
+# 1. Parse AST for function-granularity chunks
 tree-sitter parse src/auth/service.ts
 
-# 4. Store docstring embeddings in pgvector (agent generates docstrings via LLM)
+# 2. Store docstring embeddings in pgvector (agent generates docstrings via LLM)
 pg_ctlcluster 16 main start
 psql -U postgres -c "CREATE EXTENSION IF NOT EXISTS vector;"
 # Agent inserts embeddings and queries with vector similarity search

@@ -105,10 +105,10 @@ export default function AuthPage() {
 
           <div className="flex flex-col gap-3">
             <h1 className="font-heading text-[28px] text-center font-bold text-foreground leading-tight -tracking-[0.5px]">
-              Build, run and monitor <br />your agents
+              Put Hivy to work <br />inside your workspace
             </h1>
             <p className="text-base text-muted-foreground leading-relaxed text-center">
-              Connect your apps, provide controlled access to your ai agents, and get full visibility into their work.
+              Connect Slack and your tools, then give Hivy the context to help your team move faster.
             </p>
           </div>
 

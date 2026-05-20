@@ -4,8 +4,6 @@ These instructions are for coding agents. Follow them strictly.
 
 HiveLoop is a Go-first platform with a Go API/worker, Next.js web app, Rust sandbox runtimes, local integration simulators, and Docker/native infrastructure.
 
-Use codebase-memory MCP graph tools before shell search when available: `search_graph`, `trace_path`, `get_code_snippet`, `query_graph`, `get_architecture`. Fall back to `rg`, `find`, and direct reads only when graph tools are unavailable or when searching docs, configs, logs, generated files, env values, or string literals.
-
 ## List of services and what they do
 
 - `cmd/server`: main Go binary for API, worker, MCP, webhooks, proxying, streaming, and auth.

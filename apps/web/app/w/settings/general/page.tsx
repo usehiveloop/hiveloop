@@ -17,7 +17,7 @@ export default function Page() {
         <h2 className="text-[13px] font-medium">Delete workspace</h2>
         <div className="mt-2 flex items-start justify-between gap-6">
           <p className="text-[12px] text-muted-foreground">
-            Permanently remove this workspace, all agents, and run history. This
+            Permanently remove this workspace, Hivy data, and run history. This
             cannot be undone.
           </p>
           <Button

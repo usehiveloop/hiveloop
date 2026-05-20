@@ -4,7 +4,7 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { ProviderLogo } from "@/components/provider-logo"
-import { AddLlmKeyDialog } from "@/app/w/agents/_components/create-agent/add-llm-key-dialog"
+import { AddLlmKeyDialog } from "./add-llm-key-dialog"
 import { ConfirmDialog } from "@/components/confirm-dialog"
 import { $api } from "@/lib/api/hooks"
 import { extractErrorMessage } from "@/lib/api/error"
@@ -203,7 +203,7 @@ export function LlmKeysSettings() {
         open={deleting !== null}
         onOpenChange={(open) => { if (!open) setDeleting(null) }}
         title="Delete LLM key"
-        description={`This will permanently delete "${deleting?.label ?? ""}" and any agents using it will no longer be able to make LLM calls.`}
+        description={`This will permanently delete "${deleting?.label ?? ""}" and Hivy will no longer be able to use it for LLM calls.`}
         confirmText="delete"
         confirmLabel="Delete key"
         destructive

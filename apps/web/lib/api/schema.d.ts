@@ -3253,6 +3253,63 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/dashboard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get dashboard summary
+         * @description Returns Hivy dashboard metrics for the current organization.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["dashboardResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/employees": {
         parameters: {
             query?: never;
@@ -7380,6 +7437,143 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/slack/channels": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Slack channels
+         * @description Returns public Slack channels plus private channels where Hivy is already a member.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["slackChannelsResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/slack/channels/join": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Join Slack channels
+         * @description Invites Hivy to all public channels or selected channels. Joined private channels are treated as already available.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Join request */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["joinSlackChannelsRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["joinSlackChannelsResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/system/tasks/{taskName}": {
         parameters: {
             query?: never;
@@ -8232,6 +8426,31 @@ export interface components {
             count?: number;
             date?: string;
         };
+        dashboardConnectionsResponse: {
+            non_slack_connected?: number;
+            slack_connected?: boolean;
+            total?: number;
+        };
+        dashboardCreditsResponse: {
+            balance?: number;
+            period_end?: string;
+            period_start?: string;
+            spent_this_period?: number;
+        };
+        dashboardOnboardingResponse: {
+            extra_tools_connected?: number;
+            extra_tools_required?: number;
+            plan_selected?: boolean;
+        };
+        dashboardResponse: {
+            connections?: components["schemas"]["dashboardConnectionsResponse"];
+            credits?: components["schemas"]["dashboardCreditsResponse"];
+            onboarding?: components["schemas"]["dashboardOnboardingResponse"];
+            schedules?: components["schemas"]["dashboardSchedulesResponse"];
+        };
+        dashboardSchedulesResponse: {
+            total?: number;
+        };
         dnsRecord: {
             name?: string;
             type?: string;
@@ -8430,6 +8649,20 @@ export interface components {
             id?: string;
             read_count?: number;
             write_count?: number;
+        };
+        joinSlackChannelFailure: {
+            channel_id?: string;
+            error?: string;
+        };
+        joinSlackChannelsRequest: {
+            all_public?: boolean;
+            channel_ids?: string[];
+        };
+        joinSlackChannelsResponse: {
+            already_member?: number;
+            failed?: number;
+            failures?: components["schemas"]["joinSlackChannelFailure"][];
+            joined?: number;
         };
         latencyStats: {
             avg_ttfb_ms?: number;
@@ -8967,6 +9200,19 @@ export interface components {
             hydration_error?: string;
             id?: string;
             version?: string;
+        };
+        slackChannelResponse: {
+            id?: string;
+            is_archived?: boolean;
+            is_member?: boolean;
+            is_private?: boolean;
+            name?: string;
+            num_members?: number;
+            purpose?: string;
+            topic?: string;
+        };
+        slackChannelsResponse: {
+            channels?: components["schemas"]["slackChannelResponse"][];
         };
         spendOverTime: {
             date?: string;

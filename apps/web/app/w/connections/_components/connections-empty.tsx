@@ -89,7 +89,7 @@ export function ConnectionsEmpty({
           Connect your first integration
         </h2>
         <p className="mt-2 max-w-sm text-sm text-muted-foreground">
-          Give your agents access to the tools you use every day. Pick one to
+          Give Hivy access to the tools you use every day. Pick one to
           get started.
         </p>
       </div>

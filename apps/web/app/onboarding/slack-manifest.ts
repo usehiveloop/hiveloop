@@ -84,7 +84,7 @@ const SLACK_DESCRIPTION_MAX = 135
 
 export function buildSlackAppManifest({ name, description }: AgentManifestInput) {
   const trimmedName = name.trim() || "Hiveloop Employee"
-  const trimmedDescription = description?.trim() || `Your ${trimmedName} agent on Slack`
+  const trimmedDescription = description?.trim() || `${trimmedName} on Slack`
   const overflows = trimmedDescription.length > SLACK_DESCRIPTION_MAX
   const shortDescription = overflows
     ? trimmedDescription.slice(0, SLACK_DESCRIPTION_MAX)

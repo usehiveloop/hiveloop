@@ -1,0 +1,30 @@
+## Repository Coverage
+- [ ] Internal backend files scanned and referenced (980 files)
+- [ ] Web and admin app files referenced (764 files)
+- [ ] Sandbox and service files referenced (356 files)
+- [ ] Command e2e package files referenced (158 files)
+- [ ] Infrastructure docs root files referenced (110 files)
+- [ ] Skills guides prompt files referenced (54 files)
+- [ ] Total tracked files covered by checklists (2422 files)
+- [ ] Missing tracked file references found none (functionality/*.md)
+- [ ] Checklist descriptions satisfy word limits (functionality/*.md)
+- [ ] Existing inventory files normalized as checklists (functionality/*.txt)
+
+## Technology Families
+- [ ] Go backend handlers tasks models covered (internal)
+- [ ] Next.js web admin apps covered (apps)
+- [ ] TypeScript SDK packages covered completely (packages)
+- [ ] Rust sandbox runtime crates covered (sandboxes)
+- [ ] Playwright browser tests and fixtures covered (e2e)
+- [ ] Ansible deployment automation files covered (ansible)
+- [ ] Docker Caddy Postgres configs covered (Dockerfile)
+- [ ] GitHub Actions CI workflows covered (.github/workflows)
+- [ ] Markdown MDX docs surfaces covered (docs)
+- [ ] Shell Python release scripts covered (scripts)
+
+## Coverage Evidence
+- [ ] Tracked file manifest counted successfully (/tmp/hiveloop-functionality/tracked-files.txt)
+- [ ] Area manifest counts reconcile exactly (/tmp/hiveloop-functionality)
+- [ ] Repository checklist grep found zero missing (functionality)
+- [ ] Word-count audit found zero violations (functionality)
+- [ ] Agents reported zero uninspected assigned files (functionality)

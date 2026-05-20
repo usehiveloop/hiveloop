@@ -30,6 +30,8 @@ func setupV1Routes(
 	apiKeyHandler *handler.APIKeyHandler,
 	billingHandler *handler.BillingHandler,
 	subscriptionHandler *handler.SubscriptionHandler,
+	dashboardHandler *handler.DashboardHandler,
+	slackChannelHandler *handler.SlackChannelHandler,
 	credHandler *handler.CredentialHandler,
 	tokenHandler *handler.TokenHandler,
 	sandboxTemplateHandler *handler.SandboxTemplateHandler,
@@ -72,6 +74,9 @@ func setupV1Routes(
 				r.Post("/orgs/current/invites/{id}/resend", orgInviteHandler.Resend)
 			})
 			r.Get("/usage", usageHandler.Get)
+			if dashboardHandler != nil {
+				r.Get("/dashboard", dashboardHandler.Get)
+			}
 			r.Get("/audit", auditHandler.List)
 			r.Get("/reporting", reportingHandler.Get)
 			r.Get("/generations", generationHandler.List)
@@ -82,6 +87,10 @@ func setupV1Routes(
 			r.Delete("/api-keys/{id}", apiKeyHandler.Revoke)
 
 			mountBillingRoutes(r, billingHandler, subscriptionHandler)
+			if slackChannelHandler != nil {
+				r.Get("/slack/channels", slackChannelHandler.ListChannels)
+				r.Post("/slack/channels/join", slackChannelHandler.JoinChannels)
+			}
 
 			r.Group(func(r chi.Router) {
 				r.Use(middleware.RequireAPIKeyScopeOrJWT("credentials"))

@@ -762,6 +762,51 @@ definitions:
       date:
         type: string
     type: object
+  dashboardConnectionsResponse:
+    properties:
+      non_slack_connected:
+        type: integer
+      slack_connected:
+        type: boolean
+      total:
+        type: integer
+    type: object
+  dashboardCreditsResponse:
+    properties:
+      balance:
+        type: integer
+      period_end:
+        type: string
+      period_start:
+        type: string
+      spent_this_period:
+        type: integer
+    type: object
+  dashboardOnboardingResponse:
+    properties:
+      extra_tools_connected:
+        type: integer
+      extra_tools_required:
+        type: integer
+      plan_selected:
+        type: boolean
+    type: object
+  dashboardResponse:
+    properties:
+      connections:
+        $ref: '#/definitions/dashboardConnectionsResponse'
+      credits:
+        $ref: '#/definitions/dashboardCreditsResponse'
+      onboarding:
+        $ref: '#/definitions/dashboardOnboardingResponse'
+      schedules:
+        $ref: '#/definitions/dashboardSchedulesResponse'
+    type: object
+  dashboardSchedulesResponse:
+    properties:
+      total:
+        type: integer
+    type: object
   dnsRecord:
     properties:
       name:
@@ -1144,6 +1189,35 @@ definitions:
       read_count:
         type: integer
       write_count:
+        type: integer
+    type: object
+  joinSlackChannelFailure:
+    properties:
+      channel_id:
+        type: string
+      error:
+        type: string
+    type: object
+  joinSlackChannelsRequest:
+    properties:
+      all_public:
+        type: boolean
+      channel_ids:
+        items:
+          type: string
+        type: array
+    type: object
+  joinSlackChannelsResponse:
+    properties:
+      already_member:
+        type: integer
+      failed:
+        type: integer
+      failures:
+        items:
+          $ref: '#/definitions/joinSlackChannelFailure'
+        type: array
+      joined:
         type: integer
     type: object
   latencyStats:
@@ -2204,6 +2278,32 @@ definitions:
         type: string
       version:
         type: string
+    type: object
+  slackChannelResponse:
+    properties:
+      id:
+        type: string
+      is_archived:
+        type: boolean
+      is_member:
+        type: boolean
+      is_private:
+        type: boolean
+      name:
+        type: string
+      num_members:
+        type: integer
+      purpose:
+        type: string
+      topic:
+        type: string
+    type: object
+  slackChannelsResponse:
+    properties:
+      channels:
+        items:
+          $ref: '#/definitions/slackChannelResponse'
+        type: array
     type: object
   spendOverTime:
     properties:
@@ -4303,6 +4403,29 @@ paths:
       summary: Verify a custom domain
       tags:
       - custom-domains
+  /v1/dashboard:
+    get:
+      description: Returns Hivy dashboard metrics for the current organization.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dashboardResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get dashboard summary
+      tags:
+      - dashboard
   /v1/employees:
     get:
       description: |-
@@ -6635,6 +6758,71 @@ paths:
       summary: List skill versions
       tags:
       - skills
+  /v1/slack/channels:
+    get:
+      description: Returns public Slack channels plus private channels where Hivy
+        is already a member.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/slackChannelsResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/errorResponse'
+      security:
+      - BearerAuth: []
+      summary: List Slack channels
+      tags:
+      - slack
+  /v1/slack/channels/join:
+    post:
+      consumes:
+      - application/json
+      description: Invites Hivy to all public channels or selected channels. Joined
+        private channels are treated as already available.
+      parameters:
+      - description: Join request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/joinSlackChannelsRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/joinSlackChannelsResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Join Slack channels
+      tags:
+      - slack
   /v1/system/tasks/{taskName}:
     post:
       consumes:
