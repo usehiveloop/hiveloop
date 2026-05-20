@@ -3,12 +3,10 @@ package cache
 import (
 	"context"
 	"fmt"
-	"sync"
 	"time"
 
 	"github.com/awnumar/memguard"
 	"github.com/google/uuid"
-	"github.com/redis/go-redis/v9"
 	"golang.org/x/sync/singleflight"
 	"gorm.io/gorm"
 
@@ -263,113 +261,3 @@ func (m *Manager) InvalidateCredential(ctx context.Context, credentialID string)
 
 	return m.invalidator.PublishCredentialInvalidation(ctx, credentialID)
 }
-
-// InvalidateToken marks a token as revoked across all tiers.
-func (m *Manager) InvalidateToken(ctx context.Context, jti string, ttl time.Duration) error {
-
-	m.invalidator.revokedMu.Lock()
-	m.invalidator.revokedSet[jti] = struct{}{}
-	m.invalidator.revokedMu.Unlock()
-
-	if err := m.revokedTok.MarkRevoked(ctx, jti, ttl); err != nil {
-		return fmt.Errorf("redis mark revoked: %w", err)
-	}
-
-	return m.invalidator.PublishTokenRevocation(ctx, jti)
-}
-
-// IsTokenRevoked checks all tiers for token revocation.
-// L1 (in-memory set) → L2 (Redis) → L3 (Postgres).
-func (m *Manager) IsTokenRevoked(ctx context.Context, jti string) (bool, error) {
-
-	if m.invalidator.IsTokenLocallyRevoked(jti) {
-		return true, nil
-	}
-
-	revoked, err := m.revokedTok.IsRevoked(ctx, jti)
-	if err != nil {
-
-		revoked = false
-	}
-	if revoked {
-
-		m.invalidator.revokedMu.Lock()
-		m.invalidator.revokedSet[jti] = struct{}{}
-		m.invalidator.revokedMu.Unlock()
-		return true, nil
-	}
-
-	var count int64
-	err = m.db.WithContext(ctx).
-		Model(&model.Token{}).
-		Where("jti = ? AND revoked_at IS NOT NULL", jti).
-		Count(&count).Error
-	if err != nil {
-		return false, fmt.Errorf("db revocation check: %w", err)
-	}
-	if count > 0 {
-
-		_ = m.revokedTok.MarkRevoked(ctx, jti, 24*time.Hour)
-		m.invalidator.revokedMu.Lock()
-		m.invalidator.revokedSet[jti] = struct{}{}
-		m.invalidator.revokedMu.Unlock()
-		return true, nil
-	}
-
-	return false, nil
-}
-
-// InvalidateAPIKey removes an API key from the local cache and publishes
-// a cross-instance invalidation message.
-func (m *Manager) InvalidateAPIKey(ctx context.Context, keyHash string) error {
-	return m.invalidator.PublishAPIKeyInvalidation(ctx, keyHash)
-}
-
-// Memory returns the L1 cache (for testing / metrics).
-func (m *Manager) Memory() *MemoryCache { return m.memory }
-
-// Invalidator returns the invalidator (for starting the subscription goroutine).
-func (m *Manager) Invalidator() *Invalidator { return m.invalidator }
-
-// Config holds all parameters needed to construct a cache Manager.
-type Config struct {
-	// L1
-	MemMaxSize int
-	MemTTL     time.Duration
-
-	// L2
-	RedisTTL time.Duration
-
-	// DEK cache
-	DEKMaxSize int
-	DEKTTL     time.Duration
-
-	// Hard expiry for L1 entries
-	HardExpiry time.Duration
-}
-
-// DefaultConfig returns sensible defaults for the cache.
-func DefaultConfig() Config {
-	return Config{
-		MemMaxSize: 10000,
-		MemTTL:     5 * time.Minute,
-		RedisTTL:   30 * time.Minute,
-		DEKMaxSize: 1000,
-		DEKTTL:     30 * time.Minute,
-		HardExpiry: 15 * time.Minute,
-	}
-}
-
-// Build constructs a fully wired cache Manager.
-func Build(cfg Config, redisClient *redis.Client, kms *crypto.KeyWrapper, db *gorm.DB, apiKeyCache *APIKeyCache) *Manager {
-	memCache := NewMemoryCache(cfg.MemMaxSize, cfg.MemTTL)
-	dekCache := NewDEKCache(cfg.DEKMaxSize, cfg.DEKTTL)
-	redisCache := NewRedisCache(redisClient, cfg.RedisTTL)
-	revokedTok := NewRevokedTokenCache(redisClient)
-	invalidator := NewInvalidator(redisClient, memCache, dekCache, apiKeyCache)
-
-	return NewManager(memCache, redisCache, dekCache, revokedTok, invalidator, kms, db, cfg.HardExpiry)
-}
-
-// ensure singleflight is used (compile-time check)
-var _ sync.Locker = (*sync.Mutex)(nil)

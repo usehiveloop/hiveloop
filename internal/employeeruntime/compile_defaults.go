@@ -1,0 +1,70 @@
+package employeeruntime
+
+import (
+	"encoding/json"
+	"strings"
+
+	"github.com/usehivy/hivy/internal/config"
+	"github.com/usehivy/hivy/internal/model"
+)
+
+func proxyModel(cfg *config.Config, modelID string) ModelConfig {
+	baseURL := "https://proxy.usehivy.com/v1"
+	if cfg != nil && cfg.ProxyHost != "" {
+		baseURL = "https://" + strings.TrimRight(cfg.ProxyHost, "/") + "/v1"
+	}
+	temp := 0.3
+	maxOutput := uint32(8192)
+	reasoning := "low"
+	return ModelConfig{
+		Provider:        "openai_compatible",
+		BaseURL:         baseURL,
+		ModelID:         modelID,
+		APIKeyEnv:       ProxyAPIKeyEnv,
+		Temperature:     &temp,
+		MaxOutputTokens: &maxOutput,
+		ReasoningEffort: &reasoning,
+		ExtraHeaders:    map[string]string{},
+	}
+}
+
+func ptrModel(m ModelConfig) *ModelConfig { return &m }
+
+func defaultLimits() map[string]any {
+	return map[string]any{
+		"max_turns_per_session":     50,
+		"input_token_budget":        180000,
+		"output_token_budget":       8000,
+		"tool_call_timeout_seconds": 60,
+		"specialist_max_depth":      2,
+	}
+}
+
+func defaultTools() []map[string]any {
+	return []map[string]any{
+		{"type": "builtin.bash", "config": map[string]any{"workdir": ".", "timeout_seconds": 60, "max_output_bytes": 5 * 1024 * 1024, "deny_patterns": []string{"rm -rf /", "rm -rf ~", "mkfs", "dd if=", ":(){:|:&};:", "shutdown", "reboot"}, "env_passthrough": []string{EmployeeEnvHome, EmployeeEnvPath, EmployeeEnvLang, EmployeeEnvLCAll, ProxyAPIKeyEnv, EmployeeEnvBugsinkURL, EmployeeEnvBugsinkDashboardBaseURL, EmployeeEnvBugsinkToken, EmployeeEnvLinearURL, EmployeeEnvLinearToken, EmployeeEnvNotionAPIURL, EmployeeEnvNotionToken}, "sandbox": "process_isolated"}},
+		{"type": "builtin.read_file", "config": map[string]any{"allowed_roots": []string{}, "max_file_size_bytes": 5 * 1024 * 1024, "deny_globs": []string{}}},
+		{"type": "builtin.write_file", "config": map[string]any{"allowed_roots": []string{}, "max_file_size_bytes": 5 * 1024 * 1024, "deny_globs": []string{}, "atomic": true}},
+		{"type": "builtin.post_status_update"}, {"type": "builtin.post_to_slack_channel"},
+		{"type": "builtin.cron"}, {"type": "builtin.delegate"}, {"type": "builtin.check_delegated_status"},
+		{"type": "builtin.check_bash_status"}, {"type": "builtin.wake"}, {"type": "builtin.load_tools"},
+		{"type": "builtin.skills_list"}, {"type": "builtin.skill_view"}, {"type": "builtin.skill_manage"},
+		{"type": "builtin.specialist_launch_task"}, {"type": "builtin.specialist_task_status"}, {"type": "builtin.specialist_list_tasks"},
+		{"type": "builtin.specialist_task_send_message"}, {"type": "builtin.specialist_task_terminate"},
+	}
+}
+
+func jsonArray(raw model.JSON) []any {
+	if len(raw) == 0 {
+		return []any{}
+	}
+	bytes, err := json.Marshal(raw)
+	if err != nil {
+		return []any{}
+	}
+	var arr []any
+	if err := json.Unmarshal(bytes, &arr); err != nil {
+		return []any{}
+	}
+	return arr
+}

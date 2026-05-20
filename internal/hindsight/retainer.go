@@ -2,11 +2,7 @@ package hindsight
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
 	"os"
-	"sort"
-	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -215,105 +211,6 @@ func (r *Retainer) retainConversation(ctx context.Context, convID uuid.UUID) {
 	}
 }
 
-// buildTranscript reconstructs the conversation from persisted events.
-func (r *Retainer) buildTranscript(convID uuid.UUID) (string, error) {
-	var events []model.ConversationEvent
-	if err := r.db.Where("conversation_id = ? AND event_type IN ?",
-		convID, []string{"message_received", "response_completed"}).
-		Find(&events).Error; err != nil {
-		return "", err
-	}
-
-	if len(events) == 0 {
-		return "", nil
-	}
-
-	sort.Slice(events, func(i, j int) bool {
-		return events[i].SequenceNumber < events[j].SequenceNumber
-	})
-
-	var buf strings.Builder
-	for _, e := range events {
-		var data map[string]any
-		if len(e.Data) > 0 {
-			_ = json.Unmarshal(e.Data, &data)
-		}
-		if data == nil {
-			continue
-		}
-
-		switch e.EventType {
-		case "message_received":
-			content, _ := data["content"].(string)
-			if content != "" {
-				buf.WriteString("User: ")
-				buf.WriteString(content)
-				buf.WriteString("\n\n")
-			}
-		case "response_completed":
-			content, _ := data["full_response"].(string)
-			if content != "" {
-				buf.WriteString("Assistant: ")
-				buf.WriteString(content)
-				buf.WriteString("\n\n")
-			}
-		}
-	}
-
-	return strings.TrimSpace(buf.String()), nil
-}
-
-// ensureOrgBankConfigured creates and configures the org-scoped Hindsight bank
-// if it doesn't exist yet, or re-applies config if it has changed.
-// Per-agent observation scoping is set on each RetainItem in retainConversation.
-func (r *Retainer) ensureOrgBankConfigured(ctx context.Context, agent *model.Agent) error {
-	bankID := OrgBankID(*agent.OrgID)
-	memCfg := DefaultMemoryConfig()
-
-	configHash := fmt.Sprintf("%x", memCfg.Hash()+"|org-"+agent.OrgID.String())
-
-	var bank model.HindsightBank
-	err := r.db.Where("bank_id = ?", bankID).First(&bank).Error
-
-	if err == gorm.ErrRecordNotFound {
-		if err := r.client.ConfigureBank(ctx, bankID, memCfg.ToBankConfigUpdate()); err != nil {
-			return fmt.Errorf("configuring org bank: %w", err)
-		}
-
-		_ = r.client.CreateMentalModel(ctx, bankID, &CreateMentalModelRequest{
-			Name:        "Organization Memory",
-			SourceQuery: "Summarize everything known across all agents in this organization.",
-			Trigger:     &MentalModelTrigger{RefreshAfterConsolidation: true},
-		})
-
-		bank = model.HindsightBank{
-			BankID:     bankID,
-			ConfigHash: configHash,
-		}
-		if err := r.db.Create(&bank).Error; err != nil {
-			if !isDuplicateKey(err) {
-				return fmt.Errorf("recording org bank: %w", err)
-			}
-		}
-		logging.FromContext(ctx).InfoContext(ctx, "hindsight retainer: org bank created",
-			"bank_id", bankID, "org_id", agent.OrgID)
-		return nil
-	}
-
-	if err != nil {
-		return fmt.Errorf("checking org bank: %w", err)
-	}
-
-	if bank.ConfigHash != configHash {
-		if err := r.client.ConfigureBank(ctx, bankID, memCfg.ToBankConfigUpdate()); err != nil {
-			return fmt.Errorf("updating org bank config: %w", err)
-		}
-		r.db.Model(&bank).Update("config_hash", configHash)
-	}
-
-	return nil
-}
-
 // processPending re-processes unacknowledged entries (crash recovery).
 func (r *Retainer) processPending(ctx context.Context) {
 	convIDs, err := r.bus.ActiveConversations(ctx)
@@ -341,9 +238,4 @@ func (r *Retainer) processPending(ctx context.Context) {
 
 		r.processStream(ctx, convID)
 	}
-}
-
-// isDuplicateKey checks if an error is a Postgres unique constraint violation.
-func isDuplicateKey(err error) bool {
-	return err != nil && strings.Contains(err.Error(), "duplicate key")
 }
