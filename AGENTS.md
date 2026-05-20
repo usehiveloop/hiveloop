@@ -2,7 +2,7 @@
 
 These instructions are for coding agents. Follow them strictly.
 
-HiveLoop is a Go-first platform with a Go API/worker, Next.js web app, TypeScript SDK packages, Rust sandbox runtimes, local integration simulators, and Docker/native infrastructure.
+HiveLoop is a Go-first platform with a Go API/worker, Next.js web app, Rust sandbox runtimes, local integration simulators, and Docker/native infrastructure.
 
 Use codebase-memory MCP graph tools before shell search when available: `search_graph`, `trace_path`, `get_code_snippet`, `query_graph`, `get_architecture`. Fall back to `rg`, `find`, and direct reads only when graph tools are unavailable or when searching docs, configs, logs, generated files, env values, or string literals.
 
@@ -13,8 +13,6 @@ Use codebase-memory MCP graph tools before shell search when available: `search_
 - `cmd/server work`: Asynq worker for email, billing, audit/generation writes, sandbox lifecycle, RAG jobs, trigger dispatch, and cleanup.
 - `cmd/server both`: combined API and worker mode for deployments that run both in one process.
 - `apps/web`: primary Next.js customer app and docs surface. Calls the backend through `/api/proxy`.
-- `packages/sdk`: server-side TypeScript SDK generated from `docs/openapi.json`.
-- `packages/frontend`: browser connect-widget SDK.
 - `cmd/fake-nango`: local Nango-compatible OAuth/integration simulator.
 - Postgres: primary datastore. GORM models live in `internal/model`; migration is `model.AutoMigrate`.
 - Redis: cache, rate-limit, streaming, and Asynq queue backend.
@@ -80,8 +78,6 @@ Clean-slate suites: `make test-clean`, `make test-clean-auth`, `make test-clean-
 RAG infrastructure: `make test-services-up`, `make test-services-down`.
 
 Frontend checks are mandatory for frontend changes: `cd apps/web && pnpm typecheck && pnpm build`.
-
-Package checks are mandatory when package code or generated package types change: `cd packages/sdk && npm test && npm run typecheck`, `cd packages/frontend && npm test && npm run typecheck`.
 
 Rust sandbox checks are mandatory when sandbox runtime files change: `make sandbox-runtime-test`, `make sandbox-runtime-fmt-check`, `make sandbox-runtime-clippy`, `make sandbox-employee-test`, `make sandbox-employee-fmt-check`.
 
