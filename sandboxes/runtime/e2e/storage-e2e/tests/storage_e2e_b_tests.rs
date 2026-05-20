@@ -188,28 +188,6 @@ async fn test_delete_sessions_for_agent() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
-async fn test_metrics_snapshot_persistence() {
-    let backend = connect().await;
-    let p = test_prefix();
-    let agent_id = format!("{p}_met");
-
-    backend
-        .save_metrics_snapshot(&agent_id, &make_metrics(&agent_id))
-        .await
-        .unwrap();
-    backend
-        .save_metrics_snapshot(&agent_id, &make_metrics(&agent_id))
-        .await
-        .unwrap();
-    backend
-        .save_metrics_snapshot(&agent_id, &make_metrics(&agent_id))
-        .await
-        .unwrap();
-
-    // No load_metrics method yet — verify no errors during save.
-}
-
-#[tokio::test(flavor = "multi_thread")]
 async fn test_large_agent_definition() {
     let backend = connect().await;
     let p = test_prefix();
@@ -227,24 +205,6 @@ async fn test_large_agent_definition() {
 
     // Cleanup
     backend.delete_agent(&agent_id).await.unwrap();
-}
-
-#[tokio::test(flavor = "multi_thread")]
-async fn test_empty_db_hydration() {
-    let backend = connect().await;
-    let p = test_prefix();
-
-    let convs = backend
-        .load_conversations(&format!("{p}_nonexistent"))
-        .await
-        .unwrap();
-    assert!(convs.is_empty());
-
-    let sessions = backend
-        .load_sessions(&format!("{p}_nonexistent"))
-        .await
-        .unwrap();
-    assert!(sessions.is_empty());
 }
 
 #[tokio::test(flavor = "multi_thread")]

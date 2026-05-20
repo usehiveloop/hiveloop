@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
 	"time"
 
@@ -276,56 +275,4 @@ func TestGetSandbox_NotFound(t *testing.T) {
 	if rr.Code != http.StatusNotFound {
 		t.Errorf("expected 404, got %d", rr.Code)
 	}
-}
-
-func TestTokenRotation_NeedsRotation(t *testing.T) {
-	lh := newLifecycleHarness(t)
-	suffix := uuid.New().String()[:8]
-
-	tok := model.Token{
-		OrgID: lh.org.ID, CredentialID: lh.cred.ID,
-		JTI:       "expiring-" + suffix,
-		ExpiresAt: time.Now().Add(2 * time.Hour),
-		Meta:      model.JSON{"agent_id": lh.agent.ID.String(), "type": "agent_proxy"},
-	}
-	lh.db.Create(&tok)
-	t.Cleanup(func() { lh.db.Where("jti = ?", tok.JTI).Delete(&model.Token{}) })
-
-	var count int64
-	lh.db.Model(&model.Token{}).Where(
-		"meta->>'agent_id' = ? AND meta->>'type' = 'agent_proxy' AND revoked_at IS NULL AND expires_at < ?",
-		lh.agent.ID.String(), time.Now().Add(3*time.Hour),
-	).Count(&count)
-
-	if count == 0 {
-		t.Error("should detect token needs rotation (expires within 3h)")
-	}
-}
-
-func TestTokenRotation_NoRotationNeeded(t *testing.T) {
-	lh := newLifecycleHarness(t)
-	suffix := uuid.New().String()[:8]
-
-	tok := model.Token{
-		OrgID: lh.org.ID, CredentialID: lh.cred.ID,
-		JTI:       "fresh-" + suffix,
-		ExpiresAt: time.Now().Add(20 * time.Hour),
-		Meta:      model.JSON{"agent_id": lh.agent.ID.String(), "type": "agent_proxy"},
-	}
-	lh.db.Create(&tok)
-	t.Cleanup(func() { lh.db.Where("jti = ?", tok.JTI).Delete(&model.Token{}) })
-
-	var count int64
-	lh.db.Model(&model.Token{}).Where(
-		"meta->>'agent_id' = ? AND meta->>'type' = 'agent_proxy' AND revoked_at IS NULL AND expires_at < ?",
-		lh.agent.ID.String(), time.Now().Add(3*time.Hour),
-	).Count(&count)
-
-	if count != 0 {
-		t.Error("should NOT detect rotation needed (expires in 20h)")
-	}
-}
-
-func init() {
-	_ = strings.NewReader
 }

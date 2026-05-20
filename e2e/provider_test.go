@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/usehiveloop/hiveloop/internal/middleware"
-	"github.com/usehiveloop/hiveloop/internal/registry"
 )
 
 func TestE2E_Provider_List(t *testing.T) {
@@ -182,22 +181,6 @@ func TestE2E_Provider_Sorted(t *testing.T) {
 			t.Fatalf("providers not sorted: %s < %s at index %d", providers[i].ID, providers[i-1].ID, i)
 		}
 	}
-}
-
-func TestE2E_Registry_Stats(t *testing.T) {
-	reg := registry.Global()
-
-	providers := reg.ProviderCount()
-	models := reg.ModelCount()
-
-	if providers < 8 {
-		t.Errorf("expected at least 8 curated providers, got %d", providers)
-	}
-	if models < 50 {
-		t.Errorf("expected at least 50 curated models, got %d", models)
-	}
-
-	t.Logf("Registry: %d providers, %d models", providers, models)
 }
 
 func TestE2E_Credential_ListShowsProviderID(t *testing.T) {

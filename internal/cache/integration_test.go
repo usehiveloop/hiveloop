@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -285,42 +286,47 @@ func TestIntegration_RedisCache_Invalidate(t *testing.T) {
 	}
 }
 
-func TestIntegration_RedisCache_ValuesAreEncrypted(t *testing.T) {
+func TestIntegration_CacheManager_DoesNotPersistPlaintextCredentialInRedis(t *testing.T) {
+	db := connectTestDB(t)
 	rc := connectTestRedis(t)
-	redisCache := cache.NewRedisCache(rc, 5*time.Minute)
+	kms := createTestKMS(t)
+	mgr := buildManager(t, rc, kms, db)
 	ctx := context.Background()
-	credID := uuid.New().String()
-	t.Cleanup(func() { rc.Del(ctx, "pbcred:"+credID) })
 
 	plaintextKey := "sk-super-secret-key-never-in-redis"
-	_ = redisCache.Set(ctx, credID, &cache.RedisCredential{
-		EncryptedKey: []byte("encrypted-blob-not-plaintext"),
-		WrappedDEK:   []byte("wrapped-dek"),
-		BaseURL:      "https://api.example.com",
-		AuthScheme:   "bearer",
-		OrgID:        uuid.New().String(),
-	})
+	org := createTestOrg(t, db)
+	cred := createTestCredential(t, db, kms, org.ID, plaintextKey)
+	credID := cred.ID.String()
+	t.Cleanup(func() { rc.Del(ctx, "pbcred:"+credID) })
+
+	got, err := mgr.GetDecryptedCredential(ctx, credID, org.ID)
+	if err != nil {
+		t.Fatalf("populate cache from manager: %v", err)
+	}
+	if string(got.APIKey) != plaintextKey {
+		t.Fatalf("manager returned API key %q, want %q", got.APIKey, plaintextKey)
+	}
 
 	raw, err := rc.Get(ctx, "pbcred:"+credID).Result()
 	if err != nil {
 		t.Fatalf("raw redis get: %v", err)
 	}
-	if contains(raw, plaintextKey) {
+	if strings.Contains(raw, plaintextKey) {
 		t.Fatal("plaintext API key found in Redis! Security violation.")
 	}
-}
 
-func contains(haystack, needle string) bool {
-	return len(needle) > 0 && len(haystack) >= len(needle) && findSubstring(haystack, needle)
-}
-
-func findSubstring(s, sub string) bool {
-	for i := 0; i <= len(s)-len(sub); i++ {
-		if s[i:i+len(sub)] == sub {
-			return true
-		}
+	if err := db.Unscoped().Delete(&cred).Error; err != nil {
+		t.Fatalf("delete DB credential before Redis hydration: %v", err)
 	}
-	return false
+
+	freshMgr := buildManager(t, rc, kms, db)
+	fromRedis, err := freshMgr.GetDecryptedCredential(ctx, credID, org.ID)
+	if err != nil {
+		t.Fatalf("hydrate from Redis cache after DB delete: %v", err)
+	}
+	if string(fromRedis.APIKey) != plaintextKey {
+		t.Fatalf("Redis-hydrated API key = %q, want %q", fromRedis.APIKey, plaintextKey)
+	}
 }
 
 func TestIntegration_RevokedTokenCache_MarkAndCheck(t *testing.T) {

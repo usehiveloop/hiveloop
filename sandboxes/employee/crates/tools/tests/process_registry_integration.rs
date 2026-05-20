@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::time::{Duration, Instant};
 use tools::ProcessRegistry;
 
 // SCENARIO: Agent starts a long npm install in background.
@@ -6,15 +7,21 @@ use tools::ProcessRegistry;
 #[tokio::test]
 async fn agent_spawns_background_process_and_polls_status() {
     let registry = ProcessRegistry::new();
-    let pid = registry.spawn("echo hello", HashMap::new(), 5);
+    let pid = registry.spawn("sleep 2 && echo done", HashMap::new(), 5);
     assert!(
         pid.starts_with("bash-"),
         "process ID should start with bash-"
     );
 
-    // Poll immediately - process might still be running
     let status = registry.status(&pid).unwrap();
-    assert!(status.running || !status.running, "status should be valid");
+    assert!(
+        status.running,
+        "long-running process should still be running"
+    );
+    assert_eq!(
+        status.exit_code, None,
+        "running process should not have an exit code yet"
+    );
 }
 
 // SCENARIO: Agent's background build completes.
@@ -24,20 +31,12 @@ async fn completed_background_process_shows_exit_code_and_output() {
     let registry = ProcessRegistry::new();
     let pid = registry.spawn("echo 'build complete: 42 tests passed'", HashMap::new(), 5);
 
-    // Wait for process to finish
-    tokio::time::sleep(std::time::Duration::from_millis(200)).await;
-
-    let status = registry.status(&pid).unwrap();
-    if !status.running {
-        assert!(
-            status.exit_code.is_some(),
-            "completed process must have exit code"
-        );
-        assert!(
-            status.output.contains("build complete"),
-            "output should contain the message"
-        );
-    }
+    let (exit_code, output) = wait_until_finished(&registry, &pid).await;
+    assert_eq!(exit_code, Some(0));
+    assert!(
+        output.contains("build complete"),
+        "output should contain the message"
+    );
 }
 
 // SCENARIO: Agent tries to check a process that never existed.
@@ -77,15 +76,30 @@ async fn failed_command_shows_error_in_status() {
     let registry = ProcessRegistry::new();
     let pid = registry.spawn("nonexistent_command_xyz 2>&1", HashMap::new(), 5);
 
-    tokio::time::sleep(std::time::Duration::from_millis(300)).await;
+    let (exit_code, output) = wait_until_finished(&registry, &pid).await;
+    assert!(
+        matches!(exit_code, Some(code) if code != 0),
+        "failed command should have non-zero exit code, got {:?}",
+        exit_code
+    );
+    assert!(
+        output.contains("nonexistent_command_xyz") || output.contains("not found"),
+        "failed command should capture shell error output, got {:?}",
+        output
+    );
+}
 
-    let status = registry.status(&pid).unwrap();
-    if !status.running {
-        assert!(status.exit_code.is_some());
-        assert_ne!(
-            status.exit_code,
-            Some(0),
-            "failed command should have non-zero exit code"
+async fn wait_until_finished(registry: &ProcessRegistry, pid: &str) -> (Option<i32>, String) {
+    let deadline = Instant::now() + Duration::from_secs(5);
+    loop {
+        let status = registry.status(pid).expect("process should exist");
+        if !status.running {
+            return (status.exit_code, status.output);
+        }
+        assert!(
+            Instant::now() < deadline,
+            "process {pid} did not finish before deadline"
         );
+        tokio::time::sleep(Duration::from_millis(25)).await;
     }
 }

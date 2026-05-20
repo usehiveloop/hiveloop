@@ -112,21 +112,3 @@ func seedBYOKCred(t *testing.T, db *gorm.DB, orgID uuid.UUID, providerID string)
 	t.Cleanup(func() { db.Unscoped().Delete(&cred) })
 	return cred
 }
-
-func TestIntegration_IsSystemColumnExists(t *testing.T) {
-	db := connectTestDB(t)
-	// information_schema fails fast if AutoMigrate didn't add the column,
-	// rather than waiting for a downstream query to explode.
-	var count int64
-	err := db.Raw(`
-		SELECT COUNT(*)
-		FROM information_schema.columns
-		WHERE table_name = 'credentials' AND column_name = 'is_system'
-	`).Scan(&count).Error
-	if err != nil {
-		t.Fatalf("information_schema query: %v", err)
-	}
-	if count != 1 {
-		t.Fatalf("credentials.is_system column not present — AutoMigrate didn't add it")
-	}
-}

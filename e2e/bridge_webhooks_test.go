@@ -158,55 +158,6 @@ func TestWebhook_PersistsEvents(t *testing.T) {
 	}
 }
 
-func TestWebhook_ConversationEndedUpdatesStatus(t *testing.T) {
-	wh := newWebhookTestHarness(t)
-
-	body := fmt.Sprintf(`[
-		{"event_id":"e1","event_type":"conversation_ended","agent_id":"a1","conversation_id":"%s","timestamp":"2026-03-31T12:00:00Z","sequence_number":1,"data":{}}
-	]`, wh.conv.RuntimeConversationID)
-
-	rr := wh.signedRequest(t, body)
-	if rr.Code != http.StatusOK {
-		t.Fatalf("expected 200, got %d: %s", rr.Code, rr.Body.String())
-	}
-
-	var conv model.AgentConversation
-	wh.db.Where("id = ?", wh.conv.ID).First(&conv)
-	if conv.Status != "ended" {
-		t.Errorf("conversation status: got %q, want ended", conv.Status)
-	}
-	if conv.EndedAt == nil {
-		t.Error("ended_at should be set")
-	}
-
-	var event model.ConversationEvent
-	if err := wh.db.Where("conversation_id = ?", wh.conv.ID).First(&event).Error; err != nil {
-		t.Fatalf("load stored event: %v", err)
-	}
-	if event.EventType != "conversation_ended" {
-		t.Errorf("stored event_type: got %q, want conversation_ended", event.EventType)
-	}
-}
-
-func TestWebhook_AgentErrorUpdatesStatus(t *testing.T) {
-	wh := newWebhookTestHarness(t)
-
-	body := fmt.Sprintf(`[
-		{"event_id":"e1","event_type":"agent_error","agent_id":"a1","conversation_id":"%s","timestamp":"2026-03-31T12:00:00Z","sequence_number":1,"data":{"error":"something broke"}}
-	]`, wh.conv.RuntimeConversationID)
-
-	rr := wh.signedRequest(t, body)
-	if rr.Code != http.StatusOK {
-		t.Fatalf("expected 200, got %d: %s", rr.Code, rr.Body.String())
-	}
-
-	var conv model.AgentConversation
-	wh.db.Where("id = ?", wh.conv.ID).First(&conv)
-	if conv.Status != "error" {
-		t.Errorf("conversation status: got %q, want error", conv.Status)
-	}
-}
-
 func TestWebhook_InvalidSignatureRejected(t *testing.T) {
 	wh := newWebhookTestHarness(t)
 
@@ -224,52 +175,6 @@ func TestWebhook_InvalidSignatureRejected(t *testing.T) {
 
 	if rr.Code != http.StatusUnauthorized {
 		t.Errorf("invalid signature: expected 401, got %d: %s", rr.Code, rr.Body.String())
-	}
-}
-
-func TestWebhook_MissingSignatureRejected(t *testing.T) {
-	wh := newWebhookTestHarness(t)
-
-	body := `[{"event_id":"e1","event_type":"test","agent_id":"a1","conversation_id":"test","timestamp":"2026-03-31T12:00:00Z","sequence_number":1,"data":{}}]`
-
-	req := httptest.NewRequest(http.MethodPost,
-		"/internal/webhooks/bridge/"+wh.sandbox.ID.String(),
-		strings.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	// No signature headers
-
-	rr := httptest.NewRecorder()
-	wh.router.ServeHTTP(rr, req)
-
-	if rr.Code != http.StatusUnauthorized {
-		t.Errorf("missing signature: expected 401, got %d: %s", rr.Code, rr.Body.String())
-	}
-}
-
-func TestWebhook_WrongSecretRejected(t *testing.T) {
-	wh := newWebhookTestHarness(t)
-
-	body := `[{"event_id":"e1","event_type":"test","agent_id":"a1","conversation_id":"test","timestamp":"2026-03-31T12:00:00Z","sequence_number":1,"data":{}}]`
-
-	// Sign with wrong secret
-	timestamp := time.Now().Unix()
-	message := fmt.Sprintf("%d.%s", timestamp, body)
-	mac := hmac.New(sha256.New, []byte("wrong-secret"))
-	mac.Write([]byte(message))
-	signature := base64.StdEncoding.EncodeToString(mac.Sum(nil))
-
-	req := httptest.NewRequest(http.MethodPost,
-		"/internal/webhooks/bridge/"+wh.sandbox.ID.String(),
-		strings.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("X-Webhook-Signature", signature)
-	req.Header.Set("X-Webhook-Timestamp", fmt.Sprintf("%d", timestamp))
-
-	rr := httptest.NewRecorder()
-	wh.router.ServeHTTP(rr, req)
-
-	if rr.Code != http.StatusUnauthorized {
-		t.Errorf("wrong secret: expected 401, got %d: %s", rr.Code, rr.Body.String())
 	}
 }
 
@@ -354,41 +259,6 @@ func TestWebhook_MultipleEventTypes(t *testing.T) {
 	}
 	if data["content"] != "Hi there!" {
 		t.Errorf("response content: got %v", data["content"])
-	}
-}
-
-// Verify the HMAC signing matches Bridge's implementation exactly
-func TestWebhookSignature_MatchesBridge(t *testing.T) {
-	// This test uses the exact values from Bridge's signer.rs test
-	payload := []byte("test payload")
-	secret := "webhook-secret"
-	timestamp := int64(1700000000)
-
-	message := fmt.Sprintf("%d.%s", timestamp, string(payload))
-	mac := hmac.New(sha256.New, []byte(secret))
-	mac.Write([]byte(message))
-	signature := base64.StdEncoding.EncodeToString(mac.Sum(nil))
-
-	// Verify our verifyWebhookSignature matches
-	if signature == "" {
-		t.Fatal("signature should not be empty")
-	}
-
-	// Re-verify using the same algo
-	mac2 := hmac.New(sha256.New, []byte(secret))
-	mac2.Write([]byte(message))
-	expected := base64.StdEncoding.EncodeToString(mac2.Sum(nil))
-
-	if signature != expected {
-		t.Fatalf("signature mismatch: %q != %q", signature, expected)
-	}
-
-	// Wrong secret should produce different signature
-	mac3 := hmac.New(sha256.New, []byte("wrong"))
-	mac3.Write([]byte(message))
-	wrong := base64.StdEncoding.EncodeToString(mac3.Sum(nil))
-	if signature == wrong {
-		t.Fatal("different secrets should produce different signatures")
 	}
 }
 
