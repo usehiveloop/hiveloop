@@ -26,7 +26,7 @@ func TestWebhookSequence_NoGaps(t *testing.T) {
 
 	events := make([]fakebridge.BridgeEvent, 0, 30)
 	now := time.Now()
-	cycle := []string{"response_chunk", "tool_call_start", "tool_call_result", "response_chunk"}
+	cycle := []string{"response_chunk", "tool_call_started", "tool_call_completed", "response_chunk"}
 	for i := 1; i <= 30; i++ {
 		etype := cycle[(i-1)%len(cycle)]
 		if i == 30 {
@@ -119,8 +119,8 @@ func TestWebhookSequence_BadSignatureRejected(t *testing.T) {
 	}
 }
 
-// TestWebhookSequence_StatusTransitions checks ConversationEnded -> ended
-// and AgentError -> error against fresh sandboxes per case.
+// TestWebhookSequence_StatusTransitions checks conversation_ended -> ended
+// and agent_error -> error against fresh sandboxes per case.
 func TestWebhookSequence_StatusTransitions(t *testing.T) {
 	h := newHarness(t)
 	suffix := uuid.New().String()[:8]
@@ -178,7 +178,7 @@ func TestWebhookSequence_StatusTransitions(t *testing.T) {
 	fb.WebhookURL = srv.URL + "/internal/webhooks/bridge/" + sb1.ID.String()
 	endEvents := []fakebridge.BridgeEvent{
 		{
-			EventID: "ev-end", EventType: "ConversationEnded",
+			EventID: "ev-end", EventType: "conversation_ended",
 			AgentID: agent.ID.String(), ConversationID: conv1.RuntimeConversationID,
 			Timestamp: time.Now(), SequenceNumber: 1, Data: json.RawMessage(`{}`),
 		},
@@ -200,7 +200,7 @@ func TestWebhookSequence_StatusTransitions(t *testing.T) {
 	fb.WebhookURL = srv.URL + "/internal/webhooks/bridge/" + sb2.ID.String()
 	errEvents := []fakebridge.BridgeEvent{
 		{
-			EventID: "ev-err", EventType: "AgentError",
+			EventID: "ev-err", EventType: "agent_error",
 			AgentID: agent.ID.String(), ConversationID: conv2.RuntimeConversationID,
 			Timestamp: time.Now(), SequenceNumber: 1, Data: json.RawMessage(`{"error":"boom"}`),
 		},

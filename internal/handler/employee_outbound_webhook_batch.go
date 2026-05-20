@@ -18,6 +18,7 @@ func (h *EmployeeOutboundWebhookHandler) HandleBatch(w http.ResponseWriter, r *h
 	}
 	body, err := io.ReadAll(io.LimitReader(r.Body, h.maxBatchBytes))
 	if err != nil {
+		captureEmployeeWebhookIngest(ctx, "read_batch_body", sb, nil, "", "", err)
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "failed to read body"})
 		return
 	}
@@ -30,6 +31,7 @@ func (h *EmployeeOutboundWebhookHandler) HandleBatch(w http.ResponseWriter, r *h
 	if strings.EqualFold(r.Header.Get("Content-Encoding"), "gzip") {
 		gz, err := gzip.NewReader(bytes.NewReader(body))
 		if err != nil {
+			captureEmployeeWebhookIngest(ctx, "decode_batch_gzip", sb, nil, "", "", err)
 			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid gzip batch"})
 			return
 		}
@@ -47,6 +49,7 @@ func (h *EmployeeOutboundWebhookHandler) HandleBatch(w http.ResponseWriter, r *h
 		}
 		var event employeeOutboundEvent
 		if err := json.Unmarshal([]byte(line), &event); err != nil {
+			captureEmployeeWebhookIngest(ctx, "decode_batch_event", sb, nil, "", "", err)
 			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid batch event"})
 			return
 		}
@@ -57,6 +60,7 @@ func (h *EmployeeOutboundWebhookHandler) HandleBatch(w http.ResponseWriter, r *h
 		count++
 	}
 	if err := scanner.Err(); err != nil {
+		captureEmployeeWebhookIngest(ctx, "read_batch_line", sb, nil, "", "", err)
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "failed to read batch"})
 		return
 	}

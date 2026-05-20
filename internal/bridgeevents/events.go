@@ -23,42 +23,8 @@ const (
 	EventSubAgentCompleted       = "sub_agent_completed"
 )
 
-var legacyEventAliases = map[string]string{
-	"AgentError":              EventAgentError,
-	"ConversationCreated":     EventConversationCreated,
-	"ConversationEnded":       EventConversationEnded,
-	"Done":                    EventDone,
-	"MessageReceived":         EventMessageReceived,
-	"ReasoningDelta":          EventReasoningDelta,
-	"ResponseChunk":           EventResponseChunk,
-	"ResponseCompleted":       EventResponseCompleted,
-	"ResponseStarted":         EventResponseStarted,
-	"TodoUpdated":             EventTodoUpdated,
-	"ToolApprovalRequired":    EventToolApprovalRequired,
-	"ToolApprovalResolved":    EventToolApprovalResolved,
-	"ToolCallCompleted":       EventToolCallCompleted,
-	"ToolCallResult":          EventToolCallCompleted,
-	"ToolCallStarted":         EventToolCallStarted,
-	"ToolCallStart":           EventToolCallStarted,
-	"TurnCompleted":           EventTurnCompleted,
-	"BackgroundTaskCompleted": EventBackgroundTaskCompleted,
-	"ReasoningStarted":        EventReasoningStarted,
-	"ReasoningCompleted":      EventReasoningCompleted,
-	"SubAgentStarted":         EventSubAgentStarted,
-	"SubAgentCompleted":       EventSubAgentCompleted,
-	"tool_call_result":        EventToolCallCompleted,
-	"tool_call_start":         EventToolCallStarted,
-}
-
-func NormalizeEventType(eventType string) string {
-	if canonical, ok := legacyEventAliases[eventType]; ok {
-		return canonical
-	}
-	return eventType
-}
-
 func IsTerminalEventType(eventType string) bool {
-	switch NormalizeEventType(eventType) {
+	switch eventType {
 	case EventAgentError, EventConversationEnded, EventDone, EventTurnCompleted:
 		return true
 	default:

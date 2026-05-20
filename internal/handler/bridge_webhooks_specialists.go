@@ -9,7 +9,6 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
-	"github.com/usehivy/hivy/internal/bridgeevents"
 	"github.com/usehivy/hivy/internal/logging"
 	"github.com/usehivy/hivy/internal/model"
 )
@@ -72,6 +71,6 @@ func (h *BridgeWebhookHandler) forwardCloudAgentEvent(ctx context.Context, task 
 }
 
 func isCloudAgentErrorEvent(eventType string) bool {
-	eventType = strings.ToLower(bridgeevents.NormalizeEventType(eventType))
+	eventType = strings.ToLower(eventType)
 	return strings.Contains(eventType, "error") || strings.Contains(eventType, "failed") || strings.Contains(eventType, "failure")
 }

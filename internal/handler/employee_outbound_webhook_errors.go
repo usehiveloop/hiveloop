@@ -28,6 +28,9 @@ func captureEmployeeWebhookIngest(ctx context.Context, stage string, sb *model.S
 	}
 	if event != nil {
 		fields["event_type"] = event.EventType
+		if !event.At.IsZero() {
+			fields["event_at"] = event.At.UTC().Format("2006-01-02T15:04:05.999999999Z07:00")
+		}
 	}
 	logging.CaptureWithFields(ctx, fmt.Errorf("employee outbound webhook ingest %s: %w", stage, err), fields)
 }

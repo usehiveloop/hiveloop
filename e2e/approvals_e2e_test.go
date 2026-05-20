@@ -132,7 +132,7 @@ func runApprovalRoundtrip(t *testing.T, decision string) {
 			Data: json.RawMessage(`{"request_id":"` + approvalID + `","decision":"` + decision + `"}`),
 		},
 		{
-			EventID: "ev-result", EventType: "tool_call_result",
+			EventID: "ev-result", EventType: "tool_call_completed",
 			AgentID: ah.agent.ID.String(), ConversationID: ah.conv.RuntimeConversationID,
 			Timestamp: time.Now(), SequenceNumber: 3,
 			Data: json.RawMessage(`{"output":"ok"}`),

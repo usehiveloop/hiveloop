@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -133,11 +134,14 @@ func (h *BridgeWebhookHandler) Handle(w http.ResponseWriter, r *http.Request) {
 
 	var events []webhookEvent
 	if err := json.Unmarshal(body, &events); err != nil {
+		captureBridgeWebhookIngest(ctx, "decode_payload", &sb, nil, uuid.Nil, err)
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid webhook payload"})
 		return
 	}
 
-	h.db.WithContext(ctx).Model(&sb).Update("last_active_at", time.Now())
+	if err := h.db.WithContext(ctx).Model(&sb).Update("last_active_at", time.Now()).Error; err != nil {
+		captureBridgeWebhookIngest(ctx, "update_sandbox_last_active", &sb, nil, uuid.Nil, err)
+	}
 
 	for _, event := range events {
 		h.processEvent(ctx, &sb, &event)
@@ -147,11 +151,14 @@ func (h *BridgeWebhookHandler) Handle(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *BridgeWebhookHandler) processEvent(ctx context.Context, sb *model.Sandbox, event *webhookEvent) {
-	event.EventType = bridgeevents.NormalizeEventType(event.EventType)
-
 	var conv model.AgentConversation
 	if err := h.db.WithContext(ctx).Where("runtime_conversation_id = ? AND sandbox_id = ?",
 		event.ConversationID, sb.ID).First(&conv).Error; err != nil {
+		stage := "load_conversation"
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			stage = "conversation_not_found"
+		}
+		captureBridgeWebhookIngest(ctx, stage, sb, event, uuid.Nil, err)
 		return
 	}
 
@@ -182,6 +189,7 @@ func (h *BridgeWebhookHandler) processEvent(ctx context.Context, sb *model.Sandb
 				"conversation_id", conv.ID,
 				"error", err,
 			)
+			captureBridgeWebhookIngest(ctx, "publish_stream", sb, event, conv.ID, err)
 			h.writeEventToPostgres(ctx, &conv, event)
 		}
 	} else {
@@ -191,12 +199,16 @@ func (h *BridgeWebhookHandler) processEvent(ctx context.Context, sb *model.Sandb
 	switch event.EventType {
 	case bridgeevents.EventConversationEnded:
 		now := time.Now()
-		h.db.WithContext(ctx).Model(&conv).Updates(map[string]any{
+		if err := h.db.WithContext(ctx).Model(&conv).Updates(map[string]any{
 			"status":   "ended",
 			"ended_at": now,
-		})
+		}).Error; err != nil {
+			captureBridgeWebhookIngest(ctx, "mark_conversation_ended", sb, event, conv.ID, err)
+		}
 	case bridgeevents.EventAgentError:
-		h.db.WithContext(ctx).Model(&conv).Update("status", "error")
+		if err := h.db.WithContext(ctx).Model(&conv).Update("status", "error").Error; err != nil {
+			captureBridgeWebhookIngest(ctx, "mark_conversation_error", sb, event, conv.ID, err)
+		}
 		logging.FromContext(ctx).WarnContext(ctx, "webhook: agent error",
 			"conversation_id", conv.ID,
 			"error", string(event.Data),
@@ -225,16 +237,16 @@ func (h *BridgeWebhookHandler) maybeEnqueueConversationNaming(ctx context.Contex
 	}
 	task, err := tasks.NewConversationNameTask(conv.ID)
 	if err != nil {
-		logging.Capture(ctx, fmt.Errorf("build conversation naming task: %w", err))
+		captureBridgeWebhookIngest(ctx, "build_conversation_naming_task", nil, nil, conv.ID, err)
 		return
 	}
 	if _, err := h.enqueuer.Enqueue(task); err != nil {
-		logging.Capture(ctx, fmt.Errorf("enqueue conversation naming task: %w", err))
+		captureBridgeWebhookIngest(ctx, "enqueue_conversation_naming_task", nil, nil, conv.ID, err)
 	}
 }
 
 func (h *BridgeWebhookHandler) writeEventToPostgres(ctx context.Context, conv *model.AgentConversation, event *webhookEvent) {
-	eventType := bridgeevents.NormalizeEventType(event.EventType)
+	eventType := event.EventType
 	if !shouldStoreConversationEvent(eventType) {
 		return
 	}
@@ -255,23 +267,17 @@ func (h *BridgeWebhookHandler) writeEventToPostgres(ctx context.Context, conv *m
 			"conversation_id", conv.ID,
 			"error", err,
 		)
-		captureCloudAgentFailure(ctx, "bridge_webhook", err, cloudAgentSentryContext{
-			Operation:      "store_conversation_event",
-			OrgID:          conv.OrgID,
-			CloudAgentID:   conv.AgentID,
-			SandboxID:      conv.SandboxID,
-			ConversationID: conv.ID,
-		})
+		sb := model.Sandbox{ID: conv.SandboxID, OrgID: &conv.OrgID, AgentID: &conv.AgentID}
+		captureBridgeWebhookIngest(ctx, "store_conversation_event", &sb, event, conv.ID, err)
 	}
 }
 
 func shouldStoreConversationEvent(eventType string) bool {
-	eventType = bridgeevents.NormalizeEventType(eventType)
 	return eventType != bridgeevents.EventResponseChunk && eventType != bridgeevents.EventReasoningDelta
 }
 
 func shouldForwardCloudAgentEvent(eventType string) bool {
-	switch bridgeevents.NormalizeEventType(eventType) {
+	switch eventType {
 	case bridgeevents.EventConversationEnded, bridgeevents.EventDone, bridgeevents.EventTodoUpdated:
 		return true
 	default:

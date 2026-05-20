@@ -9,7 +9,6 @@ import (
 	"github.com/go-chi/chi/v5"
 	"gorm.io/gorm"
 
-	"github.com/usehivy/hivy/internal/bridgeevents"
 	"github.com/usehivy/hivy/internal/middleware"
 	"github.com/usehivy/hivy/internal/model"
 )
@@ -53,7 +52,7 @@ func (h *ConversationHandler) ListEvents(w http.ResponseWriter, r *http.Request)
 
 	q := h.db.Where("conversation_id = ?", conv.ID)
 	if eventType := r.URL.Query().Get("type"); eventType != "" {
-		q = q.Where("event_type = ?", bridgeevents.NormalizeEventType(eventType))
+		q = q.Where("event_type = ?", eventType)
 	}
 	if beforeSeq != nil {
 		q = q.Where("sequence_number < ?", *beforeSeq)

@@ -27,7 +27,7 @@ func terminateTaskSentryContext(operation string, employee *model.Agent, agentID
 func (h *SpecialistTaskHandler) ensureConversationEndedEvent(ctx context.Context, task model.CloudAgentTask, conv model.AgentConversation, reason string, now time.Time) {
 	var count int64
 	if err := h.db.Model(&model.ConversationEvent{}).
-		Where("conversation_id = ? AND event_type IN ?", conv.ID, []string{bridgeevents.EventConversationEnded, "ConversationEnded"}).
+		Where("conversation_id = ? AND event_type = ?", conv.ID, bridgeevents.EventConversationEnded).
 		Count(&count).Error; err != nil || count > 0 {
 		if err != nil {
 			logging.FromContext(ctx).ErrorContext(ctx, "failed to check existing conversation ended event", "conversation_id", conv.ID, "error", err)

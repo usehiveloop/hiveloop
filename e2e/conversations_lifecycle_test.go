@@ -16,7 +16,7 @@ import (
 // TestConversationLifecycle_PushSendStreamEnd drives the full
 // webhook -> Redis -> SSE pipeline against the fakebridge: webhook batch
 // arrives, hivy publishes events to Redis, the SSE consumer drains
-// them with monotonic sequence numbers, and the ConversationEnded webhook
+// them with monotonic sequence numbers, and the conversation_ended webhook
 // flips status="ended".
 func TestConversationLifecycle_PushSendStreamEnd(t *testing.T) {
 	fbh := newFakeBridgeHarness(t)
@@ -128,11 +128,11 @@ collectLoop:
 		}
 	}
 
-	// End via ConversationEnded webhook — driving DELETE through hivy's
+	// End via conversation_ended webhook — driving DELETE through hivy's
 	// End() handler would require a real orchestrator.
 	endEvents := []fakebridge.BridgeEvent{
 		{
-			EventID: "ev-end", EventType: "ConversationEnded",
+			EventID: "ev-end", EventType: "conversation_ended",
 			AgentID: fbh.agent.ID.String(), ConversationID: fbh.conv.RuntimeConversationID,
 			Timestamp: time.Now(), SequenceNumber: 6, Data: json.RawMessage(`{}`),
 		},

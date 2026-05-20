@@ -137,7 +137,7 @@ func TestListEvents_AllEvents(t *testing.T) {
 func TestListEvents_FilterByType(t *testing.T) {
 	lh := newLifecycleHarness(t)
 
-	rr := lh.request(t, http.MethodGet, "/v1/conversations/"+lh.conv.ID.String()+"/events?type=MessageReceived")
+	rr := lh.request(t, http.MethodGet, "/v1/conversations/"+lh.conv.ID.String()+"/events?type=message_received")
 	if rr.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d", rr.Code)
 	}

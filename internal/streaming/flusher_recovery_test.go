@@ -208,3 +208,60 @@ func TestFlusher_DropsAccumulatorOnCompletion(t *testing.T) {
 		t.Fatalf("expected accumulator cleared on completion, got %v", peeked)
 	}
 }
+
+func TestFlusher_RecoversReasoningDeltasOnTerminalEvent(t *testing.T) {
+	bus, flusher, db, _ := setupFlusherTest(t)
+	_, convID := createTestConversation(t, db)
+	ctx := context.Background()
+
+	firstDeltaID := uuid.New().String()
+	delta1, _ := json.Marshal(map[string]any{
+		"event_id": firstDeltaID,
+		"data": map[string]any{
+			"content": map[string]any{"type": "text", "text": "I need"},
+		},
+	})
+	delta2, _ := json.Marshal(map[string]any{
+		"event_id": uuid.New().String(),
+		"data": map[string]any{
+			"content": map[string]any{"type": "text", "text": " to inspect logs."},
+		},
+	})
+	terminal, _ := json.Marshal(map[string]any{
+		"event_id":        uuid.New().String(),
+		"agent_id":        "agent-1",
+		"conversation_id": "bridge-" + convID.String(),
+		"timestamp":       "2026-05-13T12:00:00Z",
+		"sequence_number": 4,
+		"data":            map[string]any{"stop_reason": "endturn"},
+	})
+
+	_, _ = bus.Publish(ctx, convID.String(), "reasoning_delta", delta1)
+	_, _ = bus.Publish(ctx, convID.String(), "reasoning_delta", delta2)
+	_, _ = bus.Publish(ctx, convID.String(), "turn_completed", terminal)
+
+	flusher.flushStream(ctx, convID.String())
+
+	var event model.ConversationEvent
+	if err := db.Where("conversation_id = ? AND event_type = ?", convID, "reasoning_completed").First(&event).Error; err != nil {
+		t.Fatalf("expected synthesized reasoning_completed: %v", err)
+	}
+	var data map[string]any
+	if err := json.Unmarshal(event.Data, &data); err != nil {
+		t.Fatalf("unmarshal data: %v", err)
+	}
+	if data["message_id"] != firstDeltaID {
+		t.Fatalf("message_id = %v, want first delta event id %s", data["message_id"], firstDeltaID)
+	}
+	if data["full_reasoning"] != "I need to inspect logs." {
+		t.Fatalf("full_reasoning = %v, want accumulated reasoning", data["full_reasoning"])
+	}
+	if event.SequenceNumber != 3 {
+		t.Fatalf("recovered sequence_number = %d, want 3", event.SequenceNumber)
+	}
+
+	peeked, _ := bus.PeekAccumulated(ctx, "reasoning", convID.String())
+	if len(peeked) != 0 {
+		t.Fatalf("expected reasoning accumulator cleared, got %v", peeked)
+	}
+}

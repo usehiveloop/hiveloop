@@ -131,9 +131,9 @@ func TestWebhook_PersistsEvents(t *testing.T) {
 	wh := newWebhookTestHarness(t)
 
 	body := fmt.Sprintf(`[
-		{"event_id":"e1","event_type":"ConversationCreated","agent_id":"a1","conversation_id":"%s","timestamp":"2026-03-31T12:00:00Z","sequence_number":1,"data":{}},
-		{"event_id":"e2","event_type":"MessageReceived","agent_id":"a1","conversation_id":"%s","timestamp":"2026-03-31T12:00:01Z","sequence_number":2,"data":{"content":"hello"}},
-		{"event_id":"e3","event_type":"ResponseCompleted","agent_id":"a1","conversation_id":"%s","timestamp":"2026-03-31T12:00:02Z","sequence_number":3,"data":{"content":"hi","usage":{"input_tokens":10,"output_tokens":5}}}
+		{"event_id":"e1","event_type":"conversation_created","agent_id":"a1","conversation_id":"%s","timestamp":"2026-03-31T12:00:00Z","sequence_number":1,"data":{}},
+		{"event_id":"e2","event_type":"message_received","agent_id":"a1","conversation_id":"%s","timestamp":"2026-03-31T12:00:01Z","sequence_number":2,"data":{"content":"hello"}},
+		{"event_id":"e3","event_type":"response_completed","agent_id":"a1","conversation_id":"%s","timestamp":"2026-03-31T12:00:02Z","sequence_number":3,"data":{"content":"hi","usage":{"input_tokens":10,"output_tokens":5}}}
 	]`, wh.conv.RuntimeConversationID, wh.conv.RuntimeConversationID, wh.conv.RuntimeConversationID)
 
 	rr := wh.signedRequest(t, body)
@@ -161,7 +161,7 @@ func TestWebhook_PersistsEvents(t *testing.T) {
 func TestWebhook_InvalidSignatureRejected(t *testing.T) {
 	wh := newWebhookTestHarness(t)
 
-	body := `[{"event_id":"e1","event_type":"MessageReceived","agent_id":"a1","conversation_id":"test","timestamp":"2026-03-31T12:00:00Z","sequence_number":1,"data":{}}]`
+	body := `[{"event_id":"e1","event_type":"message_received","agent_id":"a1","conversation_id":"test","timestamp":"2026-03-31T12:00:00Z","sequence_number":1,"data":{}}]`
 
 	req := httptest.NewRequest(http.MethodPost,
 		"/internal/webhooks/bridge/"+wh.sandbox.ID.String(),
@@ -202,7 +202,7 @@ func TestWebhook_UpdatesLastActiveAt(t *testing.T) {
 	wh.db.Model(&wh.sandbox).Update("last_active_at", oldTime)
 
 	body := fmt.Sprintf(`[
-		{"event_id":"e1","event_type":"MessageReceived","agent_id":"a1","conversation_id":"%s","timestamp":"2026-03-31T12:00:00Z","sequence_number":1,"data":{}}
+		{"event_id":"e1","event_type":"message_received","agent_id":"a1","conversation_id":"%s","timestamp":"2026-03-31T12:00:00Z","sequence_number":1,"data":{}}
 	]`, wh.conv.RuntimeConversationID)
 
 	rr := wh.signedRequest(t, body)
@@ -221,12 +221,12 @@ func TestWebhook_MultipleEventTypes(t *testing.T) {
 	wh := newWebhookTestHarness(t)
 
 	body := fmt.Sprintf(`[
-		{"event_id":"e1","event_type":"ConversationCreated","agent_id":"a1","conversation_id":"%[1]s","timestamp":"2026-03-31T12:00:00Z","sequence_number":1,"data":{}},
-		{"event_id":"e2","event_type":"MessageReceived","agent_id":"a1","conversation_id":"%[1]s","timestamp":"2026-03-31T12:00:01Z","sequence_number":2,"data":{"content":"hello"}},
-		{"event_id":"e3","event_type":"ResponseStarted","agent_id":"a1","conversation_id":"%[1]s","timestamp":"2026-03-31T12:00:02Z","sequence_number":3,"data":{}},
-		{"event_id":"e4","event_type":"ResponseChunk","agent_id":"a1","conversation_id":"%[1]s","timestamp":"2026-03-31T12:00:03Z","sequence_number":4,"data":{"delta":"Hi"}},
-		{"event_id":"e5","event_type":"ResponseCompleted","agent_id":"a1","conversation_id":"%[1]s","timestamp":"2026-03-31T12:00:04Z","sequence_number":5,"data":{"content":"Hi there!","usage":{"input_tokens":10,"output_tokens":3}}},
-		{"event_id":"e6","event_type":"TurnCompleted","agent_id":"a1","conversation_id":"%[1]s","timestamp":"2026-03-31T12:00:05Z","sequence_number":6,"data":{}}
+		{"event_id":"e1","event_type":"conversation_created","agent_id":"a1","conversation_id":"%[1]s","timestamp":"2026-03-31T12:00:00Z","sequence_number":1,"data":{}},
+		{"event_id":"e2","event_type":"message_received","agent_id":"a1","conversation_id":"%[1]s","timestamp":"2026-03-31T12:00:01Z","sequence_number":2,"data":{"content":"hello"}},
+		{"event_id":"e3","event_type":"response_started","agent_id":"a1","conversation_id":"%[1]s","timestamp":"2026-03-31T12:00:02Z","sequence_number":3,"data":{}},
+		{"event_id":"e4","event_type":"response_chunk","agent_id":"a1","conversation_id":"%[1]s","timestamp":"2026-03-31T12:00:03Z","sequence_number":4,"data":{"delta":"Hi"}},
+		{"event_id":"e5","event_type":"response_completed","agent_id":"a1","conversation_id":"%[1]s","timestamp":"2026-03-31T12:00:04Z","sequence_number":5,"data":{"content":"Hi there!","usage":{"input_tokens":10,"output_tokens":3}}},
+		{"event_id":"e6","event_type":"turn_completed","agent_id":"a1","conversation_id":"%[1]s","timestamp":"2026-03-31T12:00:05Z","sequence_number":6,"data":{}}
 	]`, wh.conv.RuntimeConversationID)
 
 	rr := wh.signedRequest(t, body)

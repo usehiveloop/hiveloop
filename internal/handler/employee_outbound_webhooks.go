@@ -67,6 +67,7 @@ func (h *EmployeeOutboundWebhookHandler) Handle(w http.ResponseWriter, r *http.R
 	}
 	body, err := io.ReadAll(io.LimitReader(r.Body, h.maxBytes))
 	if err != nil {
+		captureEmployeeWebhookIngest(ctx, "read_body", sb, nil, "", "", err)
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "failed to read body"})
 		return
 	}
@@ -76,6 +77,7 @@ func (h *EmployeeOutboundWebhookHandler) Handle(w http.ResponseWriter, r *http.R
 	}
 	var event employeeOutboundEvent
 	if err := json.Unmarshal(body, &event); err != nil {
+		captureEmployeeWebhookIngest(ctx, "decode_webhook_payload", sb, nil, "", "", err)
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid webhook payload"})
 		return
 	}
@@ -101,6 +103,7 @@ func (h *EmployeeOutboundWebhookHandler) loadSandbox(w http.ResponseWriter, r *h
 			writeJSON(w, http.StatusNotFound, map[string]string{"error": "sandbox not found"})
 			return nil, false
 		}
+		captureEmployeeWebhookIngest(r.Context(), "load_sandbox", &model.Sandbox{ID: sandboxID}, nil, "", "", err)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to load sandbox"})
 		return nil, false
 	}

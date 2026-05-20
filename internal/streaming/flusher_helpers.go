@@ -7,11 +7,20 @@ import (
 
 	"github.com/redis/go-redis/v9"
 
+	"github.com/usehivy/hivy/internal/bridgeevents"
 	"github.com/usehivy/hivy/internal/logging"
 	"github.com/usehivy/hivy/internal/model"
 )
 
 func (f *Flusher) accumulateChunk(ctx context.Context, convID, dataStr string) {
+	f.accumulateDelta(ctx, "response", convID, dataStr)
+}
+
+func (f *Flusher) accumulateReasoning(ctx context.Context, convID, dataStr string) {
+	f.accumulateDelta(ctx, "reasoning", convID, dataStr)
+}
+
+func (f *Flusher) accumulateDelta(ctx context.Context, kind, convID, dataStr string) {
 	var envelope struct {
 		EventID string `json:"event_id"`
 		Data    struct {
@@ -25,6 +34,7 @@ func (f *Flusher) accumulateChunk(ctx context.Context, convID, dataStr string) {
 		} `json:"data"`
 	}
 	if err := json.Unmarshal([]byte(dataStr), &envelope); err != nil {
+		captureTimelineFlush(ctx, "parse_delta_payload", convID, err, map[string]any{"kind": kind})
 		return
 	}
 	delta := envelope.Data.Delta
@@ -38,25 +48,46 @@ func (f *Flusher) accumulateChunk(ctx context.Context, convID, dataStr string) {
 		return
 	}
 
-	messageID, err := f.bus.ResolveChunkMessageID(ctx, convID, envelope.Data.MessageID, envelope.EventID)
+	messageID, err := f.bus.ResolveAccumulatedMessageID(ctx, kind, convID, envelope.Data.MessageID, envelope.EventID)
 	if err != nil {
-		logging.FromContext(ctx).WarnContext(ctx, "flusher: failed to resolve chunk message id", "conversation_id", convID, "error", err)
+		logging.FromContext(ctx).WarnContext(ctx, "flusher: failed to resolve accumulated message id",
+			"conversation_id", convID,
+			"kind", kind,
+			"error", err,
+		)
+		captureTimelineFlush(ctx, "resolve_accumulated_message_id", convID, err, map[string]any{"kind": kind})
 		return
 	}
 	if messageID == "" {
 		return
 	}
 
-	if err := f.bus.AppendChunk(ctx, convID, messageID, delta); err != nil {
-		logging.FromContext(ctx).WarnContext(ctx, "flusher: failed to accumulate chunk", "conversation_id", convID, "error", err)
+	if err := f.bus.AppendAccumulated(ctx, kind, convID, messageID, delta); err != nil {
+		logging.FromContext(ctx).WarnContext(ctx, "flusher: failed to accumulate delta",
+			"conversation_id", convID,
+			"kind", kind,
+			"error", err,
+		)
+		captureTimelineFlush(ctx, "append_accumulated_delta", convID, err, map[string]any{
+			"kind":       kind,
+			"message_id": messageID,
+		})
 	}
 }
 
 func buildRecoveredEvent(conv *model.AgentConversation, terminal model.ConversationEvent, messageID, content string) model.ConversationEvent {
+	return buildRecoveredAccumulatedEvent(conv, terminal, messageID, content, bridgeevents.EventResponseCompleted, "full_response")
+}
+
+func buildRecoveredReasoningEvent(conv *model.AgentConversation, terminal model.ConversationEvent, messageID, content string) model.ConversationEvent {
+	return buildRecoveredAccumulatedEvent(conv, terminal, messageID, content, bridgeevents.EventReasoningCompleted, "full_reasoning")
+}
+
+func buildRecoveredAccumulatedEvent(conv *model.AgentConversation, terminal model.ConversationEvent, messageID, content, eventType, contentField string) model.ConversationEvent {
 	data, _ := json.Marshal(map[string]any{
-		"message_id":    messageID,
-		"full_response": content,
-		"recovered":     true,
+		"message_id": messageID,
+		contentField: content,
+		"recovered":  true,
 	})
 	timestamp := terminal.Timestamp
 	if timestamp.IsZero() {
@@ -69,14 +100,21 @@ func buildRecoveredEvent(conv *model.AgentConversation, terminal model.Conversat
 	return model.ConversationEvent{
 		OrgID:                 conv.OrgID,
 		ConversationID:        conv.ID,
-		EventID:               "recovered-" + messageID,
-		EventType:             "response_completed",
+		EventID:               recoveredEventID(eventType, messageID),
+		EventType:             eventType,
 		AgentID:               terminal.AgentID,
 		RuntimeConversationID: conv.RuntimeConversationID,
 		Timestamp:             timestamp,
 		SequenceNumber:        sequenceNumber,
 		Data:                  model.RawJSON(data),
 	}
+}
+
+func recoveredEventID(eventType, messageID string) string {
+	if eventType == bridgeevents.EventResponseCompleted {
+		return "recovered-" + messageID
+	}
+	return "recovered-" + eventType + "-" + messageID
 }
 
 func (f *Flusher) processPending(ctx context.Context) {
