@@ -63,11 +63,11 @@ func NewGitCredentialsHandler(db *gorm.DB, encKey *crypto.SymmetricKey, nangoCli
 	}
 }
 
-// Handle processes POST /internal/git-credentials/{agentID}.
+// Handle processes POST /internal/git-credentials/{employeeID}.
 // Authenticates via the sandbox's Bridge API key, then returns a fresh
 // GitHub installation token from Nango in git credential protocol format.
 func (h *GitCredentialsHandler) Handle(w http.ResponseWriter, r *http.Request) {
-	agentIDStr := chi.URLParam(r, "agentID")
+	agentIDStr := chi.URLParam(r, "employeeID")
 	agentID, err := uuid.Parse(agentIDStr)
 	if err != nil {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid agent_id"})

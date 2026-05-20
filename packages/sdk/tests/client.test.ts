@@ -6,18 +6,20 @@ describe("HiveLoop client", () => {
     const vault = new HiveLoop({ apiKey: "hvl_sk_test" });
     // The client is created — we just verify it has all resource namespaces
     expect(vault.apiKeys).toBeDefined();
+    expect(vault.catalog).toBeDefined();
+    expect(vault.conversations).toBeDefined();
     expect(vault.credentials).toBeDefined();
-    expect(vault.tokens).toBeDefined();
-    expect(vault.identities).toBeDefined();
-    expect(vault.connect).toBeDefined();
-    expect(vault.connect.sessions).toBeDefined();
-    expect(vault.connect.settings).toBeDefined();
-    expect(vault.integrations).toBeDefined();
-    expect(vault.connections).toBeDefined();
-    expect(vault.usage).toBeDefined();
+    expect(vault.customDomains).toBeDefined();
+    expect(vault.employees).toBeDefined();
+    expect(vault.generations).toBeDefined();
     expect(vault.audit).toBeDefined();
     expect(vault.org).toBeDefined();
     expect(vault.providers).toBeDefined();
+    expect(vault.reporting).toBeDefined();
+    expect(vault.sandboxes).toBeDefined();
+    expect(vault.sandboxTemplates).toBeDefined();
+    expect(vault.tokens).toBeDefined();
+    expect(vault.usage).toBeDefined();
   });
 
   it("accepts a custom baseUrl", () => {

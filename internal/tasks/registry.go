@@ -75,8 +75,8 @@ func NewServeMux(deps *WorkerDeps) *asynq.ServeMux {
 		mux.HandleFunc(TypeEmployeeSandboxRetire, NewEmployeeSandboxRetireHandler(deps.DB, deps.Orchestrator).Handle)
 	}
 
-	// Agent cleanup (works with or without orchestrator/pusher — handles nil gracefully)
-	mux.HandleFunc(TypeAgentCleanup, NewAgentCleanupHandler(deps.DB, deps.Orchestrator, deps.Pusher).Handle)
+	// Employee cleanup works with or without orchestrator/pusher.
+	mux.HandleFunc(TypeEmployeeCleanup, NewEmployeeCleanupHandler(deps.DB, deps.Orchestrator, deps.Pusher).Handle)
 
 	// Sandbox template build
 	if deps.Orchestrator != nil {

@@ -54,16 +54,16 @@ func TestListAssets_FilterByAgent(t *testing.T) {
 	seedAssetRow(t, h.db, convA1, "videos", "a1.mp4", now)
 	seedAssetRow(t, h.db, convA2, "videos", "a2.mp4", now)
 
-	rr := h.get(t, "?agent_id="+h.agentA2.String(), &h.orgA)
+	rr := h.get(t, "?employee_id="+h.agentA2.String(), &h.orgA)
 	if rr.Code != http.StatusOK {
 		t.Fatalf("got %d: %s", rr.Code, rr.Body.String())
 	}
 	page := decodeAssetList(t, rr)
 	if len(page.Data) != 1 || page.Data[0]["filename"] != "a2.mp4" {
-		t.Fatalf("filter agent_id failed: %+v", page.Data)
+		t.Fatalf("filter employee_id failed: %+v", page.Data)
 	}
-	if page.Data[0]["agent_id"] != h.agentA2.String() {
-		t.Fatalf("agent_id field: %v", page.Data[0]["agent_id"])
+	if page.Data[0]["employee_id"] != h.agentA2.String() {
+		t.Fatalf("employee_id field: %v", page.Data[0]["employee_id"])
 	}
 }
 
@@ -97,7 +97,7 @@ func TestListAssets_CombinedFilters(t *testing.T) {
 	seedAssetRow(t, h.db, convA1, "exports", "a1-data.csv", now)
 	seedAssetRow(t, h.db, convA2, "videos", "a2-vid.mp4", now)
 
-	q := fmt.Sprintf("?agent_id=%s&path=videos", h.agentA1)
+	q := fmt.Sprintf("?employee_id=%s&path=videos", h.agentA1)
 	rr := h.get(t, q, &h.orgA)
 	page := decodeAssetList(t, rr)
 	if len(page.Data) != 1 || page.Data[0]["filename"] != "a1-vid.mp4" {
@@ -112,7 +112,7 @@ func TestListAssets_ForeignAgentReturnsEmpty(t *testing.T) {
 	seedAssetRow(t, h.db, convB, "videos", "b.mp4", now)
 
 	// Caller is org A but filters by an org-B agent — must not leak.
-	rr := h.get(t, "?agent_id="+h.agentB1.String(), &h.orgA)
+	rr := h.get(t, "?employee_id="+h.agentB1.String(), &h.orgA)
 	page := decodeAssetList(t, rr)
 	if len(page.Data) != 0 {
 		t.Fatalf("expected empty (foreign agent), got %d rows", len(page.Data))
@@ -149,7 +149,7 @@ func TestListAssets_Pagination(t *testing.T) {
 func TestListAssets_RejectsBadFilters(t *testing.T) {
 	h := newAssetsListHarness(t)
 	for _, q := range []string{
-		"?agent_id=not-a-uuid",
+		"?employee_id=not-a-uuid",
 		"?conversation_id=not-a-uuid",
 		"?limit=0",
 		"?limit=abc",

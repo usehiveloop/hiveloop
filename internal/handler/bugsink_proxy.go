@@ -139,7 +139,7 @@ func (h *BugsinkProxyHandler) Handle(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *BugsinkProxyHandler) parseRequest(w http.ResponseWriter, r *http.Request) (uuid.UUID, string, string, bool) {
-	agentID, err := uuid.Parse(chi.URLParam(r, "agentID"))
+	agentID, err := uuid.Parse(chi.URLParam(r, "employeeID"))
 	if err != nil {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid agent_id"})
 		return uuid.Nil, "", "", false

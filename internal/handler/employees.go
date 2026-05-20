@@ -9,6 +9,7 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/employeeruntime"
 	"github.com/usehiveloop/hiveloop/internal/enqueue"
 	"github.com/usehiveloop/hiveloop/internal/model"
+	"github.com/usehiveloop/hiveloop/internal/registry"
 	"github.com/usehiveloop/hiveloop/internal/sandbox"
 )
 
@@ -26,13 +27,13 @@ type EmployeeHandler struct {
 	db           *gorm.DB
 	orchestrator *sandbox.Orchestrator
 	compileDeps  employeeruntime.CompileDeps
-	agents       *AgentHandler
+	registry     *registry.Registry
 	enqueuer     enqueue.TaskEnqueuer
 	taskCleaner  enqueue.TaskCleaner
 }
 
-func NewEmployeeHandler(db *gorm.DB, orchestrator *sandbox.Orchestrator, compileDeps employeeruntime.CompileDeps, agents *AgentHandler) *EmployeeHandler {
-	return &EmployeeHandler{db: db, orchestrator: orchestrator, compileDeps: compileDeps, agents: agents}
+func NewEmployeeHandler(db *gorm.DB, orchestrator *sandbox.Orchestrator, compileDeps employeeruntime.CompileDeps, reg *registry.Registry) *EmployeeHandler {
+	return &EmployeeHandler{db: db, orchestrator: orchestrator, compileDeps: compileDeps, registry: reg}
 }
 
 func (h *EmployeeHandler) SetEnqueuer(enq enqueue.TaskEnqueuer) {

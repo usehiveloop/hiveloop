@@ -1331,13 +1331,13 @@ export interface paths {
         };
         /**
          * List org assets
-         * @description Lists conversation assets owned by the caller's org. Optional filters: agent_id, conversation_id, path. Ordered by created_at desc, cursor-paginated.
+         * @description Lists conversation assets owned by the caller's org. Optional filters: employee_id, conversation_id, path. Ordered by created_at desc, cursor-paginated.
          */
         get: {
             parameters: {
                 query?: {
-                    /** @description Filter to assets uploaded inside conversations of this agent */
-                    agent_id?: string;
+                    /** @description Filter to assets uploaded inside conversations of this employee */
+                    employee_id?: string;
                     /** @description Filter to assets uploaded inside this conversation */
                     conversation_id?: string;
                     /** @description Filter by exact folder label (empty = root) */
@@ -7903,13 +7903,6 @@ export interface components {
             webhook_url?: string;
             webhook_user_defined_secret?: boolean;
         };
-        ProviderPromptConfig: {
-            model?: string;
-            system_prompt?: string;
-        };
-        ProviderPromptsMap: {
-            [key: string]: components["schemas"]["ProviderPromptConfig"];
-        };
         Reference: {
             body?: string;
             path?: string;
@@ -7978,30 +7971,6 @@ export interface components {
             skill?: components["schemas"]["skillResponse"];
             skill_id?: string;
         };
-        agentSkillSummary: {
-            description?: string;
-            id?: string;
-            locked?: boolean;
-            name?: string;
-            required?: boolean;
-            source_type?: string;
-        };
-        agentTriggerResponse: {
-            conditions?: unknown;
-            connection_id?: string;
-            enabled?: boolean;
-            id?: string;
-            instructions?: string;
-            provider?: string;
-            /**
-             * @description SecretSet indicates whether an HTTP trigger has a shared secret configured.
-             *     True when the trigger requires auth on incoming requests. The secret value
-             *     is never returned.
-             */
-            secret_set?: boolean;
-            trigger_keys?: string[];
-            trigger_type?: string;
-        };
         apiKeyResponse: {
             created_at?: string;
             expires_at?: string;
@@ -8026,12 +7995,12 @@ export interface components {
             status?: string;
         };
         assetListItem: {
-            agent_id?: string;
             asset_url?: string;
             bytes?: number;
             content_type?: string;
             conversation_id?: string;
             created_at?: string;
+            employee_id?: string;
             filename?: string;
             id?: string;
             key?: string;
@@ -8083,9 +8052,9 @@ export interface components {
             token?: string;
         };
         conversationEventResponse: {
-            agent_id?: string;
             created_at?: string;
             data?: number[];
+            employee_id?: string;
             event_id?: string;
             event_type?: string;
             id?: string;
@@ -8118,8 +8087,8 @@ export interface components {
             next_cursor?: string;
         };
         conversationResponse: {
-            agent_id?: string;
             created_at?: string;
+            employee_id?: string;
             id?: string;
             name?: string;
             status?: string;
@@ -8269,41 +8238,22 @@ export interface components {
             value?: string;
         };
         employeeListItem: {
-            agent_config?: components["schemas"]["JSON"];
-            attached_skills?: components["schemas"]["agentSkillSummary"][];
+            attached_skills?: components["schemas"]["employeeSkillSummary"][];
             avatar_url?: string;
-            category?: string;
             created_at?: string;
-            credential_id?: string;
             description?: string;
-            harness?: string;
             id?: string;
-            identity_prompt?: string;
-            instructions?: string;
-            integrations?: components["schemas"]["JSON"];
-            is_employee?: boolean;
             last_memory_refreshed_at?: string;
-            mcp_servers?: components["schemas"]["JSON"];
             memory_refresh_error?: string;
             memory_refresh_status?: string;
             model?: string;
             name?: string;
-            permissions?: components["schemas"]["JSON"];
-            prompt_operating_principles?: string;
-            provider_id?: string;
-            provider_prompts?: components["schemas"]["ProviderPromptsMap"];
-            resources?: components["schemas"]["JSON"];
             sandbox?: components["schemas"]["employeeSandboxSummary"];
             sandbox_template_id?: string;
-            sandbox_tools?: string[];
-            shared_memory?: boolean;
-            skills?: components["schemas"]["JSON"];
+            specialist_ids?: string[];
+            specialists?: components["schemas"]["employeeSpecialistSummary"][];
             status?: string;
-            subagent_ids?: string[];
-            subagents?: components["schemas"]["employeeSubagentSummary"][];
-            system_prompt?: string;
-            tools?: components["schemas"]["JSON"];
-            triggers?: components["schemas"]["agentTriggerResponse"][];
+            triggers?: components["schemas"]["employeeTriggerResponse"][];
             updated_at?: string;
             upgrade_available?: boolean;
         };
@@ -8339,22 +8289,46 @@ export interface components {
             thread_ts?: string;
             trigger_delivery?: components["schemas"]["triggerDeliveryResponse"];
         };
+        employeeSkillSummary: {
+            description?: string;
+            id?: string;
+            locked?: boolean;
+            name?: string;
+            required?: boolean;
+            source_type?: string;
+        };
         employeeSpecialistResponse: {
-            agent_type?: string;
             description?: string;
             enabled?: boolean;
             name?: string;
             slug?: string;
+            specialist_type?: string;
             version?: number;
         };
-        employeeSubagentSummary: {
+        employeeSpecialistSummary: {
             avatar_url?: string;
             description?: string;
             id?: string;
             name?: string;
             status?: string;
-            template_agent_type?: string;
             template_slug?: string;
+            template_specialist_type?: string;
+        };
+        employeeTriggerResponse: {
+            conditions?: unknown;
+            connection_id?: string;
+            enabled?: boolean;
+            id?: string;
+            instructions?: string;
+            provider?: string;
+            /**
+             * @description SecretSet indicates whether an HTTP trigger has a shared secret configured.
+             *     True when the trigger requires auth on incoming requests. The secret value
+             *     is never returned.
+             */
+            secret_set?: boolean;
+            trigger_keys?: string[];
+            trigger_type?: string;
         };
         errorRate: {
             date?: string;
@@ -8885,8 +8859,8 @@ export interface components {
             build_commands?: string[];
         };
         sandboxResponse: {
-            agent_id?: string;
             created_at?: string;
+            employee_id?: string;
             error_message?: string;
             external_id?: string;
             id?: string;
@@ -9089,11 +9063,11 @@ export interface components {
             user_id?: string;
         };
         triggerDeliveryResponse: {
-            agent_id?: string;
             connection_id?: string;
             conversation_id?: string;
             created_at?: string;
             delivery_id?: string;
+            employee_id?: string;
             event_key?: string;
             id?: string;
             payload?: number[];

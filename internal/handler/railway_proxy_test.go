@@ -147,7 +147,7 @@ func newRailwayHarness(t *testing.T, nangoHandler http.Handler, railwayHandler h
 	})
 
 	router := chi.NewRouter()
-	router.Post("/internal/railway-proxy/{agentID}", railwayProxyHandler.Handle)
+	router.Post("/internal/railway-proxy/{employeeID}", railwayProxyHandler.Handle)
 
 	return &railwayTestHarness{
 		db:          database,

@@ -26,7 +26,7 @@ type sandboxResponse struct {
 	ID           string  `json:"id"`
 	Status       string  `json:"status"`
 	ExternalID   string  `json:"external_id"`
-	AgentID      *string `json:"agent_id,omitempty"`
+	EmployeeID   *string `json:"employee_id,omitempty"`
 	ErrorMessage *string `json:"error_message,omitempty"`
 	LastActiveAt *string `json:"last_active_at,omitempty"`
 	CreatedAt    string  `json:"created_at"`
@@ -42,7 +42,7 @@ func toSandboxResponse(s model.Sandbox) sandboxResponse {
 	}
 	if s.AgentID != nil {
 		id := s.AgentID.String()
-		resp.AgentID = &id
+		resp.EmployeeID = &id
 	}
 	if s.LastActiveAt != nil {
 		t := s.LastActiveAt.Format(time.RFC3339)

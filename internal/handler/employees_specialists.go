@@ -13,12 +13,12 @@ import (
 )
 
 type employeeSpecialistResponse struct {
-	Slug        string `json:"slug"`
-	Name        string `json:"name"`
-	Description string `json:"description"`
-	AgentType   string `json:"agent_type"`
-	Version     int    `json:"version"`
-	Enabled     bool   `json:"enabled"`
+	Slug           string `json:"slug"`
+	Name           string `json:"name"`
+	Description    string `json:"description"`
+	SpecialistType string `json:"specialist_type"`
+	Version        int    `json:"version"`
+	Enabled        bool   `json:"enabled"`
 }
 
 // ListSpecialists handles GET /v1/employees/{id}/specialists.
@@ -40,16 +40,16 @@ func (h *EmployeeHandler) ListSpecialists(w http.ResponseWriter, r *http.Request
 		return
 	}
 	disabled := disabledSpecialistSet(employee.DisabledSpecialists)
-	out := make([]employeeSpecialistResponse, 0, len(employeeAgentTemplates))
-	for i := range employeeAgentTemplates {
-		t := employeeAgentTemplates[i]
+	out := make([]employeeSpecialistResponse, 0, len(specialistTemplates))
+	for i := range specialistTemplates {
+		t := specialistTemplates[i]
 		out = append(out, employeeSpecialistResponse{
-			Slug:        t.Slug,
-			Name:        t.Name,
-			Description: t.Description,
-			AgentType:   t.AgentType,
-			Version:     t.Version,
-			Enabled:     !disabled[t.Slug],
+			Slug:           t.Slug,
+			Name:           t.Name,
+			Description:    t.Description,
+			SpecialistType: t.SpecialistType,
+			Version:        t.Version,
+			Enabled:        !disabled[t.Slug],
 		})
 	}
 	writeJSON(w, http.StatusOK, out)
@@ -97,7 +97,7 @@ func (h *EmployeeHandler) setSpecialistDisabled(w http.ResponseWriter, r *http.R
 		return
 	}
 	slug := chi.URLParam(r, "slug")
-	if employeeAgentTemplateBySlug(slug) == nil {
+	if specialistTemplateBySlug(slug) == nil {
 		writeJSON(w, http.StatusNotFound, map[string]string{"error": "specialist not found"})
 		return
 	}

@@ -25,7 +25,7 @@ const (
 	EmployeeEnvRuntimeBindAddr            = "RUNTIME_BIND_ADDR"
 	EmployeeEnvSandboxID                  = "HIVELOOP_SANDBOX_ID"
 	EmployeeEnvOrgID                      = "HIVELOOP_ORG_ID"
-	EmployeeEnvAgentID                    = "HIVELOOP_AGENT_ID"
+	EmployeeEnvHiveloopEmployeeID         = "HIVELOOP_EMPLOYEE_ID"
 	EmployeeEnvGitUsername                = "HIVELOOP_GIT_USERNAME"
 	EmployeeEnvGitEmail                   = "HIVELOOP_GIT_EMAIL"
 	EmployeeEnvGitCredentialsURL          = "HIVELOOP_GIT_CREDENTIALS_URL"
@@ -106,7 +106,7 @@ var employeeEnvCatalog = []EmployeeEnvSpec{
 	{Key: EmployeeEnvRuntimeBindAddr, Source: EmployeeEnvSourceControlPlaneInjected},
 	{Key: EmployeeEnvSandboxID, Source: EmployeeEnvSourceControlPlaneInjected},
 	{Key: EmployeeEnvOrgID, Source: EmployeeEnvSourceControlPlaneInjected},
-	{Key: EmployeeEnvAgentID, Source: EmployeeEnvSourceControlPlaneInjected},
+	{Key: EmployeeEnvHiveloopEmployeeID, Source: EmployeeEnvSourceControlPlaneInjected},
 	{Key: EmployeeEnvGitUsername, Source: EmployeeEnvSourceControlPlaneInjected},
 	{Key: EmployeeEnvGitEmail, Source: EmployeeEnvSourceControlPlaneInjected},
 	{Key: EmployeeEnvGitCredentialsURL, Source: EmployeeEnvSourceControlPlaneInjected},

@@ -1002,7 +1002,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "Lists conversation assets owned by the caller's org. Optional filters: agent_id, conversation_id, path. Ordered by created_at desc, cursor-paginated.",
+                "description": "Lists conversation assets owned by the caller's org. Optional filters: employee_id, conversation_id, path. Ordered by created_at desc, cursor-paginated.",
                 "produces": [
                     "application/json"
                 ],
@@ -1013,8 +1013,8 @@
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Filter to assets uploaded inside conversations of this agent",
-                        "name": "agent_id",
+                        "description": "Filter to assets uploaded inside conversations of this employee",
+                        "name": "employee_id",
                         "in": "query"
                     },
                     {
@@ -6764,23 +6764,6 @@
                 }
             }
         },
-        "ProviderPromptConfig": {
-            "type": "object",
-            "properties": {
-                "model": {
-                    "type": "string"
-                },
-                "system_prompt": {
-                    "type": "string"
-                }
-            }
-        },
-        "ProviderPromptsMap": {
-            "type": "object",
-            "additionalProperties": {
-                "$ref": "#/definitions/ProviderPromptConfig"
-            }
-        },
         "Reference": {
             "type": "object",
             "properties": {
@@ -6959,63 +6942,6 @@
                 }
             }
         },
-        "agentSkillSummary": {
-            "type": "object",
-            "properties": {
-                "description": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "locked": {
-                    "type": "boolean"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "required": {
-                    "type": "boolean"
-                },
-                "source_type": {
-                    "type": "string"
-                }
-            }
-        },
-        "agentTriggerResponse": {
-            "type": "object",
-            "properties": {
-                "conditions": {},
-                "connection_id": {
-                    "type": "string"
-                },
-                "enabled": {
-                    "type": "boolean"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "instructions": {
-                    "type": "string"
-                },
-                "provider": {
-                    "type": "string"
-                },
-                "secret_set": {
-                    "description": "SecretSet indicates whether an HTTP trigger has a shared secret configured.\nTrue when the trigger requires auth on incoming requests. The secret value\nis never returned.",
-                    "type": "boolean"
-                },
-                "trigger_keys": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "trigger_type": {
-                    "type": "string"
-                }
-            }
-        },
         "apiKeyResponse": {
             "type": "object",
             "properties": {
@@ -7087,9 +7013,6 @@
         "assetListItem": {
             "type": "object",
             "properties": {
-                "agent_id": {
-                    "type": "string"
-                },
                 "asset_url": {
                     "type": "string"
                 },
@@ -7103,6 +7026,9 @@
                     "type": "string"
                 },
                 "created_at": {
+                    "type": "string"
+                },
+                "employee_id": {
                     "type": "string"
                 },
                 "filename": {
@@ -7250,9 +7176,6 @@
         "conversationEventResponse": {
             "type": "object",
             "properties": {
-                "agent_id": {
-                    "type": "string"
-                },
                 "created_at": {
                     "type": "string"
                 },
@@ -7261,6 +7184,9 @@
                     "items": {
                         "type": "integer"
                     }
+                },
+                "employee_id": {
+                    "type": "string"
                 },
                 "event_id": {
                     "type": "string"
@@ -7352,10 +7278,10 @@
         "conversationResponse": {
             "type": "object",
             "properties": {
-                "agent_id": {
+                "created_at": {
                     "type": "string"
                 },
-                "created_at": {
+                "employee_id": {
                     "type": "string"
                 },
                 "id": {
@@ -7794,53 +7720,26 @@
         "employeeListItem": {
             "type": "object",
             "properties": {
-                "agent_config": {
-                    "$ref": "#/definitions/JSON"
-                },
                 "attached_skills": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/agentSkillSummary"
+                        "$ref": "#/definitions/employeeSkillSummary"
                     }
                 },
                 "avatar_url": {
                     "type": "string"
                 },
-                "category": {
-                    "type": "string"
-                },
                 "created_at": {
-                    "type": "string"
-                },
-                "credential_id": {
                     "type": "string"
                 },
                 "description": {
                     "type": "string"
                 },
-                "harness": {
-                    "type": "string"
-                },
                 "id": {
                     "type": "string"
                 },
-                "identity_prompt": {
-                    "type": "string"
-                },
-                "instructions": {
-                    "type": "string"
-                },
-                "integrations": {
-                    "$ref": "#/definitions/JSON"
-                },
-                "is_employee": {
-                    "type": "boolean"
-                },
                 "last_memory_refreshed_at": {
                     "type": "string"
-                },
-                "mcp_servers": {
-                    "$ref": "#/definitions/JSON"
                 },
                 "memory_refresh_error": {
                     "type": "string"
@@ -7854,64 +7753,31 @@
                 "name": {
                     "type": "string"
                 },
-                "permissions": {
-                    "$ref": "#/definitions/JSON"
-                },
-                "prompt_operating_principles": {
-                    "type": "string"
-                },
-                "provider_id": {
-                    "type": "string"
-                },
-                "provider_prompts": {
-                    "$ref": "#/definitions/ProviderPromptsMap"
-                },
-                "resources": {
-                    "$ref": "#/definitions/JSON"
-                },
                 "sandbox": {
                     "$ref": "#/definitions/employeeSandboxSummary"
                 },
                 "sandbox_template_id": {
                     "type": "string"
                 },
-                "sandbox_tools": {
+                "specialist_ids": {
                     "type": "array",
                     "items": {
                         "type": "string"
                     }
                 },
-                "shared_memory": {
-                    "type": "boolean"
-                },
-                "skills": {
-                    "$ref": "#/definitions/JSON"
+                "specialists": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/employeeSpecialistSummary"
+                    }
                 },
                 "status": {
                     "type": "string"
                 },
-                "subagent_ids": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "subagents": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/employeeSubagentSummary"
-                    }
-                },
-                "system_prompt": {
-                    "type": "string"
-                },
-                "tools": {
-                    "$ref": "#/definitions/JSON"
-                },
                 "triggers": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/agentTriggerResponse"
+                        "$ref": "#/definitions/employeeTriggerResponse"
                     }
                 },
                 "updated_at": {
@@ -8015,12 +7881,32 @@
                 }
             }
         },
+        "employeeSkillSummary": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "locked": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "required": {
+                    "type": "boolean"
+                },
+                "source_type": {
+                    "type": "string"
+                }
+            }
+        },
         "employeeSpecialistResponse": {
             "type": "object",
             "properties": {
-                "agent_type": {
-                    "type": "string"
-                },
                 "description": {
                     "type": "string"
                 },
@@ -8033,12 +7919,15 @@
                 "slug": {
                     "type": "string"
                 },
+                "specialist_type": {
+                    "type": "string"
+                },
                 "version": {
                     "type": "integer"
                 }
             }
         },
-        "employeeSubagentSummary": {
+        "employeeSpecialistSummary": {
             "type": "object",
             "properties": {
                 "avatar_url": {
@@ -8056,10 +7945,44 @@
                 "status": {
                     "type": "string"
                 },
-                "template_agent_type": {
+                "template_slug": {
                     "type": "string"
                 },
-                "template_slug": {
+                "template_specialist_type": {
+                    "type": "string"
+                }
+            }
+        },
+        "employeeTriggerResponse": {
+            "type": "object",
+            "properties": {
+                "conditions": {},
+                "connection_id": {
+                    "type": "string"
+                },
+                "enabled": {
+                    "type": "boolean"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "instructions": {
+                    "type": "string"
+                },
+                "provider": {
+                    "type": "string"
+                },
+                "secret_set": {
+                    "description": "SecretSet indicates whether an HTTP trigger has a shared secret configured.\nTrue when the trigger requires auth on incoming requests. The secret value\nis never returned.",
+                    "type": "boolean"
+                },
+                "trigger_keys": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "trigger_type": {
                     "type": "string"
                 }
             }
@@ -9667,10 +9590,10 @@
         "sandboxResponse": {
             "type": "object",
             "properties": {
-                "agent_id": {
+                "created_at": {
                     "type": "string"
                 },
-                "created_at": {
+                "employee_id": {
                     "type": "string"
                 },
                 "error_message": {
@@ -10246,9 +10169,6 @@
         "triggerDeliveryResponse": {
             "type": "object",
             "properties": {
-                "agent_id": {
-                    "type": "string"
-                },
                 "connection_id": {
                     "type": "string"
                 },
@@ -10259,6 +10179,9 @@
                     "type": "string"
                 },
                 "delivery_id": {
+                    "type": "string"
+                },
+                "employee_id": {
                     "type": "string"
                 },
                 "event_key": {

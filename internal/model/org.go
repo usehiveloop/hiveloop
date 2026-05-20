@@ -77,7 +77,7 @@ func AutoMigrate(db *gorm.DB) (err error) {
 	); err != nil {
 		return err
 	}
-	if err := prepareEmployeeTable(db); err != nil {
+	if err := dropLegacyAgentStorage(db); err != nil {
 		return err
 	}
 	if err := dropEmployeeLegacyIndexes(db); err != nil {
@@ -154,18 +154,17 @@ func AutoMigrate(db *gorm.DB) (err error) {
 		return err
 	}
 
-	if err := migrateEmployeeCloudAgentHarness(db); err != nil {
-		return err
-	}
-
 	return nil
 }
 
-func prepareEmployeeTable(db *gorm.DB) error {
-	if db.Migrator().HasTable("agents") && !db.Migrator().HasTable("employees") {
-		return db.Migrator().RenameTable("agents", "employees")
+func dropLegacyAgentStorage(db *gorm.DB) error {
+	if !db.Migrator().HasTable("agents") {
+		return nil
 	}
-	return nil
+	if db.Dialector.Name() == "postgres" {
+		return db.Exec("DROP TABLE IF EXISTS agents CASCADE").Error
+	}
+	return db.Migrator().DropTable("agents")
 }
 
 func dropEmployeeLegacyColumns(db *gorm.DB) error {
@@ -204,25 +203,4 @@ func dropEmployeeLegacyIndexes(db *gorm.DB) error {
 		}
 	}
 	return nil
-}
-
-func migrateEmployeeCloudAgentHarness(db *gorm.DB) error {
-	switch db.Dialector.Name() {
-	case "postgres":
-		return db.Exec(`
-			UPDATE employees
-			SET harness = 'open_code'
-			WHERE harness = 'employee-sandbox'
-				AND agent_config->>'default_cloud_agent_type' IN ('business_research_specialist', 'software_engineering_specialist')
-		`).Error
-	case "sqlite":
-		return db.Exec(`
-			UPDATE employees
-			SET harness = 'open_code'
-			WHERE harness = 'employee-sandbox'
-				AND json_extract(agent_config, '$.default_cloud_agent_type') IN ('business_research_specialist', 'software_engineering_specialist')
-		`).Error
-	default:
-		return nil
-	}
 }

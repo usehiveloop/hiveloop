@@ -9,23 +9,23 @@ import (
 	"github.com/hibiken/asynq"
 )
 
-// AgentCleanupPayload is the payload for TypeAgentCleanup tasks.
-type AgentCleanupPayload struct {
-	AgentID            uuid.UUID `json:"agent_id"`
+// EmployeeCleanupPayload is the payload for TypeEmployeeCleanup tasks.
+type EmployeeCleanupPayload struct {
+	EmployeeID         uuid.UUID `json:"employee_id"`
 	SandboxExternalIDs []string  `json:"sandbox_external_ids,omitempty"`
 }
 
-// NewAgentCleanupTask creates a task that cleans up provider sandboxes left behind by an agent hard delete.
-func NewAgentCleanupTask(agentID uuid.UUID, sandboxExternalIDs ...string) (*asynq.Task, error) {
-	payload, err := json.Marshal(AgentCleanupPayload{
-		AgentID:            agentID,
+// NewEmployeeCleanupTask creates a task that cleans up provider sandboxes left behind by an employee hard delete.
+func NewEmployeeCleanupTask(employeeID uuid.UUID, sandboxExternalIDs ...string) (*asynq.Task, error) {
+	payload, err := json.Marshal(EmployeeCleanupPayload{
+		EmployeeID:         employeeID,
 		SandboxExternalIDs: sandboxExternalIDs,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("marshal agent cleanup payload: %w", err)
+		return nil, fmt.Errorf("marshal employee cleanup payload: %w", err)
 	}
 	return asynq.NewTask(
-		TypeAgentCleanup,
+		TypeEmployeeCleanup,
 		payload,
 		asynq.Queue(QueueDefault),
 		asynq.MaxRetry(3),

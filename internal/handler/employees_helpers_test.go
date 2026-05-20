@@ -226,8 +226,7 @@ func newEmployeeHarness(t *testing.T) *employeeHarness {
 		Cfg:        cfg,
 	}
 	enq := &enqueue.MockClient{}
-	agentH := handler.NewAgentHandler(db, registry.Global(), encKey, enq)
-	h := handler.NewEmployeeHandler(db, orch, compileDeps, agentH)
+	h := handler.NewEmployeeHandler(db, orch, compileDeps, registry.Global())
 	h.SetEnqueuer(enq)
 
 	r := chi.NewRouter()

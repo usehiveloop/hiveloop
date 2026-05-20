@@ -10,7 +10,7 @@ import { $api } from "@/lib/api/hooks"
 export default function WorkspaceHome() {
   const { data, isLoading } = $api.useQuery("get", "/v1/employees")
   const hivy = data?.data?.[0]
-  const specialistCount = hivy?.subagents?.length ?? 0
+  const specialistCount = hivy?.specialists?.length ?? 0
 
   return (
     <>

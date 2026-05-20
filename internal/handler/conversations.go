@@ -44,19 +44,19 @@ func (h *ConversationHandler) SetCredits(credits *billing.CreditsService) {
 }
 
 type conversationResponse struct {
-	ID        string `json:"id"`
-	AgentID   string `json:"agent_id"`
-	Name      string `json:"name,omitempty"`
-	Status    string `json:"status"`
-	StreamURL string `json:"stream_url"`
-	CreatedAt string `json:"created_at"`
+	ID         string `json:"id"`
+	EmployeeID string `json:"employee_id"`
+	Name       string `json:"name,omitempty"`
+	Status     string `json:"status"`
+	StreamURL  string `json:"stream_url"`
+	CreatedAt  string `json:"created_at"`
 }
 
 type conversationEventResponse struct {
 	ID                    string          `json:"id"`
 	EventID               string          `json:"event_id"`
 	EventType             string          `json:"event_type"`
-	AgentID               string          `json:"agent_id"`
+	EmployeeID            string          `json:"employee_id"`
 	RuntimeConversationID string          `json:"runtime_conversation_id"`
 	Timestamp             string          `json:"timestamp"`
 	SequenceNumber        int64           `json:"sequence_number"`
@@ -142,16 +142,16 @@ func (h *ConversationHandler) Create(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	agentID := chi.URLParam(r, "agentID")
-	if agentID == "" {
-		agentID = chi.URLParam(r, "id")
+	employeeID := chi.URLParam(r, "employeeID")
+	if employeeID == "" {
+		employeeID = chi.URLParam(r, "id")
 	}
 
 	var agent model.Agent
 	if err := h.db.Preload("Credential").
-		Where("id = ? AND org_id = ? AND status = 'active'", agentID, org.ID).First(&agent).Error; err != nil {
+		Where("id = ? AND org_id = ? AND status = 'active'", employeeID, org.ID).First(&agent).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
-			writeJSON(w, http.StatusNotFound, map[string]string{"error": "agent not found"})
+			writeJSON(w, http.StatusNotFound, map[string]string{"error": "employee not found"})
 			return
 		}
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to load agent"})
@@ -212,12 +212,12 @@ func (h *ConversationHandler) Create(w http.ResponseWriter, r *http.Request) {
 	)
 
 	writeJSON(w, http.StatusCreated, conversationResponse{
-		ID:        conv.ID.String(),
-		AgentID:   agent.ID.String(),
-		Name:      conv.Name,
-		Status:    "active",
-		StreamURL: fmt.Sprintf("/v1/conversations/%s/stream", conv.ID),
-		CreatedAt: conv.CreatedAt.Format(time.RFC3339),
+		ID:         conv.ID.String(),
+		EmployeeID: agent.ID.String(),
+		Name:       conv.Name,
+		Status:     "active",
+		StreamURL:  fmt.Sprintf("/v1/conversations/%s/stream", conv.ID),
+		CreatedAt:  conv.CreatedAt.Format(time.RFC3339),
 	})
 }
 

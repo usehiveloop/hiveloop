@@ -12,8 +12,8 @@ import (
 )
 
 func (h *EmployeeHandler) employeeModelRegistry() *registry.Registry {
-	if h != nil && h.agents != nil && h.agents.registry != nil {
-		return h.agents.registry
+	if h != nil && h.registry != nil {
+		return h.registry
 	}
 	return registry.Global()
 }

@@ -22,10 +22,10 @@ func validateHarness(harness string) error {
 	}
 }
 
-// loadAgentTriggers loads triggers configured for one or more employees.
+// loadEmployeeTriggers loads triggers configured for one or more employees.
 // Returns a map from agent ID to trigger responses. Uses a single query with
 // joins to avoid N+1.
-func (h *AgentHandler) loadAgentTriggers(agentIDs ...uuid.UUID) map[uuid.UUID][]agentTriggerResponse {
+func (h *EmployeeHandler) loadEmployeeTriggers(agentIDs ...uuid.UUID) map[uuid.UUID][]employeeTriggerResponse {
 	if len(agentIDs) == 0 {
 		return nil
 	}
@@ -63,7 +63,7 @@ func (h *AgentHandler) loadAgentTriggers(agentIDs ...uuid.UUID) map[uuid.UUID][]
 		ORDER BY at.id ASC
 	`, agentIDs).Scan(&rows)
 
-	result := make(map[uuid.UUID][]agentTriggerResponse, len(agentIDs))
+	result := make(map[uuid.UUID][]employeeTriggerResponse, len(agentIDs))
 	for _, row := range rows {
 		var conditions any
 		if len(row.Conditions) > 0 {
@@ -73,7 +73,7 @@ func (h *AgentHandler) loadAgentTriggers(agentIDs ...uuid.UUID) map[uuid.UUID][]
 			}
 		}
 
-		response := agentTriggerResponse{
+		response := employeeTriggerResponse{
 			ID:           row.TriggerID.String(),
 			TriggerType:  row.TriggerType,
 			TriggerKeys:  []string(row.TriggerKeys),
@@ -94,8 +94,8 @@ func (h *AgentHandler) loadAgentTriggers(agentIDs ...uuid.UUID) map[uuid.UUID][]
 	return result
 }
 
-// loadAgentSkills batch-loads attached skill summaries for one or more employees.
-func (h *AgentHandler) loadAgentSkills(agentIDs ...uuid.UUID) map[uuid.UUID][]agentSkillSummary {
+// loadEmployeeSkills batch-loads attached skill summaries for one or more employees.
+func (h *EmployeeHandler) loadEmployeeSkills(agentIDs ...uuid.UUID) map[uuid.UUID][]employeeSkillSummary {
 	if len(agentIDs) == 0 {
 		return nil
 	}
@@ -118,13 +118,13 @@ func (h *AgentHandler) loadAgentSkills(agentIDs ...uuid.UUID) map[uuid.UUID][]ag
 	for _, skill := range skills {
 		skillByID[skill.ID] = skill
 	}
-	result := make(map[uuid.UUID][]agentSkillSummary, len(agentIDs))
+	result := make(map[uuid.UUID][]employeeSkillSummary, len(agentIDs))
 	for _, link := range links {
 		skill, ok := skillByID[link.SkillID]
 		if !ok {
 			continue
 		}
-		result[link.AgentID] = append(result[link.AgentID], agentSkillSummary{
+		result[link.AgentID] = append(result[link.AgentID], employeeSkillSummary{
 			ID:          skill.ID.String(),
 			Name:        skill.Name,
 			Description: skill.Description,
@@ -141,12 +141,12 @@ func (h *AgentHandler) loadAgentSkills(agentIDs ...uuid.UUID) map[uuid.UUID][]ag
 // agent).
 var errGitHubAppExclusive = errors.New("an agent can connect to only one of github-app or github-app-code-reviews, not both")
 
-// validateAgentIntegrationsExclusivity checks the proposed integrations map
+// validateEmployeeIntegrationsExclusivity checks the proposed integrations map
 // against mutually-exclusive provider rules. integrations is keyed by
 // connection UUID (matching the JSONB shape on employees.integrations); we
 // resolve those connections to providers via in_connections → in_integrations
 // scoped to the org.
-func validateAgentIntegrationsExclusivity(db *gorm.DB, orgID uuid.UUID, integrations model.JSON) error {
+func validateEmployeeIntegrationsExclusivity(db *gorm.DB, orgID uuid.UUID, integrations model.JSON) error {
 	if len(integrations) == 0 {
 		return nil
 	}
@@ -191,7 +191,7 @@ func validateAgentIntegrationsExclusivity(db *gorm.DB, orgID uuid.UUID, integrat
 	return nil
 }
 
-func validateAgentModel(reg *registry.Registry, modelID string) error {
+func validateEmployeeModel(reg *registry.Registry, modelID string) error {
 	if modelID == "" {
 		return nil
 	}

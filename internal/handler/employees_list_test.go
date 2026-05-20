@@ -66,12 +66,9 @@ func TestIntegration_EmployeesList_HappyPath_LoadsAllRelations(t *testing.T) {
 	if item["id"] != emp.ID.String() {
 		t.Errorf("id mismatch: got %v", item["id"])
 	}
-	if item["is_employee"] != true {
-		t.Errorf("is_employee = %v, want true", item["is_employee"])
-	}
-	subagents := item["subagents"].([]any)
-	if len(subagents) != 2 {
-		t.Errorf("subagents len = %d, want 2", len(subagents))
+	specialists := item["specialists"].([]any)
+	if len(specialists) != 2 {
+		t.Errorf("specialists len = %d, want 2", len(specialists))
 	}
 
 	attached := item["attached_skills"].([]any)
@@ -90,6 +87,11 @@ func TestIntegration_EmployeesList_HappyPath_LoadsAllRelations(t *testing.T) {
 
 	if _, exposed := item["profiles"]; exposed {
 		t.Fatalf("employee list response exposed removed profiles field: %#v", item["profiles"])
+	}
+	for _, key := range []string{"is_employee", "category", "system_prompt", "identity_prompt", "prompt_operating_principles", "integrations", "agent_config"} {
+		if _, exposed := item[key]; exposed {
+			t.Fatalf("employee list response exposed removed %s field", key)
+		}
 	}
 
 	sb := item["sandbox"].(map[string]any)

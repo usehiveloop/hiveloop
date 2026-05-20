@@ -19,7 +19,6 @@ for (const methods of Object.values(spec.paths ?? {})) {
 }
 
 const tagDisplayNames: Record<string, string> = {
-  agents: 'Agents',
   'api-keys': 'API Keys',
   audit: 'Audit',
   auth: 'Authentication',
@@ -31,11 +30,9 @@ const tagDisplayNames: Record<string, string> = {
   'custom-domains': 'Custom Domains',
   forge: 'Forge',
   generations: 'Generations',
-  identities: 'Identities',
   'in-connections': 'Internal Connections',
   'in-integrations': 'Internal Integrations',
   integrations: 'Integrations',
-  marketplace: 'Marketplace',
   oauth: 'OAuth',
   orgs: 'Organizations',
   providers: 'Providers',

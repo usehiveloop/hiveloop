@@ -42,7 +42,7 @@ func NewLinearProxyHandler(db *gorm.DB, encKey *crypto.SymmetricKey, nangoClient
 	return &LinearProxyHandler{db: db, encKey: encKey, nango: nangoClient}
 }
 
-// Handle proxies POST /internal/linear-proxy/{agentID} to Linear GraphQL
+// Handle proxies POST /internal/linear-proxy/{employeeID} to Linear GraphQL
 // through the org's active Linear Nango connection.
 func (h *LinearProxyHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
@@ -53,7 +53,7 @@ func (h *LinearProxyHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	agentID, err := uuid.Parse(chi.URLParam(r, "agentID"))
+	agentID, err := uuid.Parse(chi.URLParam(r, "employeeID"))
 	if err != nil {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid agent_id"})
 		return

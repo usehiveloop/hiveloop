@@ -291,11 +291,11 @@ fn runtime_sentry_tags() -> Vec<(&'static str, String)> {
     if let Some(org_id) = non_empty_env("HIVELOOP_ORG_ID") {
         tags.push(("org_id", org_id));
     }
-    if let Some(agent_id) = non_empty_env("HIVELOOP_AGENT_ID") {
-        tags.push(("agent_id", agent_id));
-    }
-    if let Some(employee_id) = non_empty_env("EMPLOYEE_ID") {
+    if let Some(employee_id) = non_empty_env("HIVELOOP_EMPLOYEE_ID") {
         tags.push(("employee_id", employee_id));
+    }
+    if let Some(runtime_employee_id) = non_empty_env("EMPLOYEE_ID") {
+        tags.push(("runtime_employee_id", runtime_employee_id));
     }
     if let Some(sandbox_id) = non_empty_env("HIVELOOP_SANDBOX_ID") {
         tags.push(("sandbox_id", sandbox_id));
@@ -351,15 +351,15 @@ mod tests {
         let _guard = env_lock().lock().unwrap();
         EnvGuard::clear_all();
         std::env::set_var("HIVELOOP_ORG_ID", "org-123");
-        std::env::set_var("HIVELOOP_AGENT_ID", "agent-123");
-        std::env::set_var("EMPLOYEE_ID", "employee-123");
+        std::env::set_var("HIVELOOP_EMPLOYEE_ID", "employee-123");
+        std::env::set_var("EMPLOYEE_ID", "runtime-employee-123");
         std::env::set_var("HIVELOOP_SANDBOX_ID", "sandbox-123");
 
         let tags = runtime_sentry_tags();
 
         assert!(tags.contains(&("org_id", "org-123".to_string())));
-        assert!(tags.contains(&("agent_id", "agent-123".to_string())));
         assert!(tags.contains(&("employee_id", "employee-123".to_string())));
+        assert!(tags.contains(&("runtime_employee_id", "runtime-employee-123".to_string())));
         assert!(tags.contains(&("sandbox_id", "sandbox-123".to_string())));
     }
 
@@ -444,7 +444,7 @@ mod tests {
                 "SENTRY_SPOTLIGHT",
                 "SENTRY_SPOTLIGHT_URL",
                 "HIVELOOP_ORG_ID",
-                "HIVELOOP_AGENT_ID",
+                "HIVELOOP_EMPLOYEE_ID",
                 "EMPLOYEE_ID",
                 "HIVELOOP_SANDBOX_ID",
             ] {

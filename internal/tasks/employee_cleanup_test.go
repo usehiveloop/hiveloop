@@ -66,18 +66,18 @@ func createAgent(t *testing.T, db *gorm.DB) model.Agent {
 
 func makeTask(t *testing.T, agentID uuid.UUID) *asynq.Task {
 	t.Helper()
-	task, err := tasks.NewAgentCleanupTask(agentID)
+	task, err := tasks.NewEmployeeCleanupTask(agentID)
 	if err != nil {
 		t.Fatalf("create task: %v", err)
 	}
 	return task
 }
 
-func TestAgentCleanup_HardDeletesActiveAgent(t *testing.T) {
+func TestEmployeeCleanup_HardDeletesActiveAgent(t *testing.T) {
 	db := connectDB(t)
 	agent := createAgent(t, db)
 
-	handler := tasks.NewAgentCleanupHandler(db, nil, nil)
+	handler := tasks.NewEmployeeCleanupHandler(db, nil, nil)
 	task := makeTask(t, agent.ID)
 
 	if err := handler.Handle(context.Background(), task); err != nil {
@@ -91,10 +91,10 @@ func TestAgentCleanup_HardDeletesActiveAgent(t *testing.T) {
 	}
 }
 
-func TestAgentCleanup_AlreadyDeletedIsIdempotent(t *testing.T) {
+func TestEmployeeCleanup_AlreadyDeletedIsIdempotent(t *testing.T) {
 	db := connectDB(t)
 
-	handler := tasks.NewAgentCleanupHandler(db, nil, nil)
+	handler := tasks.NewEmployeeCleanupHandler(db, nil, nil)
 	task := makeTask(t, uuid.New())
 
 	if err := handler.Handle(context.Background(), task); err != nil {
@@ -102,11 +102,11 @@ func TestAgentCleanup_AlreadyDeletedIsIdempotent(t *testing.T) {
 	}
 }
 
-func TestAgentCleanup_NilOrchestratorHandledGracefully(t *testing.T) {
+func TestEmployeeCleanup_NilOrchestratorHandledGracefully(t *testing.T) {
 	db := connectDB(t)
 
 	agent := createAgent(t, db)
-	handler := tasks.NewAgentCleanupHandler(db, nil, nil)
+	handler := tasks.NewEmployeeCleanupHandler(db, nil, nil)
 
 	if err := handler.Handle(context.Background(), makeTask(t, agent.ID)); err != nil {
 		t.Fatalf("cleanup with nil orchestrator should not error: %v", err)
@@ -119,22 +119,22 @@ func TestAgentCleanup_NilOrchestratorHandledGracefully(t *testing.T) {
 	}
 }
 
-func TestAgentCleanup_PayloadRoundTrip(t *testing.T) {
+func TestEmployeeCleanup_PayloadRoundTrip(t *testing.T) {
 	agentID := uuid.New()
-	task, err := tasks.NewAgentCleanupTask(agentID)
+	task, err := tasks.NewEmployeeCleanupTask(agentID)
 	if err != nil {
 		t.Fatalf("create task: %v", err)
 	}
 
-	if task.Type() != tasks.TypeAgentCleanup {
-		t.Fatalf("expected type %q, got %q", tasks.TypeAgentCleanup, task.Type())
+	if task.Type() != tasks.TypeEmployeeCleanup {
+		t.Fatalf("expected type %q, got %q", tasks.TypeEmployeeCleanup, task.Type())
 	}
 
-	var payload tasks.AgentCleanupPayload
+	var payload tasks.EmployeeCleanupPayload
 	if err := json.Unmarshal(task.Payload(), &payload); err != nil {
 		t.Fatalf("unmarshal: %v", err)
 	}
-	if payload.AgentID != agentID {
-		t.Fatalf("expected agent ID %s, got %s", agentID, payload.AgentID)
+	if payload.EmployeeID != agentID {
+		t.Fatalf("expected employee ID %s, got %s", agentID, payload.EmployeeID)
 	}
 }

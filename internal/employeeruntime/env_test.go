@@ -31,7 +31,7 @@ func TestEmployeeEnvCatalogGolden(t *testing.T) {
 		EmployeeEnvRuntimeBindAddr,
 		EmployeeEnvSandboxID,
 		EmployeeEnvOrgID,
-		EmployeeEnvAgentID,
+		EmployeeEnvHiveloopEmployeeID,
 		EmployeeEnvGitUsername,
 		EmployeeEnvGitEmail,
 		EmployeeEnvGitCredentialsURL,

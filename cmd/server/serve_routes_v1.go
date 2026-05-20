@@ -34,7 +34,6 @@ func setupV1Routes(
 	tokenHandler *handler.TokenHandler,
 	sandboxTemplateHandler *handler.SandboxTemplateHandler,
 	skillHandler *handler.SkillHandler,
-	agentHandler *handler.AgentHandler,
 	conversationHandler *handler.ConversationHandler,
 	customDomainHandler *handler.CustomDomainHandler,
 	ragSourceHandler *handler.RAGSourceHandler,
@@ -116,7 +115,7 @@ func setupV1Routes(
 			})
 
 			r.Group(func(r chi.Router) {
-				r.Use(middleware.RequireAPIKeyScopeOrJWT("agents"))
+				r.Use(middleware.RequireAPIKeyScopeOrJWT("employees"))
 				r.Route("/sandbox-templates", func(r chi.Router) {
 					r.Post("/", sandboxTemplateHandler.Create)
 					r.Get("/", sandboxTemplateHandler.List)
@@ -138,7 +137,6 @@ func setupV1Routes(
 					r.Get("/{id}/versions", skillHandler.ListVersions)
 				})
 				triggerDeliveryHandler := handler.NewTriggerDeliveryHandler(database)
-				_ = agentHandler
 				if employeeHandler != nil {
 					r.Get("/employees", employeeHandler.List)
 					r.Get("/employees/{id}", employeeHandler.Get)

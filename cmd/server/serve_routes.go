@@ -35,7 +35,7 @@ func setupPublicRoutes(
 	sandboxEncKey *crypto.SymmetricKey,
 	uploadsHandler *handler.UploadsHandler,
 	sqliteBackupHandler *handler.EmployeeSQLiteBackupHandler,
-	cloudAgentHandler *handler.CloudAgentHandler,
+	specialistTaskHandler *handler.SpecialistTaskHandler,
 ) {
 	r.Get("/healthz", healthz)
 	r.Get("/readyz", readyz(database, redisClient))
@@ -72,19 +72,19 @@ func setupPublicRoutes(
 	// Sandbox proxy endpoints (bearer-token auth, no middleware)
 	if nangoClient != nil && sandboxEncKey != nil {
 		gitCredsHandler := handler.NewGitCredentialsHandler(database, sandboxEncKey, nangoClient)
-		r.Post("/internal/git-credentials/{agentID}", gitCredsHandler.Handle)
+		r.Post("/internal/git-credentials/{employeeID}", gitCredsHandler.Handle)
 
 		railwayProxyHandler := handler.NewRailwayProxyHandler(database, sandboxEncKey, nangoClient)
-		r.Post("/internal/railway-proxy/{agentID}", railwayProxyHandler.Handle)
+		r.Post("/internal/railway-proxy/{employeeID}", railwayProxyHandler.Handle)
 
 		bugsinkProxyHandler := handler.NewBugsinkProxyHandler(database, sandboxEncKey, nangoClient)
-		r.Handle("/internal/bugsink-proxy/{agentID}/*", http.HandlerFunc(bugsinkProxyHandler.Handle))
+		r.Handle("/internal/bugsink-proxy/{employeeID}/*", http.HandlerFunc(bugsinkProxyHandler.Handle))
 
 		linearProxyHandler := handler.NewLinearProxyHandler(database, sandboxEncKey, nangoClient)
-		r.Post("/internal/linear-proxy/{agentID}", linearProxyHandler.Handle)
+		r.Post("/internal/linear-proxy/{employeeID}", linearProxyHandler.Handle)
 
 		notionProxyHandler := handler.NewNotionProxyHandler(database, sandboxEncKey, nangoClient)
-		r.Handle("/internal/notion-proxy/{agentID}/*", http.HandlerFunc(notionProxyHandler.Handle))
+		r.Handle("/internal/notion-proxy/{employeeID}/*", http.HandlerFunc(notionProxyHandler.Handle))
 	}
 
 	// Direct incoming webhooks for providers requiring manual webhook configuration
@@ -109,13 +109,13 @@ func setupPublicRoutes(
 		r.Post("/internal/employees/{employeeID}/sqlite-backup/confirm", sqliteBackupHandler.Confirm)
 	}
 
-	if cloudAgentHandler != nil {
-		r.Get("/internal/employees/{employeeID}/specialists/", cloudAgentHandler.ListCloudAgents)
-		r.Get("/internal/employees/{employeeID}/specialists/{specialistSlug}/tasks", cloudAgentHandler.ListTasks)
-		r.Get("/internal/employees/{employeeID}/specialists/{specialistSlug}/tasks/{taskID}", cloudAgentHandler.GetTask)
-		r.Post("/internal/employees/{employeeID}/specialists/{specialistSlug}/tasks", cloudAgentHandler.CreateTask)
-		r.Post("/internal/employees/{employeeID}/specialists/{specialistSlug}/tasks/{taskID}/message", cloudAgentHandler.SendTaskMessage)
-		r.Post("/internal/employees/{employeeID}/specialists/{specialistSlug}/tasks/{taskID}", cloudAgentHandler.TerminateTask)
+	if specialistTaskHandler != nil {
+		r.Get("/internal/employees/{employeeID}/specialists/", specialistTaskHandler.ListSpecialistRuntimes)
+		r.Get("/internal/employees/{employeeID}/specialists/{specialistSlug}/tasks", specialistTaskHandler.ListTasks)
+		r.Get("/internal/employees/{employeeID}/specialists/{specialistSlug}/tasks/{taskID}", specialistTaskHandler.GetTask)
+		r.Post("/internal/employees/{employeeID}/specialists/{specialistSlug}/tasks", specialistTaskHandler.CreateTask)
+		r.Post("/internal/employees/{employeeID}/specialists/{specialistSlug}/tasks/{taskID}/message", specialistTaskHandler.SendTaskMessage)
+		r.Post("/internal/employees/{employeeID}/specialists/{specialistSlug}/tasks/{taskID}", specialistTaskHandler.TerminateTask)
 	}
 }
 

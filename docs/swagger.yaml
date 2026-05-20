@@ -144,17 +144,6 @@ definitions:
       webhook_user_defined_secret:
         type: boolean
     type: object
-  ProviderPromptConfig:
-    properties:
-      model:
-        type: string
-      system_prompt:
-        type: string
-    type: object
-  ProviderPromptsMap:
-    additionalProperties:
-      $ref: '#/definitions/ProviderPromptConfig'
-    type: object
   Reference:
     properties:
       body:
@@ -274,47 +263,6 @@ definitions:
       skill_id:
         type: string
     type: object
-  agentSkillSummary:
-    properties:
-      description:
-        type: string
-      id:
-        type: string
-      locked:
-        type: boolean
-      name:
-        type: string
-      required:
-        type: boolean
-      source_type:
-        type: string
-    type: object
-  agentTriggerResponse:
-    properties:
-      conditions: {}
-      connection_id:
-        type: string
-      enabled:
-        type: boolean
-      id:
-        type: string
-      instructions:
-        type: string
-      provider:
-        type: string
-      secret_set:
-        description: |-
-          SecretSet indicates whether an HTTP trigger has a shared secret configured.
-          True when the trigger requires auth on incoming requests. The secret value
-          is never returned.
-        type: boolean
-      trigger_keys:
-        items:
-          type: string
-        type: array
-      trigger_type:
-        type: string
-    type: object
   apiKeyResponse:
     properties:
       created_at:
@@ -361,8 +309,6 @@ definitions:
     type: object
   assetListItem:
     properties:
-      agent_id:
-        type: string
       asset_url:
         type: string
       bytes:
@@ -372,6 +318,8 @@ definitions:
       conversation_id:
         type: string
       created_at:
+        type: string
+      employee_id:
         type: string
       filename:
         type: string
@@ -467,14 +415,14 @@ definitions:
     type: object
   conversationEventResponse:
     properties:
-      agent_id:
-        type: string
       created_at:
         type: string
       data:
         items:
           type: integer
         type: array
+      employee_id:
+        type: string
       event_id:
         type: string
       event_type:
@@ -537,9 +485,9 @@ definitions:
     type: object
   conversationResponse:
     properties:
-      agent_id:
-        type: string
       created_at:
+        type: string
+      employee_id:
         type: string
       id:
         type: string
@@ -825,38 +773,20 @@ definitions:
     type: object
   employeeListItem:
     properties:
-      agent_config:
-        $ref: '#/definitions/JSON'
       attached_skills:
         items:
-          $ref: '#/definitions/agentSkillSummary'
+          $ref: '#/definitions/employeeSkillSummary'
         type: array
       avatar_url:
         type: string
-      category:
-        type: string
       created_at:
-        type: string
-      credential_id:
         type: string
       description:
         type: string
-      harness:
-        type: string
       id:
         type: string
-      identity_prompt:
-        type: string
-      instructions:
-        type: string
-      integrations:
-        $ref: '#/definitions/JSON'
-      is_employee:
-        type: boolean
       last_memory_refreshed_at:
         type: string
-      mcp_servers:
-        $ref: '#/definitions/JSON'
       memory_refresh_error:
         type: string
       memory_refresh_status:
@@ -865,45 +795,23 @@ definitions:
         type: string
       name:
         type: string
-      permissions:
-        $ref: '#/definitions/JSON'
-      prompt_operating_principles:
-        type: string
-      provider_id:
-        type: string
-      provider_prompts:
-        $ref: '#/definitions/ProviderPromptsMap'
-      resources:
-        $ref: '#/definitions/JSON'
       sandbox:
         $ref: '#/definitions/employeeSandboxSummary'
       sandbox_template_id:
         type: string
-      sandbox_tools:
+      specialist_ids:
         items:
           type: string
         type: array
-      shared_memory:
-        type: boolean
-      skills:
-        $ref: '#/definitions/JSON'
+      specialists:
+        items:
+          $ref: '#/definitions/employeeSpecialistSummary'
+        type: array
       status:
         type: string
-      subagent_ids:
-        items:
-          type: string
-        type: array
-      subagents:
-        items:
-          $ref: '#/definitions/employeeSubagentSummary'
-        type: array
-      system_prompt:
-        type: string
-      tools:
-        $ref: '#/definitions/JSON'
       triggers:
         items:
-          $ref: '#/definitions/agentTriggerResponse'
+          $ref: '#/definitions/employeeTriggerResponse'
         type: array
       updated_at:
         type: string
@@ -971,10 +879,23 @@ definitions:
       trigger_delivery:
         $ref: '#/definitions/triggerDeliveryResponse'
     type: object
+  employeeSkillSummary:
+    properties:
+      description:
+        type: string
+      id:
+        type: string
+      locked:
+        type: boolean
+      name:
+        type: string
+      required:
+        type: boolean
+      source_type:
+        type: string
+    type: object
   employeeSpecialistResponse:
     properties:
-      agent_type:
-        type: string
       description:
         type: string
       enabled:
@@ -983,10 +904,12 @@ definitions:
         type: string
       slug:
         type: string
+      specialist_type:
+        type: string
       version:
         type: integer
     type: object
-  employeeSubagentSummary:
+  employeeSpecialistSummary:
     properties:
       avatar_url:
         type: string
@@ -998,9 +921,35 @@ definitions:
         type: string
       status:
         type: string
-      template_agent_type:
-        type: string
       template_slug:
+        type: string
+      template_specialist_type:
+        type: string
+    type: object
+  employeeTriggerResponse:
+    properties:
+      conditions: {}
+      connection_id:
+        type: string
+      enabled:
+        type: boolean
+      id:
+        type: string
+      instructions:
+        type: string
+      provider:
+        type: string
+      secret_set:
+        description: |-
+          SecretSet indicates whether an HTTP trigger has a shared secret configured.
+          True when the trigger requires auth on incoming requests. The secret value
+          is never returned.
+        type: boolean
+      trigger_keys:
+        items:
+          type: string
+        type: array
+      trigger_type:
         type: string
     type: object
   errorRate:
@@ -2049,9 +1998,9 @@ definitions:
     type: object
   sandboxResponse:
     properties:
-      agent_id:
-        type: string
       created_at:
+        type: string
+      employee_id:
         type: string
       error_message:
         type: string
@@ -2429,8 +2378,6 @@ definitions:
     type: object
   triggerDeliveryResponse:
     properties:
-      agent_id:
-        type: string
       connection_id:
         type: string
       conversation_id:
@@ -2438,6 +2385,8 @@ definitions:
       created_at:
         type: string
       delivery_id:
+        type: string
+      employee_id:
         type: string
       event_key:
         type: string
@@ -3300,11 +3249,11 @@ paths:
   /v1/assets:
     get:
       description: 'Lists conversation assets owned by the caller''s org. Optional
-        filters: agent_id, conversation_id, path. Ordered by created_at desc, cursor-paginated.'
+        filters: employee_id, conversation_id, path. Ordered by created_at desc, cursor-paginated.'
       parameters:
-      - description: Filter to assets uploaded inside conversations of this agent
+      - description: Filter to assets uploaded inside conversations of this employee
         in: query
-        name: agent_id
+        name: employee_id
         type: string
       - description: Filter to assets uploaded inside this conversation
         in: query

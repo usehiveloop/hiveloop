@@ -142,11 +142,11 @@ func employeeLockedSkillIDs(ctx context.Context, db *gorm.DB, orgID uuid.UUID, a
 	return out, nil
 }
 
-func (h *EmployeeHandler) markEmployeeSkillLocks(ctx context.Context, orgID uuid.UUID, agent *model.Agent, summaries []agentSkillSummary) []agentSkillSummary {
+func (h *EmployeeHandler) markEmployeeSkillLocks(ctx context.Context, orgID uuid.UUID, agent *model.Agent, summaries []employeeSkillSummary) []employeeSkillSummary {
 	return markEmployeeSkillSummaries(ctx, h.db, orgID, agent, summaries)
 }
 
-func markEmployeeSkillSummaries(ctx context.Context, db *gorm.DB, orgID uuid.UUID, agent *model.Agent, summaries []agentSkillSummary) []agentSkillSummary {
+func markEmployeeSkillSummaries(ctx context.Context, db *gorm.DB, orgID uuid.UUID, agent *model.Agent, summaries []employeeSkillSummary) []employeeSkillSummary {
 	if len(summaries) == 0 {
 		return summaries
 	}

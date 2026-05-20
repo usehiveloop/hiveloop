@@ -13,14 +13,14 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
-type employeeSubagentSummary struct {
-	ID                string  `json:"id"`
-	Name              string  `json:"name"`
-	AvatarURL         *string `json:"avatar_url,omitempty"`
-	Description       *string `json:"description,omitempty"`
-	Status            string  `json:"status"`
-	TemplateSlug      *string `json:"template_slug,omitempty"`
-	TemplateAgentType *string `json:"template_agent_type,omitempty"`
+type employeeSpecialistSummary struct {
+	ID                     string  `json:"id"`
+	Name                   string  `json:"name"`
+	AvatarURL              *string `json:"avatar_url,omitempty"`
+	Description            *string `json:"description,omitempty"`
+	Status                 string  `json:"status"`
+	TemplateSlug           *string `json:"template_slug,omitempty"`
+	TemplateSpecialistType *string `json:"template_specialist_type,omitempty"`
 }
 
 type employeeSandboxSummary struct {
@@ -34,10 +34,10 @@ type employeeSandboxSummary struct {
 }
 
 type employeeListItem struct {
-	agentResponse
-	UpgradeAvailable bool                      `json:"upgrade_available"`
-	Subagents        []employeeSubagentSummary `json:"subagents"`
-	Sandbox          *employeeSandboxSummary   `json:"sandbox,omitempty"`
+	employeeResponse
+	UpgradeAvailable bool                        `json:"upgrade_available"`
+	Specialists      []employeeSpecialistSummary `json:"specialists"`
+	Sandbox          *employeeSandboxSummary     `json:"sandbox,omitempty"`
 }
 
 // @Summary List AI employees
@@ -93,25 +93,25 @@ func (h *EmployeeHandler) List(w http.ResponseWriter, r *http.Request) {
 		agentIDs[i] = a.ID
 	}
 
-	triggers := h.agents.loadAgentTriggers(agentIDs...)
-	skills := h.agents.loadAgentSkills(agentIDs...)
+	triggers := h.loadEmployeeTriggers(agentIDs...)
+	skills := h.loadEmployeeSkills(agentIDs...)
 	sandboxes := loadLatestSandboxPerAgent(h.db, org.ID, agentIDs)
 	currentSnapshotID := h.currentEmployeeSandboxSnapshotID()
 
 	items := make([]employeeListItem, len(agents))
 	for i, a := range agents {
-		base := toAgentResponse(a)
+		base := toEmployeeResponse(a)
 		base.Triggers = triggers[a.ID]
 		base.AttachedSkills = h.markEmployeeSkillLocks(r.Context(), org.ID, &a, skills[a.ID])
 		subs := employeeEnabledSpecialistSummaries(a)
-		base.SubagentIDs = make([]string, len(subs))
+		base.SpecialistIDs = make([]string, len(subs))
 		for j, s := range subs {
-			base.SubagentIDs[j] = s.ID
+			base.SpecialistIDs[j] = s.ID
 		}
 		items[i] = employeeListItem{
-			agentResponse:    base,
+			employeeResponse: base,
 			UpgradeAvailable: employeeSandboxUpgradeAvailable(sandboxes[a.ID], currentSnapshotID),
-			Subagents:        subs,
+			Specialists:      subs,
 			Sandbox:          sandboxes[a.ID],
 		}
 	}
@@ -166,21 +166,21 @@ func (h *EmployeeHandler) Get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	base := toAgentResponse(agent)
-	base.Triggers = h.agents.loadAgentTriggers(agent.ID)[agent.ID]
-	base.AttachedSkills = h.markEmployeeSkillLocks(r.Context(), org.ID, &agent, h.agents.loadAgentSkills(agent.ID)[agent.ID])
-	subagents := employeeEnabledSpecialistSummaries(agent)
-	base.SubagentIDs = make([]string, len(subagents))
-	for i, subagent := range subagents {
-		base.SubagentIDs[i] = subagent.ID
+	base := toEmployeeResponse(agent)
+	base.Triggers = h.loadEmployeeTriggers(agent.ID)[agent.ID]
+	base.AttachedSkills = h.markEmployeeSkillLocks(r.Context(), org.ID, &agent, h.loadEmployeeSkills(agent.ID)[agent.ID])
+	specialists := employeeEnabledSpecialistSummaries(agent)
+	base.SpecialistIDs = make([]string, len(specialists))
+	for i, specialist := range specialists {
+		base.SpecialistIDs[i] = specialist.ID
 	}
 	sandbox := loadLatestSandboxPerAgent(h.db, org.ID, []uuid.UUID{agent.ID})[agent.ID]
 	currentSnapshotID := h.currentEmployeeSandboxSnapshotID()
 
 	writeJSON(w, http.StatusOK, employeeListItem{
-		agentResponse:    base,
+		employeeResponse: base,
 		UpgradeAvailable: employeeSandboxUpgradeAvailable(sandbox, currentSnapshotID),
-		Subagents:        subagents,
+		Specialists:      specialists,
 		Sandbox:          sandbox,
 	})
 }
@@ -193,41 +193,41 @@ func (h *EmployeeHandler) currentEmployeeSandboxSnapshotID() string {
 }
 
 func (h *EmployeeHandler) employeeListItem(ctx context.Context, orgID uuid.UUID, agent model.Agent) employeeListItem {
-	base := toAgentResponse(agent)
-	base.Triggers = h.agents.loadAgentTriggers(agent.ID)[agent.ID]
-	base.AttachedSkills = h.markEmployeeSkillLocks(ctx, orgID, &agent, h.agents.loadAgentSkills(agent.ID)[agent.ID])
-	subagents := employeeEnabledSpecialistSummaries(agent)
-	base.SubagentIDs = make([]string, len(subagents))
-	for i, subagent := range subagents {
-		base.SubagentIDs[i] = subagent.ID
+	base := toEmployeeResponse(agent)
+	base.Triggers = h.loadEmployeeTriggers(agent.ID)[agent.ID]
+	base.AttachedSkills = h.markEmployeeSkillLocks(ctx, orgID, &agent, h.loadEmployeeSkills(agent.ID)[agent.ID])
+	specialists := employeeEnabledSpecialistSummaries(agent)
+	base.SpecialistIDs = make([]string, len(specialists))
+	for i, specialist := range specialists {
+		base.SpecialistIDs[i] = specialist.ID
 	}
 	sandbox := loadLatestSandboxPerAgent(h.db, orgID, []uuid.UUID{agent.ID})[agent.ID]
 	return employeeListItem{
-		agentResponse:    base,
+		employeeResponse: base,
 		UpgradeAvailable: employeeSandboxUpgradeAvailable(sandbox, h.currentEmployeeSandboxSnapshotID()),
-		Subagents:        subagents,
+		Specialists:      specialists,
 		Sandbox:          sandbox,
 	}
 }
 
-func employeeEnabledSpecialistSummaries(employee model.Agent) []employeeSubagentSummary {
+func employeeEnabledSpecialistSummaries(employee model.Agent) []employeeSpecialistSummary {
 	disabled := disabledSpecialistSet(employee.DisabledSpecialists)
-	out := make([]employeeSubagentSummary, 0, len(employeeAgentTemplates))
-	for i := range employeeAgentTemplates {
-		t := employeeAgentTemplates[i]
+	out := make([]employeeSpecialistSummary, 0, len(specialistTemplates))
+	for i := range specialistTemplates {
+		t := specialistTemplates[i]
 		if disabled[t.Slug] {
 			continue
 		}
 		slug := t.Slug
-		agentType := t.AgentType
+		specialistType := t.SpecialistType
 		desc := t.Description
-		out = append(out, employeeSubagentSummary{
-			ID:                t.Slug,
-			Name:              t.Name,
-			Description:       &desc,
-			Status:            "active",
-			TemplateSlug:      &slug,
-			TemplateAgentType: &agentType,
+		out = append(out, employeeSpecialistSummary{
+			ID:                     t.Slug,
+			Name:                   t.Name,
+			Description:            &desc,
+			Status:                 "active",
+			TemplateSlug:           &slug,
+			TemplateSpecialistType: &specialistType,
 		})
 	}
 	return out

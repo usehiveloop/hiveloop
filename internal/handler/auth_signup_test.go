@@ -100,15 +100,12 @@ func TestCreateUserDefaultOrg_CreatesHivyWithAllSpecialists(t *testing.T) {
 	if err := db.Where("org_id = ?", org.ID).First(&employee).Error; err != nil {
 		t.Fatalf("load Hivy employee: %v", err)
 	}
-	resp := toAgentResponse(employee)
+	resp := toEmployeeResponse(employee)
 	if resp.Name != "Hivy" {
 		t.Fatalf("employee name = %q, want Hivy", resp.Name)
 	}
-	if resp.Category != nil {
-		t.Fatalf("employee category = %v, want nil", *resp.Category)
-	}
-	if got := len(employeeEnabledSpecialistSummaries(employee)); got != len(employeeAgentTemplates) {
-		t.Fatalf("enabled specialists = %d, want %d", got, len(employeeAgentTemplates))
+	if got := len(employeeEnabledSpecialistSummaries(employee)); got != len(specialistTemplates) {
+		t.Fatalf("enabled specialists = %d, want %d", got, len(specialistTemplates))
 	}
 }
 

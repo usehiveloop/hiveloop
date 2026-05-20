@@ -12,10 +12,10 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/model"
 )
 
-// validateAgentTriggers checks per-type required fields on each trigger input
+// validateEmployeeTriggers checks per-type required fields on each trigger input
 // and returns the first validation error formatted as "triggers[i]: ...".
 // Returns "" when every trigger is well-formed (or the slice is empty).
-func validateAgentTriggers(db *gorm.DB, orgID uuid.UUID, triggers []agentTriggerInput) string {
+func validateEmployeeTriggers(db *gorm.DB, orgID uuid.UUID, triggers []employeeTriggerInput) string {
 	for i, input := range triggers {
 		triggerType := input.TriggerType
 		if triggerType == "" {
@@ -45,7 +45,7 @@ func validateAgentTriggers(db *gorm.DB, orgID uuid.UUID, triggers []agentTrigger
 	return ""
 }
 
-func replaceAgentTriggers(tx *gorm.DB, orgID, agentID uuid.UUID, triggers []agentTriggerInput) error {
+func replaceEmployeeTriggers(tx *gorm.DB, orgID, agentID uuid.UUID, triggers []employeeTriggerInput) error {
 	existingSecrets := map[uuid.UUID]string{}
 	var existing []model.AgentTrigger
 	if err := tx.Where("agent_id = ?", agentID).Find(&existing).Error; err != nil {
@@ -56,19 +56,19 @@ func replaceAgentTriggers(tx *gorm.DB, orgID, agentID uuid.UUID, triggers []agen
 			existingSecrets[trigger.ID] = trigger.SecretKey
 		}
 	}
-	if err := deleteAgentTriggers(tx, agentID); err != nil {
+	if err := deleteEmployeeTriggers(tx, agentID); err != nil {
 		return err
 	}
-	return createAgentTriggersWithExistingSecrets(tx, orgID, agentID, triggers, existingSecrets)
+	return createEmployeeTriggersWithExistingSecrets(tx, orgID, agentID, triggers, existingSecrets)
 }
 
-// createAgentTriggers creates employee-owned AgentTrigger records inside an
+// createEmployeeTriggers creates employee-owned AgentTrigger records inside an
 // existing transaction. Connection IDs are in_connections IDs from the frontend.
-func createAgentTriggers(tx *gorm.DB, orgID, agentID uuid.UUID, triggers []agentTriggerInput) error {
-	return createAgentTriggersWithExistingSecrets(tx, orgID, agentID, triggers, nil)
+func createEmployeeTriggers(tx *gorm.DB, orgID, agentID uuid.UUID, triggers []employeeTriggerInput) error {
+	return createEmployeeTriggersWithExistingSecrets(tx, orgID, agentID, triggers, nil)
 }
 
-func createAgentTriggersWithExistingSecrets(tx *gorm.DB, orgID, agentID uuid.UUID, triggers []agentTriggerInput, existingSecrets map[uuid.UUID]string) error {
+func createEmployeeTriggersWithExistingSecrets(tx *gorm.DB, orgID, agentID uuid.UUID, triggers []employeeTriggerInput, existingSecrets map[uuid.UUID]string) error {
 	if len(triggers) == 0 {
 		return nil
 	}
@@ -136,8 +136,8 @@ func createAgentTriggersWithExistingSecrets(tx *gorm.DB, orgID, agentID uuid.UUI
 	return nil
 }
 
-// deleteAgentTriggers removes all trigger records owned by an agent.
-func deleteAgentTriggers(db *gorm.DB, agentID uuid.UUID) error {
+// deleteEmployeeTriggers removes all trigger records owned by an agent.
+func deleteEmployeeTriggers(db *gorm.DB, agentID uuid.UUID) error {
 	if err := db.Where("agent_id = ?", agentID).Delete(&model.AgentTrigger{}).Error; err != nil {
 		return fmt.Errorf("delete agent triggers: %w", err)
 	}

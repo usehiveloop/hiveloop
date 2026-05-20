@@ -160,7 +160,7 @@ func employeeSandboxEnvVars(cfg *config.Config, runtimeSecret string, sb *model.
 		employeeruntime.EmployeeEnvRuntimeBindAddr:          fmt.Sprintf("0.0.0.0:%d", EmployeeSandboxPort),
 		employeeruntime.EmployeeEnvSandboxID:                sb.ID.String(),
 		employeeruntime.EmployeeEnvOrgID:                    orgID.String(),
-		employeeruntime.EmployeeEnvAgentID:                  agent.ID.String(),
+		employeeruntime.EmployeeEnvHiveloopEmployeeID:       agent.ID.String(),
 		employeeruntime.EmployeeEnvGitUsername:              employeeGitUsername(agent, gitIdentity),
 		employeeruntime.EmployeeEnvGitEmail:                 employeeGitEmail(agent, gitIdentity),
 		employeeruntime.EmployeeEnvGitCredentialsURL:        fmt.Sprintf("https://%s/internal/git-credentials/%s", bridgeHost, agent.ID),

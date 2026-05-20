@@ -29,9 +29,9 @@ func (h *ConversationHandler) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	agentID := chi.URLParam(r, "agentID")
-	if agentID == "" {
-		agentID = chi.URLParam(r, "id")
+	employeeID := chi.URLParam(r, "employeeID")
+	if employeeID == "" {
+		employeeID = chi.URLParam(r, "id")
 	}
 	limit, cursor, err := parsePagination(r)
 	if err != nil {
@@ -39,7 +39,7 @@ func (h *ConversationHandler) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	q := h.db.Where("org_id = ? AND agent_id = ?", org.ID, agentID)
+	q := h.db.Where("org_id = ? AND agent_id = ?", org.ID, employeeID)
 	if status := r.URL.Query().Get("status"); status != "" {
 		q = q.Where("status = ?", status)
 	}
@@ -59,12 +59,12 @@ func (h *ConversationHandler) List(w http.ResponseWriter, r *http.Request) {
 	resp := make([]conversationResponse, len(convs))
 	for i, c := range convs {
 		resp[i] = conversationResponse{
-			ID:        c.ID.String(),
-			AgentID:   c.AgentID.String(),
-			Name:      c.Name,
-			Status:    c.Status,
-			StreamURL: fmt.Sprintf("/v1/conversations/%s/stream", c.ID),
-			CreatedAt: c.CreatedAt.Format(time.RFC3339),
+			ID:         c.ID.String(),
+			EmployeeID: c.AgentID.String(),
+			Name:       c.Name,
+			Status:     c.Status,
+			StreamURL:  fmt.Sprintf("/v1/conversations/%s/stream", c.ID),
+			CreatedAt:  c.CreatedAt.Format(time.RFC3339),
 		}
 	}
 
@@ -94,11 +94,11 @@ func (h *ConversationHandler) Get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, conversationResponse{
-		ID:        conv.ID.String(),
-		AgentID:   conv.AgentID.String(),
-		Name:      conv.Name,
-		Status:    conv.Status,
-		StreamURL: fmt.Sprintf("/v1/conversations/%s/stream", conv.ID),
-		CreatedAt: conv.CreatedAt.Format(time.RFC3339),
+		ID:         conv.ID.String(),
+		EmployeeID: conv.AgentID.String(),
+		Name:       conv.Name,
+		Status:     conv.Status,
+		StreamURL:  fmt.Sprintf("/v1/conversations/%s/stream", conv.ID),
+		CreatedAt:  conv.CreatedAt.Format(time.RFC3339),
 	})
 }

@@ -14,7 +14,7 @@ import (
 type assetListItem struct {
 	ID             string `json:"id"`
 	ConversationID string `json:"conversation_id"`
-	AgentID        string `json:"agent_id"`
+	EmployeeID     string `json:"employee_id"`
 	Path           string `json:"path"`
 	Filename       string `json:"filename"`
 	Key            string `json:"key"`
@@ -29,17 +29,17 @@ type assetListItem struct {
 //
 // Returns assets owned by the caller's org, optionally filtered by:
 //
-//	?agent_id={uuid}        — assets uploaded inside conversations of this agent
+//	?employee_id={uuid}     — assets uploaded inside conversations of this employee
 //	?conversation_id={uuid} — assets uploaded inside this conversation
 //	?path={folder}          — exact match on the asset's logical folder label
 //
 // Filters combine. Ordered by created_at desc, cursor-paginated.
 //
 // @Summary List org assets
-// @Description Lists conversation assets owned by the caller's org. Optional filters: agent_id, conversation_id, path. Ordered by created_at desc, cursor-paginated.
+// @Description Lists conversation assets owned by the caller's org. Optional filters: employee_id, conversation_id, path. Ordered by created_at desc, cursor-paginated.
 // @Tags assets
 // @Produce json
-// @Param agent_id query string false "Filter to assets uploaded inside conversations of this agent"
+// @Param employee_id query string false "Filter to assets uploaded inside conversations of this employee"
 // @Param conversation_id query string false "Filter to assets uploaded inside this conversation"
 // @Param path query string false "Filter by exact folder label (empty = root)"
 // @Param limit query int false "Page size (default 50, max 200)"
@@ -83,13 +83,13 @@ func (h *UploadsHandler) ListAssets(w http.ResponseWriter, r *http.Request) {
 		}
 		q = q.Where("ca.conversation_id = ?", convID)
 	}
-	if v := r.URL.Query().Get("agent_id"); v != "" {
-		agentID, err := uuid.Parse(v)
+	if v := r.URL.Query().Get("employee_id"); v != "" {
+		employeeID, err := uuid.Parse(v)
 		if err != nil {
-			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid agent_id"})
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid employee_id"})
 			return
 		}
-		q = q.Where("ac.agent_id = ?", agentID)
+		q = q.Where("ac.agent_id = ?", employeeID)
 	}
 	if v, ok := r.URL.Query()["path"]; ok && len(v) > 0 {
 		// Path is a labelled folder — exact match. Empty value matches root.
@@ -125,7 +125,7 @@ func (h *UploadsHandler) ListAssets(w http.ResponseWriter, r *http.Request) {
 		out[i] = assetListItem{
 			ID:             r.ID.String(),
 			ConversationID: r.ConversationID.String(),
-			AgentID:        r.AgentIDJoin.String(),
+			EmployeeID:     r.AgentIDJoin.String(),
 			Path:           r.Path,
 			Filename:       r.Filename,
 			Key:            r.Key,

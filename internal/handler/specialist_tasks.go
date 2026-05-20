@@ -23,36 +23,36 @@ import (
 	"github.com/usehiveloop/hiveloop/internal/sandbox"
 )
 
-// CloudAgentBridgeClient is the subset of bridge runtime operations used by
+// SpecialistBridgeClient is the subset of bridge runtime operations used by
 // cloud-agent coordination. Keeping this seam small makes the bridge contract
 // testable without provisioning a real sandbox.
-type CloudAgentBridgeClient interface {
+type SpecialistBridgeClient interface {
 	CreateConversation(ctx context.Context, agentID string) (*bridge.CreateConversationResponse, error)
 	SendMessage(ctx context.Context, convID string, content string) error
 	EndConversation(ctx context.Context, convID string) error
 }
 
-type CloudAgentHandlerHooks struct {
+type SpecialistTaskHandlerHooks struct {
 	CreateDedicatedSandbox  func(ctx context.Context, agent *model.Agent, extraEnv map[string]string) (*model.Sandbox, error)
 	PushAgentToSandbox      func(ctx context.Context, agent *model.Agent, sb *model.Sandbox) error
-	GetBridgeClient         func(ctx context.Context, sb *model.Sandbox) (CloudAgentBridgeClient, error)
+	GetBridgeClient         func(ctx context.Context, sb *model.Sandbox) (SpecialistBridgeClient, error)
 	StopSandbox             func(ctx context.Context, sb *model.Sandbox) error
 	DeleteSandbox           func(ctx context.Context, sb *model.Sandbox) error
 	TaskDriveUploadURL      func(employeeID uuid.UUID, taskID uuid.UUID) string
 	EmployeeCallbackRuntime employeeCallbackSandboxRuntime
 }
 
-type CloudAgentHandler struct {
+type SpecialistTaskHandler struct {
 	db     *gorm.DB
 	encKey *crypto.SymmetricKey
-	hooks  CloudAgentHandlerHooks
+	hooks  SpecialistTaskHandlerHooks
 }
 
-func NewCloudAgentHandler(db *gorm.DB, encKey *crypto.SymmetricKey, orchestrator *sandbox.Orchestrator, pusher *sandbox.Pusher) *CloudAgentHandler {
-	hooks := CloudAgentHandlerHooks{}
+func NewSpecialistTaskHandler(db *gorm.DB, encKey *crypto.SymmetricKey, orchestrator *sandbox.Orchestrator, pusher *sandbox.Pusher) *SpecialistTaskHandler {
+	hooks := SpecialistTaskHandlerHooks{}
 	if orchestrator != nil {
 		hooks.CreateDedicatedSandbox = orchestrator.CreateDedicatedSandboxWithEnv
-		hooks.GetBridgeClient = func(ctx context.Context, sb *model.Sandbox) (CloudAgentBridgeClient, error) {
+		hooks.GetBridgeClient = func(ctx context.Context, sb *model.Sandbox) (SpecialistBridgeClient, error) {
 			return orchestrator.GetBridgeClient(ctx, sb)
 		}
 		hooks.StopSandbox = orchestrator.StopSandbox
@@ -63,21 +63,21 @@ func NewCloudAgentHandler(db *gorm.DB, encKey *crypto.SymmetricKey, orchestrator
 	if pusher != nil {
 		hooks.PushAgentToSandbox = pusher.PushAgentToSandbox
 	}
-	return NewCloudAgentHandlerWithHooks(db, encKey, hooks)
+	return NewSpecialistTaskHandlerWithHooks(db, encKey, hooks)
 }
 
-func NewCloudAgentHandlerWithHooks(db *gorm.DB, encKey *crypto.SymmetricKey, hooks CloudAgentHandlerHooks) *CloudAgentHandler {
-	return &CloudAgentHandler{db: db, encKey: encKey, hooks: hooks}
+func NewSpecialistTaskHandlerWithHooks(db *gorm.DB, encKey *crypto.SymmetricKey, hooks SpecialistTaskHandlerHooks) *SpecialistTaskHandler {
+	return &SpecialistTaskHandler{db: db, encKey: encKey, hooks: hooks}
 }
 
 // authEmployee verifies the bridge bearer token for the employee in the URL.
 // On failure it writes the error response and returns nil — callers must return.
-func (h *CloudAgentHandler) authEmployee(w http.ResponseWriter, r *http.Request) *model.Agent {
+func (h *SpecialistTaskHandler) authEmployee(w http.ResponseWriter, r *http.Request) *model.Agent {
 	if h.encKey == nil {
 		captureCloudAgentFailure(r.Context(), "auth", errors.New("encryption key is not configured"), cloudAgentSentryContext{
 			Operation: "configuration",
 		})
-		writeJSON(w, http.StatusServiceUnavailable, map[string]string{"error": "cloud agent endpoints not configured"})
+		writeJSON(w, http.StatusServiceUnavailable, map[string]string{"error": "specialist endpoints not configured"})
 		return nil
 	}
 
@@ -155,7 +155,7 @@ func specialistID(slug string) uuid.UUID {
 	return uuid.NewSHA1(uuid.NameSpaceOID, []byte("hiveloop-specialist:"+slug))
 }
 
-func specialistAgentFromTemplate(employee *model.Agent, template *employeeAgentTemplate) model.Agent {
+func specialistAgentFromTemplate(employee *model.Agent, template *specialistTemplate) model.Agent {
 	description := template.Description
 	orgID := uuidValue(employee.OrgID)
 	return model.Agent{
@@ -176,8 +176,8 @@ func specialistAgentFromTemplate(employee *model.Agent, template *employeeAgentT
 }
 
 // validateSpecialist checks that slug refers to an enabled code-catalog specialist.
-func (h *CloudAgentHandler) validateSpecialist(ctx context.Context, w http.ResponseWriter, employee *model.Agent, slug string) (*employeeAgentTemplate, uuid.UUID, bool) {
-	template := employeeAgentTemplateBySlug(slug)
+func (h *SpecialistTaskHandler) validateSpecialist(ctx context.Context, w http.ResponseWriter, employee *model.Agent, slug string) (*specialistTemplate, uuid.UUID, bool) {
+	template := specialistTemplateBySlug(slug)
 	if template == nil {
 		writeJSON(w, http.StatusNotFound, map[string]string{"error": "specialist not found for this employee"})
 		return nil, uuid.Nil, false
@@ -189,31 +189,31 @@ func (h *CloudAgentHandler) validateSpecialist(ctx context.Context, w http.Respo
 	return template, specialistID(slug), true
 }
 
-// ListCloudAgents returns all cloud agents for the employee with their top 3
+// ListSpecialistRuntimes returns all specialists for the employee with their top 3
 // most recent tasks and top 10 most recent events per task.
-func (h *CloudAgentHandler) ListCloudAgents(w http.ResponseWriter, r *http.Request) {
+func (h *SpecialistTaskHandler) ListSpecialistRuntimes(w http.ResponseWriter, r *http.Request) {
 	employee := h.authEmployee(w, r)
 	if employee == nil {
 		return
 	}
 
 	disabled := disabledSpecialistSet(employee.DisabledSpecialists)
-	agents := make([]model.Agent, 0, len(employeeAgentTemplates))
-	subagentIDs := make([]uuid.UUID, 0, len(employeeAgentTemplates))
-	for i := range employeeAgentTemplates {
-		template := &employeeAgentTemplates[i]
+	agents := make([]model.Agent, 0, len(specialistTemplates))
+	specialistIDs := make([]uuid.UUID, 0, len(specialistTemplates))
+	for i := range specialistTemplates {
+		template := &specialistTemplates[i]
 		if disabled[template.Slug] {
 			continue
 		}
 		agent := specialistAgentFromTemplate(employee, template)
 		agents = append(agents, agent)
-		subagentIDs = append(subagentIDs, agent.ID)
+		specialistIDs = append(specialistIDs, agent.ID)
 	}
 
-	// Load top 3 tasks per cloud agent
+	// Load top 3 tasks per specialist
 	var allTasks []model.CloudAgentTask
 	if err := h.db.
-		Where("employee_agent_id = ? AND cloud_agent_id IN ?", employee.ID, subagentIDs).
+		Where("employee_agent_id = ? AND cloud_agent_id IN ?", employee.ID, specialistIDs).
 		Order("created_at DESC").
 		Find(&allTasks).Error; err != nil {
 		captureCloudAgentFailure(r.Context(), "list_cloud_agents", err, cloudAgentSentryContext{
@@ -225,7 +225,7 @@ func (h *CloudAgentHandler) ListCloudAgents(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	// Group tasks by cloud agent, keep top 3
+	// Group tasks by specialist, keep top 3
 	tasksByAgent := make(map[uuid.UUID][]model.CloudAgentTask)
 	for _, t := range allTasks {
 		list := tasksByAgent[t.CloudAgentID]
@@ -311,8 +311,8 @@ func (h *CloudAgentHandler) ListCloudAgents(w http.ResponseWriter, r *http.Reque
 	writeJSON(w, http.StatusOK, map[string]any{"cloud_agents": result})
 }
 
-// ListTasks returns paginated tasks for a specific cloud agent.
-func (h *CloudAgentHandler) ListTasks(w http.ResponseWriter, r *http.Request) {
+// ListTasks returns paginated tasks for a specific specialist.
+func (h *SpecialistTaskHandler) ListTasks(w http.ResponseWriter, r *http.Request) {
 	employee := h.authEmployee(w, r)
 	if employee == nil {
 		return
@@ -371,7 +371,7 @@ func (h *CloudAgentHandler) ListTasks(w http.ResponseWriter, r *http.Request) {
 }
 
 // GetTask returns a single task by ID.
-func (h *CloudAgentHandler) GetTask(w http.ResponseWriter, r *http.Request) {
+func (h *SpecialistTaskHandler) GetTask(w http.ResponseWriter, r *http.Request) {
 	employee := h.authEmployee(w, r)
 	if employee == nil {
 		return
@@ -400,7 +400,7 @@ func (h *CloudAgentHandler) GetTask(w http.ResponseWriter, r *http.Request) {
 // CreateTask handles POST /internal/employees/{employeeID}/cloud-agents/{agentID}/tasks.
 // It synchronously provisions a sandbox, pushes the agent, creates a conversation,
 // sends the brief as the first message, and returns the task ID.
-func (h *CloudAgentHandler) CreateTask(w http.ResponseWriter, r *http.Request) {
+func (h *SpecialistTaskHandler) CreateTask(w http.ResponseWriter, r *http.Request) {
 	employee := h.authEmployee(w, r)
 	if employee == nil {
 		return
@@ -452,7 +452,7 @@ func (h *CloudAgentHandler) CreateTask(w http.ResponseWriter, r *http.Request) {
 
 	sb, err := h.hooks.CreateDedicatedSandbox(ctx, &cloudAgent, extraEnv)
 	if err != nil {
-		logging.FromContext(ctx).ErrorContext(ctx, "failed to create sandbox for cloud agent", "agent_id", agentID, "error", err)
+		logging.FromContext(ctx).ErrorContext(ctx, "failed to create sandbox for specialist", "agent_id", agentID, "error", err)
 		captureCloudAgentFailure(ctx, "create_task", err, cloudAgentSentryContext{
 			Operation:    "create_dedicated_sandbox",
 			OrgID:        uuidValue(employee.OrgID),
@@ -552,7 +552,7 @@ func (h *CloudAgentHandler) CreateTask(w http.ResponseWriter, r *http.Request) {
 
 	task.ConversationID = conv.ID
 	if err := h.db.Create(&task).Error; err != nil {
-		logging.FromContext(ctx).ErrorContext(ctx, "failed to save cloud agent task", "error", err)
+		logging.FromContext(ctx).ErrorContext(ctx, "failed to save specialist task", "error", err)
 		captureCloudAgentFailure(ctx, "create_task", err, cloudAgentSentryContext{
 			Operation:      "save_task",
 			OrgID:          orgID,
@@ -567,7 +567,7 @@ func (h *CloudAgentHandler) CreateTask(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := client.SendMessage(ctx, bridgeResp.ConversationId, req.Brief); err != nil {
-		logging.FromContext(ctx).ErrorContext(ctx, "failed to send brief to cloud agent", "conversation_id", bridgeResp.ConversationId, "error", err)
+		logging.FromContext(ctx).ErrorContext(ctx, "failed to send brief to specialist", "conversation_id", bridgeResp.ConversationId, "error", err)
 		captureCloudAgentFailure(ctx, "create_task", err, cloudAgentSentryContext{
 			Operation:      "send_initial_message",
 			OrgID:          orgID,
@@ -583,7 +583,7 @@ func (h *CloudAgentHandler) CreateTask(w http.ResponseWriter, r *http.Request) {
 
 	h.db.Model(sb).Update("last_active_at", time.Now())
 
-	logging.FromContext(ctx).InfoContext(ctx, "cloud agent task created",
+	logging.FromContext(ctx).InfoContext(ctx, "specialist task created",
 		"task_id", task.ID,
 		"employee_agent_id", employee.ID,
 		"cloud_agent_id", agentID,
@@ -598,7 +598,7 @@ func (h *CloudAgentHandler) CreateTask(w http.ResponseWriter, r *http.Request) {
 }
 
 // SendTaskMessage forwards coordinator feedback to an existing cloud-agent task.
-func (h *CloudAgentHandler) SendTaskMessage(w http.ResponseWriter, r *http.Request) {
+func (h *SpecialistTaskHandler) SendTaskMessage(w http.ResponseWriter, r *http.Request) {
 	employee := h.authEmployee(w, r)
 	if employee == nil {
 		return
@@ -659,7 +659,7 @@ func (h *CloudAgentHandler) SendTaskMessage(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	if err := client.SendMessage(ctx, conv.RuntimeConversationID, req.Message); err != nil {
-		logging.FromContext(ctx).ErrorContext(ctx, "failed to send message to cloud agent task", "task_id", task.ID, "conversation_id", conv.RuntimeConversationID, "error", err)
+		logging.FromContext(ctx).ErrorContext(ctx, "failed to send message to specialist task", "task_id", task.ID, "conversation_id", conv.RuntimeConversationID, "error", err)
 		captureCloudAgentFailure(ctx, "send_message", err, cloudAgentSentryContext{
 			Operation:      "send_bridge_message",
 			OrgID:          uuidValue(employee.OrgID),
@@ -680,7 +680,7 @@ func (h *CloudAgentHandler) SendTaskMessage(w http.ResponseWriter, r *http.Reque
 // TerminateTask logically ends a cloud-agent task and asks the runtime to stop
 // the backing conversation. Sandbox deletion is best-effort so the task record
 // and terminal event remain durable even when infrastructure cleanup is delayed.
-func (h *CloudAgentHandler) TerminateTask(w http.ResponseWriter, r *http.Request) {
+func (h *SpecialistTaskHandler) TerminateTask(w http.ResponseWriter, r *http.Request) {
 	employee := h.authEmployee(w, r)
 	if employee == nil {
 		return
@@ -730,7 +730,7 @@ func (h *CloudAgentHandler) TerminateTask(w http.ResponseWriter, r *http.Request
 				ConversationID: conv.ID,
 			})
 		} else if err := client.EndConversation(ctx, conv.RuntimeConversationID); err != nil {
-			logging.FromContext(ctx).WarnContext(ctx, "failed to end cloud agent bridge conversation", "task_id", task.ID, "conversation_id", conv.RuntimeConversationID, "error", err)
+			logging.FromContext(ctx).WarnContext(ctx, "failed to end specialist bridge conversation", "task_id", task.ID, "conversation_id", conv.RuntimeConversationID, "error", err)
 			captureCloudAgentWarning(ctx, "terminate_task", err, cloudAgentSentryContext{
 				Operation:      "end_bridge_conversation",
 				OrgID:          uuidValue(employee.OrgID),
@@ -763,7 +763,7 @@ func (h *CloudAgentHandler) TerminateTask(w http.ResponseWriter, r *http.Request
 
 	if h.hooks.DeleteSandbox != nil {
 		if err := h.hooks.DeleteSandbox(ctx, sb); err != nil {
-			logging.FromContext(ctx).WarnContext(ctx, "failed to delete cloud agent sandbox after termination", "task_id", task.ID, "sandbox_id", sb.ID, "error", err)
+			logging.FromContext(ctx).WarnContext(ctx, "failed to delete specialist sandbox after termination", "task_id", task.ID, "sandbox_id", sb.ID, "error", err)
 			captureCloudAgentWarning(ctx, "terminate_task", err, cloudAgentSentryContext{
 				Operation:      "delete_sandbox",
 				OrgID:          uuidValue(employee.OrgID),
@@ -776,7 +776,7 @@ func (h *CloudAgentHandler) TerminateTask(w http.ResponseWriter, r *http.Request
 		}
 	} else if h.hooks.StopSandbox != nil {
 		if err := h.hooks.StopSandbox(ctx, sb); err != nil {
-			logging.FromContext(ctx).WarnContext(ctx, "failed to stop cloud agent sandbox after termination", "task_id", task.ID, "sandbox_id", sb.ID, "error", err)
+			logging.FromContext(ctx).WarnContext(ctx, "failed to stop specialist sandbox after termination", "task_id", task.ID, "sandbox_id", sb.ID, "error", err)
 			captureCloudAgentWarning(ctx, "terminate_task", err, cloudAgentSentryContext{
 				Operation:      "stop_sandbox",
 				OrgID:          uuidValue(employee.OrgID),
@@ -859,9 +859,9 @@ func taskToResponse(t model.CloudAgentTask, events []model.ConversationEvent) cl
 	return resp
 }
 
-func (h *CloudAgentHandler) parseAgentAndTaskIDs(w http.ResponseWriter, r *http.Request) (uuid.UUID, uuid.UUID, bool) {
+func (h *SpecialistTaskHandler) parseAgentAndTaskIDs(w http.ResponseWriter, r *http.Request) (uuid.UUID, uuid.UUID, bool) {
 	slug := chi.URLParam(r, "specialistSlug")
-	if employeeAgentTemplateBySlug(slug) == nil {
+	if specialistTemplateBySlug(slug) == nil {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid specialist_slug"})
 		return uuid.Nil, uuid.Nil, false
 	}
@@ -874,7 +874,7 @@ func (h *CloudAgentHandler) parseAgentAndTaskIDs(w http.ResponseWriter, r *http.
 	return agentID, taskID, true
 }
 
-func (h *CloudAgentHandler) loadTask(ctx context.Context, w http.ResponseWriter, employee *model.Agent, agentID, taskID uuid.UUID) (*model.CloudAgentTask, bool) {
+func (h *SpecialistTaskHandler) loadTask(ctx context.Context, w http.ResponseWriter, employee *model.Agent, agentID, taskID uuid.UUID) (*model.CloudAgentTask, bool) {
 	var task model.CloudAgentTask
 	if err := h.db.Where("id = ? AND employee_agent_id = ? AND cloud_agent_id = ?", taskID, employee.ID, agentID).First(&task).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -894,7 +894,7 @@ func (h *CloudAgentHandler) loadTask(ctx context.Context, w http.ResponseWriter,
 	return &task, true
 }
 
-func (h *CloudAgentHandler) loadTaskRuntime(ctx context.Context, w http.ResponseWriter, task model.CloudAgentTask) (*model.AgentConversation, *model.Sandbox, bool) {
+func (h *SpecialistTaskHandler) loadTaskRuntime(ctx context.Context, w http.ResponseWriter, task model.CloudAgentTask) (*model.AgentConversation, *model.Sandbox, bool) {
 	var conv model.AgentConversation
 	if err := h.db.Where("id = ?", task.ConversationID).First(&conv).Error; err != nil {
 		captureCloudAgentFailure(ctx, "load_task_runtime", err, cloudAgentSentryContext{
@@ -934,12 +934,12 @@ func conversationIDsForTasks(tasks []model.CloudAgentTask) []uuid.UUID {
 	return ids
 }
 
-func (h *CloudAgentHandler) recentEventsForConversation(conversationID uuid.UUID, limit int) []model.ConversationEvent {
+func (h *SpecialistTaskHandler) recentEventsForConversation(conversationID uuid.UUID, limit int) []model.ConversationEvent {
 	eventsByConv := h.recentEventsByConversation([]uuid.UUID{conversationID}, limit)
 	return eventsByConv[conversationID]
 }
 
-func (h *CloudAgentHandler) recentEventsByConversation(conversationIDs []uuid.UUID, limit int) map[uuid.UUID][]model.ConversationEvent {
+func (h *SpecialistTaskHandler) recentEventsByConversation(conversationIDs []uuid.UUID, limit int) map[uuid.UUID][]model.ConversationEvent {
 	eventsByConv := make(map[uuid.UUID][]model.ConversationEvent)
 	if len(conversationIDs) == 0 {
 		return eventsByConv
@@ -972,7 +972,7 @@ func (h *CloudAgentHandler) recentEventsByConversation(conversationIDs []uuid.UU
 	return eventsByConv
 }
 
-func (h *CloudAgentHandler) ensureConversationEndedEvent(ctx context.Context, task model.CloudAgentTask, conv model.AgentConversation, reason string, now time.Time) {
+func (h *SpecialistTaskHandler) ensureConversationEndedEvent(ctx context.Context, task model.CloudAgentTask, conv model.AgentConversation, reason string, now time.Time) {
 	var count int64
 	if err := h.db.Model(&model.ConversationEvent{}).
 		Where("conversation_id = ? AND event_type IN ?", conv.ID, []string{bridgeevents.EventConversationEnded, "ConversationEnded"}).
@@ -1040,7 +1040,7 @@ func (h *CloudAgentHandler) ensureConversationEndedEvent(ctx context.Context, ta
 	}
 
 	if err := dispatchCloudAgentCallback(ctx, h.db, h.encKey, h.hooks.EmployeeCallbackRuntime, task, event); err != nil {
-		logging.FromContext(ctx).WarnContext(ctx, "failed to forward cloud agent termination to employee bridge",
+		logging.FromContext(ctx).WarnContext(ctx, "failed to forward specialist termination to employee bridge",
 			"task_id", task.ID,
 			"conversation_id", conv.ID,
 			"error", err,

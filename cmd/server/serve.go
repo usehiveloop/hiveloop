@@ -113,9 +113,9 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 	employeeOutboundWebhookHandler := handler.NewEmployeeOutboundWebhookHandler(database, sandboxEncKey, enqueuer, employeeEventWriter)
 	nangoWebhookHandler := handler.NewNangoWebhookHandler(database, cfg.NangoSecretKey, sandboxEncKey, enqueuer)
 
-	var cloudAgentHandler *handler.CloudAgentHandler
+	var specialistTaskHandler *handler.SpecialistTaskHandler
 	if orchestrator != nil && agentPusher != nil {
-		cloudAgentHandler = handler.NewCloudAgentHandler(database, sandboxEncKey, orchestrator, agentPusher)
+		specialistTaskHandler = handler.NewSpecialistTaskHandler(database, sandboxEncKey, orchestrator, agentPusher)
 	}
 	incomingWebhookHandler := handler.NewIncomingWebhookHandler(database, enqueuer)
 	httpTriggerHandler := handler.NewHTTPTriggerHandler(database, enqueuer)
@@ -126,9 +126,6 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 	}
 	sandboxTemplateHandler := handler.NewSandboxTemplateHandler(database, templateBuilder, enqueuer)
 	skillHandler := handler.NewSkillHandler(database, enqueuer)
-
-	agentHandler := handler.NewAgentHandler(database, reg, sandboxEncKey, enqueuer)
-	agentHandler.SetCatalog(actionsCatalog)
 
 	var employeeHandler *handler.EmployeeHandler
 	if orchestrator != nil {
@@ -141,7 +138,7 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 			Cfg:        cfg,
 			Nango:      nangoClient,
 			Hindsight:  hindsightClient,
-		}, agentHandler)
+		}, reg)
 		if deps.S3Client != nil {
 			employeeHandler.SetEnqueuer(enqueuer)
 		}
@@ -198,7 +195,7 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 
 	rsaPub := rsaKey.Public().(*rsa.PublicKey)
 
-	setupPublicRoutes(r, cfg, database, redisClient, providerHandler, inIntegrationHandler, actionsCatalog, orgInviteHandler, plansHandler, bridgeWebhookHandler, employeeOutboundWebhookHandler, nangoWebhookHandler, incomingWebhookHandler, nangoClient, sandboxEncKey, uploadsHandler, sqliteBackupHandler, cloudAgentHandler)
+	setupPublicRoutes(r, cfg, database, redisClient, providerHandler, inIntegrationHandler, actionsCatalog, orgInviteHandler, plansHandler, bridgeWebhookHandler, employeeOutboundWebhookHandler, nangoWebhookHandler, incomingWebhookHandler, nangoClient, sandboxEncKey, uploadsHandler, sqliteBackupHandler, specialistTaskHandler)
 
 	r.Post("/incoming/triggers/{triggerID}", httpTriggerHandler.Handle)
 	setupAuthRoutes(r, ctx, cfg, rsaPub, authHandler, oauthHandler)
@@ -207,7 +204,7 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 		return err
 	}
 	systemTaskHandler := buildSystemTaskHandler(database, deps, redisClient)
-	setupV1Routes(r, cfg, rsaPub, database, apiKeyCache, enqueuer, orgHandler, orgInviteHandler, usageHandler, auditHandler, reportingHandler, generationHandler, apiKeyHandler, billingHandler, subscriptionHandler, credHandler, tokenHandler, sandboxTemplateHandler, skillHandler, agentHandler, conversationHandler, customDomainHandler, ragSourceHandler, ragSearchHandler, uploadsHandler, systemTaskHandler, employeeHandler, orchestrator, auditWriter)
+	setupV1Routes(r, cfg, rsaPub, database, apiKeyCache, enqueuer, orgHandler, orgInviteHandler, usageHandler, auditHandler, reportingHandler, generationHandler, apiKeyHandler, billingHandler, subscriptionHandler, credHandler, tokenHandler, sandboxTemplateHandler, skillHandler, conversationHandler, customDomainHandler, ragSourceHandler, ragSearchHandler, uploadsHandler, systemTaskHandler, employeeHandler, orchestrator, auditWriter)
 
 	var platformAdminEmails []string
 	if cfg.PlatformAdminEmails != "" {

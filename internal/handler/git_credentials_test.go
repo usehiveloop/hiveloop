@@ -145,7 +145,7 @@ func newGitCredsHarness(t *testing.T, nangoHandler http.Handler) *gitCredsHarnes
 	})
 
 	router := chi.NewRouter()
-	router.Post("/internal/git-credentials/{agentID}", gitCredsHandler.Handle)
+	router.Post("/internal/git-credentials/{employeeID}", gitCredsHandler.Handle)
 
 	return &gitCredsHarness{
 		db:        database,

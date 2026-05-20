@@ -23,7 +23,7 @@ func NewTriggerDeliveryHandler(db *gorm.DB) *TriggerDeliveryHandler {
 
 type triggerDeliveryResponse struct {
 	ID                    string          `json:"id"`
-	AgentID               string          `json:"agent_id"`
+	EmployeeID            string          `json:"employee_id"`
 	TriggerID             string          `json:"trigger_id"`
 	ConnectionID          string          `json:"connection_id,omitempty"`
 	DeliveryID            string          `json:"delivery_id"`
@@ -45,9 +45,9 @@ func (h *TriggerDeliveryHandler) List(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "missing org context"})
 		return
 	}
-	agentID, err := uuid.Parse(chi.URLParam(r, "agentID"))
+	employeeID, err := uuid.Parse(chi.URLParam(r, "id"))
 	if err != nil {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid agent ID"})
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid employee ID"})
 		return
 	}
 	limit, cursor, err := parsePagination(r)
@@ -56,7 +56,7 @@ func (h *TriggerDeliveryHandler) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	q := h.db.Where("org_id = ? AND agent_id = ?", org.ID, agentID)
+	q := h.db.Where("org_id = ? AND agent_id = ?", org.ID, employeeID)
 	if triggerID := r.URL.Query().Get("trigger_id"); triggerID != "" {
 		parsed, err := uuid.Parse(triggerID)
 		if err != nil {
@@ -101,9 +101,9 @@ func (h *TriggerDeliveryHandler) Get(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "missing org context"})
 		return
 	}
-	agentID, err := uuid.Parse(chi.URLParam(r, "agentID"))
+	employeeID, err := uuid.Parse(chi.URLParam(r, "id"))
 	if err != nil {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid agent ID"})
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid employee ID"})
 		return
 	}
 	deliveryID, err := uuid.Parse(chi.URLParam(r, "deliveryID"))
@@ -112,7 +112,7 @@ func (h *TriggerDeliveryHandler) Get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var row model.AgentTriggerDelivery
-	if err := h.db.Where("id = ? AND org_id = ? AND agent_id = ?", deliveryID, org.ID, agentID).First(&row).Error; err != nil {
+	if err := h.db.Where("id = ? AND org_id = ? AND agent_id = ?", deliveryID, org.ID, employeeID).First(&row).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			writeJSON(w, http.StatusNotFound, map[string]string{"error": "trigger delivery not found"})
 			return
@@ -134,7 +134,7 @@ func triggerDeliveryToResponse(row model.AgentTriggerDelivery) triggerDeliveryRe
 	}
 	return triggerDeliveryResponse{
 		ID:                    row.ID.String(),
-		AgentID:               row.AgentID.String(),
+		EmployeeID:            row.AgentID.String(),
 		TriggerID:             row.TriggerID.String(),
 		ConnectionID:          connectionID,
 		DeliveryID:            row.DeliveryID,

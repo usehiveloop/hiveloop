@@ -24,7 +24,7 @@ func (h *employeeHarness) getEmployee(t *testing.T, m orgWithMember, agentID str
 	return rr
 }
 
-func TestIntegration_EmployeesGet_HappyPath_LoadsSubagentsAndSandbox(t *testing.T) {
+func TestIntegration_EmployeesGet_HappyPath_LoadsSpecialistsAndSandbox(t *testing.T) {
 	h := newEmployeeHarness(t)
 	h.platformCredCleanup(t)
 	m := h.createOrg(t)
@@ -49,9 +49,9 @@ func TestIntegration_EmployeesGet_HappyPath_LoadsSubagentsAndSandbox(t *testing.
 	if _, ok := item["sandbox"].(map[string]any); !ok {
 		t.Fatalf("sandbox missing: %#v", item["sandbox"])
 	}
-	subagents := item["subagents"].([]any)
-	if len(subagents) != 2 {
-		t.Fatalf("subagents len = %d, want 2", len(subagents))
+	specialists := item["specialists"].([]any)
+	if len(specialists) != 2 {
+		t.Fatalf("specialists len = %d, want 2", len(specialists))
 	}
 }
 
