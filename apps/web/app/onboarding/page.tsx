@@ -92,7 +92,9 @@ export default function OnboardingPage() {
     { enabled: slackConnected }
   )
   const channels = channelsQuery.data?.channels ?? []
-  const hasAvailableChannel = channels.some((channel) => channel.is_member)
+  const hasAvailableChannel = channels.some(
+    (channel) => !channel.is_private && channel.is_member
+  )
 
   useEffect(() => {
     if (connectionsQuery.isLoading) return
@@ -101,7 +103,9 @@ export default function OnboardingPage() {
       return
     }
     if (channelsQuery.isLoading) return
-    setStep(hasAvailableChannel ? "tools" : "channels")
+    setStep((current) =>
+      current === "tools" && hasAvailableChannel ? "tools" : "channels"
+    )
   }, [
     channelsQuery.isLoading,
     connectionsQuery.isLoading,
@@ -170,8 +174,19 @@ export default function OnboardingPage() {
         onSuccess: async (response) => {
           const available =
             (response?.joined ?? 0) + (response?.already_member ?? 0)
+          const selectedPublicMember = channels.some(
+            (channel) =>
+              !channel.is_private &&
+              channel.is_member &&
+              channel.id !== undefined &&
+              selectedChannelIds.has(channel.id)
+          )
+          const publicAvailable =
+            (body.all_public === true && hasAvailableChannel) ||
+            (response?.joined ?? 0) > 0 ||
+            selectedPublicMember
           await refreshOnboardingData()
-          if (available > 0) {
+          if (available > 0 && publicAvailable) {
             toast.success("Hivy can now work in Slack channels")
             setSelectedChannelIds(new Set())
             setStep("tools")
@@ -445,29 +460,40 @@ function ChannelsStep({
             </div>
           ) : (
             <div className="divide-y divide-border">
-              {channels.map((channel) => (
-                <label
-                  key={channel.id}
-                  className="flex cursor-pointer items-center gap-3 px-4 py-3"
-                >
-                  <Checkbox
-                    checked={Boolean(channel.id && selectedIds.has(channel.id))}
-                    onCheckedChange={() => onToggle(channel.id)}
-                  />
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-medium">
-                      #{channel.name}
+              {channels.map((channel) => {
+                const selectable = !channel.is_private
+                return (
+                  <label
+                    key={channel.id}
+                    className={cn(
+                      "flex items-center gap-3 px-4 py-3",
+                      selectable
+                        ? "cursor-pointer"
+                        : "cursor-not-allowed opacity-70"
+                    )}
+                  >
+                    <Checkbox
+                      checked={Boolean(channel.id && selectedIds.has(channel.id))}
+                      disabled={!selectable}
+                      onCheckedChange={() => {
+                        if (selectable) onToggle(channel.id)
+                      }}
+                    />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-medium">
+                        #{channel.name}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {channel.is_private ? "Private" : "Public"}
+                        {channel.is_member ? " · Hivy is already in this channel" : ""}
+                      </span>
                     </span>
-                    <span className="text-xs text-muted-foreground">
-                      {channel.is_private ? "Private" : "Public"}
-                      {channel.is_member ? " · Hivy is already in this channel" : ""}
-                    </span>
-                  </span>
-                  {channel.is_member ? (
-                    <Badge variant="outline">Available</Badge>
-                  ) : null}
-                </label>
-              ))}
+                    {channel.is_member ? (
+                      <Badge variant="outline">Available</Badge>
+                    ) : null}
+                  </label>
+                )
+              })}
             </div>
           )}
         </ScrollArea>

@@ -66,6 +66,7 @@ type joinSlackChannelsResponse struct {
 	AlreadyMember int                       `json:"already_member"`
 	Failed        int                       `json:"failed"`
 	Failures      []joinSlackChannelFailure `json:"failures,omitempty"`
+	publicReady   bool                      `json:"-"`
 }
 
 // List channels Hivy can be invited to or is already in.
@@ -138,6 +139,16 @@ func (h *SlackChannelHandler) JoinChannels(w http.ResponseWriter, r *http.Reques
 		logging.FromContext(r.Context()).ErrorContext(r.Context(), "join Slack channels", "error", err, "org_id", org.ID)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to join Slack channels"})
 		return
+	}
+	if result.publicReady {
+		if err := h.db.WithContext(r.Context()).
+			Model(&model.Org{}).
+			Where("id = ?", org.ID).
+			Update("onboarded", true).Error; err != nil {
+			logging.FromContext(r.Context()).ErrorContext(r.Context(), "mark org onboarded after Slack channel join", "error", err, "org_id", org.ID)
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to update onboarding"})
+			return
+		}
 	}
 	writeJSON(w, http.StatusOK, result)
 }
@@ -224,6 +235,9 @@ func (h *SlackChannelHandler) joinRequestedChannels(ctx context.Context, botToke
 	for _, ch := range targets {
 		if ch.IsMember {
 			result.AlreadyMember++
+			if !ch.IsPrivate {
+				result.publicReady = true
+			}
 			continue
 		}
 		if ch.IsPrivate {
@@ -242,6 +256,7 @@ func (h *SlackChannelHandler) joinRequestedChannels(ctx context.Context, botToke
 		}
 		if joined.IsMember || joined.ID != "" {
 			result.Joined++
+			result.publicReady = true
 		} else {
 			result.AlreadyMember++
 		}
@@ -270,21 +285,4 @@ func (h *SlackChannelHandler) loadSlackBotToken(ctx context.Context, orgID uuid.
 		}
 	}
 	return "", fmt.Errorf("Slack connection credentials do not include a bot token")
-}
-
-func toSlackChannelResponses(channels []slackapp.Channel) []slackChannelResponse {
-	out := make([]slackChannelResponse, 0, len(channels))
-	for _, ch := range channels {
-		out = append(out, slackChannelResponse{
-			ID:         ch.ID,
-			Name:       ch.Name,
-			IsPrivate:  ch.IsPrivate,
-			IsArchived: ch.IsArchived,
-			IsMember:   ch.IsMember,
-			Topic:      ch.Topic,
-			Purpose:    ch.Purpose,
-			NumMembers: ch.NumMembers,
-		})
-	}
-	return out
 }

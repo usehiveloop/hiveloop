@@ -77,6 +77,9 @@ func TestSlackChannelHandler_JoinRequestedChannels(t *testing.T) {
 	if result.Joined != 1 || result.AlreadyMember != 2 || result.Failed != 1 {
 		t.Fatalf("result = %#v", result)
 	}
+	if !result.publicReady {
+		t.Fatal("publicReady = false, want true after joining public channel")
+	}
 	if len(result.Failures) != 1 || result.Failures[0].ChannelID != "G-missing" {
 		t.Fatalf("failures = %#v", result.Failures)
 	}
@@ -103,5 +106,34 @@ func TestSlackChannelHandler_JoinAllPublic(t *testing.T) {
 	}
 	if result.Joined != 2 || result.AlreadyMember != 0 || result.Failed != 0 {
 		t.Fatalf("result = %#v", result)
+	}
+	if !result.publicReady {
+		t.Fatal("publicReady = false, want true after joining public channels")
+	}
+}
+
+func TestSlackChannelHandler_JoinedPrivateDoesNotCompleteOnboarding(t *testing.T) {
+	h := NewSlackChannelHandler(nil, nil)
+	h.listPublicChannels = func(context.Context, string) ([]slackapp.Channel, error) {
+		return []slackapp.Channel{{ID: "C1", Name: "general"}}, nil
+	}
+	h.listBotChannels = func(context.Context, string) ([]slackapp.Channel, error) {
+		return []slackapp.Channel{{ID: "G1", Name: "private", IsPrivate: true, IsMember: true}}, nil
+	}
+	h.joinChannel = func(context.Context, string, string) (slackapp.Channel, error) {
+		return slackapp.Channel{}, errors.New("private-only test should not join")
+	}
+
+	result, err := h.joinRequestedChannels(context.Background(), "xoxb-test", joinSlackChannelsRequest{
+		ChannelIDs: []string{"G1"},
+	})
+	if err != nil {
+		t.Fatalf("joinRequestedChannels: %v", err)
+	}
+	if result.Joined != 0 || result.AlreadyMember != 1 || result.Failed != 0 {
+		t.Fatalf("result = %#v", result)
+	}
+	if result.publicReady {
+		t.Fatal("publicReady = true, want false for private-only availability")
 	}
 }

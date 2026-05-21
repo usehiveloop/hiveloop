@@ -75,7 +75,7 @@ func TestInConnectionHandler_Create_Success(t *testing.T) {
 	}
 }
 
-func TestInConnectionHandler_CreateSlackMarksOrgOnboardedAndEnsuresHivy(t *testing.T) {
+func TestInConnectionHandler_CreateSlackKeepsOnboardingOpenAndEnsuresHivy(t *testing.T) {
 	db := connectTestDB(t)
 	t.Cleanup(func() {
 		db.Where("1=1").Delete(&model.InConnection{})
@@ -111,8 +111,8 @@ func TestInConnectionHandler_CreateSlackMarksOrgOnboardedAndEnsuresHivy(t *testi
 	if err := db.First(&reloaded, "id = ?", org.ID).Error; err != nil {
 		t.Fatalf("reload org: %v", err)
 	}
-	if !reloaded.Onboarded {
-		t.Fatal("org onboarded = false, want true")
+	if reloaded.Onboarded {
+		t.Fatal("org onboarded = true, want false until Slack public channel selection")
 	}
 
 	var employee model.Agent

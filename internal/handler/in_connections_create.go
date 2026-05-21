@@ -106,11 +106,6 @@ func (h *InConnectionHandler) Create(w http.ResponseWriter, r *http.Request) {
 		if err := attachEmployeeRequiredSkillsForAgent(r.Context(), tx, org.ID, employee); err != nil {
 			return err
 		}
-		if integ.Provider == "slack" {
-			if err := tx.Model(&model.Org{}).Where("id = ?", org.ID).Update("onboarded", true).Error; err != nil {
-				return err
-			}
-		}
 		return nil
 	})
 	if err != nil {
