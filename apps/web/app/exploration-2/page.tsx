@@ -1,257 +1,16 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
-
-interface Theme {
-  name: string
-  bg: string
-  text: string
-  muted: string
-  primary: string
-  primaryText: string
-  secondary: string
-  secondaryBorder: string
-  secondaryText: string
-  pillFrom: string
-  pillVia: string
-  pillTo: string
-  glowLeft: string
-  glowCenter: string
-  glowRight: string
-  navBg: string
-  navBorder: string
-}
-
-const THEMES: Theme[] = [
-  {
-    name: "Lavender",
-    bg: "#FAFAFA",
-    text: "#070A13",
-    muted: "#4B5563",
-    primary: "#111111",
-    primaryText: "#FFFFFF",
-    secondary: "#FFFFFF",
-    secondaryBorder: "#E5E7EB",
-    secondaryText: "#111111",
-    pillFrom: "#8B8CF6",
-    pillVia: "#A78BFA",
-    pillTo: "#F472B6",
-    glowLeft: "#C7D2FE",
-    glowCenter: "#E9D5FF",
-    glowRight: "#FECDD3",
-    navBg: "rgba(255,255,255,0.86)",
-    navBorder: "rgba(15,23,42,0.08)",
-  },
-  {
-    name: "Ocean",
-    bg: "#F8FAFC",
-    text: "#0F172A",
-    muted: "#475569",
-    primary: "#0E4A6E",
-    primaryText: "#FFFFFF",
-    secondary: "#FFFFFF",
-    secondaryBorder: "#CBD5E1",
-    secondaryText: "#0E4A6E",
-    pillFrom: "#38BDF8",
-    pillVia: "#60A5FA",
-    pillTo: "#818CF8",
-    glowLeft: "#BAE6FD",
-    glowCenter: "#C7D2FE",
-    glowRight: "#E0E7FF",
-    navBg: "rgba(255,255,255,0.88)",
-    navBorder: "rgba(14,74,110,0.09)",
-  },
-  {
-    name: "Slate",
-    bg: "#FAFAFA",
-    text: "#18181B",
-    muted: "#52525B",
-    primary: "#27272A",
-    primaryText: "#FFFFFF",
-    secondary: "#FFFFFF",
-    secondaryBorder: "#E4E4E7",
-    secondaryText: "#27272A",
-    pillFrom: "#94A3B8",
-    pillVia: "#CBD5E1",
-    pillTo: "#E2E8F0",
-    glowLeft: "#E2E8F0",
-    glowCenter: "#F1F5F9",
-    glowRight: "#CBD5E1",
-    navBg: "rgba(255,255,255,0.86)",
-    navBorder: "rgba(15,23,42,0.08)",
-  },
-  {
-    name: "Coral",
-    bg: "#FFFBF7",
-    text: "#2D1B14",
-    muted: "#7C5E52",
-    primary: "#9C4221",
-    primaryText: "#FFFFFF",
-    secondary: "#FFFFFF",
-    secondaryBorder: "#FED7AA",
-    secondaryText: "#9C4221",
-    pillFrom: "#FB923C",
-    pillVia: "#FDBA74",
-    pillTo: "#FECACA",
-    glowLeft: "#FFEDD5",
-    glowCenter: "#FFE4E6",
-    glowRight: "#FED7AA",
-    navBg: "rgba(255,255,255,0.88)",
-    navBorder: "rgba(156,66,33,0.08)",
-  },
-  {
-    name: "Forest",
-    bg: "#F6F7F4",
-    text: "#1A2E1A",
-    muted: "#4A5D4A",
-    primary: "#2F4F2F",
-    primaryText: "#FFFFFF",
-    secondary: "#FFFFFF",
-    secondaryBorder: "#D1D9D1",
-    secondaryText: "#2F4F2F",
-    pillFrom: "#86A586",
-    pillVia: "#A3C4A3",
-    pillTo: "#C1D9C1",
-    glowLeft: "#E8F5E9",
-    glowCenter: "#F1F8E9",
-    glowRight: "#E0F2F1",
-    navBg: "rgba(255,255,255,0.88)",
-    navBorder: "rgba(47,79,47,0.07)",
-  },
-  {
-    name: "Midnight",
-    bg: "#F0F4F8",
-    text: "#0A192F",
-    muted: "#4A5568",
-    primary: "#1E3A5F",
-    primaryText: "#FFFFFF",
-    secondary: "#FFFFFF",
-    secondaryBorder: "#CBD5E0",
-    secondaryText: "#1E3A5F",
-    pillFrom: "#60A5FA",
-    pillVia: "#818CF8",
-    pillTo: "#A78BFA",
-    glowLeft: "#BFDBFE",
-    glowCenter: "#C7D2FE",
-    glowRight: "#DDD6FE",
-    navBg: "rgba(255,255,255,0.88)",
-    navBorder: "rgba(30,58,95,0.08)",
-  },
-  {
-    name: "Rose",
-    bg: "#FFFAFA",
-    text: "#2D0A0F",
-    muted: "#7C4A52",
-    primary: "#881337",
-    primaryText: "#FFFFFF",
-    secondary: "#FFFFFF",
-    secondaryBorder: "#FECDD3",
-    secondaryText: "#881337",
-    pillFrom: "#FB7185",
-    pillVia: "#FDA4AF",
-    pillTo: "#FECDD3",
-    glowLeft: "#FFE4E6",
-    glowCenter: "#FFF1F2",
-    glowRight: "#FECDD3",
-    navBg: "rgba(255,255,255,0.88)",
-    navBorder: "rgba(136,19,55,0.07)",
-  },
-  {
-    name: "Sand",
-    bg: "#FAF8F5",
-    text: "#292524",
-    muted: "#78716C",
-    primary: "#5D4037",
-    primaryText: "#FFFFFF",
-    secondary: "#FFFFFF",
-    secondaryBorder: "#D7CCC8",
-    secondaryText: "#5D4037",
-    pillFrom: "#C4A484",
-    pillVia: "#D4B996",
-    pillTo: "#E6D5B8",
-    glowLeft: "#F5F5DC",
-    glowCenter: "#FAF0E6",
-    glowRight: "#F5DEB3",
-    navBg: "rgba(255,255,255,0.88)",
-    navBorder: "rgba(93,64,55,0.07)",
-  },
-  {
-    name: "Sky",
-    bg: "#F0F9FF",
-    text: "#082F49",
-    muted: "#377596",
-    primary: "#0369A1",
-    primaryText: "#FFFFFF",
-    secondary: "#FFFFFF",
-    secondaryBorder: "#BAE6FD",
-    secondaryText: "#0369A1",
-    pillFrom: "#38BDF8",
-    pillVia: "#7DD3FC",
-    pillTo: "#BAE6FD",
-    glowLeft: "#E0F2FE",
-    glowCenter: "#F0F9FF",
-    glowRight: "#DBEAFE",
-    navBg: "rgba(255,255,255,0.88)",
-    navBorder: "rgba(3,105,161,0.07)",
-  },
-  {
-    name: "Amber",
-    bg: "#FFFBEB",
-    text: "#451A03",
-    muted: "#92400E",
-    primary: "#78350F",
-    primaryText: "#FFFFFF",
-    secondary: "#FFFFFF",
-    secondaryBorder: "#FDE68A",
-    secondaryText: "#78350F",
-    pillFrom: "#F59E0B",
-    pillVia: "#FBBF24",
-    pillTo: "#FDE68A",
-    glowLeft: "#FEF3C7",
-    glowCenter: "#FFFBEB",
-    glowRight: "#FDE68A",
-    navBg: "rgba(255,255,255,0.88)",
-    navBorder: "rgba(120,53,15,0.07)",
-  },
-  {
-    name: "Berry",
-    bg: "#FAF5FF",
-    text: "#3B0764",
-    muted: "#7E22CE",
-    primary: "#581C87",
-    primaryText: "#FFFFFF",
-    secondary: "#FFFFFF",
-    secondaryBorder: "#E9D5FF",
-    secondaryText: "#581C87",
-    pillFrom: "#A855F7",
-    pillVia: "#C084FC",
-    pillTo: "#E9D5FF",
-    glowLeft: "#F3E8FF",
-    glowCenter: "#FAF5FF",
-    glowRight: "#E9D5FF",
-    navBg: "rgba(255,255,255,0.88)",
-    navBorder: "rgba(88,28,135,0.07)",
-  },
-  {
-    name: "Mint",
-    bg: "#F0FDF4",
-    text: "#022C22",
-    muted: "#047857",
-    primary: "#065F46",
-    primaryText: "#FFFFFF",
-    secondary: "#FFFFFF",
-    secondaryBorder: "#A7F3D0",
-    secondaryText: "#065F46",
-    pillFrom: "#34D399",
-    pillVia: "#6EE7B7",
-    pillTo: "#A7F3D0",
-    glowLeft: "#D1FAE5",
-    glowCenter: "#ECFDF5",
-    glowRight: "#CCFBF1",
-    navBg: "rgba(255,255,255,0.88)",
-    navBorder: "rgba(6,95,70,0.07)",
-  },
-]
+import { AnimatePresence, motion } from "motion/react"
+import {
+  Theme,
+  ROSE_THEME,
+  Button,
+  Switch,
+  Card,
+  Badge,
+  Ghost,
+} from "./_components/design-system"
 
 function NavDropdown({
   label,
@@ -394,26 +153,9 @@ function Navbar({ theme }: { theme: Theme }) {
 
 function AnnouncementPill({ theme }: { theme: Theme }) {
   return (
-    <div
-      className="inline-flex items-center gap-2 rounded-full border px-4 py-1.5 text-xs font-medium backdrop-blur-sm"
-      style={{
-        borderColor: theme.secondaryBorder,
-        backgroundColor: theme.navBg,
-        color: theme.muted,
-      }}
-    >
-      <span className="relative flex h-2 w-2">
-        <span
-          className="absolute inline-flex h-full w-full animate-ping rounded-full opacity-75"
-          style={{ backgroundColor: theme.pillFrom }}
-        />
-        <span
-          className="relative inline-flex h-2 w-2 rounded-full"
-          style={{ backgroundColor: theme.pillFrom }}
-        />
-      </span>
+    <Badge theme={theme} variant="dot">
       Meet Hivy — your AI coworker for busy teams
-    </div>
+    </Badge>
   )
 }
 
@@ -574,20 +316,12 @@ function HeroContent({ theme }: { theme: Theme }) {
         Hivy connects to your tools, understands your work, and completes tasks across your team — from follow-ups and reports to pull requests and project updates.
       </p>
       <div className="mt-7 flex flex-col items-center gap-3 sm:flex-row">
-        <a
-          href="#"
-          className="inline-flex h-11 items-center justify-center rounded-xl px-5 text-sm font-semibold transition-all hover:scale-105"
-          style={{ backgroundColor: theme.primary, color: theme.primaryText }}
-        >
-              Hire hivy
-        </a>
-        <a
-          href="#"
-          className="inline-flex h-11 items-center justify-center rounded-xl px-5 text-sm font-semibold transition-all hover:scale-105"
-          style={{ backgroundColor: theme.secondary, border: `1px solid ${theme.secondaryBorder}`, color: theme.secondaryText }}
-        >
+        <Button variant="primary" size="md" theme={theme} href="#">
+          Hire hivy
+        </Button>
+        <Button variant="secondary" size="md" theme={theme} href="#">
           Talk to Sales
-        </a>
+        </Button>
       </div>
     </div>
   )
@@ -612,31 +346,443 @@ function TrustedLogos({ theme }: { theme: Theme }) {
   )
 }
 
+
+
+function WorksWhereYouWorkVisual({ theme }: { theme: Theme }) {
+  const orbit = [
+    {
+      name: "slack",
+      angle: -90,
+      svg: (
+        <svg viewBox="0 0 2448 2453" className="h-4 w-4"><path fill="#36c5f0" d="m897 0c-135 0-245 110-245 245 0 135 110 245 245 245h245V245C1142 110 1032 0 897 0m0 654H244C109 654-1 764-1 899c-1 135 109 245 245 245h653c135 0 245-110 245-245 0-135-110-245-245-245z"/><path fill="#2eb67d" d="M2448 899c0-135-110-245-245-245s-245 110-245 245v245h245c135 0 245-110 245-245m-653 0V245c1-135-109-245-245-245S1255 110 1255 245v654c-1 135 109 245 245 245 135 0 245-110 245-245z"/><path fill="#ecb22e" d="M1550 2453c135 0 245-110 245-245 0-135-110-245-245-245h-245v245c0 135 110 245 245 245m0-654h653c135 0 245-110 245-245 0-135-110-245-245-245h-653c-135 0-245 110-245 245 0 135 110 245 245 245z"/><path fill="#e01e5a" d="M0 1553c0 135 110 245 245 245s245-110 245-245v-245H245C110 1308 0 1418 0 1553m654 0v654c-1 135 109 245 245 245s245-110 245-245v-654c1-135-109-245-245-245-135 0-245 110-245 245z"/></svg>
+      ),
+    },
+    {
+      name: "figma",
+      angle: -45,
+      svg: (
+        <svg viewBox="0 0 54 80" className="h-4 w-4"><path d="M13 80a13 13 0 0 0 14-13V53H13A13 13 0 0 0 0 66c0 8 6 14 13 14Z" fill="#0ACF83"/><path d="M0 40c0-7 6-13 13-13h14v27H13A13 13 0 0 1 0 40Z" fill="#A259FF"/><path d="M0 13C0 6 6 0 13 0h14v27H13C6 27 0 21 0 13Z" fill="#F24E1E"/><path d="M27 0h13c7 0 13 6 13 13s-6 13-13 13H27V0Z" fill="#FF7262"/><path d="M53 40a13 13 0 1 1-26 0 13 13 0 0 1 26 0Z" fill="#1ABCFE"/></svg>
+      ),
+    },
+    {
+      name: "github",
+      angle: 0,
+      svg: (
+        <svg viewBox="0 0 1024 1024" className="h-4 w-4"><path fill="currentColor" fillRule="evenodd" d="M512 0C229.12 0 0 229.12 0 512c0 226.56 146.56 417.92 350.08 485.76 25.6 4.48 35.2-10.88 35.2-24.32 0-12.16-.64-52.48-.64-95.36-128.64 23.68-161.92-31.36-172.16-60.16-5.76-14.72-30.72-60.16-52.48-72.32-17.92-9.6-43.52-33.28-.64-33.92 40.32-.64 69.12 37.12 78.72 52.48 46.08 77.44 119.68 55.68 149.12 42.24 4.48-33.28 17.92-55.68 32.64-68.48-113.92-12.8-232.96-56.96-232.96-252.8 0-55.68 19.84-101.76 52.48-137.6-5.12-12.8-23.04-65.28 5.12-135.68 0 0 42.88-13.44 140.8 52.48 40.96-11.52 84.48-17.28 128-17.28s87.04 5.76 128 17.28c97.92-66.56 140.8-52.48 140.8-52.48 28.16 70.4 10.24 122.88 5.12 135.68 32.64 35.84 52.48 81.28 52.48 137.6 0 196.48-119.68 240-233.6 252.8 18.56 16 34.56 46.72 34.56 94.72 0 68.48-.64 123.52-.64 140.8 0 13.44 9.6 29.44 35.2 24.32C877.44 929.92 1024 737.92 1024 512 1024 229.12 794.88 0 512 0" clipRule="evenodd"/></svg>
+      ),
+    },
+    {
+      name: "google-drive",
+      angle: 45,
+      svg: (
+        <svg viewBox="0 0 87 78" className="h-4 w-4"><path fill="#0066da" d="m7 67 4 7a8 8 0 0 0 3 3h15L27 53H0a8 8 0 0 0 7 14z"/><path fill="#00ac47" d="M44 25 29 1a8 8 0 0 0-3 3L1 48a8 8 0 0 0 7 5h27z"/><path fill="#ea4335" d="M74 77a8 8 0 0 0 3-3l2-3 7-13a8 8 0 0 0 1-5H60l5 11z"/><path fill="#00832d" d="M44 25 57 1a8 8 0 0 0-4-1H34a8 8 0 0 0-5 1z"/><path fill="#2684fc" d="M60 53H27L13 77a8 8 0 0 0 5 1h51a8 8 0 0 0 4-1z"/><path fill="#ffba00" d="m73 27-13-22a8 8 0 0 0-3-3L44 25 60 53h28a8 8 0 0 0-1-5z"/></svg>
+      ),
+    },
+    {
+      name: "sheets",
+      angle: 90,
+      svg: (
+        <svg viewBox="0 0 74 100" className="h-4 w-4"><path d="M45 1H8a7 7 0 0 0-7 7v84a7 7 0 0 0 7 7h57a7 7 0 0 0 7-7V28L45 1z" fill="#0F9D58"/><path d="M19 49v32h34V49H19zm15 28H23v-5h11v5zm0-9H23v-5h11v5zm0-9H23v-6h11v6zm15 18H38v-5h11v5zm0-9H38v-5h11v5zm0-9H38v-6h11v6z" fill="white"/></svg>
+      ),
+    },
+    {
+      name: "trello",
+      angle: 135,
+      svg: (
+        <svg viewBox="0 0 63 63" className="h-4 w-4"><path d="M56 0H8a8 8 0 0 0-8 8v47a8 8 0 0 0 8 8h48a8 8 0 0 0 8-8V8a8 8 0 0 0-8-8zM28 45a3 3 0 0 1-3 3H15a3 3 0 0 1-3-3V15a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3v30zm24-14a3 3 0 0 1-3 3H39a3 3 0 0 1-3-3V15a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3v16z" fill="#2684ff"/></svg>
+      ),
+    },
+    {
+      name: "sentry",
+      angle: 180,
+      svg: (
+        <svg viewBox="0 0 256 227" className="h-4 w-4"><path fill="#362D59" d="M148 12a24 24 0 0 0-41 0L74 70c52 26 87 78 91 137h-24c-4-50-34-94-79-116l-31 54a82 82 0 0 1 47 62h-54a4 4 0 0 1-3-6l15-26a55 55 0 0 0-17-10L3 191a23 23 0 0 0 20 35h74a99 99 0 0 0-41-89l12-20c36 24 56 66 53 109h63c3-65-29-128-84-163l24-41a4 4 0 0 1 5-1c3 1 104 178 106 180a4 4 0 0 1-3 6h-24c0 7 0 13 0 20h24A24 24 0 0 0 256 203a23 23 0 0 0-3-12L148 12Z"/></svg>
+      ),
+    },
+    {
+      name: "vercel",
+      angle: -135,
+      svg: (
+        <svg viewBox="0 0 76 65" className="h-4 w-4"><path fill="#000" d="M37.5274 0L75.0548 65H0L37.5274 0Z"/></svg>
+      ),
+    },
+  ]
+
+  return (
+    <div className="relative h-full w-full overflow-hidden">
+      {/* Subtle radial glow */}
+      <div
+        className="absolute inset-0 opacity-[0.05]"
+        style={{ background: `radial-gradient(circle at 50% 50%, ${theme.pillFrom}, transparent 70%)` }}
+      />
+
+      {/* Pulse rings — share exact same centered origin as ghost */}
+      {[0, 1, 2].map((delay) => (
+        <div
+          key={delay}
+          className="absolute left-1/2 top-1/2 h-20 w-20 -translate-x-1/2 -translate-y-1/2"
+        >
+          <div
+            className="h-full w-full rounded-full border opacity-0"
+            style={{
+              borderColor: theme.pillFrom,
+              animation: `pulse-ring 3s ease-out ${delay}s infinite`,
+            }}
+          />
+        </div>
+      ))}
+
+      {/* Ghost in center */}
+      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+        <Ghost color={theme.muted} bgColor={theme.secondary} size={40} />
+      </div>
+
+      {/* Orbiting logos */}
+      {orbit.map((item) => (
+        <div
+          key={item.name}
+          className="absolute left-1/2 top-1/2"
+          style={{
+            transform: `translate(-50%, -50%) rotate(${item.angle}deg) translateX(120px) rotate(${-item.angle}deg)`,
+          }}
+        >
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-black/[0.04] bg-white/80 shadow-sm backdrop-blur-sm">
+            {item.svg}
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function RemembersEverythingVisual({ theme }: { theme: Theme }) {
+  const brainX = 165
+  const brainY = 25
+
+  const nodes = [
+    { id: 1, x: 35, y: 12, type: "person" as const, delay: "0s" },
+    { id: 2, x: 25, y: 25, type: "generic" as const, delay: "0.8s" },
+    { id: 3, x: 40, y: 38, type: "doc" as const, delay: "1.6s" },
+  ]
+
+  const curvePaths = [
+    `M${nodes[0].x},${nodes[0].y} C${nodes[0].x + 40},${nodes[0].y - 8} ${brainX - 40},${brainY - 8} ${brainX},${brainY}`,
+    `M${nodes[1].x},${nodes[1].y} C${nodes[1].x + 45},${nodes[1].y} ${brainX - 45},${brainY} ${brainX},${brainY}`,
+    `M${nodes[2].x},${nodes[2].y} C${nodes[2].x + 40},${nodes[2].y + 8} ${brainX - 40},${brainY + 8} ${brainX},${brainY}`,
+  ]
+
+  return (
+    <div className="relative h-full w-full overflow-hidden">
+      <div
+        className="absolute inset-0 opacity-[0.05]"
+        style={{ background: `radial-gradient(circle at 85% 50%, ${theme.pillFrom}, transparent 70%)` }}
+      />
+      <svg viewBox="0 0 200 50" className="h-full w-full">
+        {/* Curvy connection paths from left nodes to brain on right */}
+        {nodes.map((node, i) => (
+          <g key={`line-${node.id}`}>
+            <path
+              d={curvePaths[i]}
+              fill="none"
+              stroke={theme.secondaryBorder}
+              strokeWidth="0.75"
+              opacity="0.5"
+            />
+            {/* Traveling dot along the curve toward brain */}
+            <circle r="1.5" fill={theme.pillFrom} opacity="0.8">
+              <animateMotion
+                dur={`${2 + ((node.id * 0.4) % 1.5)}s`}
+                repeatCount="indefinite"
+                path={curvePaths[i]}
+              />
+            </circle>
+          </g>
+        ))}
+
+        {/* Left-side nodes */}
+        {nodes.map((node) => (
+          <g key={node.id} className="animate-node-fade-in" style={{ animationDelay: node.delay }}>
+            {node.type === "person" && (
+              <>
+                <circle cx={node.x} cy={node.y} r="5" fill={theme.secondary} stroke={theme.pillFrom} strokeWidth="1" />
+                <circle cx={node.x} cy={node.y - 1.2} r="1.5" fill={theme.muted} opacity="0.4" />
+                <path
+                  d={`M${node.x - 2},${node.y + 2.5} Q${node.x},${node.y + 0.8} ${node.x + 2},${node.y + 2.5}`}
+                  stroke={theme.muted}
+                  strokeWidth="0.75"
+                  fill="none"
+                  opacity="0.4"
+                />
+              </>
+            )}
+            {node.type === "doc" && (
+              <>
+                <rect
+                  x={node.x - 4}
+                  y={node.y - 5.5}
+                  width="8"
+                  height="11"
+                  rx="1.5"
+                  fill={theme.secondary}
+                  stroke={theme.pillTo}
+                  strokeWidth="0.75"
+                />
+                <line x1={node.x - 2} y1={node.y - 2.5} x2={node.x + 2} y2={node.y - 2.5} stroke={theme.muted} strokeWidth="0.5" opacity="0.3" />
+                <line x1={node.x - 2} y1={node.y} x2={node.x + 0.5} y2={node.y} stroke={theme.muted} strokeWidth="0.5" opacity="0.3" />
+              </>
+            )}
+            {node.type === "generic" && (
+              <>
+                <circle cx={node.x} cy={node.y} r="3" fill={theme.secondary} stroke={theme.pillVia} strokeWidth="0.75" />
+                <circle cx={node.x} cy={node.y} r="1.2" fill={theme.pillFrom} opacity="0.5" />
+              </>
+            )}
+          </g>
+        ))}
+
+        {/* Brain on the right */}
+        <g className="animate-node-fade-in">
+          <circle cx={brainX} cy={brainY} r="9" fill={theme.secondary} stroke={theme.pillFrom} strokeWidth="1" opacity="0.9" />
+          <g transform={`translate(${brainX}, ${brainY}) scale(0.32) translate(-12, -12)`} style={{ color: theme.pillFrom }}>
+            <path
+              d="M12 19V5C12 3.34315 10.6569 2 9 2C7.34315 2 6 3.34315 6 5C6 5.55228 5.55228 6 5 6C3.34315 6 2 7.34315 2 9C2 10.6569 3.34315 12 5 12C3.34315 12 2 13.3431 2 15C2 16.6569 3.34315 18 5 18C5.55228 18 6 18.4477 6 19C6 20.6569 7.34315 22 9 22C10.6569 22 12 20.6569 12 19Z"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinejoin="round"
+            />
+            <path
+              d="M12 19V5C12 3.34315 13.3431 2 15 2C16.6569 2 18 3.34315 18 5C18 5.55228 18.4477 6 19 6C20.6569 6 22 7.34315 22 9C22 10.6569 20.6569 12 19 12C20.6569 12 22 13.3431 22 15C22 16.6569 20.6569 18 19 18C18.4477 18 18 18.4477 18 19C18 20.6569 16.6569 22 15 22C13.3431 22 12 20.6569 12 19Z"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinejoin="round"
+            />
+          </g>
+        </g>
+      </svg>
+    </div>
+  )
+}
+
+function SecureByDefaultVisual({ theme }: { theme: Theme }) {
+  const [selected, setSelected] = useState("sheets")
+  const [perms, setPerms] = useState<Record<string, Record<string, boolean>>>({
+    sheets: {
+      "Read cells": true,
+      "List sheets": true,
+      "Download CSV": true,
+      "View formulas": true,
+      "Export PDF": true,
+      "Check history": true,
+      "Write cells": true,
+      "Append rows": true,
+      "Clone sheet": true,
+      "Create sheet": true,
+      "Rename sheet": true,
+      "Format cells": true,
+      "Delete sheet": false,
+      "Share sheet": false,
+      "Change permissions": false,
+      "Delete rows": false,
+      "Merge cells": false,
+      "Protect range": false,
+    },
+    slack: {
+      "Read messages": true,
+      "List channels": true,
+      "Search history": true,
+      "View files": true,
+      "See members": true,
+      "Check status": true,
+      "Send messages": true,
+      "Create channels": true,
+      "Upload files": true,
+      "React to posts": true,
+      "Start threads": true,
+      "Set reminders": true,
+      "Delete channels": false,
+      "Invite users": false,
+      "Manage webhooks": false,
+      "Delete messages": false,
+      "Archive channels": false,
+      "Admin settings": false,
+    },
+    github: {
+      "Read repos": true,
+      "View issues": true,
+      "List branches": true,
+      "See PRs": true,
+      "Read commits": true,
+      "View wiki": true,
+      "Create PRs": true,
+      "Open issues": true,
+      "Push commits": true,
+      "Comment on PRs": true,
+      "Label issues": true,
+      "Request review": true,
+      "Delete repos": false,
+      "Manage secrets": false,
+      "Admin access": false,
+      "Force push": false,
+      "Delete branches": false,
+      "Modify rules": false,
+    },
+  })
+
+  const connections = [
+    {
+      id: "sheets",
+      name: "Google Sheets",
+      icon: (
+        <svg viewBox="0 0 74 100" className="h-5 w-5"><path d="M45 1H8a7 7 0 0 0-7 7v84a7 7 0 0 0 7 7h57a7 7 0 0 0 7-7V28L45 1z" fill="#0F9D58"/><path d="M19 49v32h34V49H19zm15 28H23v-5h11v5zm0-9H23v-5h11v5zm0-9H23v-6h11v6zm15 18H38v-5h11v5zm0-9H38v-5h11v5zm0-9H38v-6h11v6z" fill="white"/></svg>
+      ),
+    },
+    {
+      id: "slack",
+      name: "Slack",
+      icon: (
+        <svg viewBox="0 0 2448 2453" className="h-5 w-5"><path fill="#36c5f0" d="m897 0c-135 0-245 110-245 245 0 135 110 245 245 245h245V245C1142 110 1032 0 897 0m0 654H244C109 654-1 764-1 899c-1 135 109 245 245 245h653c135 0 245-110 245-245 0-135-110-245-245-245z"/><path fill="#2eb67d" d="M2448 899c0-135-110-245-245-245s-245 110-245 245v245h245c135 0 245-110 245-245m-653 0V245c1-135-109-245-245-245S1255 110 1255 245v654c-1 135 109 245 245 245 135 0 245-110 245-245z"/><path fill="#ecb22e" d="M1550 2453c135 0 245-110 245-245 0-135-110-245-245-245h-245v245c0 135 110 245 245 245m0-654h653c135 0 245-110 245-245 0-135-110-245-245-245h-653c-135 0-245 110-245 245 0 135 110 245 245 245z"/><path fill="#e01e5a" d="M0 1553c0 135 110 245 245 245s245-110 245-245v-245H245C110 1308 0 1418 0 1553m654 0v654c-1 135 109 245 245 245s245-110 245-245v-654c1-135-109-245-245-245-135 0-245 110-245 245z"/></svg>
+      ),
+    },
+    {
+      id: "github",
+      name: "GitHub",
+      icon: (
+        <svg viewBox="0 0 1024 1024" className="h-5 w-5"><path fill="currentColor" fillRule="evenodd" d="M512 0C229.12 0 0 229.12 0 512c0 226.56 146.56 417.92 350.08 485.76 25.6 4.48 35.2-10.88 35.2-24.32 0-12.16-.64-52.48-.64-95.36-128.64 23.68-161.92-31.36-172.16-60.16-5.76-14.72-30.72-60.16-52.48-72.32-17.92-9.6-43.52-33.28-.64-33.92 40.32-.64 69.12 37.12 78.72 52.48 46.08 77.44 119.68 55.68 149.12 42.24 4.48-33.28 17.92-55.68 32.64-68.48-113.92-12.8-232.96-56.96-232.96-252.8 0-55.68 19.84-101.76 52.48-137.6-5.12-12.8-23.04-65.28 5.12-135.68 0 0 42.88-13.44 140.8 52.48 40.96-11.52 84.48-17.28 128-17.28s87.04 5.76 128 17.28c97.92-66.56 140.8-52.48 140.8-52.48 28.16 70.4 10.24 122.88 5.12 135.68 32.64 35.84 52.48 81.28 52.48 137.6 0 196.48-119.68 240-233.6 252.8 18.56 16 34.56 46.72 34.56 94.72 0 68.48-.64 123.52-.64 140.8 0 13.44 9.6 29.44 35.2 24.32C877.44 929.92 1024 737.92 1024 512 1024 229.12 794.88 0 512 0" clipRule="evenodd"/></svg>
+      ),
+    },
+  ]
+
+  const currentPerms = perms[selected]
+  const readKeys = Object.keys(currentPerms).slice(0, 6)
+  const writeKeys = Object.keys(currentPerms).slice(6, 12)
+  const adminKeys = Object.keys(currentPerms).slice(12, 18)
+
+  const toggle = (key: string) => {
+    setPerms((prev) => ({
+      ...prev,
+      [selected]: { ...prev[selected], [key]: !prev[selected][key] },
+    }))
+  }
+
+  const renderRow = (key: string) => {
+    const on = currentPerms[key]
+    return (
+      <div
+        key={key}
+        className="flex items-center justify-between rounded-lg border px-3 py-2"
+        style={{
+          backgroundColor: theme.bg,
+          borderColor: on ? theme.secondaryBorder : `${theme.secondaryBorder}99`,
+        }}
+      >
+        <span className="text-sm font-medium" style={{ color: on ? theme.text : theme.muted }}>
+          {key}
+        </span>
+        <Switch
+          checked={on}
+          onChange={() => toggle(key)}
+          theme={theme}
+        />
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex h-full w-full flex-col px-6 pb-5 pt-4">
+      {/* Connection selector row */}
+      <div className="mb-5 flex gap-3">
+        {connections.map((c) => (
+          <button
+            key={c.id}
+            type="button"
+            onClick={() => setSelected(c.id)}
+            className="flex items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-sm font-medium transition-all"
+            style={{
+              backgroundColor: selected === c.id ? theme.pillFrom + "12" : theme.secondary,
+              border: `1px solid ${selected === c.id ? theme.pillFrom + "40" : theme.secondaryBorder}`,
+              color: selected === c.id ? theme.text : theme.muted,
+              boxShadow: selected === c.id ? `0 0 0 3px ${theme.pillFrom}15` : "none",
+            }}
+          >
+            {c.icon}
+            <span>{c.name}</span>
+          </button>
+        ))}
+      </div>
+
+      {/* Permissions grid */}
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={selected}
+          className="grid flex-1 grid-cols-3 gap-4"
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -8 }}
+          transition={{ duration: 0.2, ease: "easeOut" }}
+        >
+          {/* Read */}
+          <div className="flex flex-col gap-2">
+            <div className="mb-1 flex items-center gap-2">
+              <span className="h-2 w-2 rounded-full" style={{ backgroundColor: "#22c55e" }} />
+              <span className="text-sm font-semibold" style={{ color: theme.text }}>Read</span>
+            </div>
+            {readKeys.map(renderRow)}
+          </div>
+
+          {/* Write */}
+          <div className="flex flex-col gap-2">
+            <div className="mb-1 flex items-center gap-2">
+              <span className="h-2 w-2 rounded-full" style={{ backgroundColor: theme.pillFrom }} />
+              <span className="text-sm font-semibold" style={{ color: theme.text }}>Write</span>
+            </div>
+            {writeKeys.map(renderRow)}
+          </div>
+
+          {/* Admin */}
+          <div className="flex flex-col gap-2">
+            <div className="mb-1 flex items-center gap-2">
+              <span className="h-2 w-2 rounded-full" style={{ backgroundColor: "#ef4444" }} />
+              <span className="text-sm font-semibold" style={{ color: theme.text }}>Admin</span>
+            </div>
+            {adminKeys.map(renderRow)}
+          </div>
+        </motion.div>
+      </AnimatePresence>
+    </div>
+  )
+}
+
 function FeaturesBento({ theme }: { theme: Theme }) {
   const features = [
     {
       title: "Works where you work",
       description: "Slack, Google Sheets, GitHub, Google Meet — Hivy lives inside the tools your team already uses. No new tabs, no context switching.",
-      span: "col-span-1 md:col-span-2",
-      height: "min-h-72 md:min-h-80",
+      span: "md:row-span-2",
+      height: "min-h-72 md:min-h-0",
+      textPosition: "bottom" as const,
     },
     {
       title: "Remembers everything",
       description: "Hivy builds a living memory of your business, your teammates, and your decisions — so nothing important is ever lost.",
-      span: "col-span-1",
-      height: "min-h-72 md:min-h-80",
+      span: "",
+      height: "min-h-64",
+      textPosition: "top" as const,
     },
     {
       title: "Automates the boring stuff",
       description: "Set unlimited recurring tasks on any schedule. Reports, follow-ups, reminders — Hivy handles it all while you focus on what matters.",
-      span: "col-span-1",
-      height: "min-h-72 md:min-h-80",
+      span: "",
+      height: "min-h-64",
+      textPosition: "overlay" as const,
     },
     {
       title: "Secure by default",
       description: "Granular permissions let you control exactly what Hivy can and cannot do. Your data stays yours, always.",
-      span: "col-span-1 md:col-span-2",
-      height: "min-h-64 md:min-h-72",
+      span: "md:col-span-2",
+      height: "min-h-56",
+      textPosition: "top" as const,
     },
   ]
 
@@ -654,83 +800,301 @@ function FeaturesBento({ theme }: { theme: Theme }) {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3 md:gap-5">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-5">
         {features.map((f, i) => (
-          <div
+          <Card
             key={i}
-            className={`group relative flex flex-col overflow-hidden rounded-2xl border transition-all duration-300 hover:-translate-y-1 hover:shadow-lg ${f.span} ${f.height}`}
-            style={{
-              backgroundColor: theme.secondary,
-              borderColor: theme.secondaryBorder,
-            }}
+            theme={theme}
+            padding="none"
+            className={`relative flex flex-col overflow-hidden ${f.span} ${f.height}`}
           >
-            {/* Image placeholder */}
-            <div className="relative flex-1 overflow-hidden">
-              <div
-                className="absolute inset-0 opacity-[0.06]"
-                style={{
-                  background: `linear-gradient(135deg, ${theme.pillFrom}, ${theme.pillTo})`,
-                }}
-              />
-              <div className="flex h-full w-full items-center justify-center">
-                <span className="text-xs font-medium opacity-40" style={{ color: theme.muted }}>
-                  Graphic placeholder
-                </span>
+            {f.textPosition === "top" && (
+              <div className="px-6 pt-6 pb-2">
+                <h3
+                  className="font-recoleta text-lg font-medium leading-snug tracking-tight sm:text-xl"
+                  style={{ color: theme.text }}
+                >
+                  {f.title}
+                </h3>
+                <p className="mt-1 text-sm leading-relaxed" style={{ color: theme.muted }}>
+                  {f.description}
+                </p>
               </div>
+            )}
+
+            {/* Visual area */}
+            <div className={`relative overflow-hidden ${i === 0 || i === 1 || f.textPosition === "overlay" ? "flex-1" : i === 3 ? "h-[412px]" : "h-44"}`}>
+              {i === 0 ? (
+                <WorksWhereYouWorkVisual theme={theme} />
+              ) : i === 1 ? (
+                <RemembersEverythingVisual theme={theme} />
+              ) : i === 3 ? (
+                <SecureByDefaultVisual theme={theme} />
+              ) : (
+                <>
+                  <div
+                    className="absolute inset-0 opacity-[0.06]"
+                    style={{
+                      background: `linear-gradient(135deg, ${theme.pillFrom}, ${theme.pillTo})`,
+                    }}
+                  />
+                  <div className="flex h-full w-full items-center justify-center">
+                    <span className="text-xs font-medium opacity-40" style={{ color: theme.muted }}>
+                      Graphic placeholder
+                    </span>
+                  </div>
+                </>
+              )}
             </div>
 
-            {/* Text content */}
-            <div className="px-6 pb-6 pt-4">
-              <h3
-                className="font-recoleta text-lg font-medium leading-[1.3] tracking-[-0.01em] sm:text-xl"
-                style={{ color: theme.text }}
-              >
-                {f.title}
-              </h3>
-              <p className="mt-2 text-sm leading-[1.55]" style={{ color: theme.muted }}>
-                {f.description}
-              </p>
-            </div>
-          </div>
+            {f.textPosition === "bottom" && (
+              <div className="px-6 pb-6 pt-4">
+                <h3
+                  className="font-recoleta text-lg font-medium leading-snug tracking-tight sm:text-xl"
+                  style={{ color: theme.text }}
+                >
+                  {f.title}
+                </h3>
+                <p className="mt-2 text-sm leading-relaxed" style={{ color: theme.muted }}>
+                  {f.description}
+                </p>
+              </div>
+            )}
+
+            {f.textPosition === "overlay" && (
+              <div className="absolute bottom-0 left-0 right-0 px-6 pb-5 pt-8 backdrop-blur-sm">
+                <h3
+                  className="font-recoleta text-lg font-medium leading-snug tracking-tight sm:text-xl"
+                  style={{ color: theme.text }}
+                >
+                  {f.title}
+                </h3>
+                <p className="mt-1 text-sm leading-relaxed" style={{ color: theme.muted }}>
+                  {f.description}
+                </p>
+              </div>
+            )}
+          </Card>
         ))}
       </div>
     </section>
   )
 }
 
-function ThemeToolbar({ active, onChange }: { active: number; onChange: (i: number) => void }) {
+function SlackChatSection({ theme }: { theme: Theme }) {
+  const messages = [
+    { sender: "user", name: "Alex", text: "Hey team, can someone pull the Q3 numbers from the Sheets?", time: "9:41 AM" },
+    { sender: "hivy", name: "hivy", text: "On it — pulling Q3 revenue, expenses, and growth metrics from the master sheet now.", time: "9:41 AM" },
+    { sender: "user", name: "Alex", text: "Also draft a follow-up email to the investors?", time: "9:42 AM" },
+    { sender: "hivy", name: "hivy", text: "Draft ready in your Gmail drafts. I used last quarter's template and plugged in the new numbers.", time: "9:42 AM" },
+    { sender: "user", name: "Alex", text: "You're a lifesaver 🙏", time: "9:43 AM" },
+    { sender: "hivy", name: "hivy", text: "Anytime. I'll also create a GitHub issue to track the follow-up tasks.", time: "9:43 AM" },
+  ]
+
+  const channels = ["general", "engineering", "design", "announcements"]
+  const dms = ["Sarah", "hivy", "Mike"]
+
   return (
-    <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2">
-      <div className="flex items-center gap-2 rounded-2xl border border-black/[0.06] bg-white/[0.92] px-4 py-3 shadow-2xl backdrop-blur-lg">
-        {THEMES.map((theme, i) => (
-          <button
-            key={theme.name}
-            type="button"
-            onClick={() => onChange(i)}
-            className="group relative flex h-9 w-9 items-center justify-center rounded-full transition-transform hover:scale-110"
-            title={theme.name}
-          >
-            <span
-              className="inline-block h-7 w-7 rounded-full border"
-              style={{
-                background: `linear-gradient(135deg, ${theme.pillFrom}, ${theme.pillTo})`,
-                borderColor: active === i ? theme.text : "rgba(0,0,0,0.08)",
-                boxShadow: active === i ? `0 0 0 2px ${theme.pillFrom}` : "none",
-              }}
-            />
-            <span className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 rounded-md bg-[#111] px-2 py-1 text-xs font-medium text-white opacity-0 transition-opacity group-hover:opacity-100">
-              {theme.name}
-            </span>
-          </button>
-        ))}
+    <section className="relative z-10 w-full max-w-5xl px-4 py-16 sm:py-24 md:px-0">
+      <div className="mb-10 text-center sm:mb-14">
+        <h2
+          className="font-recoleta text-3xl md:text-4xl font-normal leading-[1.1] tracking-[-0.02em]"
+          style={{ color: theme.text }}
+        >
+          Say hello to hivy, your new coworker
+        </h2>
+        <p className="mx-auto mt-4 max-w-lg text-base leading-[1.6]" style={{ color: theme.muted }}>
+          Hivy lives in your Slack, hears your requests, and gets things done — just like a teammate who never sleeps.
+        </p>
       </div>
-    </div>
+
+      {/* Gradient card container */}
+      <div
+        className="rounded-3xl p-8 sm:p-12"
+        style={{
+          background: `linear-gradient(135deg, ${theme.pillFrom}30, ${theme.pillVia}20, ${theme.pillTo}30)`,
+        }}
+      >
+        {/* Slack app mockup */}
+        <div className="flex overflow-hidden rounded-xl shadow-2xl" style={{ height: 600 }}>
+          {/* Slack left sidebar */}
+          <div className="flex w-52 shrink-0 flex-col" style={{ backgroundColor: "#3F0E40" }}>
+            {/* Workspace header */}
+            <div className="flex items-center gap-2 px-4 py-3">
+              <div className="flex h-6 w-6 items-center justify-center rounded bg-white/10">
+                <svg viewBox="0 0 127 127" className="h-3.5 w-3.5"><path d="M27.2 80.0c0 7.3-5.9 13.2-13.2 13.2S.8 87.3.8 80c0-7.3 5.9-13.2 13.2-13.2h13.2v13.2zm6.6 0c0-7.3 5.9-13.2 13.2-13.2s13.2 5.9 13.2 13.2v33c0 7.3-5.9 13.2-13.2 13.2s-13.2-5.9-13.2-13.2V80z" fill="#E01E5A"/><path d="M47.0 27.0c-7.3 0-13.2-5.9-13.2-13.2S39.7.6 47.0.6s13.2 5.9 13.2 13.2v13.2H47.0zm0 6.7c7.3 0 13.2 5.9 13.2 13.2s-5.9 13.2-13.2 13.2H13.5C6.2 60.1.3 54.2.3 46.9s5.9-13.2 13.2-13.2h33.5z" fill="#36C5F0"/><path d="M99.9 46.9c0-7.3 5.9-13.2 13.2-13.2s13.2 5.9 13.2 13.2-5.9 13.2-13.2 13.2H99.9V46.9zm-6.6 0c0 7.3-5.9 13.2-13.2 13.2s-13.2-5.9-13.2-13.2V13.5C66.9 6.2 72.8.3 80.1.3s13.2 5.9 13.2 13.2v33.4z" fill="#2EB67D"/><path d="M80.1 99.8c7.3 0 13.2 5.9 13.2 13.2s-5.9 13.2-13.2 13.2-13.2-5.9-13.2-13.2V99.8h13.2zm0-6.6c-7.3 0-13.2-5.9-13.2-13.2s5.9-13.2 13.2-13.2h33.5c7.3 0 13.2 5.9 13.2 13.2s-5.9 13.2-13.2 13.2H80.1z" fill="#ECB22E"/></svg>
+              </div>
+              <div>
+                <div className="text-sm font-bold text-white">Acme Inc</div>
+                <div className="text-xs text-white/50">hivy workspace</div>
+              </div>
+            </div>
+
+            {/* Section: Channels */}
+            <div className="px-3 py-2">
+              <div className="mb-1 px-2 text-xs font-semibold uppercase tracking-wide text-white/40">Channels</div>
+              {channels.map((c) => (
+                <div
+                  key={c}
+                  className="flex items-center gap-2 rounded px-2 py-1 text-sm"
+                  style={{ color: c === "general" ? "white" : "rgba(255,255,255,0.6)", backgroundColor: c === "general" ? "#1164A3" : "transparent" }}
+                >
+                  <span className="text-white/40">#</span>
+                  <span>{c}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* Section: Direct messages */}
+            <div className="px-3 py-2">
+              <div className="mb-1 px-2 text-xs font-semibold uppercase tracking-wide text-white/40">Direct messages</div>
+              {dms.map((dm) => (
+                <div
+                  key={dm}
+                  className="flex items-center gap-2 rounded px-2 py-1 text-sm text-white/60"
+                >
+                  <span className="relative flex h-2 w-2">
+                    <span className="absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+                    <span className="relative inline-flex h-2 w-2 rounded-full bg-green-400" />
+                  </span>
+                  <span>{dm}</span>
+                  {dm === "hivy" && <span className="ml-auto rounded bg-white/10 px-1.5 py-0 text-[10px] text-white/60">APP</span>}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Main chat area */}
+          <div className="flex flex-1 flex-col bg-white">
+            {/* Channel header */}
+            <div className="flex items-center border-b border-gray-200 px-5 py-3">
+              <div className="flex items-center gap-2">
+                <span className="text-lg font-bold text-gray-400">#</span>
+                <span className="text-base font-bold text-gray-900">general</span>
+              </div>
+              <div className="ml-4 flex items-center gap-1 text-sm text-gray-400">
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                <span>3</span>
+              </div>
+            </div>
+
+            {/* Messages */}
+            <div className="flex-1 overflow-y-auto px-5 py-4">
+              {messages.map((msg, i) => (
+                <div key={i} className="group flex items-start gap-3 py-2 hover:bg-gray-50">
+                  {/* Avatar */}
+                  <div
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-sm font-bold text-white"
+                    style={{
+                      backgroundColor: msg.sender === "hivy" ? theme.pillFrom : "#E01E5A",
+                    }}
+                  >
+                    {msg.sender === "hivy" ? (
+                      <svg viewBox="0 0 640 640" className="h-5 w-5" fill="currentColor"><path d="M63.7314 260.875C115.623 104.119 238.334 51.5019 291.736 44.0986C600.403 1.30772 662.211 304.136 543.862 460.66C441.808 595.633 262.075 620.78 154.214 585.754C59.2103 554.903 6.44755 433.92 63.7314 260.875Z" /><ellipse cx="318.5" cy="282" rx="45.5" ry="101" fill="white" /><ellipse cx="457.5" cy="282" rx="45.5" ry="101" fill="white" /></svg>
+                    ) : msg.name[0]}
+                  </div>
+
+                  {/* Message content */}
+                  <div className="flex flex-col">
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-sm font-bold" style={{ color: msg.sender === "hivy" ? theme.pillFrom : "#1D1C1D" }}>
+                        {msg.name}
+                      </span>
+                      {msg.sender === "hivy" && (
+                        <span className="rounded bg-gray-100 px-1 py-0 text-[10px] font-semibold text-gray-500">APP</span>
+                      )}
+                      <span className="text-xs text-gray-400">{msg.time}</span>
+                    </div>
+                    <p className="text-sm leading-relaxed text-gray-700">{msg.text}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Input bar */}
+            <div className="border-t border-gray-200 px-5 py-3">
+              <div className="flex items-center gap-2 rounded-lg border border-gray-300 px-4 py-2.5">
+                <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+                <span className="text-sm text-gray-400">Message #general</span>
+                <div className="ml-auto flex items-center gap-1 rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-500">
+                  <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" /></svg>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+function Footer({ theme }: { theme: Theme }) {
+  const linkGroups = [
+    {
+      title: "Product",
+      links: ["Features", "Pricing", "Security", "Changelog"],
+    },
+    {
+      title: "Company",
+      links: ["About", "Blog", "Careers", "Contact"],
+    },
+    {
+      title: "Resources",
+      links: ["Documentation", "API Reference", "Community", "Status"],
+    },
+    {
+      title: "Legal",
+      links: ["Privacy", "Terms", "Cookies"],
+    },
+  ]
+
+  return (
+    <footer className="relative z-10 w-full">
+      {/* Link columns */}
+      <div className="mx-auto max-w-5xl px-4 py-16 sm:px-0">
+        <div className="grid grid-cols-2 gap-8 sm:grid-cols-4">
+          {linkGroups.map((group) => (
+            <div key={group.title}>
+              <div className="mb-4 text-xs font-semibold uppercase tracking-wide" style={{ color: theme.muted }}>
+                {group.title}
+              </div>
+              <div className="flex flex-col gap-3">
+                {group.links.map((link) => (
+                  <a
+                    key={link}
+                    href="#"
+                    className="text-sm transition-colors hover:opacity-70"
+                    style={{ color: theme.text }}
+                  >
+                    {link}
+                  </a>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Giant logo text */}
+      <div className="overflow-hidden">
+        <div
+          className="flex justify-center items-start pt-8 sm:pt-12"
+          style={{ height: "clamp(100px, 15vw, 680px)" }}
+        >
+          <span
+            className="font-recoleta font-bold tracking-tighter"
+            style={{ color: theme.text, fontSize: "clamp(120px, 18vw, 800px)", lineHeight: 1 }}
+          >
+            hire hivy
+          </span>
+        </div>
+      </div>
+    </footer>
   )
 }
 
 export default function ExplorationTwoPage() {
-  const [activeTheme, setActiveTheme] = useState(0)
-  const theme = THEMES[activeTheme]
+  const theme = ROSE_THEME
 
   return (
     <>
@@ -839,6 +1203,17 @@ export default function ExplorationTwoPage() {
           50% { transform: rotate(6deg); }
           100% { transform: rotate(-6deg); }
         }
+        @keyframes pulse-ring {
+          0% { transform: scale(0.5); opacity: 0.3; }
+          100% { transform: scale(2.5); opacity: 0; }
+        }
+        @keyframes node-fade-in {
+          0% { opacity: 0; transform: scale(0.5); }
+          100% { opacity: 1; transform: scale(1); }
+        }
+        .animate-node-fade-in {
+          animation: node-fade-in 0.8s ease-out both;
+        }
       `}</style>
       <main
         className="font-sohne relative flex min-h-screen flex-col items-center"
@@ -860,32 +1235,25 @@ export default function ExplorationTwoPage() {
             <Navbar theme={theme} />
           </div>
           <div className="flex items-center gap-2 sm:gap-3">
-            <a
-              href="#"
-              className="hidden text-xs font-medium transition-colors sm:inline-block"
-              style={{ color: theme.muted }}
-              onMouseEnter={(e) => (e.currentTarget.style.color = theme.text)}
-              onMouseLeave={(e) => (e.currentTarget.style.color = theme.muted)}
-            >
-              Talk to Sales
-            </a>
-            <a
-              href="#"
-              className="inline-flex h-9 items-center justify-center rounded-xl px-4 text-xs font-semibold transition-colors hover:brightness-110"
-              style={{ backgroundColor: theme.primary, color: theme.primaryText }}
-            >
-          Hire hivy
-            </a>
-            <button
-              type="button"
-              className="inline-flex h-9 w-9 items-center justify-center rounded-lg hover:bg-black/[0.03] md:hidden"
-              style={{ color: theme.muted }}
-              aria-label="Open menu"
-            >
-              <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                <path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-              </svg>
-            </button>
+            <div className="hidden sm:block">
+              <Button variant="ghost" size="sm" theme={theme} href="#">
+                Talk to Sales
+              </Button>
+            </div>
+            <Button variant="primary" size="sm" theme={theme} href="#">
+              Hire hivy
+            </Button>
+             <Button
+               variant="ghost"
+               size="sm"
+               theme={theme}
+               className="md:hidden h-9 w-9 px-0"
+               aria-label="Open menu"
+             >
+               <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                 <path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+               </svg>
+             </Button>
           </div>
         </div>
 
@@ -902,7 +1270,10 @@ export default function ExplorationTwoPage() {
         {/* Features bento */}
         <FeaturesBento theme={theme} />
 
-        <ThemeToolbar active={activeTheme} onChange={setActiveTheme} />
+        {/* Slack chat section */}
+        <SlackChatSection theme={theme} />
+
+        <Footer theme={theme} />
       </main>
     </>
   )
