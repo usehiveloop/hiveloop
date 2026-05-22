@@ -9,11 +9,6 @@ type LegalSection = {
   list?: string[]
 }
 
-type RelatedLink = {
-  label: string
-  href: string
-}
-
 interface LegalPageProps {
   title: string
   eyebrow: string
@@ -21,8 +16,6 @@ interface LegalPageProps {
   effectiveDate?: string
   lastUpdated?: string
   version?: string
-  notice?: string
-  relatedLinks?: RelatedLink[]
 }
 
 export function LegalPage({
@@ -32,8 +25,6 @@ export function LegalPage({
   effectiveDate,
   lastUpdated,
   version,
-  notice,
-  relatedLinks,
 }: LegalPageProps) {
   return (
     <main className="relative flex min-h-screen flex-col items-center overflow-x-hidden bg-background font-display text-foreground">
@@ -50,20 +41,6 @@ export function LegalPage({
         >
           hivy
         </Link>
-        <nav className="absolute top-1/2 left-1/2 hidden h-11 -translate-x-1/2 -translate-y-1/2 items-center rounded-full border border-[var(--nav-border)] bg-[var(--nav-bg)] px-2 text-sm backdrop-blur-lg md:flex">
-          <Link
-            href="/legal"
-            className="rounded-full px-3 py-2 text-muted-foreground transition-colors hover:text-foreground"
-          >
-            Legal
-          </Link>
-          <Link
-            href="/terms"
-            className="rounded-full px-3 py-2 text-muted-foreground transition-colors hover:text-foreground"
-          >
-            Terms
-          </Link>
-        </nav>
         <div className="flex items-center gap-2 sm:gap-3">
           <div className="hidden sm:block">
             <Button variant="ghost" size="sm" render={<a href="mailto:hello@usehivy.com" />}>
@@ -89,24 +66,6 @@ export function LegalPage({
               {effectiveDate ? <p>Effective: {effectiveDate}</p> : null}
               {lastUpdated ? <p>Updated: {lastUpdated}</p> : null}
               {version ? <p>Version: {version}</p> : null}
-            </div>
-          ) : null}
-          {notice ? (
-            <p className="mt-6 text-sm leading-7 text-muted-foreground">
-              {notice}
-            </p>
-          ) : null}
-          {relatedLinks?.length ? (
-            <div className="mt-8 flex flex-wrap gap-2">
-              {relatedLinks.map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className="rounded-full border border-border px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
-                >
-                  {link.label}
-                </Link>
-              ))}
             </div>
           ) : null}
         </div>

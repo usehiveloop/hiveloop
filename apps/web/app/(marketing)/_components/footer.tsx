@@ -33,9 +33,6 @@ const linkGroups = [
     links: [
       { label: "Terms", href: "/terms" },
       { label: "Legal", href: "/legal" },
-      { label: "DPA", href: "/legal#data-processing-addendum" },
-      { label: "Subprocessors", href: "/legal#subprocessor-list" },
-      { label: "Cookies", href: "/legal#cookie-notice" },
     ],
   },
 ]

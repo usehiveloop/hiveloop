@@ -9,11 +9,6 @@ const footerLinks = {
   company: [
     { label: "Terms of Service", href: "/terms" },
     { label: "Legal Center", href: "/legal" },
-    { label: "Privacy Policy", href: "/legal#privacy-policy" },
-    { label: "Data Processing Addendum", href: "/legal#data-processing-addendum" },
-    { label: "Subprocessors", href: "/legal#subprocessor-list" },
-    { label: "Security", href: "/legal#security-addendum" },
-    { label: "Cookies", href: "/legal#cookie-notice" },
     { label: "Contact", href: "mailto:hello@usehivy.com", external: true },
   ],
 }
@@ -127,12 +122,12 @@ export function MarketingFooter() {
             >
               Terms
             </Link>
-            <Link
-              href="/legal#data-processing-addendum"
+            <a
+              href="mailto:hello@usehivy.com"
               className="text-xs text-muted-foreground transition-colors hover:text-foreground"
             >
-              DPA
-            </Link>
+              Contact
+            </a>
           </div>
         </div>
       </div>

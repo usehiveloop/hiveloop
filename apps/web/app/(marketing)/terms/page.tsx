@@ -7,14 +7,6 @@ export const metadata: Metadata = {
     "Terms governing use of Hivy, the AI employee platform operated by HIVY TECHNOLOGIES LTD.",
 }
 
-const relatedLinks = [
-  { label: "Legal", href: "/legal" },
-  { label: "Privacy", href: "/legal#privacy-policy" },
-  { label: "DPA", href: "/legal#data-processing-addendum" },
-  { label: "Acceptable Use", href: "#acceptable-use" },
-  { label: "AI", href: "#ai-responsibilities" },
-]
-
 const sections = [
   {
     id: "agreement",
@@ -252,8 +244,6 @@ export default function TermsPage() {
       effectiveDate="May 28, 2026"
       lastUpdated="May 28, 2026"
       version="1"
-      notice="These Terms govern use of Hivy. The Legal page contains our Privacy Policy, Data Processing Addendum, Security notice, Cookie notice, and Subprocessor List."
-      relatedLinks={relatedLinks}
       sections={sections}
     />
   )

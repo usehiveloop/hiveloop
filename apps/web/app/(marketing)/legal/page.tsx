@@ -7,15 +7,6 @@ export const metadata: Metadata = {
     "Legal notices for Hivy, including privacy, data processing, security, cookies, and subprocessors.",
 }
 
-const relatedLinks = [
-  { label: "Terms", href: "/terms" },
-  { label: "Privacy", href: "#privacy-policy" },
-  { label: "End Users", href: "#end-user-policy" },
-  { label: "Customers", href: "#customer-policy" },
-  { label: "DPA", href: "#data-processing-addendum" },
-  { label: "Security", href: "#security" },
-]
-
 const sections = [
   {
     id: "overview",
@@ -222,8 +213,6 @@ export default function LegalPageRoot() {
       effectiveDate="May 28, 2026"
       lastUpdated="May 28, 2026"
       version="1"
-      notice="This page contains Hivy's Privacy Policy, End-user Policy, Customer Policy, Data Processing Addendum, Subprocessor List, Security notice, and Cookie notice."
-      relatedLinks={relatedLinks}
       sections={sections}
     />
   )
