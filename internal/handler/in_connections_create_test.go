@@ -112,7 +112,7 @@ func TestInConnectionHandler_CreateSlackKeepsOnboardingOpenAndEnsuresHivy(t *tes
 		t.Fatalf("reload org: %v", err)
 	}
 	if reloaded.Onboarded {
-		t.Fatal("org onboarded = true, want false until Slack public channel selection")
+		t.Fatal("org onboarded = true, want false until org profile update")
 	}
 
 	var employee model.Agent

@@ -7,6 +7,7 @@ import { toast } from "sonner"
 import { useConnectIntegration } from "@/app/w-old/connections/_hooks/use-connect-integration"
 import { $api } from "@/lib/api/hooks"
 import { extractErrorMessage } from "@/lib/api/error"
+import { useAuth } from "@/lib/auth/auth-context"
 import type { components } from "@/lib/api/schema"
 
 export type OnboardingStep = "slack" | "connections" | "business"
@@ -16,6 +17,8 @@ export type Channel = components["schemas"]["slackChannelResponse"]
 export type ConnectionConfigField =
   components["schemas"]["ConnectionConfigField"]
 export type OrgUpdateRequest = components["schemas"]["updateOrgRequest"]
+
+const REQUIRED_CONNECTIONS_FOR_BUSINESS_STEP = 3
 
 interface ConnectOptions {
   credentials?: Record<string, string>
@@ -42,6 +45,7 @@ export function needsConnectionForm(integration: Integration): boolean {
 export function useOnboarding() {
   const router = useRouter()
   const queryClient = useQueryClient()
+  const { activeOrg } = useAuth()
   const [step, setStep] = useState<OnboardingStep>("slack")
   const [channelSearch, setChannelSearch] = useState("")
   const [selectedChannelIds, setSelectedChannelIds] = useState<Set<string>>(
@@ -78,6 +82,8 @@ export function useOnboarding() {
   const nonSlackConnections = connections.filter(
     (connection) => connection.provider !== "slack"
   )
+  const hasRequiredConnections =
+    connections.length >= REQUIRED_CONNECTIONS_FOR_BUSINESS_STEP
 
   const channelsQuery = $api.useQuery(
     "get",
@@ -89,6 +95,11 @@ export function useOnboarding() {
 
   const selectableChannels = useMemo(
     () => channels.filter((channel) => !channel.is_private),
+    [channels]
+  )
+  const slackChannelsJoined = useMemo(
+    () =>
+      channels.some((channel) => !channel.is_private && channel.is_member),
     [channels]
   )
 
@@ -105,10 +116,34 @@ export function useOnboarding() {
   }, [selectableChannels, slackConnected])
 
   useEffect(() => {
-    if (!connectionsQuery.isLoading && !slackConnected) {
-      setStep("slack")
+    if (activeOrg?.onboarded) {
+      router.replace("/w")
+      return
     }
-  }, [connectionsQuery.isLoading, slackConnected])
+    if (connectionsQuery.isLoading) return
+    if (!slackConnected) {
+      setStep("slack")
+      return
+    }
+    if (channelsQuery.isLoading) return
+    if (!slackChannelsJoined) {
+      setStep("slack")
+      return
+    }
+    if (hasRequiredConnections) {
+      setStep("business")
+      return
+    }
+    setStep("connections")
+  }, [
+    activeOrg?.onboarded,
+    channelsQuery.isLoading,
+    connectionsQuery.isLoading,
+    hasRequiredConnections,
+    router,
+    slackChannelsJoined,
+    slackConnected,
+  ])
 
   const filteredChannels = useMemo(() => {
     const query = channelSearch.trim().toLowerCase()
@@ -310,6 +345,7 @@ export function useOnboarding() {
     connections,
     connectedIntegrationIds,
     nonSlackConnections,
+    hasRequiredConnections,
     slackIntegration,
     slackConnected,
     connectSlack,

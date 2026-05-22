@@ -420,6 +420,7 @@ function ConnectionsStep({
   isLoading,
   connectingId,
   search,
+  canContinue,
   onSearch,
   onConnect,
   onContinue,
@@ -430,6 +431,7 @@ function ConnectionsStep({
   isLoading: boolean
   connectingId: string | null
   search: string
+  canContinue: boolean
   onSearch: (value: string) => void
   onConnect: (integration: Integration) => void
   onContinue: () => void
@@ -483,10 +485,10 @@ function ConnectionsStep({
                     isConnected && "border-primary/30 bg-primary/4"
                   )}
                 >
-                  <IntegrationLogo
-                    provider={integration.provider ?? ""}
-                    size={20}
-                  />
+	                  <IntegrationLogo
+	                    provider={integration.provider ?? ""}
+	                    size={40}
+	                  />
                   <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">
                     {integration.display_name}
                   </span>
@@ -514,9 +516,9 @@ function ConnectionsStep({
 
       <div className="flex items-center justify-between">
         <span className="text-sm text-muted-foreground">
-          {nonSlackConnections.length} connected
+          {nonSlackConnections.length} of 2 connected
         </span>
-        <Button onClick={onContinue} className="gap-2">
+        <Button onClick={onContinue} disabled={!canContinue} className="gap-2">
           Continue
           <HugeiconsIcon
             icon={ArrowRight01Icon}
@@ -760,6 +762,7 @@ export default function OnboardingPage() {
             isLoading={onboarding.isIntegrationsLoading}
             connectingId={onboarding.connectingId}
             search={onboarding.integrationSearch}
+            canContinue={onboarding.hasRequiredConnections}
             onSearch={onboarding.setIntegrationSearch}
             onConnect={onboarding.connectIntegration}
             onContinue={() => onboarding.setStep("business")}

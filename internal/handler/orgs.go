@@ -206,6 +206,7 @@ func (h *OrgHandler) Update(w http.ResponseWriter, r *http.Request) {
 	if req.PromptCompany != nil {
 		updates["prompt_company"] = strings.TrimSpace(*req.PromptCompany)
 	}
+	updates["onboarded"] = true
 
 	if err := h.db.Model(&model.Org{}).Where("id = ?", ctxOrg.ID).Updates(updates).Error; err != nil {
 		logging.FromContext(r.Context()).ErrorContext(r.Context(), "failed to update org", "org_id", ctxOrg.ID, "error", err)

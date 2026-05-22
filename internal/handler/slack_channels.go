@@ -141,16 +141,6 @@ func (h *SlackChannelHandler) JoinChannels(w http.ResponseWriter, r *http.Reques
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to join Slack channels"})
 		return
 	}
-	if result.publicReady && result.allReady {
-		if err := h.db.WithContext(r.Context()).
-			Model(&model.Org{}).
-			Where("id = ?", org.ID).
-			Update("onboarded", true).Error; err != nil {
-			logging.FromContext(r.Context()).ErrorContext(r.Context(), "mark org onboarded after Slack channel join", "error", err, "org_id", org.ID)
-			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to update onboarding"})
-			return
-		}
-	}
 	writeJSON(w, http.StatusOK, result)
 }
 
