@@ -151,7 +151,7 @@ const sections = [
     body: [
       "The Legal page explains how Hivy handles privacy, data processing, security, cookies, and subprocessors.",
       "We use technical and organisational measures designed to protect Hivy. No online service is perfectly secure.",
-      "You must promptly notify security@usehivy.com if you believe your account, workspace, credentials, API keys, tokens, sandbox, or integration has been compromised.",
+      "You must promptly notify hello@usehivy.com if you believe your account, workspace, credentials, API keys, tokens, sandbox, or integration has been compromised.",
     ],
   },
   {
@@ -230,7 +230,7 @@ const sections = [
     body: [
       "HIVY TECHNOLOGIES LTD, registered number 1078455345.",
       "Registered office: B1 Orji Murray St, behind Romay Garden Estate, off Lekki - Epe Expressway, Eti-Osa, Lekki 106104, Lagos.",
-      "Legal questions: legal@usehivy.com. Privacy requests: hello@usehivy.com. Security reports: security@usehivy.com.",
+      "Legal questions, privacy requests, and security reports: hello@usehivy.com.",
     ],
   },
   {
@@ -239,7 +239,7 @@ const sections = [
     body: [
       "We may update these Terms from time to time. If changes are material, we will take reasonable steps to notify users through the product, email, website, or another appropriate channel.",
       "Continued use after the effective date of an update means you accept the updated Terms, except where law requires additional consent or notice.",
-      "For legal questions, contact legal@usehivy.com. For privacy requests, contact hello@usehivy.com. For security reports, contact security@usehivy.com.",
+      "For legal questions, privacy requests, or security reports, contact hello@usehivy.com.",
     ],
   },
 ]

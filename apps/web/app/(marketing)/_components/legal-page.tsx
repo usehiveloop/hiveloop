@@ -66,7 +66,7 @@ export function LegalPage({
         </nav>
         <div className="flex items-center gap-2 sm:gap-3">
           <div className="hidden sm:block">
-            <Button variant="ghost" size="sm" render={<a href="mailto:legal@usehivy.com" />}>
+            <Button variant="ghost" size="sm" render={<a href="mailto:hello@usehivy.com" />}>
               Contact
             </Button>
           </div>

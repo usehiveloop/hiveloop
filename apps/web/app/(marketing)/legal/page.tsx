@@ -23,7 +23,7 @@ const sections = [
     body: [
       "This page explains how HIVY TECHNOLOGIES LTD handles privacy, data processing, security, cookies, and service-provider disclosures for Hivy.",
       "Hivy is operated by HIVY TECHNOLOGIES LTD, a company incorporated in Nigeria. Registered number: 1078455345. Registered office: B1 Orji Murray St, behind Romay Garden Estate, off Lekki - Epe Expressway, Eti-Osa, Lekki 106104, Lagos.",
-      "For privacy requests, contact hello@usehivy.com. For legal notices, contact legal@usehivy.com. For security reports, contact security@usehivy.com.",
+      "For privacy requests, legal notices, security reports, and other legal questions, contact hello@usehivy.com.",
       "Last updated: May 28, 2026.",
     ],
   },
@@ -168,7 +168,7 @@ const sections = [
     body: [
       "We use technical and organisational measures designed to protect Hivy, including TLS in transit, encryption for sensitive credentials, access controls, audit logging, monitoring, secret handling, sandbox isolation, least privilege practices, and internal access restrictions.",
       "No system is perfectly secure. You are responsible for protecting your passwords, devices, API keys, connected service accounts, workspace roles, and integration scopes.",
-      "If you believe your account, workspace, integration, or data has been compromised, contact security@usehivy.com.",
+      "If you believe your account, workspace, integration, or data has been compromised, contact hello@usehivy.com.",
     ],
   },
   {
@@ -202,7 +202,7 @@ const sections = [
     body: [
       "HIVY TECHNOLOGIES LTD, registered number 1078455345.",
       "Registered office: B1 Orji Murray St, behind Romay Garden Estate, off Lekki - Epe Expressway, Eti-Osa, Lekki 106104, Lagos.",
-      "Privacy requests: hello@usehivy.com. Legal notices: legal@usehivy.com. Security reports: security@usehivy.com.",
+      "Privacy requests, legal notices, and security reports: hello@usehivy.com.",
     ],
   },
   {
