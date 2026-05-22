@@ -1,17 +1,18 @@
 import { NextRequest, NextResponse } from "next/server"
 
 const SESSION_COOKIE = "__session"
+const AUTH_ROUTES = new Set(["/auth/login", "/auth/signup"])
 
 export function proxy(req: NextRequest) {
   const hasSession = req.cookies.has(SESSION_COOKIE)
   const { pathname } = req.nextUrl
 
   // Protected routes: require a session.
-  if (pathname.startsWith("/w") && !hasSession) {
-    return NextResponse.redirect(new URL("/auth", req.url))
+  if ((pathname === "/w" || pathname.startsWith("/w/")) && !hasSession) {
+    return NextResponse.redirect(new URL("/auth/login", req.url))
   }
 
-  if (pathname === "/auth" && hasSession) {
+  if (AUTH_ROUTES.has(pathname) && hasSession) {
     return NextResponse.redirect(new URL("/w", req.url))
   }
 
@@ -19,5 +20,5 @@ export function proxy(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/w/:path*", "/auth"],
+  matcher: ["/w/:path*", "/auth/login", "/auth/signup"],
 }
