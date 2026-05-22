@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
+import * as Sentry from "@sentry/nextjs"
 import { getSessionFromHeader, createSessionCookie, type SessionData } from "@/lib/auth/session"
 
 const API_URL = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL as string
@@ -6,15 +7,54 @@ const API_URL = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL as string
 /** Minimum remaining lifetime (ms) before we refresh. */
 const MIN_TTL = 5 * 60 * 1000 // 5 minutes
 
-async function refreshTokens(refreshToken: string): Promise<SessionData | null> {
-  const res = await fetch(`${API_URL}/auth/refresh`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ refresh_token: refreshToken }),
+function captureRefreshFailure(
+  stage: string,
+  context: Record<string, unknown> = {}
+) {
+  Sentry.withScope((scope) => {
+    scope.setTag("component", "web_stream_token")
+    scope.setTag("refresh_stage", stage)
+    scope.setExtras(context)
+    Sentry.captureMessage("web stream token refresh failed", "warning")
   })
-  if (!res.ok) return null
+}
+
+async function refreshTokens(refreshToken: string): Promise<SessionData | null> {
+  let res: Response
+  try {
+    res = await fetch(`${API_URL}/auth/refresh`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refresh_token: refreshToken }),
+    })
+  } catch (err) {
+    Sentry.withScope((scope) => {
+      scope.setTag("component", "web_stream_token")
+      scope.setTag("refresh_stage", "request_error")
+      scope.setExtra("reason", "auth_refresh_fetch_failed")
+      Sentry.captureException(err)
+    })
+    return null
+  }
+
+  if (!res.ok) {
+    captureRefreshFailure("request_rejected", {
+      status: res.status,
+      statusText: res.statusText,
+    })
+    return null
+  }
+
   const data = await res.json()
-  if (!data.access_token || !data.refresh_token) return null
+  if (!data.access_token || !data.refresh_token) {
+    captureRefreshFailure("invalid_payload", {
+      status: res.status,
+      hasAccessToken: Boolean(data.access_token),
+      hasRefreshToken: Boolean(data.refresh_token),
+    })
+    return null
+  }
+
   return {
     access_token: data.access_token,
     refresh_token: data.refresh_token,
@@ -42,6 +82,10 @@ export async function GET(req: NextRequest) {
   if (session.expires_at - Date.now() < MIN_TTL) {
     const refreshed = await refreshTokens(session.refresh_token)
     if (!refreshed) {
+      captureRefreshFailure("stream_token", {
+        path: "/api/auth/stream-token",
+        method: req.method,
+      })
       return NextResponse.json({ error: "refresh_failed" }, { status: 401 })
     }
     session = refreshed

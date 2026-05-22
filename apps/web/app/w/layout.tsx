@@ -1,7 +1,9 @@
 "use client"
 
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
+import { useState } from "react"
+import { useQueryClient } from "@tanstack/react-query"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
   LayoutDashboard,
@@ -30,6 +32,7 @@ import {
   SidebarMenuItem,
   SidebarProvider,
 } from "@/components/ui/sidebar"
+import { api } from "@/lib/api/client"
 import { cn } from "@/lib/utils"
 
 const navSections = [
@@ -69,7 +72,6 @@ const footerLinks = [
   { label: "Support", href: "mailto:hello@usehivy.com", icon: CustomerService01Icon },
   { label: "Get free credits", href: "#", icon: AwardIcon },
   { label: "Invite team members", href: "#", icon: UserAdd01Icon },
-  { label: "Sign out", href: "#", icon: Logout04Icon },
 ]
 
 function GhostLogo({ className, size = 24 }: { className?: string; size?: number }) {
@@ -130,6 +132,17 @@ export default function WorkspaceV2Layout({
 
 function AppSidebar() {
   const pathname = usePathname()
+  const router = useRouter()
+  const queryClient = useQueryClient()
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
+
+  async function handleLogout() {
+    if (isLoggingOut) return
+    setIsLoggingOut(true)
+    await api.POST("/auth/logout", { body: {} })
+    queryClient.clear()
+    router.replace("/auth/signin")
+  }
 
   return (
     <Sidebar
@@ -194,6 +207,18 @@ function AppSidebar() {
               </SidebarMenuButton>
             </SidebarMenuItem>
           ))}
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              onClick={handleLogout}
+              disabled={isLoggingOut}
+              className={cn(
+                "h-11 cursor-pointer items-center gap-3 rounded-md font-display text-base"
+              )}
+            >
+              <HugeiconsIcon icon={Logout04Icon} size={16} />
+              <span>{isLoggingOut ? "Signing out..." : "Sign out"}</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
         </SidebarMenu>
 
         <div className="mt-4 flex items-center gap-3 rounded-md border border-sidebar-border/50 bg-sidebar-accent/30 px-2 py-1.5">

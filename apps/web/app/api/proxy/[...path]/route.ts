@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
+import * as Sentry from "@sentry/nextjs"
 import {
   getSessionFromHeader,
   stripSessionCookie,
@@ -29,17 +30,59 @@ const LOGOUT_PATH = "auth/logout"
 
 let refreshPromise: Promise<SessionData | null> | null = null
 
-async function refreshTokens(refreshToken: string): Promise<SessionData | null> {
-  const res = await fetch(`${API_URL}/auth/refresh`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ refresh_token: refreshToken }),
-  })
+function captureRefreshFailure(
+  stage: string,
+  context: Record<string, unknown> = {}
+) {
+  Sentry.withScope((scope) => {
+    scope.setTag("component", "web_api_proxy")
+    scope.setTag("refresh_stage", stage)
 
-  if (!res.ok) return null
+    if (typeof context.path === "string") scope.setTag("path", context.path)
+    if (typeof context.method === "string") {
+      scope.setTag("method", context.method)
+    }
+
+    scope.setExtras(context)
+    Sentry.captureMessage("web access token refresh failed", "warning")
+  })
+}
+
+async function refreshTokens(refreshToken: string): Promise<SessionData | null> {
+  let res: Response
+  try {
+    res = await fetch(`${API_URL}/auth/refresh`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refresh_token: refreshToken }),
+    })
+  } catch (err) {
+    Sentry.withScope((scope) => {
+      scope.setTag("component", "web_api_proxy")
+      scope.setTag("refresh_stage", "request_error")
+      scope.setExtra("reason", "auth_refresh_fetch_failed")
+      Sentry.captureException(err)
+    })
+    return null
+  }
+
+  if (!res.ok) {
+    captureRefreshFailure("request_rejected", {
+      status: res.status,
+      statusText: res.statusText,
+    })
+    return null
+  }
 
   const data = await res.json()
-  if (!data.access_token || !data.refresh_token) return null
+  if (!data.access_token || !data.refresh_token) {
+    captureRefreshFailure("invalid_payload", {
+      status: res.status,
+      hasAccessToken: Boolean(data.access_token),
+      hasRefreshToken: Boolean(data.refresh_token),
+    })
+    return null
+  }
 
   return {
     access_token: data.access_token,
@@ -153,7 +196,14 @@ async function handler(
   // -----------------------------------------------------------------------
   if (session && !AUTH_PATHS.has(apiPath) && session.expires_at - Date.now() < 60_000) {
     const refreshed = await safeRefresh(session.refresh_token)
-    if (refreshed) session = refreshed
+    if (refreshed) {
+      session = refreshed
+    } else {
+      captureRefreshFailure("proactive", {
+        path: apiPath,
+        method: req.method,
+      })
+    }
   }
 
   // -----------------------------------------------------------------------
@@ -186,6 +236,11 @@ async function handler(
       reqLog.info({ status: upstream.status }, "retry response received")
     } else {
       reqLog.warn("token refresh failed")
+      captureRefreshFailure("retry_after_401", {
+        path: apiPath,
+        method: req.method,
+        upstreamStatus: upstream.status,
+      })
     }
   }
 
