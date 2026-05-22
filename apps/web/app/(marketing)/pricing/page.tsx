@@ -445,11 +445,11 @@ export default function PricingPage() {
         <div className="flex items-center gap-2 sm:gap-3">
           <div className="hidden sm:block">
             <Button variant="ghost" size="sm" asChild>
-              <a href="#">Talk to Sales</a>
+              <a href="#">Talk to sales</a>
             </Button>
           </div>
           <Button size="sm" asChild>
-            <a href="#">Hire hivy</a>
+            <a href="/auth/signup">Hire hivy</a>
           </Button>
         </div>
       </div>

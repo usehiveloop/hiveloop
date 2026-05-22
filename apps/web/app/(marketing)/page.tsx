@@ -454,10 +454,10 @@ function HeroContent() {
       </p>
       <div className="relative z-10 mt-7 flex flex-col items-center gap-3 sm:flex-row">
         <Button size="lg" asChild>
-          <a href="#">Hire hivy</a>
+          <a href="/auth/signup">Hire hivy</a>
         </Button>
         <Button variant="secondary" size="lg" asChild>
-          <a href="#">Talk to Sales</a>
+          <a href="#">Talk to sales</a>
         </Button>
       </div>
     </div>
@@ -1340,11 +1340,11 @@ export default function HomePage() {
           <div className="flex items-center gap-2 sm:gap-3">
             <div className="hidden sm:block">
               <Button variant="ghost" size="sm" asChild>
-                <a href="#">Talk to Sales</a>
+                <a href="#">Talk to sales</a>
               </Button>
             </div>
             <Button size="sm" asChild>
-              <a href="#">Hire hivy</a>
+              <a href="/auth/signup">Hire hivy</a>
             </Button>
           </div>
         </div>
