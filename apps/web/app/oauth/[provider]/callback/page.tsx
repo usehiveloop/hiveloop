@@ -2,8 +2,9 @@
 
 import { useSearchParams, useRouter } from "next/navigation"
 import { useEffect, useRef } from "react"
+import { motion } from "motion/react"
 import { $api } from "@/lib/api/hooks"
-import { LogoMark } from "@/components/logo"
+import { AuthGhostLogo } from "@/app/auth/_components/shared"
 
 export default function OAuthCallbackPage() {
   const searchParams = useSearchParams()
@@ -18,13 +19,13 @@ export default function OAuthCallbackPage() {
       router.replace("/w")
     },
     onError: () => {
-      router.replace("/auth?error=exchange_failed")
+      router.replace("/auth/signin?error=exchange_failed")
     },
   })
 
   useEffect(() => {
     if (error) {
-      router.replace(`/auth?error=${error}`)
+      router.replace(`/auth/signin?error=${error}`)
       return
     }
 
@@ -37,7 +38,12 @@ export default function OAuthCallbackPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background">
       <div className="flex flex-col items-center gap-4">
-        <LogoMark className="h-10 w-10 animate-pulse" />
+        <motion.div
+          animate={{ scale: [1, 1.18, 1] }}
+          transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut" }}
+        >
+          <AuthGhostLogo className="[&_svg]:h-16 [&_svg]:w-16" />
+        </motion.div>
         <p className="text-sm text-muted-foreground">
           {error || exchange.isError
             ? `Something went wrong (${error ?? "exchange_failed"})`

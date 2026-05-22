@@ -175,7 +175,7 @@ func fetchXProfile(ctx context.Context, token *oauth2.Token) (*oauthProfile, err
 func (h *OAuthHandler) redirectError(w http.ResponseWriter, r *http.Request, errCode string) {
 	h.clearStateCookie(w)
 	h.clearVerifierCookie(w)
-	http.Redirect(w, r, fmt.Sprintf("%s/auth?error=%s", h.frontendURL, errCode), http.StatusTemporaryRedirect)
+	http.Redirect(w, r, fmt.Sprintf("%s/auth/signin?error=%s", h.frontendURL, errCode), http.StatusTemporaryRedirect)
 }
 
 func (h *OAuthHandler) clearStateCookie(w http.ResponseWriter) {
