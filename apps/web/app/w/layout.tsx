@@ -161,17 +161,15 @@ function AppSidebar() {
                 return (
                   <SidebarMenuItem key={item.href}>
                     <SidebarMenuButton
-                      asChild
+                      render={<Link href={item.href} />}
                       isActive={active}
                       className={cn(
                         "h-11 cursor-pointer items-center gap-3 rounded-md font-display text-base",
                         active && "text-primary"
                       )}
                     >
-                      <Link href={item.href} className="flex w-full items-center gap-3">
-                        <HugeiconsIcon icon={item.icon} size={16} />
-                        <span>{item.label}</span>
-                      </Link>
+                      <HugeiconsIcon icon={item.icon} size={16} />
+                      <span>{item.label}</span>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 )
@@ -186,15 +184,13 @@ function AppSidebar() {
           {footerLinks.map((link) => (
             <SidebarMenuItem key={link.label}>
               <SidebarMenuButton
-                asChild
+                render={<Link href={link.href} />}
                 className={cn(
                   "h-11 cursor-pointer items-center gap-3 rounded-md font-display text-base"
                 )}
               >
-                <Link href={link.href} className="flex w-full items-center gap-3">
-                  <HugeiconsIcon icon={link.icon} size={16} />
-                  <span>{link.label}</span>
-                </Link>
+                <HugeiconsIcon icon={link.icon} size={16} />
+                <span>{link.label}</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
           ))}
