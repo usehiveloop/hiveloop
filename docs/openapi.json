@@ -66,7 +66,7 @@
     },
     "/auth/confirm-email": {
       "post": {
-        "description": "Confirms a user's email address using a verification token.",
+        "description": "Confirms a user's email address using a 6-digit code.",
         "tags": [
           "auth"
         ],
@@ -79,7 +79,7 @@
               }
             }
           },
-          "description": "Confirmation token",
+          "description": "Email and 6-digit code",
           "required": true
         },
         "responses": {
@@ -432,9 +432,71 @@
         }
       }
     },
+    "/auth/register": {
+      "post": {
+        "description": "Creates a user account with email and password.",
+        "tags": [
+          "auth"
+        ],
+        "summary": "Register",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/registerRequest"
+              }
+            }
+          },
+          "description": "Registration parameters",
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/authResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/auth/resend-confirmation": {
       "post": {
-        "description": "Sends a new email confirmation link. Rate limited to 1 per 60 seconds.",
+        "description": "Sends a new 6-digit email confirmation code. Rate limited to 1 per 60 seconds.",
         "tags": [
           "auth"
         ],
@@ -5136,7 +5198,7 @@
             "BearerAuth": []
           }
         ],
-        "description": "Updates name and/or logo_url on the current organization. Admins\nand owners only. Pass an empty string for logo_url to clear it.",
+        "description": "Updates workspace profile fields on the current organization.\nAdmins and owners only. Pass an empty string for optional fields to clear them.",
         "tags": [
           "orgs"
         ],
@@ -8712,7 +8774,10 @@
       "confirmEmailRequest": {
         "type": "object",
         "properties": {
-          "token": {
+          "code": {
+            "type": "string"
+          },
+          "email": {
             "type": "string"
           }
         }
@@ -10270,6 +10335,9 @@
           },
           "rate_limit": {
             "type": "integer"
+          },
+          "website": {
+            "type": "string"
           }
         }
       },
@@ -11116,6 +11184,20 @@
             "type": "string"
           },
           "refresh_token": {
+            "type": "string"
+          }
+        }
+      },
+      "registerRequest": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "password": {
             "type": "string"
           }
         }
@@ -11990,6 +12072,9 @@
             "type": "string"
           },
           "prompt_company": {
+            "type": "string"
+          },
+          "website": {
             "type": "string"
           }
         }

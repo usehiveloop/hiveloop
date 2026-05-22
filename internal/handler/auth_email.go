@@ -1,8 +1,8 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -15,11 +15,11 @@ import (
 )
 
 // @Summary Confirm email address
-// @Description Confirms a user's email address using a verification token.
+// @Description Confirms a user's email address using a 6-digit code.
 // @Tags auth
 // @Accept json
 // @Produce json
-// @Param body body confirmEmailRequest true "Confirmation token"
+// @Param body body confirmEmailRequest true "Email and 6-digit code"
 // @Success 200 {object} statusResponse
 // @Failure 400 {object} errorResponse
 // @Router /auth/confirm-email [post]
@@ -30,22 +30,28 @@ func (h *AuthHandler) ConfirmEmail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.Token == "" {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "token is required"})
+	req.Email = strings.TrimSpace(strings.ToLower(req.Email))
+	req.Code = strings.TrimSpace(req.Code)
+
+	if req.Email == "" || req.Code == "" {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "email and code are required"})
 		return
 	}
 
-	tokenHash := model.HashVerificationToken(req.Token)
-
-	var verification model.EmailVerification
-	if err := h.db.Where("token_hash = ? AND used_at IS NULL AND expires_at > ?", tokenHash, time.Now()).First(&verification).Error; err != nil {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid or expired token"})
+	codeHash := model.HashOTPCode(req.Code)
+	var otp model.OTPCode
+	if err := h.db.Where("email = ? AND token_hash = ? AND used_at IS NULL", req.Email, codeHash).First(&otp).Error; err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid or expired code"})
+		return
+	}
+	if time.Now().After(otp.ExpiresAt) {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid or expired code"})
 		return
 	}
 
 	var user model.User
-	if err := h.db.Where("id = ?", verification.UserID).First(&user).Error; err != nil {
-		logging.FromContext(r.Context()).ErrorContext(r.Context(), "failed to load user for confirmation", "error", err, "user_id", verification.UserID)
+	if err := h.db.Where("email = ?", req.Email).First(&user).Error; err != nil {
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "failed to load user for confirmation", "error", err, "email", req.Email)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal error"})
 		return
 	}
@@ -53,15 +59,15 @@ func (h *AuthHandler) ConfirmEmail(w http.ResponseWriter, r *http.Request) {
 
 	now := time.Now()
 	err := h.db.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Model(&verification).Update("used_at", &now).Error; err != nil {
+		if err := tx.Model(&otp).Update("used_at", &now).Error; err != nil {
 			return err
 		}
-		if err := tx.Model(&model.User{}).Where("id = ?", verification.UserID).Update("email_confirmed_at", &now).Error; err != nil {
+		if err := tx.Model(&model.User{}).Where("id = ?", user.ID).Update("email_confirmed_at", &now).Error; err != nil {
 			return err
 		}
 
-		if err := tx.Model(&model.EmailVerification{}).
-			Where("user_id = ? AND used_at IS NULL AND id != ?", verification.UserID, verification.ID).
+		if err := tx.Model(&model.OTPCode{}).
+			Where("email = ? AND used_at IS NULL AND id != ?", req.Email, otp.ID).
 			Update("used_at", &now).Error; err != nil {
 			return err
 		}
@@ -83,13 +89,13 @@ func (h *AuthHandler) ConfirmEmail(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	logging.FromContext(r.Context()).InfoContext(r.Context(), "email confirmed", "user_id", verification.UserID)
+	logging.FromContext(r.Context()).InfoContext(r.Context(), "email confirmed", "user_id", user.ID)
 	writeJSON(w, http.StatusOK, map[string]string{"status": "confirmed"})
 }
 
 // ResendConfirmation handles POST /auth/resend-confirmation.
 // @Summary Resend confirmation email
-// @Description Sends a new email confirmation link. Rate limited to 1 per 60 seconds.
+// @Description Sends a new 6-digit email confirmation code. Rate limited to 1 per 60 seconds.
 // @Tags auth
 // @Accept json
 // @Produce json
@@ -126,42 +132,57 @@ func (h *AuthHandler) ResendConfirmation(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	var recent model.EmailVerification
+	var recent model.OTPCode
 	cutoff := time.Now().Add(-60 * time.Second)
-	if err := h.db.Where("user_id = ? AND created_at > ?", user.ID, cutoff).First(&recent).Error; err == nil {
+	if err := h.db.Where("email = ? AND created_at > ?", user.Email, cutoff).First(&recent).Error; err == nil {
 		writeJSON(w, http.StatusTooManyRequests, map[string]string{"error": "please wait before requesting another confirmation email"})
 		return
 	}
 
-	plainToken, tokenHash, err := model.GenerateVerificationToken()
+	if err := h.sendEmailConfirmationCode(r.Context(), user); err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal error"})
+		return
+	}
+
+	writeJSON(w, http.StatusOK, genericResponse)
+}
+
+func (h *AuthHandler) sendEmailConfirmationCode(ctx context.Context, user model.User) error {
+	now := time.Now()
+	if err := h.db.Model(&model.OTPCode{}).
+		Where("email = ? AND used_at IS NULL", user.Email).
+		Update("used_at", now).Error; err != nil {
+		logging.FromContext(ctx).ErrorContext(ctx, "failed to invalidate existing confirmation codes", "error", err, "email", user.Email)
+		return err
+	}
+
+	plainCode, codeHash, err := model.GenerateOTPCode()
 	if err != nil {
-		logging.FromContext(r.Context()).ErrorContext(r.Context(), "failed to generate verification token", "error", err)
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal error"})
-		return
+		logging.FromContext(ctx).ErrorContext(ctx, "failed to generate confirmation code", "error", err)
+		return err
 	}
 
-	verification := model.EmailVerification{
-		UserID:    user.ID,
-		TokenHash: tokenHash,
-		ExpiresAt: time.Now().Add(24 * time.Hour),
+	otp := model.OTPCode{
+		Email:     user.Email,
+		TokenHash: codeHash,
+		ExpiresAt: time.Now().Add(otpExpiry),
 	}
-	if err := h.db.Create(&verification).Error; err != nil {
-		logging.FromContext(r.Context()).ErrorContext(r.Context(), "failed to store verification token", "error", err)
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal error"})
-		return
+	if err := h.db.Create(&otp).Error; err != nil {
+		logging.FromContext(ctx).ErrorContext(ctx, "failed to store confirmation code", "error", err)
+		return err
 	}
 
-	confirmURL := fmt.Sprintf("%s/auth/confirm-email?token=%s", h.frontendURL, plainToken)
-	_ = h.emailSender.SendTemplate(r.Context(), email.TemplateMessage{
+	if err := h.emailSender.SendTemplate(ctx, email.TemplateMessage{
 		To:   user.Email,
 		Slug: email.TmplAuthConfirmEmail,
 		Variables: email.TemplateVars{
-			"firstName":       firstNameFrom(user),
-			"email":           user.Email,
-			"confirmationUrl": confirmURL,
-			"expiresIn":       "24 hours",
+			"code":      plainCode,
+			"email":     user.Email,
+			"expiresIn": "10 minutes",
+			"firstName": firstNameFrom(user),
 		},
-	})
-
-	writeJSON(w, http.StatusOK, genericResponse)
+	}); err != nil {
+		logging.FromContext(ctx).ErrorContext(ctx, "failed to enqueue confirmation email", "error", err, "email", user.Email)
+	}
+	return nil
 }

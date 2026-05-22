@@ -6,10 +6,14 @@ import { HugeiconsIcon } from "@hugeicons/react"
 import {
   LayoutDashboard,
   Plug01Icon,
-  BookOpen02Icon,
   CommandIcon,
   Chatting01Icon,
   Settings02Icon,
+  TimeScheduleIcon,
+  DriveIcon,
+  GridViewIcon,
+  Chart01Icon,
+  CreditCardIcon,
   CustomerService01Icon,
   AwardIcon,
   UserAdd01Icon,
@@ -28,13 +32,37 @@ import {
 } from "@/components/ui/sidebar"
 import { cn } from "@/lib/utils"
 
-const navItems = [
-  { label: "Dashboard", href: "/w-v2", icon: LayoutDashboard },
-  { label: "Connections", href: "/w-v2/connections", icon: Plug01Icon },
-  { label: "Knowledge", href: "/w-v2/knowledge", icon: BookOpen02Icon },
-  { label: "Skills", href: "/w-v2/skills", icon: CommandIcon },
-  { label: "Sessions", href: "/w-v2/sessions", icon: Chatting01Icon },
-  { label: "Settings", href: "/w-v2/settings", icon: Settings02Icon },
+const navSections = [
+  {
+    label: "Workspace",
+    items: [
+      { label: "Dashboard", href: "/w-v2", icon: LayoutDashboard },
+      { label: "Sessions", href: "/w-v2/sessions", icon: Chatting01Icon },
+      { label: "Scheduled tasks", href: "/w-v2/scheduled-tasks", icon: TimeScheduleIcon },
+    ],
+  },
+  {
+    label: "Resources",
+    items: [
+      { label: "Drive", href: "/w-v2/drive", icon: DriveIcon },
+      { label: "Skills", href: "/w-v2/skills", icon: CommandIcon },
+      { label: "Apps", href: "/w-v2/apps", icon: GridViewIcon },
+    ],
+  },
+  {
+    label: "Integrations",
+    items: [
+      { label: "Connections", href: "/w-v2/connections", icon: Plug01Icon },
+    ],
+  },
+  {
+    label: "Admin",
+    items: [
+      { label: "Usage", href: "/w-v2/usage", icon: Chart01Icon },
+      { label: "Credits", href: "/w-v2/credits", icon: CreditCardIcon },
+      { label: "Settings", href: "/w-v2/settings", icon: Settings02Icon },
+    ],
+  },
 ]
 
 const footerLinks = [
@@ -86,13 +114,13 @@ export default function WorkspaceV2Layout({
   return (
     <SidebarProvider>
       <AppSidebar />
-      <SidebarInset className="relative overflow-hidden">
+      <SidebarInset className="relative h-screen overflow-hidden">
         {/* Subtle top-right blur glow */}
         <div
           className="pointer-events-none absolute -top-32 -right-32 h-[500px] w-[500px] rounded-full opacity-30 blur-[120px]"
           style={{ backgroundColor: "var(--glow-right)" }}
         />
-        <main className="relative z-10 flex flex-1 flex-col p-6 md:p-8">
+        <main className="relative z-10 flex h-full flex-1 flex-col overflow-y-auto p-6 md:p-8">
           {children}
         </main>
       </SidebarInset>
@@ -118,32 +146,39 @@ function AppSidebar() {
         </div>
       </SidebarHeader>
 
-      <SidebarContent className="px-3 py-2">
-        <SidebarMenu>
-          {navItems.map((item) => {
-            const active =
-              pathname === item.href ||
-              (item.href !== "/w-v2" && pathname.startsWith(`${item.href}/`))
+      <SidebarContent className="gap-5 px-3 py-2">
+        {navSections.map((section) => (
+          <div key={section.label}>
+            <p className="px-3 pb-1.5 text-[11px] font-semibold uppercase tracking-wide text-sidebar-foreground/40">
+              {section.label}
+            </p>
+            <SidebarMenu>
+              {section.items.map((item) => {
+                const active =
+                  pathname === item.href ||
+                  (item.href !== "/w-v2" && pathname.startsWith(`${item.href}/`))
 
-            return (
-              <SidebarMenuItem key={item.href}>
-                <SidebarMenuButton
-                  asChild
-                  isActive={active}
-                  className={cn(
-                    "h-11 cursor-pointer items-center gap-3 rounded-md font-display text-base",
-                    active && "text-primary"
-                  )}
-                >
-                  <Link href={item.href} className="flex w-full items-center gap-3">
-                    <HugeiconsIcon icon={item.icon} size={16} />
-                    <span>{item.label}</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            )
-          })}
-        </SidebarMenu>
+                return (
+                  <SidebarMenuItem key={item.href}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={active}
+                      className={cn(
+                        "h-11 cursor-pointer items-center gap-3 rounded-md font-display text-base",
+                        active && "text-primary"
+                      )}
+                    >
+                      <Link href={item.href} className="flex w-full items-center gap-3">
+                        <HugeiconsIcon icon={item.icon} size={16} />
+                        <span>{item.label}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                )
+              })}
+            </SidebarMenu>
+          </div>
+        ))}
       </SidebarContent>
 
       <SidebarFooter className="gap-0 px-3 py-4">

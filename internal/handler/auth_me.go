@@ -71,7 +71,8 @@ func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 }
 
 type confirmEmailRequest struct {
-	Token string `json:"token"`
+	Email string `json:"email"`
+	Code  string `json:"code"`
 }
 
 type resendConfirmationRequest struct {

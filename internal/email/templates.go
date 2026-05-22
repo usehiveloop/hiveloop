@@ -114,7 +114,7 @@ const (
 var templateVars = map[TemplateSlug][]string{
 	// Authentication
 	TmplAuthAccountDeleted:  {"deletedAt", "firstName"},
-	TmplAuthConfirmEmail:    {"confirmationUrl", "email", "expiresIn", "firstName"},
+	TmplAuthConfirmEmail:    {"code", "email", "expiresIn", "firstName"},
 	TmplAuthEmailChanged:    {"changedAt", "firstName", "newEmail", "oldEmail"},
 	TmplAuthNewSignin:       {"device", "firstName", "ip", "location", "signedInAt"},
 	TmplAuthOtpLogin:        {"code", "email", "expiresIn"},
@@ -226,9 +226,9 @@ var templateMeta = map[TemplateSlug]TemplateMeta{
 	TmplAuthConfirmEmail: {
 		Slug:        "auth-confirm-email",
 		Name:        "Auth — Confirm email",
-		Subject:     "Confirm your email",
-		Description: "Sent on signup or email change. Variables: firstName, email, confirmationUrl, expiresIn.",
-		Variables:   []string{"confirmationUrl", "email", "expiresIn", "firstName"},
+		Subject:     "Your Hivy confirmation code: {{code}}",
+		Description: "Sent on signup or email change. Variables: code, email, expiresIn, firstName.",
+		Variables:   []string{"code", "email", "expiresIn", "firstName"},
 	},
 	TmplAuthEmailChanged: {
 		Slug:        "auth-email-changed",

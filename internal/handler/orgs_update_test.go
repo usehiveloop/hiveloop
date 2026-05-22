@@ -143,6 +143,50 @@ func TestOrgUpdate_LogoOnly(t *testing.T) {
 	}
 }
 
+func TestOrgUpdate_BusinessProfileFieldsSucceed(t *testing.T) {
+	h := newOrgUpdateHarness(t)
+	org, user := h.createOrg(t, "admin")
+
+	rr := h.doPatch(t, user.ID, org.ID, "admin", map[string]any{
+		"name":           "Acme Labs",
+		"website":        " https://acme.example ",
+		"prompt_company": " Builds internal operations software. ",
+	})
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("status: got %d body=%s, want 200", rr.Code, rr.Body.String())
+	}
+
+	var got struct {
+		Name          string `json:"name"`
+		Website       string `json:"website"`
+		PromptCompany string `json:"prompt_company"`
+	}
+	if err := json.Unmarshal(rr.Body.Bytes(), &got); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if got.Name != "Acme Labs" {
+		t.Errorf("name: got %q, want %q", got.Name, "Acme Labs")
+	}
+	if got.Website != "https://acme.example" {
+		t.Errorf("website: got %q, want trimmed URL", got.Website)
+	}
+	if got.PromptCompany != "Builds internal operations software." {
+		t.Errorf("prompt_company: got %q, want trimmed description", got.PromptCompany)
+	}
+
+	var reloaded model.Org
+	if err := h.db.First(&reloaded, "id = ?", org.ID).Error; err != nil {
+		t.Fatalf("reload: %v", err)
+	}
+	if reloaded.Website != "https://acme.example" {
+		t.Errorf("db website: got %q", reloaded.Website)
+	}
+	if reloaded.PromptCompany != "Builds internal operations software." {
+		t.Errorf("db prompt_company: got %q", reloaded.PromptCompany)
+	}
+}
+
 func TestOrgUpdate_EmptyLogoClears(t *testing.T) {
 	h := newOrgUpdateHarness(t)
 	org, user := h.createOrg(t, "admin")

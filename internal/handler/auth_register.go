@@ -10,11 +10,21 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/usehivy/hivy/internal/auth"
-	"github.com/usehivy/hivy/internal/email"
 	"github.com/usehivy/hivy/internal/logging"
 	"github.com/usehivy/hivy/internal/model"
 )
 
+// @Summary Register
+// @Description Creates a user account with email and password.
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param body body registerRequest true "Registration parameters"
+// @Success 201 {object} authResponse
+// @Failure 400 {object} errorResponse
+// @Failure 409 {object} errorResponse
+// @Failure 500 {object} errorResponse
+// @Router /auth/register [post]
 func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	var req registerRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -77,32 +87,11 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 
 		now := time.Now()
 		h.db.Model(&user).Update("email_confirmed_at", &now)
+		user.EmailConfirmedAt = &now
 	} else {
 
-		plainToken, tokenHash, err := model.GenerateVerificationToken()
-		if err != nil {
-			logging.FromContext(r.Context()).ErrorContext(r.Context(), "failed to generate verification token", "error", err)
-		} else {
-			verification := model.EmailVerification{
-				UserID:    user.ID,
-				TokenHash: tokenHash,
-				ExpiresAt: time.Now().Add(24 * time.Hour),
-			}
-			if err := h.db.Create(&verification).Error; err != nil {
-				logging.FromContext(r.Context()).ErrorContext(r.Context(), "failed to store verification token", "error", err)
-			} else {
-				confirmURL := fmt.Sprintf("%s/auth/confirm-email?token=%s", h.frontendURL, plainToken)
-				_ = h.emailSender.SendTemplate(r.Context(), email.TemplateMessage{
-					To:   req.Email,
-					Slug: email.TmplAuthConfirmEmail,
-					Variables: email.TemplateVars{
-						"firstName":       firstNameFrom(user),
-						"email":           req.Email,
-						"confirmationUrl": confirmURL,
-						"expiresIn":       "24 hours",
-					},
-				})
-			}
+		if err := h.sendEmailConfirmationCode(r.Context(), user); err != nil {
+			logging.FromContext(r.Context()).ErrorContext(r.Context(), "failed to send confirmation code", "error", err, "user_id", user.ID)
 		}
 	}
 

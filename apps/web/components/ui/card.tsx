@@ -19,7 +19,7 @@ function Card({
       data-slot="card"
       data-padding={padding}
       className={cn(
-        "rounded-2xl border bg-secondary text-card-foreground",
+        "rounded-md border bg-secondary text-card-foreground",
         paddingStyles[padding],
         className
       )}

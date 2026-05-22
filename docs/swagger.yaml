@@ -410,7 +410,9 @@ definitions:
     type: object
   confirmEmailRequest:
     properties:
-      token:
+      code:
+        type: string
+      email:
         type: string
     type: object
   conversationEventResponse:
@@ -1434,6 +1436,8 @@ definitions:
         type: string
       rate_limit:
         type: integer
+      website:
+        type: string
     type: object
   otpRequestPayload:
     properties:
@@ -1986,6 +1990,15 @@ definitions:
         description: 'optional: switch org'
         type: string
       refresh_token:
+        type: string
+    type: object
+  registerRequest:
+    properties:
+      email:
+        type: string
+      name:
+        type: string
+      password:
         type: string
     type: object
   reportRow:
@@ -2559,6 +2572,8 @@ definitions:
         type: string
       prompt_company:
         type: string
+      website:
+        type: string
     type: object
   updateRAGSourceRequest:
     properties:
@@ -2723,9 +2738,9 @@ paths:
     post:
       consumes:
       - application/json
-      description: Confirms a user's email address using a verification token.
+      description: Confirms a user's email address using a 6-digit code.
       parameters:
-      - description: Confirmation token
+      - description: Email and 6-digit code
         in: body
         name: body
         required: true
@@ -2938,11 +2953,46 @@ paths:
       summary: Refresh tokens
       tags:
       - auth
+  /auth/register:
+    post:
+      consumes:
+      - application/json
+      description: Creates a user account with email and password.
+      parameters:
+      - description: Registration parameters
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/registerRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/authResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/errorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/errorResponse'
+      summary: Register
+      tags:
+      - auth
   /auth/resend-confirmation:
     post:
       consumes:
       - application/json
-      description: Sends a new email confirmation link. Rate limited to 1 per 60 seconds.
+      description: Sends a new 6-digit email confirmation code. Rate limited to 1
+        per 60 seconds.
       parameters:
       - description: Email address
         in: body
@@ -5461,8 +5511,8 @@ paths:
       consumes:
       - application/json
       description: |-
-        Updates name and/or logo_url on the current organization. Admins
-        and owners only. Pass an empty string for logo_url to clear it.
+        Updates workspace profile fields on the current organization.
+        Admins and owners only. Pass an empty string for optional fields to clear them.
       parameters:
       - description: Fields to patch
         in: body

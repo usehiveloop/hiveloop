@@ -107,7 +107,7 @@ export default function DashboardV2Page() {
   const progress = (completedSteps / onboardingSteps.length) * 100
 
   return (
-    <div className="mx-auto w-full max-w-6xl space-y-8">
+    <div className="mx-auto w-full max-w-5xl space-y-8">
       {/* Header */}
       <div>
         <h1 className="font-heading text-3xl font-normal tracking-[-0.02em] text-foreground md:text-4xl">

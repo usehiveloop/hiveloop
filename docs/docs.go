@@ -68,7 +68,7 @@ const docTemplate = `{
         },
         "/auth/confirm-email": {
             "post": {
-                "description": "Confirms a user's email address using a verification token.",
+                "description": "Confirms a user's email address using a 6-digit code.",
                 "consumes": [
                     "application/json"
                 ],
@@ -81,7 +81,7 @@ const docTemplate = `{
                 "summary": "Confirm email address",
                 "parameters": [
                     {
-                        "description": "Confirmation token",
+                        "description": "Email and 6-digit code",
                         "name": "body",
                         "in": "body",
                         "required": true,
@@ -403,9 +403,61 @@ const docTemplate = `{
                 }
             }
         },
+        "/auth/register": {
+            "post": {
+                "description": "Creates a user account with email and password.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Register",
+                "parameters": [
+                    {
+                        "description": "Registration parameters",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/registerRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/authResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/errorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/errorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/errorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/auth/resend-confirmation": {
             "post": {
-                "description": "Sends a new email confirmation link. Rate limited to 1 per 60 seconds.",
+                "description": "Sends a new 6-digit email confirmation code. Rate limited to 1 per 60 seconds.",
                 "consumes": [
                     "application/json"
                 ],
@@ -4234,7 +4286,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Updates name and/or logo_url on the current organization. Admins\nand owners only. Pass an empty string for logo_url to clear it.",
+                "description": "Updates workspace profile fields on the current organization.\nAdmins and owners only. Pass an empty string for optional fields to clear them.",
                 "consumes": [
                     "application/json"
                 ],
@@ -7308,7 +7360,10 @@ const docTemplate = `{
         "confirmEmailRequest": {
             "type": "object",
             "properties": {
-                "token": {
+                "code": {
+                    "type": "string"
+                },
+                "email": {
                     "type": "string"
                 }
             }
@@ -8866,6 +8921,9 @@ const docTemplate = `{
                 },
                 "rate_limit": {
                     "type": "integer"
+                },
+                "website": {
+                    "type": "string"
                 }
             }
         },
@@ -9712,6 +9770,20 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "refresh_token": {
+                    "type": "string"
+                }
+            }
+        },
+        "registerRequest": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "password": {
                     "type": "string"
                 }
             }
@@ -10586,6 +10658,9 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "prompt_company": {
+                    "type": "string"
+                },
+                "website": {
                     "type": "string"
                 }
             }

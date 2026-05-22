@@ -1,8 +1,7 @@
 "use client"
 
 import { Loader } from "@/components/loader"
-import { AuthProvider } from "@/lib/auth/auth-context"
-import { useAuth } from "@/lib/auth/auth-context"
+import { AuthProvider, useAuth } from "@/lib/auth/auth-context"
 
 function OnboardingGate({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth()

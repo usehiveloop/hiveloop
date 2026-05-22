@@ -43,6 +43,7 @@ func (h *OrgHandler) buildOrgResponse(org model.Org) orgResponse {
 		RateLimit:     org.RateLimit,
 		Active:        org.Active,
 		LogoURL:       org.LogoURL,
+		Website:       org.Website,
 		PromptCompany: org.PromptCompany,
 		Plan:          h.planFor(org.PlanSlug),
 		CreatedAt:     org.CreatedAt.Format(time.RFC3339),
@@ -56,6 +57,7 @@ type createOrgRequest struct {
 type updateOrgRequest struct {
 	Name          *string `json:"name,omitempty"`
 	LogoURL       *string `json:"logo_url,omitempty"`
+	Website       *string `json:"website,omitempty"`
 	PromptCompany *string `json:"prompt_company,omitempty"`
 }
 
@@ -65,6 +67,7 @@ type orgResponse struct {
 	RateLimit     int      `json:"rate_limit"`
 	Active        bool     `json:"active"`
 	LogoURL       string   `json:"logo_url,omitempty"`
+	Website       string   `json:"website,omitempty"`
 	PromptCompany string   `json:"prompt_company,omitempty"`
 	Plan          *planDTO `json:"plan,omitempty"`
 	CreatedAt     string   `json:"created_at"`
@@ -156,8 +159,8 @@ func (h *OrgHandler) Current(w http.ResponseWriter, r *http.Request) {
 
 // Update handles PATCH /v1/orgs/current.
 // @Summary Update current organization
-// @Description Updates name and/or logo_url on the current organization. Admins
-// @Description and owners only. Pass an empty string for logo_url to clear it.
+// @Description Updates workspace profile fields on the current organization.
+// @Description Admins and owners only. Pass an empty string for optional fields to clear them.
 // @Tags orgs
 // @Accept json
 // @Produce json
@@ -180,7 +183,7 @@ func (h *OrgHandler) Update(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid request body"})
 		return
 	}
-	if req.Name == nil && req.LogoURL == nil && req.PromptCompany == nil {
+	if req.Name == nil && req.LogoURL == nil && req.Website == nil && req.PromptCompany == nil {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "no fields to update"})
 		return
 	}
@@ -196,6 +199,9 @@ func (h *OrgHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 	if req.LogoURL != nil {
 		updates["logo_url"] = strings.TrimSpace(*req.LogoURL)
+	}
+	if req.Website != nil {
+		updates["website"] = strings.TrimSpace(*req.Website)
 	}
 	if req.PromptCompany != nil {
 		updates["prompt_company"] = strings.TrimSpace(*req.PromptCompany)

@@ -77,7 +77,7 @@ export interface paths {
         put?: never;
         /**
          * Confirm email address
-         * @description Confirms a user's email address using a verification token.
+         * @description Confirms a user's email address using a 6-digit code.
          */
         post: {
             parameters: {
@@ -86,7 +86,7 @@ export interface paths {
                 path?: never;
                 cookie?: never;
             };
-            /** @description Confirmation token */
+            /** @description Email and 6-digit code */
             requestBody: {
                 content: {
                     "application/json": components["schemas"]["confirmEmailRequest"];
@@ -514,6 +514,77 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/auth/register": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Register
+         * @description Creates a user account with email and password.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Registration parameters */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["registerRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["authResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/auth/resend-confirmation": {
         parameters: {
             query?: never;
@@ -525,7 +596,7 @@ export interface paths {
         put?: never;
         /**
          * Resend confirmation email
-         * @description Sends a new email confirmation link. Rate limited to 1 per 60 seconds.
+         * @description Sends a new 6-digit email confirmation code. Rate limited to 1 per 60 seconds.
          */
         post: {
             parameters: {
@@ -5187,8 +5258,8 @@ export interface paths {
         head?: never;
         /**
          * Update current organization
-         * @description Updates name and/or logo_url on the current organization. Admins
-         *     and owners only. Pass an empty string for logo_url to clear it.
+         * @description Updates workspace profile fields on the current organization.
+         *     Admins and owners only. Pass an empty string for optional fields to clear them.
          */
         patch: {
             parameters: {
@@ -8243,7 +8314,8 @@ export interface components {
             output?: string;
         };
         confirmEmailRequest: {
-            token?: string;
+            code?: string;
+            email?: string;
         };
         conversationEventResponse: {
             created_at?: string;
@@ -8775,6 +8847,7 @@ export interface components {
             plan?: components["schemas"]["planDTO"];
             prompt_company?: string;
             rate_limit?: number;
+            website?: string;
         };
         otpRequestPayload: {
             email?: string;
@@ -9046,6 +9119,11 @@ export interface components {
             /** @description optional: switch org */
             org_id?: string;
             refresh_token?: string;
+        };
+        registerRequest: {
+            email?: string;
+            name?: string;
+            password?: string;
         };
         reportRow: {
             avg_ttfb_ms?: number;
@@ -9351,6 +9429,7 @@ export interface components {
             logo_url?: string;
             name?: string;
             prompt_company?: string;
+            website?: string;
         };
         updateRAGSourceRequest: {
             config?: components["schemas"]["JSON"];
