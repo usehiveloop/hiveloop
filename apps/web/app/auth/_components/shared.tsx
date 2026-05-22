@@ -109,7 +109,7 @@ export function AuthFooter() {
           Terms
         </a>{" "}
         and{" "}
-        <a href="/privacy" className="text-muted-foreground hover:text-foreground underline underline-offset-2 transition-colors">
+        <a href="/legal" className="text-muted-foreground hover:text-foreground underline underline-offset-2 transition-colors">
           Privacy Policy
         </a>
         .

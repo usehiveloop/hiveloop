@@ -7,8 +7,13 @@ const footerLinks = {
     { label: "GitHub", href: "https://github.com/usehivy", external: true },
   ],
   company: [
-    { label: "Privacy Policy", href: "/legal/privacy" },
-    { label: "Terms of Service", href: "/legal/terms" },
+    { label: "Terms of Service", href: "/terms" },
+    { label: "Legal Center", href: "/legal" },
+    { label: "Privacy Policy", href: "/legal#privacy-policy" },
+    { label: "Data Processing Addendum", href: "/legal#data-processing-addendum" },
+    { label: "Subprocessors", href: "/legal#subprocessor-list" },
+    { label: "Security", href: "/legal#security-addendum" },
+    { label: "Cookies", href: "/legal#cookie-notice" },
     { label: "Contact", href: "mailto:hello@usehivy.com", external: true },
   ],
 }
@@ -93,7 +98,7 @@ export function MarketingFooter() {
         <div className="mx-auto flex w-full max-w-424 flex-col-reverse items-center justify-between gap-4 px-4 py-5 sm:flex-row lg:px-0">
           <div className="flex items-center gap-4">
             <span className="text-xs text-muted-foreground">
-              &copy; {new Date().getFullYear()} Hivy Inc.
+              &copy; {new Date().getFullYear()} HIVY TECHNOLOGIES LTD.
             </span>
             <span className="hidden text-border sm:inline">|</span>
             <a
@@ -111,16 +116,22 @@ export function MarketingFooter() {
           </div>
           <div className="flex items-center gap-5">
             <Link
-              href="/legal/privacy"
+              href="/legal"
               className="text-xs text-muted-foreground transition-colors hover:text-foreground"
             >
-              Privacy
+              Legal
             </Link>
             <Link
-              href="/legal/terms"
+              href="/terms"
               className="text-xs text-muted-foreground transition-colors hover:text-foreground"
             >
               Terms
+            </Link>
+            <Link
+              href="/legal#data-processing-addendum"
+              className="text-xs text-muted-foreground transition-colors hover:text-foreground"
+            >
+              DPA
             </Link>
           </div>
         </div>

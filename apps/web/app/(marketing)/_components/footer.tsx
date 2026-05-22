@@ -6,7 +6,7 @@ const linkGroups = [
     links: [
       { label: "Features", href: "/" },
       { label: "Pricing", href: "/pricing" },
-      { label: "Security", href: "#" },
+      { label: "Security", href: "/legal#security-addendum" },
       { label: "Changelog", href: "#" },
     ],
   },
@@ -31,9 +31,11 @@ const linkGroups = [
   {
     title: "Legal",
     links: [
-      { label: "Privacy", href: "#" },
-      { label: "Terms", href: "#" },
-      { label: "Cookies", href: "#" },
+      { label: "Terms", href: "/terms" },
+      { label: "Legal", href: "/legal" },
+      { label: "DPA", href: "/legal#data-processing-addendum" },
+      { label: "Subprocessors", href: "/legal#subprocessor-list" },
+      { label: "Cookies", href: "/legal#cookie-notice" },
     ],
   },
 ]
