@@ -32,6 +32,7 @@ import {
   SidebarMenuItem,
   SidebarProvider,
 } from "@/components/ui/sidebar"
+import { useCurrentUser } from "@/hooks/use-current-user"
 import { api } from "@/lib/api/client"
 import { cn } from "@/lib/utils"
 
@@ -41,7 +42,11 @@ const navSections = [
     items: [
       { label: "Dashboard", href: "/w", icon: LayoutDashboard },
       { label: "Sessions", href: "/w/sessions", icon: Chatting01Icon },
-      { label: "Scheduled tasks", href: "/w/scheduled-tasks", icon: TimeScheduleIcon },
+      {
+        label: "Scheduled tasks",
+        href: "/w/scheduled-tasks",
+        icon: TimeScheduleIcon,
+      },
     ],
   },
   {
@@ -54,9 +59,7 @@ const navSections = [
   },
   {
     label: "Integrations",
-    items: [
-      { label: "Connections", href: "/w/connections", icon: Plug01Icon },
-    ],
+    items: [{ label: "Connections", href: "/w/connections", icon: Plug01Icon }],
   },
   {
     label: "Admin",
@@ -69,12 +72,22 @@ const navSections = [
 ]
 
 const footerLinks = [
-  { label: "Support", href: "mailto:hello@usehivy.com", icon: CustomerService01Icon },
+  {
+    label: "Support",
+    href: "mailto:hello@usehivy.com",
+    icon: CustomerService01Icon,
+  },
   { label: "Get free credits", href: "#", icon: AwardIcon },
   { label: "Invite team members", href: "#", icon: UserAdd01Icon },
 ]
 
-function GhostLogo({ className, size = 24 }: { className?: string; size?: number }) {
+function GhostLogo({
+  className,
+  size = 24,
+}: {
+  className?: string
+  size?: number
+}) {
   return (
     <svg
       viewBox="0 0 640 640"
@@ -84,14 +97,35 @@ function GhostLogo({ className, size = 24 }: { className?: string; size?: number
       className={className}
     >
       <path d="M63.7314 260.875C115.623 104.119 238.334 51.5019 291.736 44.0986C600.403 1.30772 662.211 304.136 543.862 460.66C441.808 595.633 262.075 620.78 154.214 585.754C59.2103 554.903 6.44755 433.92 63.7314 260.875Z" />
-      <ellipse cx="318.5" cy="282" rx="45.5" ry="101" fill="var(--background)" />
-      <ellipse cx="457.5" cy="282" rx="45.5" ry="101" fill="var(--background)" />
+      <ellipse
+        cx="318.5"
+        cy="282"
+        rx="45.5"
+        ry="101"
+        fill="var(--background)"
+      />
+      <ellipse
+        cx="457.5"
+        cy="282"
+        rx="45.5"
+        ry="101"
+        fill="var(--background)"
+      />
     </svg>
   )
 }
 
-function UserAvatar({ name, size = 36 }: { name: string; size?: number }) {
-  const initials = name
+function UserAvatar({
+  name,
+  email,
+  size = 36,
+}: {
+  name: string
+  email?: string
+  size?: number
+}) {
+  const label = name || email || "User"
+  const initials = label
     .split(" ")
     .map((n) => n[0])
     .join("")
@@ -135,6 +169,10 @@ function AppSidebar() {
   const router = useRouter()
   const queryClient = useQueryClient()
   const [isLoggingOut, setIsLoggingOut] = useState(false)
+  const { user, isLoading: isUserLoading } = useCurrentUser()
+  const displayName =
+    user?.name || user?.email?.split("@")[0] || "Workspace member"
+  const displayEmail = user?.email || "Signed in"
 
   async function handleLogout() {
     if (isLoggingOut) return
@@ -162,7 +200,7 @@ function AppSidebar() {
       <SidebarContent className="gap-5 px-3 py-2">
         {navSections.map((section) => (
           <div key={section.label}>
-            <p className="px-3 pb-1.5 text-[11px] font-semibold uppercase tracking-wide text-sidebar-foreground/40">
+            <p className="px-3 pb-1.5 text-[11px] font-semibold tracking-wide text-sidebar-foreground/40 uppercase">
               {section.label}
             </p>
             <SidebarMenu>
@@ -222,13 +260,13 @@ function AppSidebar() {
         </SidebarMenu>
 
         <div className="mt-4 flex items-center gap-3 rounded-md border border-sidebar-border/50 bg-sidebar-accent/30 px-2 py-1.5">
-          <UserAvatar name="Alex Johnson" />
+          <UserAvatar name={displayName} email={displayEmail} />
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-display text-sidebar-foreground">
-              Alex Johnson
+            <p className="truncate font-display text-sm text-sidebar-foreground">
+              {isUserLoading ? "Loading account..." : displayName}
             </p>
-            <p className="truncate text-[11px] font-display text-sidebar-foreground/50">
-              alex@acme.com
+            <p className="truncate font-display text-[11px] text-sidebar-foreground/50">
+              {isUserLoading ? "Fetching profile" : displayEmail}
             </p>
           </div>
         </div>
