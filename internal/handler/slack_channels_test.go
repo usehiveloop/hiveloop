@@ -80,8 +80,46 @@ func TestSlackChannelHandler_JoinRequestedChannels(t *testing.T) {
 	if !result.publicReady {
 		t.Fatal("publicReady = false, want true after joining public channel")
 	}
+	if result.allReady {
+		t.Fatal("allReady = true, want false when one requested channel failed")
+	}
 	if len(result.Failures) != 1 || result.Failures[0].ChannelID != "G-missing" {
 		t.Fatalf("failures = %#v", result.Failures)
+	}
+}
+
+func TestSlackChannelHandler_JoinRequestedChannels_AllSelectedReady(t *testing.T) {
+	h := NewSlackChannelHandler(nil, nil)
+	h.listPublicChannels = func(context.Context, string) ([]slackapp.Channel, error) {
+		return []slackapp.Channel{
+			{ID: "C1", Name: "general"},
+			{ID: "C2", Name: "product", IsMember: true},
+		}, nil
+	}
+	h.listBotChannels = func(context.Context, string) ([]slackapp.Channel, error) {
+		return nil, nil
+	}
+	h.joinChannel = func(_ context.Context, _ string, channelID string) (slackapp.Channel, error) {
+		if channelID != "C1" {
+			return slackapp.Channel{}, errors.New("unexpected join")
+		}
+		return slackapp.Channel{ID: channelID, Name: "general", IsMember: true}, nil
+	}
+
+	result, err := h.joinRequestedChannels(context.Background(), "xoxb-test", joinSlackChannelsRequest{
+		ChannelIDs: []string{"C1", "C2"},
+	})
+	if err != nil {
+		t.Fatalf("joinRequestedChannels: %v", err)
+	}
+	if result.Joined != 1 || result.AlreadyMember != 1 || result.Failed != 0 {
+		t.Fatalf("result = %#v", result)
+	}
+	if !result.publicReady {
+		t.Fatal("publicReady = false, want true after selected public channel is available")
+	}
+	if !result.allReady {
+		t.Fatal("allReady = false, want true when every selected channel is available")
 	}
 }
 
@@ -109,6 +147,9 @@ func TestSlackChannelHandler_JoinAllPublic(t *testing.T) {
 	}
 	if !result.publicReady {
 		t.Fatal("publicReady = false, want true after joining public channels")
+	}
+	if !result.allReady {
+		t.Fatal("allReady = false, want true after joining every public channel")
 	}
 }
 

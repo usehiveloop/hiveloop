@@ -67,6 +67,7 @@ type joinSlackChannelsResponse struct {
 	Failed        int                       `json:"failed"`
 	Failures      []joinSlackChannelFailure `json:"failures,omitempty"`
 	publicReady   bool                      `json:"-"`
+	allReady      bool                      `json:"-"`
 }
 
 // List channels Hivy can be invited to or is already in.
@@ -140,7 +141,7 @@ func (h *SlackChannelHandler) JoinChannels(w http.ResponseWriter, r *http.Reques
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to join Slack channels"})
 		return
 	}
-	if result.publicReady {
+	if result.publicReady && result.allReady {
 		if err := h.db.WithContext(r.Context()).
 			Model(&model.Org{}).
 			Where("id = ?", org.ID).
@@ -261,6 +262,7 @@ func (h *SlackChannelHandler) joinRequestedChannels(ctx context.Context, botToke
 			result.AlreadyMember++
 		}
 	}
+	result.allReady = len(targets) > 0 && result.Failed == 0 && result.Joined+result.AlreadyMember == len(targets)
 	return result, nil
 }
 

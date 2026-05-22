@@ -2,9 +2,8 @@
 
 import { useSearchParams, useRouter } from "next/navigation"
 import { useEffect, useRef } from "react"
-import { motion } from "motion/react"
+import { AuthGhostLogo } from "@/components/auth-ghost-logo"
 import { $api } from "@/lib/api/hooks"
-import { AuthGhostLogo } from "@/app/auth/_components/shared"
 
 export default function OAuthCallbackPage() {
   const searchParams = useSearchParams()
@@ -37,19 +36,14 @@ export default function OAuthCallbackPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background">
-      <div className="flex flex-col items-center gap-4">
-        <motion.div
-          animate={{ scale: [1, 1.18, 1] }}
-          transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut" }}
-        >
-          <AuthGhostLogo className="[&_svg]:h-16 [&_svg]:w-16" />
-        </motion.div>
-        <p className="text-sm text-muted-foreground">
-          {error || exchange.isError
+      <AuthGhostLogo
+        logoClassName="h-16 w-16"
+        description={
+          error || exchange.isError
             ? `Something went wrong (${error ?? "exchange_failed"})`
-            : "Signing you in..."}
-        </p>
-      </div>
+            : "Signing you in..."
+        }
+      />
     </div>
   )
 }

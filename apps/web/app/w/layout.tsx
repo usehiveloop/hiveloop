@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useQueryClient } from "@tanstack/react-query"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
@@ -32,8 +32,9 @@ import {
   SidebarMenuItem,
   SidebarProvider,
 } from "@/components/ui/sidebar"
-import { useCurrentUser } from "@/hooks/use-current-user"
+import { FullPageLoader } from "@/components/full-page-loader"
 import { api } from "@/lib/api/client"
+import { AuthProvider, useAuth } from "@/lib/auth/auth-context"
 import { cn } from "@/lib/utils"
 
 const navSections = [
@@ -148,20 +149,43 @@ export default function WorkspaceV2Layout({
   children: React.ReactNode
 }) {
   return (
-    <SidebarProvider>
-      <AppSidebar />
-      <SidebarInset className="relative h-screen overflow-hidden">
-        {/* Subtle top-right blur glow */}
-        <div
-          className="pointer-events-none absolute -top-32 -right-32 h-[500px] w-[500px] rounded-full opacity-30 blur-[120px]"
-          style={{ backgroundColor: "var(--glow-right)" }}
-        />
-        <main className="relative z-10 flex h-full flex-1 flex-col overflow-y-auto p-6 md:p-8">
-          {children}
-        </main>
-      </SidebarInset>
-    </SidebarProvider>
+    <AuthProvider>
+      <WorkspaceGate>
+        <SidebarProvider>
+          <AppSidebar />
+          <SidebarInset className="relative h-screen overflow-hidden">
+            {/* Subtle top-right blur glow */}
+            <div
+              className="pointer-events-none absolute -top-32 -right-32 h-[500px] w-[500px] rounded-full opacity-30 blur-[120px]"
+              style={{ backgroundColor: "var(--glow-right)" }}
+            />
+            <main className="relative z-10 flex h-full flex-1 flex-col overflow-y-auto p-6 md:p-8">
+              {children}
+            </main>
+          </SidebarInset>
+        </SidebarProvider>
+      </WorkspaceGate>
+    </AuthProvider>
   )
+}
+
+function WorkspaceGate({ children }: { children: React.ReactNode }) {
+  const { user, activeOrg, isLoading } = useAuth()
+  const router = useRouter()
+
+  const needsOnboarding = activeOrg !== null && !activeOrg.onboarded
+
+  useEffect(() => {
+    if (needsOnboarding) {
+      router.replace("/onboarding")
+    }
+  }, [needsOnboarding, router])
+
+  if (isLoading || !user || needsOnboarding) {
+    return <FullPageLoader description="Loading workspace" />
+  }
+
+  return <>{children}</>
 }
 
 function AppSidebar() {
@@ -169,7 +193,7 @@ function AppSidebar() {
   const router = useRouter()
   const queryClient = useQueryClient()
   const [isLoggingOut, setIsLoggingOut] = useState(false)
-  const { user, isLoading: isUserLoading } = useCurrentUser()
+  const { user } = useAuth()
   const displayName =
     user?.name || user?.email?.split("@")[0] || "Workspace member"
   const displayEmail = user?.email || "Signed in"
@@ -263,10 +287,10 @@ function AppSidebar() {
           <UserAvatar name={displayName} email={displayEmail} />
           <div className="min-w-0 flex-1">
             <p className="truncate font-display text-sm text-sidebar-foreground">
-              {isUserLoading ? "Loading account..." : displayName}
+              {displayName}
             </p>
             <p className="truncate font-display text-[11px] text-sidebar-foreground/50">
-              {isUserLoading ? "Fetching profile" : displayEmail}
+              {displayEmail}
             </p>
           </div>
         </div>

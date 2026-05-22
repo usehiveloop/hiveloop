@@ -229,10 +229,15 @@ export function useOnboarding() {
         onSuccess: async (response) => {
           const available =
             (response?.joined ?? 0) + (response?.already_member ?? 0)
+          const failed = response?.failed ?? 0
           await refreshOnboardingData()
-          if (available > 0) {
+          if (available > 0 && failed === 0) {
             toast.success("Hivy can now work in Slack channels")
             setStep("connections")
+            return
+          }
+          if (failed > 0) {
+            toast.error("Some selected channels could not be joined.")
             return
           }
           toast.error("No channels were joined. Try selecting public channels.")
@@ -253,10 +258,15 @@ export function useOnboarding() {
         onSuccess: async (response) => {
           const available =
             (response?.joined ?? 0) + (response?.already_member ?? 0)
+          const failed = response?.failed ?? 0
           await refreshOnboardingData()
-          if (available > 0) {
+          if (available > 0 && failed === 0) {
             toast.success("Hivy can now work in Slack channels")
             setStep("connections")
+            return
+          }
+          if (failed > 0) {
+            toast.error("Some public channels could not be joined.")
             return
           }
           toast.error("No public channels were available to join.")

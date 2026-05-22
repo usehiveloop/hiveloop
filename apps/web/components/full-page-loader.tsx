@@ -1,9 +1,21 @@
-import { Loader } from "@/components/loader"
+import { AuthGhostLogo } from "@/components/auth-ghost-logo"
 
-export function FullPageLoader() {
+interface FullPageLoaderProps {
+  title?: string
+  description?: string
+}
+
+export function FullPageLoader({
+  title,
+  description = "Setting up your workspace",
+}: FullPageLoaderProps) {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background">
-      <Loader description="Setting up your workspace" />
+      <AuthGhostLogo
+        title={title}
+        description={description}
+        logoClassName="h-16 w-16"
+      />
     </div>
   )
 }

@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import { AnimatePresence, motion } from "motion/react"
+import { AuthGhostLogo } from "@/components/auth-ghost-logo"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -31,19 +32,7 @@ export function AuthCard({ children }: AuthCardProps) {
   )
 }
 
-/* ─────────────────────────── Ghost Logo ─────────────────────────── */
-
-export function AuthGhostLogo({ className }: { className?: string }) {
-  return (
-    <div className={className}>
-      <svg viewBox="0 0 640 640" width="48" height="48" className="mx-auto text-muted-foreground drop-shadow-[0_0_16px_rgba(139,140,246,0.35)]" fill="currentColor">
-        <path d="M63.7314 260.875C115.623 104.119 238.334 51.5019 291.736 44.0986C600.403 1.30772 662.211 304.136 543.862 460.66C441.808 595.633 262.075 620.78 154.214 585.754C59.2103 554.903 6.44755 433.92 63.7314 260.875Z" fill="currentColor" />
-        <ellipse cx="318.5" cy="282" rx="45.5" ry="101" fill="var(--background)" />
-        <ellipse cx="457.5" cy="282" rx="45.5" ry="101" fill="var(--background)" />
-      </svg>
-    </div>
-  )
-}
+export { AuthGhostLogo }
 
 /* ─────────────────────────── Step Animation ─────────────────────────── */
 
