@@ -52,7 +52,7 @@ fn partial_config_skills_upserts_without_deleting_other_skills() {
 
     writer.sync(&[
         skill("railway-debugger", "Old Railway", "Old instructions."),
-        skill("slack-helper", "Slack", "Slack instructions."),
+        skill("support-helper", "Support", "Support instructions."),
     ]);
     writer.sync(&[skill(
         "railway-debugger",
@@ -61,9 +61,9 @@ fn partial_config_skills_upserts_without_deleting_other_skills() {
     )]);
 
     let railway = fs::read_to_string(root.join(".skills/railway-debugger/SKILL.md")).unwrap();
-    let slack = fs::read_to_string(root.join(".skills/slack-helper/SKILL.md")).unwrap();
+    let support = fs::read_to_string(root.join(".skills/support-helper/SKILL.md")).unwrap();
     assert!(railway.contains("New instructions"));
-    assert!(slack.contains("Slack instructions"));
+    assert!(support.contains("Support instructions"));
 }
 
 // SCENARIO: A skill has supporting references and scripts.

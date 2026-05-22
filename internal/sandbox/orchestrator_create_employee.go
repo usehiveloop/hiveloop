@@ -25,8 +25,8 @@ func (o *Orchestrator) CreateEmployeeSandbox(ctx context.Context, agent *model.A
 	if agent == nil || agent.OrgID == nil {
 		return nil, fmt.Errorf("CreateEmployeeSandbox: agent must have org_id")
 	}
-	if secrets == nil || secrets.SlackBotToken == "" || secrets.SlackAppToken == "" || secrets.ProxyToken == "" {
-		return nil, fmt.Errorf("CreateEmployeeSandbox: slack tokens and proxy token are required")
+	if secrets == nil || secrets.ProxyToken == "" {
+		return nil, fmt.Errorf("CreateEmployeeSandbox: proxy token is required")
 	}
 	orgID := *agent.OrgID
 
@@ -142,8 +142,6 @@ func employeeSandboxEnvVars(cfg *config.Config, runtimeSecret string, sb *model.
 	proxyBaseURL := "https://" + strings.TrimRight(proxyHost, "/") + "/v1"
 	envVars := map[string]string{
 		employeeruntime.EmployeeEnvRuntimeSecret:            runtimeSecret,
-		employeeruntime.EmployeeEnvSlackBotToken:            secrets.SlackBotToken,
-		employeeruntime.EmployeeEnvSlackAppToken:            secrets.SlackAppToken,
 		employeeruntime.ProxyAPIKeyEnv:                      secrets.ProxyToken,
 		employeeruntime.EmployeeEnvAgentModel:               employeeruntime.DefaultEmployeeModel,
 		employeeruntime.EmployeeEnvAgentBaseURL:             proxyBaseURL,

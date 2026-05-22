@@ -82,7 +82,7 @@ fi
   echo
   echo "Missing critical env keys:"
   missing=0
-  for key in RUNTIME_SECRET SLACK_BOT_TOKEN SLACK_APP_TOKEN HIVY_PROXY_API_KEY AGENT_MODEL AGENT_BASE_URL AGENT_API_KEY_ENV EMPLOYEE_ID CLOUD_CONTROL_PLANE_URL BRIDGE_API_KEY UPLOAD_BEARER WORKSPACE_ROOT DB_PATH RUNTIME_BIND_ADDR HIVY_SANDBOX_ID HIVY_ORG_ID HIVY_EMPLOYEE_ID HIVY_DRIVE_UPLOAD_URL; do
+  for key in RUNTIME_SECRET HIVY_PROXY_API_KEY AGENT_MODEL AGENT_BASE_URL AGENT_API_KEY_ENV EMPLOYEE_ID CLOUD_CONTROL_PLANE_URL BRIDGE_API_KEY UPLOAD_BEARER WORKSPACE_ROOT DB_PATH RUNTIME_BIND_ADDR HIVY_SANDBOX_ID HIVY_ORG_ID HIVY_EMPLOYEE_ID HIVY_DRIVE_UPLOAD_URL; do
     eval "value=\${$key:-}"
     if [ -z "$value" ]; then
       echo "- $key"
@@ -124,7 +124,7 @@ capture_sh system/listeners.txt 'ss -lntup 2>/dev/null || netstat -lntup 2>/dev/
 
 capture_sh processes/ps.txt 'ps auxww'
 capture_sh processes/top.txt 'top -b -n1 2>/dev/null || true'
-capture_sh processes/pgrep.txt 'pgrep -af "employee|bridge|node|python|slack" || true'
+capture_sh processes/pgrep.txt 'pgrep -af "employee|bridge|node|python" || true'
 copy_if_exists "/proc/$bridge_pid/status" processes/bridge-status.txt
 copy_if_exists "/proc/$bridge_pid/limits" processes/bridge-limits.txt
 tr '\0' ' ' < "/proc/$bridge_pid/cmdline" > "$debug_dir/processes/bridge-cmdline.txt" 2>/dev/null || true

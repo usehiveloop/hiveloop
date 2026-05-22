@@ -26,7 +26,7 @@ Sequential research workflow:
    - Decide which branches should run in parallel.
 3. Internal context pass
    - Use memory recall when available for durable company/team context.
-   - Use search_knowledge_base or equivalent knowledge tools for company-specific Slack/docs/website/workspace context.
+   - Use search_knowledge_base or equivalent knowledge tools for company-specific chat/docs/website/workspace context.
    - Inspect available repositories/codebases when relevant to understand what the business builds, how systems work, product behavior, technical constraints, or repo-level conventions.
    - Extract only facts relevant to the brief.
 4. External discovery pass

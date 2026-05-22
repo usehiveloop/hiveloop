@@ -250,7 +250,6 @@ impl FakeGatewayServer {
             None,
             None,
             None,
-            None,
         );
         state.mark_config_loaded();
         state.mark_gateway_ready();
@@ -432,7 +431,6 @@ fn fake_agent_definition() -> AgentDefinition {
         mcp_servers: Vec::new(),
         skills: Vec::new(),
         subagents: Vec::new(),
-        slack: Default::default(),
         outbound_channels: Vec::new(),
     }
 }

@@ -600,7 +600,7 @@ pub fn format_cloud_agents_prompt(agents: &[CloudAgent]) -> String {
 
     let mut prompt = String::from("\n## Cloud Agents\n");
     prompt.push_str("You are the coordinator employee. You own outcomes, but cloud agents do the substantive execution. Use cloud_agent_launch_task for real engineering/research work, write complete standalone task prompts, monitor with cloud_agent_task_status, send feedback with cloud_agent_task_send_message, and do not claim completion until events/status confirm it.\n");
-    prompt.push_str("Cloud-agent coordination is internal execution detail. In Slack, do not mention cloud agents, dedicated machines, subagents, monitoring, events, or task ids unless the user explicitly asks how Hivy works. Report user-visible work, blockers, and verified outcomes instead.\n");
+    prompt.push_str("Cloud-agent coordination is internal execution detail. Do not mention cloud agents, dedicated machines, subagents, monitoring, events, or task ids unless the user explicitly asks how Hivy works. Report user-visible work, blockers, and verified outcomes instead.\n");
     prompt.push_str("\n### When to create a cloud agent task\n");
     prompt.push_str("- Long, complex research projects.\n");
     prompt.push_str("- Coding tasks where the agent needs an entire cloud machine to work freely and independently.\n");

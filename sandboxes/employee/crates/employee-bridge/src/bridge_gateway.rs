@@ -1,25 +1,20 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use domain::{Attachment, HistoryMessage, InboundEvent, MessageHandle, Reply, SessionId};
+use domain::{Attachment, MessageHandle, Reply, SessionId};
 use gateway::{ChannelGateway, GatewayError, Result};
-use tokio::sync::mpsc;
 
 pub struct BridgeGateway {
-    slack: Arc<dyn ChannelGateway>,
     http_streams: Arc<api::HttpStreamBroker>,
+    client: reqwest::Client,
 }
 
 impl BridgeGateway {
-    pub fn new(slack: Arc<dyn ChannelGateway>, http_streams: Arc<api::HttpStreamBroker>) -> Self {
+    pub fn new(http_streams: Arc<api::HttpStreamBroker>) -> Self {
         Self {
-            slack,
             http_streams,
+            client: reqwest::Client::new(),
         }
-    }
-
-    fn is_http_session(session_id: &SessionId) -> bool {
-        session_id.as_str().starts_with("http-")
     }
 
     fn stream_id_from_handle(handle: &MessageHandle) -> Option<&str> {
@@ -29,42 +24,27 @@ impl BridgeGateway {
 
 #[async_trait]
 impl ChannelGateway for BridgeGateway {
-    fn platform(&self) -> &'static str {
-        "bridge"
-    }
-
-    async fn run(&self, sink: mpsc::Sender<InboundEvent>) -> Result<()> {
-        self.slack.run(sink).await
-    }
-
     async fn reply(&self, session_id: &SessionId, body: Reply) -> Result<MessageHandle> {
-        if Self::is_http_session(session_id) {
-            let stream_id = self
-                .http_streams
-                .stream_id_for_session(session_id.as_str())
-                .await
-                .unwrap_or_else(|| session_id.as_str().trim_start_matches("http-").to_string());
-            let text = reply_to_text(body);
-            self.http_streams
-                .publish(
-                    &stream_id,
-                    "status",
-                    serde_json::json!({
-                        "session_id": session_id.as_str(),
-                        "text": text,
-                    }),
-                )
-                .await;
-            return Ok(MessageHandle {
-                channel: "http".to_string(),
-                ts: stream_id,
-            });
-        }
-        self.slack.reply(session_id, body).await
-    }
-
-    async fn post_to_channel(&self, channel: &str, body: Reply) -> Result<MessageHandle> {
-        self.slack.post_to_channel(channel, body).await
+        let stream_id = self
+            .http_streams
+            .stream_id_for_session(session_id.as_str())
+            .await
+            .unwrap_or_else(|| session_id.as_str().trim_start_matches("http-").to_string());
+        let text = reply_to_text(body);
+        self.http_streams
+            .publish(
+                &stream_id,
+                "status",
+                serde_json::json!({
+                    "session_id": session_id.as_str(),
+                    "text": text,
+                }),
+            )
+            .await;
+        Ok(MessageHandle {
+            channel: "http".to_string(),
+            ts: stream_id,
+        })
     }
 
     async fn edit(&self, handle: &MessageHandle, body: Reply) -> Result<()> {
@@ -80,65 +60,30 @@ impl ChannelGateway for BridgeGateway {
                 .await;
             return Ok(());
         }
-        self.slack.edit(handle, body).await
-    }
-
-    async fn typing(&self, session_id: &SessionId) -> Result<()> {
-        if Self::is_http_session(session_id) {
-            return Ok(());
-        }
-        self.slack.typing(session_id).await
-    }
-
-    async fn stop_typing(&self, session_id: &SessionId) -> Result<()> {
-        if Self::is_http_session(session_id) {
-            return Ok(());
-        }
-        self.slack.stop_typing(session_id).await
-    }
-
-    async fn upload(
-        &self,
-        session_id: &SessionId,
-        bytes: Vec<u8>,
-        filename: &str,
-        caption: Option<&str>,
-    ) -> Result<MessageHandle> {
-        if Self::is_http_session(session_id) {
-            return Err(GatewayError::Unsupported("http upload"));
-        }
-        self.slack
-            .upload(session_id, bytes, filename, caption)
-            .await
-    }
-
-    async fn react(&self, handle: &MessageHandle, emoji: &str) -> Result<()> {
-        if Self::stream_id_from_handle(handle).is_some() {
-            return Ok(());
-        }
-        self.slack.react(handle, emoji).await
-    }
-
-    async fn unreact(&self, handle: &MessageHandle, emoji: &str) -> Result<()> {
-        if Self::stream_id_from_handle(handle).is_some() {
-            return Ok(());
-        }
-        self.slack.unreact(handle, emoji).await
-    }
-
-    async fn fetch_thread_history(
-        &self,
-        session_id: &SessionId,
-        limit: u32,
-    ) -> Result<Vec<HistoryMessage>> {
-        if Self::is_http_session(session_id) {
-            return Ok(Vec::new());
-        }
-        self.slack.fetch_thread_history(session_id, limit).await
+        Err(GatewayError::Unsupported("non-http edit handle"))
     }
 
     async fn download_attachment(&self, attachment: &Attachment) -> Result<Vec<u8>> {
-        self.slack.download_attachment(attachment).await
+        let url = reqwest::Url::parse(&attachment.url).map_err(|error| {
+            GatewayError::Other(anyhow::anyhow!("invalid attachment url: {error}"))
+        })?;
+        match url.scheme() {
+            "http" | "https" => {}
+            _ => return Err(GatewayError::Unsupported("attachment url scheme")),
+        }
+        let response = self
+            .client
+            .get(url)
+            .send()
+            .await
+            .map_err(|error| GatewayError::Transport(error.to_string()))?
+            .error_for_status()
+            .map_err(|error| GatewayError::Transport(error.to_string()))?;
+        let bytes = response
+            .bytes()
+            .await
+            .map_err(|error| GatewayError::Transport(error.to_string()))?;
+        Ok(bytes.to_vec())
     }
 }
 

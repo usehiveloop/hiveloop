@@ -170,8 +170,6 @@ func employeeRuntimeEndpoint(t *testing.T) string {
 
 func employeeStartupSecrets() *employeeruntime.StartupSecrets {
 	return &employeeruntime.StartupSecrets{
-		SlackBotToken: "xoxb-test",
-		SlackAppToken: "xapp-test",
-		ProxyToken:    "ptok-test",
+		ProxyToken: "ptok-test",
 	}
 }

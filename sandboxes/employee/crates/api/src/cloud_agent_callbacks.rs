@@ -232,25 +232,10 @@ async fn deliver(
     if session_id.as_str().starts_with("http-") {
         return deliver_http(state, session_id, payload, request).await;
     }
-    let Some(deliverer) = state.cloud_agent_callback_deliverer.as_ref() else {
-        return delivery_error(
-            request,
-            "cloud agent callback deliverer is not enabled".to_string(),
-        );
-    };
-    deliverer
-        .deliver_cloud_agent_callback(session_id, payload)
-        .await
-        .map_err(|error| {
-            let message = format!("deliver callback: {error}");
-            capture_failure(
-                "deliver_callback",
-                request,
-                StatusCode::BAD_GATEWAY,
-                &message,
-            );
-            (StatusCode::BAD_GATEWAY, message)
-        })
+    delivery_error(
+        request,
+        format!("session `{session_id}` is not an HTTP gateway session"),
+    )
 }
 
 async fn deliver_http(

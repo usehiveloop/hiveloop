@@ -113,9 +113,7 @@ pub fn build_builtin_tools(
                     .into_tool(),
                 );
             }
-            ToolSpec::PostStatusUpdate
-            | ToolSpec::PostToSlackChannel
-            | ToolSpec::Cron
+            ToolSpec::Cron
             | ToolSpec::Delegate
             | ToolSpec::CheckDelegatedStatus
             | ToolSpec::CheckBashStatus

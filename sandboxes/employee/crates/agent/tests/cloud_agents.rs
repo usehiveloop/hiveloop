@@ -28,7 +28,7 @@ async fn launch_sends_prompt_as_brief_and_description_in_metadata() {
             "agent-code",
             "Implement cache fix",
             "Full standalone task prompt only",
-            &SessionId::from_slack("C0B2EUVR5B6", "1778326607.193629"),
+            &SessionId::from("http-conversation-1"),
         )
         .await
         .expect("launch task");
@@ -40,17 +40,11 @@ async fn launch_sends_prompt_as_brief_and_description_in_metadata() {
     let body = &launches[0];
     assert_eq!(body["brief"], "Full standalone task prompt only");
     assert_eq!(body["parent_conversation_type"], "agent_conversation");
-    assert_eq!(
-        body["parent_conversation_id"],
-        "C0B2EUVR5B6-1778326607.193629"
-    );
+    assert_eq!(body["parent_conversation_id"], "http-conversation-1");
     assert_eq!(body["metadata"]["description"], "Implement cache fix");
-    assert_eq!(
-        body["metadata"]["session_id"],
-        "C0B2EUVR5B6-1778326607.193629"
-    );
-    assert_eq!(body["metadata"]["channel"], "C0B2EUVR5B6");
-    assert_eq!(body["metadata"]["thread_ts"], "1778326607.193629");
+    assert_eq!(body["metadata"]["session_id"], "http-conversation-1");
+    assert_eq!(body["metadata"]["channel"], "http");
+    assert_eq!(body["metadata"]["thread_ts"], "conversation-1");
     assert_eq!(body["metadata"]["source"], "employee_bridge");
 }
 
@@ -60,7 +54,7 @@ async fn tools_flow_end_to_end_against_fake_control_plane() {
     let service = Arc::new(CloudAgentService::new(fake.config()));
     service.discover().await.expect("discover cloud agents");
 
-    let session_id = SessionId::from_slack("C0B2EUVR5B6", "1778326607.193629");
+    let session_id = SessionId::from("http-conversation-1");
     let tools = build_agent_tools(
         &[
             ToolSpec::CloudAgentLaunchTask,
@@ -78,7 +72,6 @@ async fn tools_flow_end_to_end_against_fake_control_plane() {
             workspace_root: PathBuf::from("/tmp"),
             cloud_agents: Some(service),
             outbound_emitter: None,
-            slack_channels: Vec::new(),
         },
     );
     let find_tool = |name: &str| {

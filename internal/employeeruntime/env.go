@@ -7,8 +7,6 @@ import (
 
 const (
 	EmployeeEnvRuntimeSecret              = "RUNTIME_SECRET"
-	EmployeeEnvSlackBotToken              = "SLACK_BOT_TOKEN"
-	EmployeeEnvSlackAppToken              = "SLACK_APP_TOKEN"
 	EmployeeEnvProxyAPIKey                = "HIVY_PROXY_API_KEY"
 	EmployeeEnvAgentModel                 = "AGENT_MODEL"
 	EmployeeEnvAgentBaseURL               = "AGENT_BASE_URL"
@@ -88,8 +86,6 @@ type EmployeeEnvReportEntry struct {
 
 var employeeEnvCatalog = []EmployeeEnvSpec{
 	{Key: EmployeeEnvRuntimeSecret, Source: EmployeeEnvSourceControlPlaneInjected, Sensitive: true},
-	{Key: EmployeeEnvSlackBotToken, Source: EmployeeEnvSourceControlPlaneInjected, Sensitive: true},
-	{Key: EmployeeEnvSlackAppToken, Source: EmployeeEnvSourceControlPlaneInjected, Sensitive: true},
 	{Key: EmployeeEnvProxyAPIKey, Source: EmployeeEnvSourceControlPlaneInjected, Sensitive: true},
 	{Key: EmployeeEnvAgentModel, Source: EmployeeEnvSourceControlPlaneInjected},
 	{Key: EmployeeEnvAgentBaseURL, Source: EmployeeEnvSourceControlPlaneInjected},

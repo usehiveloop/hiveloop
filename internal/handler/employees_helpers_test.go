@@ -206,7 +206,6 @@ func newEmployeeHarness(t *testing.T) *employeeHarness {
 		EmployeeSandboxBaseImagePrefix: "hivy-employee-sandbox-test-small-v1",
 		BridgeHost:                     "cp.hivy.test",
 		ProxyHost:                      "proxy.hivy.test",
-		SlackAppToken:                  "xapp-test-token",
 	}
 	orch := sandbox.NewOrchestrator(db, provider, nil, encKey, cfg)
 	nangoSrv := httptest.NewServer(newNangoConnMock(&nangoConnMockConfig{}))

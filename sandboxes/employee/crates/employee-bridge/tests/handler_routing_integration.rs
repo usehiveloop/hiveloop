@@ -20,15 +20,15 @@ fn make_event(session_id: &str, user: &str) -> InboundEvent {
 }
 
 #[test]
-fn normal_user_message_in_slack_thread_is_not_cron() {
-    let event = make_event("C123-1778247607.836569", "U08P1G9EDNG");
+fn normal_http_user_message_is_not_cron() {
+    let event = make_event("http-conversation-1", "user-1");
     let is_cron = event.user == "cron";
     assert!(!is_cron, "normal user message must not be treated as cron");
 }
 
 #[test]
 fn cron_worker_job_message_is_identified_as_cron() {
-    let event = make_event("C123-cron-cron-1778211804202", "cron");
+    let event = make_event("http-conversation-1-cron-cron-1778211804202", "cron");
     let is_cron = event.user == "cron";
     assert!(is_cron, "cron worker messages must be identified");
     assert!(
@@ -39,7 +39,7 @@ fn cron_worker_job_message_is_identified_as_cron() {
 
 #[test]
 fn wake_cron_uses_original_session_id() {
-    let sid = "C123-1778247607.836569";
+    let sid = "http-conversation-1";
     let event = make_event(sid, "cron");
     let is_wake = event.user == "cron" && !sid.contains("-cron-") && !sid.contains("-delegate-");
     assert!(is_wake, "wake cron must be identified by clean session ID");
@@ -47,7 +47,7 @@ fn wake_cron_uses_original_session_id() {
 
 #[test]
 fn delegate_background_task_uses_delegate_session_pattern() {
-    let sid = "C123-delegate-delegate-1";
+    let sid = "http-conversation-1-delegate-delegate-1";
     let event = make_event(sid, "cron");
     let is_delegate = sid.contains("-delegate-");
     let is_wake = event.user == "cron" && !sid.contains("-cron-") && !sid.contains("-delegate-");
@@ -56,50 +56,18 @@ fn delegate_background_task_uses_delegate_session_pattern() {
 }
 
 #[test]
-fn channel_is_derived_from_session_id() {
-    let sid = SessionId::from("C0AS791RGLW-1778247607.836569");
-    let channel = sid.as_str().split_once('-').map(|(c, _)| c).unwrap();
-    assert_eq!(channel, "C0AS791RGLW");
-}
-
-#[test]
-fn channel_extraction_handles_worker_cron() {
-    let sid = SessionId::from("C0AS791RGLW-cron-cron-1778211804202");
-    let channel = sid.as_str().split_once('-').map(|(c, _)| c).unwrap();
-    assert_eq!(
-        channel, "C0AS791RGLW",
-        "channel extraction must work for worker cron IDs"
-    );
-}
-
-#[test]
-fn channel_extraction_handles_delegate_session() {
-    let sid = SessionId::from("C0AS791RGLW-delegate-delegate-1");
-    let channel = sid.as_str().split_once('-').map(|(c, _)| c).unwrap();
-    assert_eq!(
-        channel, "C0AS791RGLW",
-        "channel extraction must work for delegate IDs"
-    );
-}
-
-#[test]
-fn channel_response_policy_matrix() {
+fn http_response_policy_matrix() {
     let cases = vec![
-        ("C123-1778247607.836569", "U08P1G9EDNG", "reply"), // normal user → thread
-        ("C123-cron-cron-1", "cron", "post_to_slack_channel"), // worker cron → channel
-        ("C123-1778247607.836569", "cron", "reply"),        // wake cron → thread
-        ("C123-delegate-1", "cron", "post_to_slack_channel"), // delegate cron → channel
+        ("http-conversation-1", "user-1", "reply"),
+        ("http-conversation-1-cron-cron-1", "cron", "reply"),
+        ("http-conversation-1", "cron", "reply"),
+        ("http-conversation-1-delegate-1", "cron", "reply"),
     ];
 
     for (sid, user, expected) in &cases {
         let event = make_event(sid, user);
-        let is_cron = event.user == "cron";
-        let is_wake = is_cron && !sid.contains("-cron-") && !sid.contains("-delegate-");
-        let route = if is_cron && !is_wake {
-            "post_to_slack_channel"
-        } else {
-            "reply"
-        };
+        let route = "reply";
         assert_eq!(route, *expected, "session={}, user={}", sid, user);
+        assert_eq!(event.session_id.as_str(), *sid);
     }
 }

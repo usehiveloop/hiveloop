@@ -11,7 +11,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/uuid"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 
@@ -64,15 +63,6 @@ func (h *EmployeeSandboxUpgradeHandler) loadAndStart(ctx context.Context, payloa
 		h.markFailed(ctx, &upgrade, model.EmployeeSandboxUpgradePhaseBackup, "employee missing org")
 		return nil, nil, nil, fmt.Errorf("employee missing org")
 	}
-	if ok, err := h.hasActiveSlackConnection(ctx, upgrade.OrgID); err != nil {
-		h.markFailed(ctx, &upgrade, model.EmployeeSandboxUpgradePhaseBackup, err.Error())
-		return nil, nil, nil, err
-	} else if !ok {
-		err := fmt.Errorf("organization must have an active Slack connection")
-		h.markFailed(ctx, &upgrade, model.EmployeeSandboxUpgradePhaseBackup, err.Error())
-		return nil, nil, nil, err
-	}
-
 	var oldSandbox model.Sandbox
 	query := h.db.WithContext(ctx).Where("agent_id = ? AND org_id = ? AND status <> ?", upgrade.AgentID, upgrade.OrgID, string(sandbox.StatusError))
 	if upgrade.OldSandboxID != nil {
@@ -89,16 +79,6 @@ func (h *EmployeeSandboxUpgradeHandler) loadAndStart(ctx context.Context, payloa
 		upgrade.OldSandboxID = &oldSandbox.ID
 	}
 	return &upgrade, &agent, &oldSandbox, nil
-}
-
-func (h *EmployeeSandboxUpgradeHandler) hasActiveSlackConnection(ctx context.Context, orgID uuid.UUID) (bool, error) {
-	var count int64
-	err := h.db.WithContext(ctx).Model(&model.InConnection{}).
-		Joins("JOIN in_integrations ON in_integrations.id = in_connections.in_integration_id AND in_integrations.deleted_at IS NULL").
-		Where("in_connections.org_id = ? AND in_connections.revoked_at IS NULL AND in_integrations.provider = ?",
-			orgID, "slack").
-		Count(&count).Error
-	return count > 0, err
 }
 
 func (h *EmployeeSandboxUpgradeHandler) syncEmployeeRuntime(ctx context.Context, agent *model.Agent, sb *model.Sandbox) error {

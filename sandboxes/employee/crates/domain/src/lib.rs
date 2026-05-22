@@ -8,7 +8,6 @@ pub mod outbound;
 pub mod reply;
 pub mod session;
 pub mod skill_specs;
-pub mod slack_settings;
 pub mod tool_specs;
 
 pub use agent_definition::*;
@@ -21,5 +20,4 @@ pub use outbound::*;
 pub use reply::*;
 pub use session::*;
 pub use skill_specs::*;
-pub use slack_settings::*;
 pub use tool_specs::*;

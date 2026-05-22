@@ -10,13 +10,6 @@ pub enum ToolSpec {
     ReadFile(ReadFileConfig),
     #[serde(rename = "builtin.write_file")]
     WriteFile(WriteFileConfig),
-    #[serde(rename = "builtin.post_status_update")]
-    PostStatusUpdate,
-    #[serde(
-        rename = "builtin.post_to_slack_channel",
-        alias = "builtin.post_to_channel"
-    )]
-    PostToSlackChannel,
     #[serde(rename = "builtin.cron")]
     Cron,
     #[serde(rename = "builtin.delegate")]
@@ -87,29 +80,4 @@ pub struct WriteFileConfig {
 
 fn default_atomic() -> bool {
     true
-}
-
-#[cfg(test)]
-mod tests {
-    use serde_json::json;
-
-    use super::ToolSpec;
-
-    #[test]
-    fn post_to_channel_alias_deserializes_to_slack_channel_tool() {
-        let spec: ToolSpec = serde_json::from_value(json!({
-            "type": "builtin.post_to_channel"
-        }))
-        .expect("legacy post_to_channel tool spec should deserialize");
-
-        assert!(matches!(spec, ToolSpec::PostToSlackChannel));
-
-        let serialized = serde_json::to_value(&spec).expect("serialize tool spec");
-        assert_eq!(
-            serialized,
-            json!({
-                "type": "builtin.post_to_slack_channel"
-            })
-        );
-    }
 }

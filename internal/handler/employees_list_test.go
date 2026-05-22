@@ -31,7 +31,6 @@ func TestIntegration_EmployeesList_HappyPath_LoadsAllRelations(t *testing.T) {
 	m := h.createOrg(t)
 	emp := h.seedEmployeeAgent(t, m)
 	h.seedSandbox(t, m, emp.ID)
-	h.seedSlackProfile(t, m, emp.ID)
 
 	skill := model.Skill{
 		Slug: "list-skill-" + randSuffix(),

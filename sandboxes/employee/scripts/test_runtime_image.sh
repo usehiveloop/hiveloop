@@ -88,8 +88,6 @@ fi
   "${run_args[@]}" \
   --name "$NAME" \
   -p 17080:7080 \
-  -e SLACK_BOT_TOKEN="${SLACK_BOT_TOKEN:-dummy-slack-bot-token}" \
-  -e SLACK_APP_TOKEN="${SLACK_APP_TOKEN:-dummy-slack-app-token}" \
   -e RUNTIME_SECRET="$SECRET" \
   -e BRIDGE_API_KEY="$SECRET" \
   -e HIVY_GIT_USERNAME="Runtime Smoke" \

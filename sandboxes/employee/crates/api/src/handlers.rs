@@ -312,11 +312,8 @@ pub struct SessionDetailResponse {
 
 #[cfg_attr(feature = "openapi", utoipa::path(
     get,
-    path = "/sessions/{channel}/{thread_ts}",
-    params(
-        ("channel" = String, Path, description = "Slack channel identifier"),
-        ("thread_ts" = String, Path, description = "Slack thread timestamp")
-    ),
+    path = "/sessions/{session_id}",
+    params(("session_id" = String, Path, description = "Session identifier")),
     responses(
         (status = 200, description = "Session details", body = SessionDetailResponse),
         (status = 404, description = "Session not found"),
@@ -326,9 +323,9 @@ pub struct SessionDetailResponse {
 ))]
 pub async fn get_session_detail(
     State(state): State<ApiState>,
-    Path((channel, thread_ts)): Path<(String, String)>,
+    Path(session_id): Path<String>,
 ) -> Result<Json<SessionDetailResponse>, StatusCode> {
-    let session_id = SessionId::from_slack(&channel, &thread_ts);
+    let session_id = SessionId::from(session_id);
     let session = state
         .session_repo
         .get(&session_id)

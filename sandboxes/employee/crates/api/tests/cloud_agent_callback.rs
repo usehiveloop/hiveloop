@@ -41,7 +41,6 @@ async fn put_config_reloads_outbound_channels() {
         None,
         Some(reloader.clone()),
         None,
-        None,
     );
     let router = api::build_router(state);
 
@@ -221,24 +220,22 @@ async fn callback_returns_not_found_for_unknown_session_id() {
 }
 
 #[tokio::test]
-async fn callback_delivers_to_existing_slack_session() {
-    let deliverer = Arc::new(RecordingCallbackDeliverer::default());
-    let callback_deliverer: Arc<dyn api::CloudAgentCallbackDeliverer> = deliverer.clone();
-    let fixture = Fixture::new_with_deliverer(None, Some(callback_deliverer)).await;
+async fn callback_rejects_existing_non_http_session() {
+    let fixture = Fixture::new(None).await;
     fixture
         .sessions
-        .insert(slack_session("C123-1770000000.000100"));
+        .insert(non_http_session("legacy-conversation"));
 
     let response = fixture
         .router
         .oneshot(callback_request(
             Some("secret"),
             json!({
-                "task_id": "task-slack",
+                "task_id": "task-legacy",
                 "agent_id": "agent-1",
-                "session_id": "C123-1770000000.000100",
+                "session_id": "legacy-conversation",
                 "event_type": "todo_updated",
-                "event_id": "event-slack",
+                "event_id": "event-legacy",
                 "timestamp": "2026-05-10T09:00:00Z",
                 "metadata": {"session_id": "http-conversation"},
                 "data": {"summary": "todo changed"}
@@ -247,11 +244,7 @@ async fn callback_delivers_to_existing_slack_session() {
         .await
         .expect("response");
 
-    assert_eq!(response.status(), StatusCode::ACCEPTED);
-    let deliveries = deliverer.deliveries.lock().unwrap();
-    assert_eq!(deliveries.len(), 1);
-    assert_eq!(deliveries[0].0, "C123-1770000000.000100");
-    assert_eq!(deliveries[0].1["event_id"], "event-slack");
+    assert_eq!(response.status(), StatusCode::BAD_GATEWAY);
 }
 
 #[tokio::test]
@@ -320,13 +313,6 @@ struct Fixture {
 
 impl Fixture {
     async fn new(cloud_task_index: Option<Arc<CloudTaskIndex>>) -> Self {
-        Self::new_with_deliverer(cloud_task_index, None).await
-    }
-
-    async fn new_with_deliverer(
-        cloud_task_index: Option<Arc<CloudTaskIndex>>,
-        callback_deliverer: Option<Arc<dyn api::CloudAgentCallbackDeliverer>>,
-    ) -> Self {
         let config = ConfigStore::new(test_definition());
         let config_repo = Arc::new(MemoryConfigRepo::default());
         let sessions = Arc::new(MemorySessionRepo::default());
@@ -352,7 +338,6 @@ impl Fixture {
             None,
             None,
             cloud_task_index,
-            callback_deliverer,
         );
         Self {
             router: api::build_router(state),
@@ -404,36 +389,16 @@ fn session(id: &str) -> Session {
     }
 }
 
-fn slack_session(id: &str) -> Session {
+fn non_http_session(id: &str) -> Session {
     let now = Utc::now();
     Session {
         id: SessionId::from(id),
-        channel: "C123".to_string(),
-        thread_ts: "1770000000.000100".to_string(),
+        channel: "legacy".to_string(),
+        thread_ts: "conversation".to_string(),
         agent_session_id: id.to_string(),
         status: SessionStatus::Active,
         created_at: now,
         last_activity_at: now,
-    }
-}
-
-#[derive(Default)]
-struct RecordingCallbackDeliverer {
-    deliveries: Mutex<Vec<(String, Value)>>,
-}
-
-#[async_trait]
-impl api::CloudAgentCallbackDeliverer for RecordingCallbackDeliverer {
-    async fn deliver_cloud_agent_callback(
-        &self,
-        session_id: &SessionId,
-        payload: Value,
-    ) -> anyhow::Result<()> {
-        self.deliveries
-            .lock()
-            .unwrap()
-            .push((session_id.as_str().to_string(), payload));
-        Ok(())
     }
 }
 
@@ -462,7 +427,6 @@ fn test_definition() -> AgentDefinition {
         mcp_servers: Vec::new(),
         skills: Vec::new(),
         subagents: Vec::new(),
-        slack: Default::default(),
         outbound_channels: Vec::new(),
     }
 }

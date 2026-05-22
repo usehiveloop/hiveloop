@@ -1,5 +1,4 @@
 mod bridge_gateway;
-mod cloud_agent_callback_delivery;
 mod db_sync;
 mod handler;
 mod scheduler;
@@ -7,7 +6,6 @@ mod sentry_support;
 mod session_coordinator;
 
 use bridge_gateway::BridgeGateway;
-use cloud_agent_callback_delivery::GatewayCloudAgentCallbackDeliverer;
 use scheduler::CronScheduler;
 use session_coordinator::SessionCoordinator;
 
@@ -26,9 +24,9 @@ use db_sync::{spawn_db_sync, DbSyncConfig};
 use domain::{
     AgentDefinition, AgentMeta, BashConfig, ConfigStore, InboundEvent, ModelConfig,
     OutboundChannelSpec, PromptFragment, PromptFragments, ReadFileConfig, ReasoningEffort,
-    SlackConfig, ToolSpec, WriteFileConfig,
+    ToolSpec, WriteFileConfig,
 };
-use gateway::{ChannelGateway, SlackGateway};
+use gateway::ChannelGateway;
 use mcp::McpRegistry;
 use outbound::{
     build_registry_with_write_notifier, OutboundDispatcher, OutboundEmitter, OutboundRegistry,
@@ -201,20 +199,8 @@ async fn main() -> Result<()> {
     let config = ConfigStore::new(initial_definition.clone());
     let http_stream_broker = Arc::new(api::HttpStreamBroker::new());
     let (inbound_sink, mut inbound_events) = mpsc::channel::<InboundEvent>(256);
-    let slack_bot_token = required_env("SLACK_BOT_TOKEN", "Slack bot token")?;
-    let slack_app_token = required_env("SLACK_APP_TOKEN", "Slack app token")?;
-    let slack_gateway = Arc::new(SlackGateway::new(
-        slack_bot_token,
-        slack_app_token,
-        config.clone(),
-    )?);
-    let bridge_gateway: Arc<dyn ChannelGateway> = Arc::new(BridgeGateway::new(
-        slack_gateway.clone(),
-        http_stream_broker.clone(),
-    ));
-    let cloud_agent_callback_deliverer = Arc::new(GatewayCloudAgentCallbackDeliverer::new(
-        bridge_gateway.clone(),
-    ));
+    let bridge_gateway: Arc<dyn ChannelGateway> =
+        Arc::new(BridgeGateway::new(http_stream_broker.clone()));
 
     let api_state = ApiState::new(
         config.clone(),
@@ -230,9 +216,9 @@ async fn main() -> Result<()> {
         Some(mcp_registry.clone()),
         Some(outbound_reloader),
         cloud_agent_service.as_ref().map(|service| service.index()),
-        Some(cloud_agent_callback_deliverer),
     );
     let (api_handle, api_cancel) = api::serve(bind_addr, api_state.clone()).await;
+    api_state.mark_gateway_ready();
 
     api_state.wait_for_config_loaded().await;
     let active_definition = config.snapshot();
@@ -262,15 +248,6 @@ async fn main() -> Result<()> {
         Some(emitter.clone()),
     );
     let _scheduler_handle = tokio::spawn(scheduler.run());
-
-    let gateway_task = {
-        let gateway = bridge_gateway.clone();
-        let api_state_for_gateway = api_state.clone();
-        tokio::spawn(async move {
-            api_state_for_gateway.mark_gateway_ready();
-            gateway.run(inbound_sink).await
-        })
-    };
 
     let event_loop = async {
         info!("listening for inbound events");
@@ -302,11 +279,6 @@ async fn main() -> Result<()> {
     };
 
     tokio::select! {
-        result = gateway_task => match result {
-            Ok(Ok(())) => info!("gateway exited cleanly"),
-            Ok(Err(e)) => error!(error = %e, "gateway run failed"),
-            Err(e) => error!(error = %e, "gateway task panicked"),
-        },
         _ = event_loop => warn!("event loop exited"),
         _ = tokio::signal::ctrl_c() => info!("ctrl-c received; shutting down"),
     }
@@ -375,7 +347,7 @@ fn bootstrap_agent_definition() -> Result<AgentDefinition> {
         prompt_fragments: PromptFragments {
             identity: PromptFragment {
                 title: "Identity".into(),
-                content: "You are Aria, a friendly AI employee in Slack. Reply concisely using mrkdwn. Never invent features. If you do not know something, say so.".into(),
+                content: "You are Aria, a friendly AI employee. Reply concisely. Never invent features. If you do not know something, say so.".into(),
             },
             ..Default::default()
         },
@@ -387,7 +359,6 @@ fn bootstrap_agent_definition() -> Result<AgentDefinition> {
         mcp_servers: Vec::new(),
         skills: Vec::new(),
         subagents: Vec::new(),
-        slack: SlackConfig::default(),
         outbound_channels: Vec::new(),
     })
 }
@@ -421,8 +392,6 @@ fn default_builtin_tool_specs() -> Vec<ToolSpec> {
             deny_globs: vec![],
             atomic: true,
         }),
-        ToolSpec::PostStatusUpdate,
-        ToolSpec::PostToSlackChannel,
         ToolSpec::Cron,
         ToolSpec::Delegate,
         ToolSpec::CheckDelegatedStatus,

@@ -104,15 +104,6 @@ func (h *EmployeeHandler) StartSandboxUpgrade(w http.ResponseWriter, r *http.Req
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to load employee"})
 		return
 	}
-	if ok, err := h.orgHasActiveSlackConnection(ctx, org.ID); err != nil {
-		log.ErrorContext(ctx, "load Slack connection for sandbox upgrade", "error", err, "agent_id", agentID)
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to load Slack connection"})
-		return
-	} else if !ok {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "organization must have an active Slack connection"})
-		return
-	}
-
 	if err := h.deleteStaleEmployeeSandboxUpgradeTask(agentID); err != nil {
 		log.ErrorContext(ctx, "delete stale employee sandbox upgrade task", "error", err, "agent_id", agentID)
 		if strings.Contains(err.Error(), "active state") {
@@ -213,16 +204,6 @@ func (h *EmployeeHandler) GetSandboxUpgrade(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	writeJSON(w, http.StatusOK, toEmployeeSandboxUpgradeResponse(&upgrade))
-}
-
-func (h *EmployeeHandler) orgHasActiveSlackConnection(ctx context.Context, orgID uuid.UUID) (bool, error) {
-	var count int64
-	err := h.db.WithContext(ctx).Model(&model.InConnection{}).
-		Joins("JOIN in_integrations ON in_integrations.id = in_connections.in_integration_id AND in_integrations.deleted_at IS NULL").
-		Where("in_connections.org_id = ? AND in_connections.revoked_at IS NULL AND in_integrations.provider = ?",
-			orgID, "slack").
-		Count(&count).Error
-	return count > 0, err
 }
 
 func (h *EmployeeHandler) markUpgradeFailed(ctx context.Context, upgrade *model.EmployeeSandboxUpgrade, phase, msg string) {

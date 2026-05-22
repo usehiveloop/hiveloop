@@ -21,27 +21,6 @@ const (
 	BearerScopes bearerContextKey = "bearer.Scopes"
 )
 
-// Defines values for AllowBotsMode.
-const (
-	All      AllowBotsMode = "all"
-	Mentions AllowBotsMode = "mentions"
-	None     AllowBotsMode = "none"
-)
-
-// Valid indicates whether the value is a known member of the AllowBotsMode enum.
-func (e AllowBotsMode) Valid() bool {
-	switch e {
-	case All:
-		return true
-	case Mentions:
-		return true
-	case None:
-		return true
-	default:
-		return false
-	}
-}
-
 // Defines values for EventKind.
 const (
 	EventKindAssistantMessage EventKind = "assistant_message"
@@ -323,41 +302,11 @@ func (e ToolSpec2Type) Valid() bool {
 
 // Defines values for ToolSpec3Type.
 const (
-	BuiltinPostStatusUpdate ToolSpec3Type = "builtin.post_status_update"
+	BuiltinCron ToolSpec3Type = "builtin.cron"
 )
 
 // Valid indicates whether the value is a known member of the ToolSpec3Type enum.
 func (e ToolSpec3Type) Valid() bool {
-	switch e {
-	case BuiltinPostStatusUpdate:
-		return true
-	default:
-		return false
-	}
-}
-
-// Defines values for ToolSpec4Type.
-const (
-	BuiltinPostToSlackChannel ToolSpec4Type = "builtin.post_to_slack_channel"
-)
-
-// Valid indicates whether the value is a known member of the ToolSpec4Type enum.
-func (e ToolSpec4Type) Valid() bool {
-	switch e {
-	case BuiltinPostToSlackChannel:
-		return true
-	default:
-		return false
-	}
-}
-
-// Defines values for ToolSpec5Type.
-const (
-	BuiltinCron ToolSpec5Type = "builtin.cron"
-)
-
-// Valid indicates whether the value is a known member of the ToolSpec5Type enum.
-func (e ToolSpec5Type) Valid() bool {
 	switch e {
 	case BuiltinCron:
 		return true
@@ -366,13 +315,13 @@ func (e ToolSpec5Type) Valid() bool {
 	}
 }
 
-// Defines values for ToolSpec6Type.
+// Defines values for ToolSpec4Type.
 const (
-	BuiltinDelegate ToolSpec6Type = "builtin.delegate"
+	BuiltinDelegate ToolSpec4Type = "builtin.delegate"
 )
 
-// Valid indicates whether the value is a known member of the ToolSpec6Type enum.
-func (e ToolSpec6Type) Valid() bool {
+// Valid indicates whether the value is a known member of the ToolSpec4Type enum.
+func (e ToolSpec4Type) Valid() bool {
 	switch e {
 	case BuiltinDelegate:
 		return true
@@ -381,13 +330,13 @@ func (e ToolSpec6Type) Valid() bool {
 	}
 }
 
-// Defines values for ToolSpec7Type.
+// Defines values for ToolSpec5Type.
 const (
-	BuiltinCheckDelegatedStatus ToolSpec7Type = "builtin.check_delegated_status"
+	BuiltinCheckDelegatedStatus ToolSpec5Type = "builtin.check_delegated_status"
 )
 
-// Valid indicates whether the value is a known member of the ToolSpec7Type enum.
-func (e ToolSpec7Type) Valid() bool {
+// Valid indicates whether the value is a known member of the ToolSpec5Type enum.
+func (e ToolSpec5Type) Valid() bool {
 	switch e {
 	case BuiltinCheckDelegatedStatus:
 		return true
@@ -396,13 +345,13 @@ func (e ToolSpec7Type) Valid() bool {
 	}
 }
 
-// Defines values for ToolSpec8Type.
+// Defines values for ToolSpec6Type.
 const (
-	BuiltinCheckBashStatus ToolSpec8Type = "builtin.check_bash_status"
+	BuiltinCheckBashStatus ToolSpec6Type = "builtin.check_bash_status"
 )
 
-// Valid indicates whether the value is a known member of the ToolSpec8Type enum.
-func (e ToolSpec8Type) Valid() bool {
+// Valid indicates whether the value is a known member of the ToolSpec6Type enum.
+func (e ToolSpec6Type) Valid() bool {
 	switch e {
 	case BuiltinCheckBashStatus:
 		return true
@@ -411,13 +360,13 @@ func (e ToolSpec8Type) Valid() bool {
 	}
 }
 
-// Defines values for ToolSpec9Type.
+// Defines values for ToolSpec7Type.
 const (
-	BuiltinWake ToolSpec9Type = "builtin.wake"
+	BuiltinWake ToolSpec7Type = "builtin.wake"
 )
 
-// Valid indicates whether the value is a known member of the ToolSpec9Type enum.
-func (e ToolSpec9Type) Valid() bool {
+// Valid indicates whether the value is a known member of the ToolSpec7Type enum.
+func (e ToolSpec7Type) Valid() bool {
 	switch e {
 	case BuiltinWake:
 		return true
@@ -426,13 +375,13 @@ func (e ToolSpec9Type) Valid() bool {
 	}
 }
 
-// Defines values for ToolSpec10Type.
+// Defines values for ToolSpec8Type.
 const (
-	BuiltinLoadTools ToolSpec10Type = "builtin.load_tools"
+	BuiltinLoadTools ToolSpec8Type = "builtin.load_tools"
 )
 
-// Valid indicates whether the value is a known member of the ToolSpec10Type enum.
-func (e ToolSpec10Type) Valid() bool {
+// Valid indicates whether the value is a known member of the ToolSpec8Type enum.
+func (e ToolSpec8Type) Valid() bool {
 	switch e {
 	case BuiltinLoadTools:
 		return true
@@ -441,13 +390,13 @@ func (e ToolSpec10Type) Valid() bool {
 	}
 }
 
-// Defines values for ToolSpec11Type.
+// Defines values for ToolSpec9Type.
 const (
-	BuiltinSkillsList ToolSpec11Type = "builtin.skills_list"
+	BuiltinSkillsList ToolSpec9Type = "builtin.skills_list"
 )
 
-// Valid indicates whether the value is a known member of the ToolSpec11Type enum.
-func (e ToolSpec11Type) Valid() bool {
+// Valid indicates whether the value is a known member of the ToolSpec9Type enum.
+func (e ToolSpec9Type) Valid() bool {
 	switch e {
 	case BuiltinSkillsList:
 		return true
@@ -456,13 +405,13 @@ func (e ToolSpec11Type) Valid() bool {
 	}
 }
 
-// Defines values for ToolSpec12Type.
+// Defines values for ToolSpec10Type.
 const (
-	BuiltinSkillView ToolSpec12Type = "builtin.skill_view"
+	BuiltinSkillView ToolSpec10Type = "builtin.skill_view"
 )
 
-// Valid indicates whether the value is a known member of the ToolSpec12Type enum.
-func (e ToolSpec12Type) Valid() bool {
+// Valid indicates whether the value is a known member of the ToolSpec10Type enum.
+func (e ToolSpec10Type) Valid() bool {
 	switch e {
 	case BuiltinSkillView:
 		return true
@@ -471,13 +420,13 @@ func (e ToolSpec12Type) Valid() bool {
 	}
 }
 
-// Defines values for ToolSpec13Type.
+// Defines values for ToolSpec11Type.
 const (
-	BuiltinSkillManage ToolSpec13Type = "builtin.skill_manage"
+	BuiltinSkillManage ToolSpec11Type = "builtin.skill_manage"
 )
 
-// Valid indicates whether the value is a known member of the ToolSpec13Type enum.
-func (e ToolSpec13Type) Valid() bool {
+// Valid indicates whether the value is a known member of the ToolSpec11Type enum.
+func (e ToolSpec11Type) Valid() bool {
 	switch e {
 	case BuiltinSkillManage:
 		return true
@@ -486,13 +435,13 @@ func (e ToolSpec13Type) Valid() bool {
 	}
 }
 
-// Defines values for ToolSpec14Type.
+// Defines values for ToolSpec12Type.
 const (
-	BuiltinCloudAgentLaunchTask ToolSpec14Type = "builtin.cloud_agent_launch_task"
+	BuiltinCloudAgentLaunchTask ToolSpec12Type = "builtin.cloud_agent_launch_task"
 )
 
-// Valid indicates whether the value is a known member of the ToolSpec14Type enum.
-func (e ToolSpec14Type) Valid() bool {
+// Valid indicates whether the value is a known member of the ToolSpec12Type enum.
+func (e ToolSpec12Type) Valid() bool {
 	switch e {
 	case BuiltinCloudAgentLaunchTask:
 		return true
@@ -501,13 +450,13 @@ func (e ToolSpec14Type) Valid() bool {
 	}
 }
 
-// Defines values for ToolSpec15Type.
+// Defines values for ToolSpec13Type.
 const (
-	BuiltinCloudAgentTaskStatus ToolSpec15Type = "builtin.cloud_agent_task_status"
+	BuiltinCloudAgentTaskStatus ToolSpec13Type = "builtin.cloud_agent_task_status"
 )
 
-// Valid indicates whether the value is a known member of the ToolSpec15Type enum.
-func (e ToolSpec15Type) Valid() bool {
+// Valid indicates whether the value is a known member of the ToolSpec13Type enum.
+func (e ToolSpec13Type) Valid() bool {
 	switch e {
 	case BuiltinCloudAgentTaskStatus:
 		return true
@@ -516,13 +465,13 @@ func (e ToolSpec15Type) Valid() bool {
 	}
 }
 
-// Defines values for ToolSpec16Type.
+// Defines values for ToolSpec14Type.
 const (
-	BuiltinCloudAgentListTasks ToolSpec16Type = "builtin.cloud_agent_list_tasks"
+	BuiltinCloudAgentListTasks ToolSpec14Type = "builtin.cloud_agent_list_tasks"
 )
 
-// Valid indicates whether the value is a known member of the ToolSpec16Type enum.
-func (e ToolSpec16Type) Valid() bool {
+// Valid indicates whether the value is a known member of the ToolSpec14Type enum.
+func (e ToolSpec14Type) Valid() bool {
 	switch e {
 	case BuiltinCloudAgentListTasks:
 		return true
@@ -531,13 +480,13 @@ func (e ToolSpec16Type) Valid() bool {
 	}
 }
 
-// Defines values for ToolSpec17Type.
+// Defines values for ToolSpec15Type.
 const (
-	BuiltinCloudAgentTaskSendMessage ToolSpec17Type = "builtin.cloud_agent_task_send_message"
+	BuiltinCloudAgentTaskSendMessage ToolSpec15Type = "builtin.cloud_agent_task_send_message"
 )
 
-// Valid indicates whether the value is a known member of the ToolSpec17Type enum.
-func (e ToolSpec17Type) Valid() bool {
+// Valid indicates whether the value is a known member of the ToolSpec15Type enum.
+func (e ToolSpec15Type) Valid() bool {
 	switch e {
 	case BuiltinCloudAgentTaskSendMessage:
 		return true
@@ -546,13 +495,13 @@ func (e ToolSpec17Type) Valid() bool {
 	}
 }
 
-// Defines values for ToolSpec18Type.
+// Defines values for ToolSpec16Type.
 const (
-	BuiltinCloudAgentTaskTerminate ToolSpec18Type = "builtin.cloud_agent_task_terminate"
+	BuiltinCloudAgentTaskTerminate ToolSpec16Type = "builtin.cloud_agent_task_terminate"
 )
 
-// Valid indicates whether the value is a known member of the ToolSpec18Type enum.
-func (e ToolSpec18Type) Valid() bool {
+// Valid indicates whether the value is a known member of the ToolSpec16Type enum.
+func (e ToolSpec16Type) Valid() bool {
 	switch e {
 	case BuiltinCloudAgentTaskTerminate:
 		return true
@@ -572,7 +521,6 @@ type AgentDefinition struct {
 	OutboundChannels *[]OutboundChannelSpec `json:"outbound_channels,omitempty"`
 	PromptFragments  *PromptFragments       `json:"prompt_fragments,omitempty"`
 	Skills           *[]SkillSpec           `json:"skills,omitempty"`
-	Slack            *SlackConfig           `json:"slack,omitempty"`
 	Subagents        *[]SubagentSpec        `json:"subagents,omitempty"`
 	Tools            *[]ToolSpec            `json:"tools,omitempty"`
 }
@@ -583,9 +531,6 @@ type AgentMeta struct {
 	Name         string  `json:"name"`
 	SystemPrompt *string `json:"system_prompt,omitempty"`
 }
-
-// AllowBotsMode defines model for AllowBotsMode.
-type AllowBotsMode string
 
 // Attachment defines model for Attachment.
 type Attachment struct {
@@ -842,12 +787,6 @@ type OutboundChannelSpec0 struct {
 // OutboundChannelSpec0Type defines model for OutboundChannelSpec.0.Type.
 type OutboundChannelSpec0Type string
 
-// ProgressiveMessages defines model for ProgressiveMessages.
-type ProgressiveMessages struct {
-	EditIntervalMs int32 `json:"edit_interval_ms"`
-	Enabled        bool  `json:"enabled"`
-}
-
 // PromptFragment defines model for PromptFragment.
 type PromptFragment struct {
 	Content *string `json:"content,omitempty"`
@@ -887,10 +826,6 @@ type Session struct {
 	CreatedAt      time.Time `json:"created_at"`
 
 	// Id `SessionId` is the canonical identifier for a session.
-	//
-	// Format for Slack: `"{channel}-{thread_ts}"`. Top-level Slack messages with
-	// no `thread_ts` use the message's own `ts` (so each top-level @mention
-	// becomes its own session).
 	Id             SessionId     `json:"id"`
 	LastActivityAt time.Time     `json:"last_activity_at"`
 	Status         SessionStatus `json:"status"`
@@ -912,18 +847,10 @@ type SessionEvent struct {
 	Seq       int64       `json:"seq"`
 
 	// SessionId `SessionId` is the canonical identifier for a session.
-	//
-	// Format for Slack: `"{channel}-{thread_ts}"`. Top-level Slack messages with
-	// no `thread_ts` use the message's own `ts` (so each top-level @mention
-	// becomes its own session).
 	SessionId SessionId `json:"session_id"`
 }
 
 // SessionId `SessionId` is the canonical identifier for a session.
-//
-// Format for Slack: `"{channel}-{thread_ts}"`. Top-level Slack messages with
-// no `thread_ts` use the message's own `ts` (so each top-level @mention
-// becomes its own session).
 type SessionId = string
 
 // SessionStatus defines model for SessionStatus.
@@ -966,43 +893,6 @@ type SkillTrigger1 struct {
 // SkillTrigger1Type defines model for SkillTrigger.1.Type.
 type SkillTrigger1Type string
 
-// SlackChannelSpec defines model for SlackChannelSpec.
-type SlackChannelSpec struct {
-	Description *string `json:"description,omitempty"`
-	Id          string  `json:"id"`
-	IsPrivate   *bool   `json:"is_private,omitempty"`
-	Name        string  `json:"name"`
-}
-
-// SlackConfig defines model for SlackConfig.
-type SlackConfig struct {
-	AllowBots            *AllowBotsMode       `json:"allow_bots,omitempty"`
-	AllowedChannels      *[]string            `json:"allowed_channels,omitempty"`
-	ChannelPrompts       *map[string]string   `json:"channel_prompts,omitempty"`
-	DownloadAttachments  *bool                `json:"download_attachments,omitempty"`
-	ExtractBlocksText    *bool                `json:"extract_blocks_text,omitempty"`
-	ExtractLinkUnfurls   *bool                `json:"extract_link_unfurls,omitempty"`
-	FetchUserNames       *bool                `json:"fetch_user_names,omitempty"`
-	FreeResponseChannels *[]string            `json:"free_response_channels,omitempty"`
-	IgnoreUsers          *[]string            `json:"ignore_users,omitempty"`
-	InlineTextFiles      *bool                `json:"inline_text_files,omitempty"`
-	InlineTextMaxBytes   *int64               `json:"inline_text_max_bytes,omitempty"`
-	MaxMessageLength     *int32               `json:"max_message_length,omitempty"`
-	MrkdwnTranslation    *bool                `json:"mrkdwn_translation,omitempty"`
-	PostableChannels     *[]SlackChannelSpec  `json:"postable_channels,omitempty"`
-	ProgressiveMessages  *ProgressiveMessages `json:"progressive_messages,omitempty"`
-	ReactionsEnabled     *bool                `json:"reactions_enabled,omitempty"`
-	ReplyBroadcast       *bool                `json:"reply_broadcast,omitempty"`
-	ReplyInThread        *bool                `json:"reply_in_thread,omitempty"`
-	ReplyPrefix          *string              `json:"reply_prefix,omitempty"`
-	RequireMention       *bool                `json:"require_mention,omitempty"`
-	RetryMaxAttempts     *int32               `json:"retry_max_attempts,omitempty"`
-	SplitLongReplies     *bool                `json:"split_long_replies,omitempty"`
-	StrictMention        *bool                `json:"strict_mention,omitempty"`
-	ThreadContext        *ThreadContextConfig `json:"thread_context,omitempty"`
-	TypingIndicator      *bool                `json:"typing_indicator,omitempty"`
-}
-
 // SubagentDefinition defines model for SubagentDefinition.
 type SubagentDefinition struct {
 	Limits       *Limits     `json:"limits,omitempty"`
@@ -1020,13 +910,6 @@ type SubagentSpec struct {
 	Name            string             `json:"name"`
 	ToolDescription string             `json:"tool_description"`
 	ToolName        string             `json:"tool_name"`
-}
-
-// ThreadContextConfig defines model for ThreadContextConfig.
-type ThreadContextConfig struct {
-	CacheTtlSeconds int64 `json:"cache_ttl_seconds"`
-	Enabled         bool  `json:"enabled"`
-	MaxMessages     int32 `json:"max_messages"`
 }
 
 // ToolFilter defines model for ToolFilter.
@@ -1178,22 +1061,6 @@ type ToolSpec16 struct {
 
 // ToolSpec16Type defines model for ToolSpec.16.Type.
 type ToolSpec16Type string
-
-// ToolSpec17 defines model for .
-type ToolSpec17 struct {
-	Type ToolSpec17Type `json:"type"`
-}
-
-// ToolSpec17Type defines model for ToolSpec.17.Type.
-type ToolSpec17Type string
-
-// ToolSpec18 defines model for .
-type ToolSpec18 struct {
-	Type ToolSpec18Type `json:"type"`
-}
-
-// ToolSpec18Type defines model for ToolSpec.18.Type.
-type ToolSpec18Type string
 
 // ToolUsage defines model for ToolUsage.
 type ToolUsage struct {
@@ -2013,58 +1880,6 @@ func (t *ToolSpec) MergeToolSpec16(v ToolSpec16) error {
 	return err
 }
 
-// AsToolSpec17 returns the union data inside the ToolSpec as a ToolSpec17
-func (t ToolSpec) AsToolSpec17() (ToolSpec17, error) {
-	var body ToolSpec17
-	err := json.Unmarshal(t.union, &body)
-	return body, err
-}
-
-// FromToolSpec17 overwrites any union data inside the ToolSpec as the provided ToolSpec17
-func (t *ToolSpec) FromToolSpec17(v ToolSpec17) error {
-	b, err := json.Marshal(v)
-	t.union = b
-	return err
-}
-
-// MergeToolSpec17 performs a merge with any union data inside the ToolSpec, using the provided ToolSpec17
-func (t *ToolSpec) MergeToolSpec17(v ToolSpec17) error {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return err
-	}
-
-	merged, err := runtime.JSONMerge(t.union, b)
-	t.union = merged
-	return err
-}
-
-// AsToolSpec18 returns the union data inside the ToolSpec as a ToolSpec18
-func (t ToolSpec) AsToolSpec18() (ToolSpec18, error) {
-	var body ToolSpec18
-	err := json.Unmarshal(t.union, &body)
-	return body, err
-}
-
-// FromToolSpec18 overwrites any union data inside the ToolSpec as the provided ToolSpec18
-func (t *ToolSpec) FromToolSpec18(v ToolSpec18) error {
-	b, err := json.Marshal(v)
-	t.union = b
-	return err
-}
-
-// MergeToolSpec18 performs a merge with any union data inside the ToolSpec, using the provided ToolSpec18
-func (t *ToolSpec) MergeToolSpec18(v ToolSpec18) error {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return err
-	}
-
-	merged, err := runtime.JSONMerge(t.union, b)
-	t.union = merged
-	return err
-}
-
 func (t ToolSpec) MarshalJSON() ([]byte, error) {
 	b, err := t.union.MarshalJSON()
 	return b, err
@@ -2190,7 +2005,7 @@ type ClientInterface interface {
 	ListSessions(ctx context.Context, params *ListSessionsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetSessionDetail request
-	GetSessionDetail(ctx context.Context, channel string, threadTs string, reqEditors ...RequestEditorFn) (*http.Response, error)
+	GetSessionDetail(ctx context.Context, sessionId string, reqEditors ...RequestEditorFn) (*http.Response, error)
 }
 
 func (c *Client) GetConfig(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -2373,8 +2188,8 @@ func (c *Client) ListSessions(ctx context.Context, params *ListSessionsParams, r
 	return c.Client.Do(req)
 }
 
-func (c *Client) GetSessionDetail(ctx context.Context, channel string, threadTs string, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewGetSessionDetailRequest(c.Server, channel, threadTs)
+func (c *Client) GetSessionDetail(ctx context.Context, sessionId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetSessionDetailRequest(c.Server, sessionId)
 	if err != nil {
 		return nil, err
 	}
@@ -2867,19 +2682,12 @@ func NewListSessionsRequest(server string, params *ListSessionsParams) (*http.Re
 }
 
 // NewGetSessionDetailRequest generates requests for GetSessionDetail
-func NewGetSessionDetailRequest(server string, channel string, threadTs string) (*http.Request, error) {
+func NewGetSessionDetailRequest(server string, sessionId string) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
 
-	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "channel", channel, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
-	if err != nil {
-		return nil, err
-	}
-
-	var pathParam1 string
-
-	pathParam1, err = runtime.StyleParamWithOptions("simple", false, "thread_ts", threadTs, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "session_id", sessionId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
 	if err != nil {
 		return nil, err
 	}
@@ -2889,7 +2697,7 @@ func NewGetSessionDetailRequest(server string, channel string, threadTs string) 
 		return nil, err
 	}
 
-	operationPath := fmt.Sprintf("/sessions/%s/%s", pathParam0, pathParam1)
+	operationPath := fmt.Sprintf("/sessions/%s", pathParam0)
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -2992,7 +2800,7 @@ type ClientWithResponsesInterface interface {
 	ListSessionsWithResponse(ctx context.Context, params *ListSessionsParams, reqEditors ...RequestEditorFn) (*ListSessionsResp, error)
 
 	// GetSessionDetailWithResponse request
-	GetSessionDetailWithResponse(ctx context.Context, channel string, threadTs string, reqEditors ...RequestEditorFn) (*GetSessionDetailResp, error)
+	GetSessionDetailWithResponse(ctx context.Context, sessionId string, reqEditors ...RequestEditorFn) (*GetSessionDetailResp, error)
 }
 
 type GetConfigResp struct {
@@ -3485,8 +3293,8 @@ func (c *ClientWithResponses) ListSessionsWithResponse(ctx context.Context, para
 }
 
 // GetSessionDetailWithResponse request returning *GetSessionDetailResp
-func (c *ClientWithResponses) GetSessionDetailWithResponse(ctx context.Context, channel string, threadTs string, reqEditors ...RequestEditorFn) (*GetSessionDetailResp, error) {
-	rsp, err := c.GetSessionDetail(ctx, channel, threadTs, reqEditors...)
+func (c *ClientWithResponses) GetSessionDetailWithResponse(ctx context.Context, sessionId string, reqEditors ...RequestEditorFn) (*GetSessionDetailResp, error) {
+	rsp, err := c.GetSessionDetail(ctx, sessionId, reqEditors...)
 	if err != nil {
 		return nil, err
 	}

@@ -3,35 +3,26 @@ mod media;
 mod session;
 
 use std::sync::Arc;
-use std::time::Duration;
 
-use agent::{AgentEvent, AgentRunner, HistoryEntry, HistoryRole, TurnInput};
+use agent::{AgentEvent, AgentRunner, TurnInput};
 use anyhow::Result;
 use async_trait::async_trait;
 use chrono::Utc;
 use domain::{
-    event_types, ConfigStore, HistoryMessage, InboundEvent, OutboundEvent, Reply, SessionId,
-    SessionStatus,
+    event_types, ConfigStore, InboundEvent, OutboundEvent, Reply, SessionId, SessionStatus,
 };
 use futures::StreamExt;
 use gateway::ChannelGateway;
 use outbound::OutboundEmitter;
 use storage::SessionRepo;
-use tokio::sync::oneshot;
 use tracing::{info, warn};
 
-use composition::{
-    compose_annotated_text, lookup_channel_prompt, should_include_slack_communication_context,
-    slack_communication_context,
-};
+use composition::compose_annotated_text;
 use media::{collect_media_for_turn, DownloadResults};
-use session::{
-    derive_channel_from_session, ensure_session_persisted, is_cron_message, is_wake_cron,
-};
+use session::ensure_session_persisted;
 
 use crate::session_coordinator::{SessionCoordinator, Submission};
 
-const STATUS_REFRESH_SECONDS: u64 = 2;
 const GENERIC_ERROR_REPLY: &str =
     "Sorry, something went wrong while generating that response. Please try again.";
 
@@ -302,7 +293,7 @@ mod queue_tests {
             "C123-T1",
             "E1",
             "working",
-            serde_json::json!({"source": "slack"}),
+            serde_json::json!({"source": "http"}),
         );
         let queued = vec![
             inbound(
@@ -362,7 +353,6 @@ async fn process_single_turn(
     );
 
     let snapshot = config.snapshot();
-    let slack = snapshot.slack.clone();
     let session_id = inbound.session_id.clone();
 
     let was_new_session = ensure_session_persisted(session_repo.as_ref(), &inbound, &emitter).await;
@@ -372,38 +362,13 @@ async fn process_single_turn(
     let event_source = inbound_event_source(inbound);
     emit_user_message_received(&emitter, inbound, event_source, false).await;
 
-    let skip_typing = is_cron_message(inbound) || !slack.typing_indicator;
-    let typing_loop = if skip_typing {
-        None
-    } else {
-        Some(spawn_thinking_status_loop(
-            gateway.clone(),
-            session_id.clone(),
-        ))
-    };
-
     let multimodal_available = snapshot.multimodal_model.is_some();
-    let media = collect_media_for_turn(
-        gateway.as_ref(),
-        &inbound.attachments,
-        &slack,
-        multimodal_available,
-    )
-    .await;
-    let annotated_text = compose_annotated_text(&inbound, &slack, &session_id, &media);
-
-    let prior_history =
-        fetch_prior_history_for_session(gateway.as_ref(), &session_id, &slack).await;
+    let media =
+        collect_media_for_turn(gateway.as_ref(), &inbound.attachments, multimodal_available).await;
+    let annotated_text = compose_annotated_text(inbound, &media);
 
     let DownloadResults { images, .. } = media;
-    let mut turn_input = TurnInput::text(annotated_text).with_history(prior_history);
-    if should_include_slack_communication_context(inbound) {
-        turn_input = turn_input.with_dynamic_context(slack_communication_context());
-    }
-    if let Some(channel_prompt) = lookup_channel_prompt(&slack, &session_id) {
-        turn_input = turn_input
-            .with_dynamic_context(format!("## Channel-specific instruction\n{channel_prompt}"));
-    }
+    let mut turn_input = TurnInput::text(annotated_text);
     for (mime, bytes) in images {
         turn_input = turn_input.with_image(mime, bytes);
     }
@@ -434,27 +399,9 @@ async fn process_single_turn(
         },
     };
 
-    if let Some((task, cancel_signal)) = typing_loop {
-        let _ = cancel_signal.send(());
-        let _ = task.await;
-    }
-    if slack.typing_indicator && !is_cron_message(inbound) {
-        if let Err(e) = gateway.stop_typing(&session_id).await {
-            warn!(error = %e, "stop_typing failed");
-        }
-    }
-
     let final_text = format_final_message(&outcome);
     let reply_text_for_event = final_text.clone();
-    if is_cron_message(inbound) && !is_wake_cron(inbound) {
-        let channel = derive_channel_from_session(&session_id);
-        if let Err(e) = gateway
-            .post_to_channel(&channel, Reply::Text(final_text))
-            .await
-        {
-            warn!(error = %e, "post_to_channel (cron) failed");
-        }
-    } else if let Some(stream_id) = http_stream_id.as_deref() {
+    if let Some(stream_id) = http_stream_id.as_deref() {
         turn_event_sink
             .publish_final(stream_id, &session_id, &final_text)
             .await;
@@ -547,9 +494,8 @@ fn inbound_event_source(inbound: &InboundEvent) -> &'static str {
         "trigger" => "trigger",
         "cron" => "cron",
         "cloud_agent_callback" => "cloud_agent_callback",
-        "slack" => "slack",
         _ if inbound.session_id.as_str().starts_with("http-") => "http",
-        _ => "slack",
+        _ => "http",
     }
 }
 
@@ -564,25 +510,6 @@ fn derive_channel_and_thread(session_id: &SessionId) -> (String, String) {
 pub(crate) struct StreamOutcome {
     pub text: String,
     pub error: Option<String>,
-}
-
-fn spawn_thinking_status_loop(
-    gateway: Arc<dyn ChannelGateway>,
-    session_id: SessionId,
-) -> (tokio::task::JoinHandle<()>, oneshot::Sender<()>) {
-    let (cancel_signal, mut cancel_receiver) = oneshot::channel();
-    let handle = tokio::spawn(async move {
-        loop {
-            if let Err(e) = gateway.typing(&session_id).await {
-                warn!(error = %e, "typing(status) failed");
-            }
-            tokio::select! {
-                _ = tokio::time::sleep(Duration::from_secs(STATUS_REFRESH_SECONDS)) => continue,
-                _ = &mut cancel_receiver => break,
-            }
-        }
-    });
-    (handle, cancel_signal)
 }
 
 async fn consume_agent_stream(
@@ -691,37 +618,4 @@ fn format_final_message(outcome: &StreamOutcome) -> String {
         return GENERIC_ERROR_REPLY.to_string();
     }
     outcome.text.clone()
-}
-
-async fn fetch_prior_history_for_session(
-    gateway: &dyn ChannelGateway,
-    session_id: &SessionId,
-    slack_config: &domain::SlackConfig,
-) -> Vec<HistoryEntry> {
-    let limit = slack_config.thread_context.max_messages.max(1);
-    let history_result = gateway.fetch_thread_history(session_id, limit).await;
-    let history = match history_result {
-        Ok(messages) => messages,
-        Err(e) => {
-            warn!(session = %session_id, error = %e, "fetch_thread_history failed");
-            return Vec::new();
-        }
-    };
-    history
-        .into_iter()
-        .map(history_message_into_entry)
-        .collect()
-}
-
-fn history_message_into_entry(message: HistoryMessage) -> HistoryEntry {
-    HistoryEntry {
-        role: if message.is_bot {
-            HistoryRole::Assistant
-        } else {
-            HistoryRole::User
-        },
-        speaker_id: message.user,
-        speaker_display_name: message.user_display_name,
-        text: message.text,
-    }
 }

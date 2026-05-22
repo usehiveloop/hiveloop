@@ -43,9 +43,7 @@ type HindsightRecallClient interface {
 }
 
 type StartupSecrets struct {
-	SlackBotToken string
-	SlackAppToken string
-	ProxyToken    string
+	ProxyToken string
 }
 
 type ProxyTokenResult struct {
@@ -65,7 +63,6 @@ type EmployeeDefinition struct {
 	McpServers       []any            `json:"mcp_servers"`
 	Skills           []SkillSpec      `json:"skills"`
 	Specialists      []any            `json:"specialists"`
-	Slack            map[string]any   `json:"slack,omitempty"`
 	OutboundChannels []any            `json:"outbound_channels"`
 }
 
@@ -113,17 +110,6 @@ type SkillSpec struct {
 	Pinned                       bool              `json:"pinned"`
 }
 
-type SlackConfig struct {
-	PostableChannels []SlackChannelSpec `json:"postable_channels,omitempty"`
-}
-
-type SlackChannelSpec struct {
-	ID          string `json:"id"`
-	Name        string `json:"name"`
-	Description string `json:"description,omitempty"`
-	IsPrivate   bool   `json:"is_private,omitempty"`
-}
-
 type MemoryContext struct {
 	Entries     []MemoryContextEntry `json:"entries"`
 	TokenBudget int                  `json:"token_budget"`
@@ -140,25 +126,12 @@ func PrepareStartup(ctx context.Context, deps CompileDeps, agent *model.Agent) (
 	if agent == nil || agent.OrgID == nil {
 		return nil, fmt.Errorf("employee runtime startup: agent must have org_id")
 	}
-	botToken, err := loadSlackBotToken(ctx, deps, *agent.OrgID)
-	if err != nil {
-		return nil, err
-	}
-	appToken := ""
-	if deps.Cfg != nil {
-		appToken = strings.TrimSpace(deps.Cfg.SlackAppToken)
-	}
-	if appToken == "" {
-		return nil, fmt.Errorf("employee runtime startup: SLACK_APP_TOKEN is required")
-	}
 	proxyToken, err := MintProxyToken(ctx, deps, agent, uuid.Nil)
 	if err != nil {
 		return nil, err
 	}
 	return &StartupSecrets{
-		SlackBotToken: botToken,
-		SlackAppToken: appToken,
-		ProxyToken:    proxyToken.Token,
+		ProxyToken: proxyToken.Token,
 	}, nil
 }
 
@@ -247,7 +220,6 @@ func Compile(ctx context.Context, deps CompileDeps, agent *model.Agent) (*Employ
 	contextMap := map[string]any{
 		"memory": buildMemoryContext(ctx, deps, agent),
 	}
-	slackConfig := buildSlackConfig(ctx, deps, agent)
 	modelID := strings.TrimSpace(agent.Model)
 	if modelID == "" {
 		modelID = DefaultEmployeeModel
@@ -266,7 +238,6 @@ func Compile(ctx context.Context, deps CompileDeps, agent *model.Agent) (*Employ
 		McpServers:       mcpServers,
 		Skills:           skills,
 		Specialists:      []any{},
-		Slack:            slackConfigMap(slackConfig),
 		OutboundChannels: []any{},
 	}, nil
 }

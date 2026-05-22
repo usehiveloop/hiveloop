@@ -42,7 +42,6 @@ func newEmployeeUpgradeFixture(t *testing.T) *employeeUpgradeFixture {
 		EmployeeSandboxBaseImagePrefix: "employee-runtime-test-v2",
 		BridgeHost:                     "cp.hivy.test",
 		ProxyHost:                      "proxy.hivy.test",
-		SlackAppToken:                  "xapp-test-token",
 	}
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
@@ -120,7 +119,6 @@ func newEmployeeUpgradeFixture(t *testing.T) *employeeUpgradeFixture {
 	if err := db.Create(&agent).Error; err != nil {
 		t.Fatalf("create agent: %v", err)
 	}
-	seedEmployeeUpgradeSlackProfile(t, db, kms, org.ID, user.ID, agent.ID)
 	bridgeKey := "runtime-secret-" + uuid.NewString()
 	encryptedKey, err := encKey.EncryptString(bridgeKey)
 	if err != nil {
@@ -168,20 +166,6 @@ func newEmployeeUpgradeFixture(t *testing.T) *employeeUpgradeFixture {
 	return &employeeUpgradeFixture{
 		db: db, server: server, provider: provider, enqueuer: enqueuer, handler: handler,
 		org: org, agent: agent, old: old, upgrade: upgrade,
-	}
-}
-
-func seedEmployeeUpgradeSlackProfile(t *testing.T, db *gorm.DB, kms *crypto.KeyWrapper, orgID, userID, agentID uuid.UUID) {
-	t.Helper()
-	_ = kms
-	_ = agentID
-	integ := model.InIntegration{ID: uuid.New(), UniqueKey: "slack-test-" + uuid.NewString()[:8], Provider: "slack", DisplayName: "Slack"}
-	if err := db.Create(&integ).Error; err != nil {
-		t.Fatalf("create slack integration: %v", err)
-	}
-	conn := model.InConnection{ID: uuid.New(), OrgID: orgID, UserID: userID, InIntegrationID: integ.ID, NangoConnectionID: "slack-conn-test", Meta: model.JSON{}}
-	if err := db.Create(&conn).Error; err != nil {
-		t.Fatalf("create slack connection: %v", err)
 	}
 }
 

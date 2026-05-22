@@ -132,32 +132,6 @@ func (h *employeeHarness) setSandboxSnapshot(t *testing.T, sandboxID uuid.UUID, 
 	}
 }
 
-func (h *employeeHarness) seedSlackProfile(t *testing.T, m orgWithMember, agentID uuid.UUID) model.InConnection {
-	t.Helper()
-	integ := model.InIntegration{
-		ID:          uuid.New(),
-		UniqueKey:   "slack-test-" + uuid.NewString()[:8],
-		Provider:    "slack",
-		DisplayName: "Slack",
-	}
-	if err := h.db.Create(&integ).Error; err != nil {
-		t.Fatalf("create slack integration: %v", err)
-	}
-	conn := model.InConnection{
-		ID:                uuid.New(),
-		OrgID:             m.org.ID,
-		UserID:            m.user.ID,
-		InIntegrationID:   integ.ID,
-		NangoConnectionID: "slack-conn-test",
-		Meta:              model.JSON{},
-	}
-	if err := h.db.Create(&conn).Error; err != nil {
-		t.Fatalf("create slack connection: %v", err)
-	}
-	conn.InIntegration = integ
-	return conn
-}
-
 func (h *employeeHarness) setRuntimeEnvVars(t *testing.T, agentID uuid.UUID, vars map[string]string) {
 	t.Helper()
 	payload, err := json.Marshal(vars)

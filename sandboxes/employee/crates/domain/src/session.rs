@@ -3,20 +3,12 @@ use serde::{Deserialize, Serialize};
 use std::fmt;
 
 /// `SessionId` is the canonical identifier for a session.
-///
-/// Format for Slack: `"{channel}-{thread_ts}"`. Top-level Slack messages with
-/// no `thread_ts` use the message's own `ts` (so each top-level @mention
-/// becomes its own session).
 #[derive(Debug, Clone, Hash, Eq, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[cfg_attr(feature = "openapi", schema(value_type = String))]
 pub struct SessionId(String);
 
 impl SessionId {
-    pub fn from_slack(channel: &str, thread_ts: &str) -> Self {
-        Self(format!("{channel}-{thread_ts}"))
-    }
-
     pub fn as_str(&self) -> &str {
         &self.0
     }

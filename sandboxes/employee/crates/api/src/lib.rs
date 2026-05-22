@@ -16,7 +16,7 @@ use tokio::sync::oneshot;
 use tracing::{info, warn};
 
 pub use http_gateway::{HttpGatewayState, HttpStreamBroker, HttpStreamEvent};
-pub use state::{ApiState, CloudAgentCallbackDeliverer, OutboundConfigReloader};
+pub use state::{ApiState, OutboundConfigReloader};
 
 #[cfg(feature = "openapi")]
 mod openapi {
@@ -61,10 +61,6 @@ mod openapi {
             domain::SkillTrigger,
             domain::SubagentSpec,
             domain::SubagentDefinition,
-            domain::SlackConfig,
-            domain::AllowBotsMode,
-            domain::ProgressiveMessages,
-            domain::ThreadContextConfig,
             domain::OutboundEvent,
             domain::OutboundChannelSpec,
             domain::OutboundChannelKind,
@@ -133,10 +129,7 @@ pub fn build_router(state: ApiState) -> Router {
         )
         .route("/config/env", put(handlers::put_runtime_env))
         .route("/sessions", get(handlers::list_sessions))
-        .route(
-            "/sessions/:channel/:thread_ts",
-            get(handlers::get_session_detail),
-        )
+        .route("/sessions/:session_id", get(handlers::get_session_detail))
         .route("/healthz", get(handlers::healthz))
         .route("/readyz", get(handlers::readyz))
         .route("/gateway/http/messages", post(handlers::post_http_message))

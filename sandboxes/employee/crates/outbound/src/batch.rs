@@ -333,8 +333,8 @@ mod tests {
             state.add_stream_delta(OutboundEvent::new(
                 "agent.stream.token",
                 json!({
-                    "session_id": "slack-thread-1",
-                    "source": "slack",
+                    "session_id": "http-thread-1",
+                    "source": "http",
                     "sequence": sequence,
                     "agent_event": {"text": "x"},
                 }),
@@ -362,7 +362,7 @@ mod tests {
                 "agent.stream.thinking",
                 json!({
                     "session_id": session,
-                    "source": "slack",
+                    "source": "http",
                     "sequence": 1,
                     "agent_event": {"text": session},
                 }),

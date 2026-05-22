@@ -1,4 +1,4 @@
-use domain::{Attachment, SlackConfig};
+use domain::Attachment;
 use gateway::ChannelGateway;
 use tracing::{info, warn};
 
@@ -21,7 +21,6 @@ pub struct InlinedTextFile {
 pub async fn collect_media_for_turn(
     gateway: &dyn ChannelGateway,
     attachments: &[Attachment],
-    slack: &SlackConfig,
     multimodal_available: bool,
 ) -> DownloadResults {
     let mut images = Vec::new();
@@ -54,8 +53,8 @@ pub async fn collect_media_for_turn(
             handle_text_file_download(
                 gateway,
                 attachment,
-                slack.inline_text_files,
-                slack.inline_text_max_bytes,
+                true,
+                102_400,
                 &mut text_files,
                 &mut document_summaries,
                 &mut failure_notices,

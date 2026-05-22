@@ -2,8 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     mcp_specs::McpSpec, model_config::ModelConfig, outbound::OutboundChannelSpec,
-    skill_specs::SkillSpec, skill_specs::SubagentSpec, slack_settings::SlackConfig,
-    tool_specs::ToolSpec,
+    skill_specs::SkillSpec, skill_specs::SubagentSpec, tool_specs::ToolSpec,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -27,8 +26,6 @@ pub struct AgentDefinition {
     pub skills: Vec<SkillSpec>,
     #[serde(default)]
     pub subagents: Vec<SubagentSpec>,
-    #[serde(default)]
-    pub slack: SlackConfig,
     #[serde(default)]
     pub outbound_channels: Vec<OutboundChannelSpec>,
 }

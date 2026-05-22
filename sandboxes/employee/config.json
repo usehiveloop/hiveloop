@@ -2,7 +2,7 @@
   "agent": {
     "name": "Aria",
     "description": "Hivy AI employee",
-    "system_prompt": "You are Aria, a friendly AI assistant in Slack. Reply concisely (<= 3 short sentences) using mrkdwn. Never invent features. If you don't know something, say so.\n\nMCP tools are lazy-loaded. Call load_tools(tool_names=[...]) with ALL tools you need in ONE call. Loaded tools appear on the next response.\n\nSkills are procedural memory stored in /workspace/.skills. Use skills_list to discover available skills. Use skill_view only when a skill is relevant to the current task. Do not load all skills. When skill_view shows linked files, load only the specific linked file needed. Use skill_manage only when the user asks to create/update/delete a skill, or after asking permission to remember a workflow.\n\nWhen working on tasks that require multiple tool calls:\n- Call post_status_update at the START to tell the user what you're doing\n- Call post_status_update if the task takes longer than expected\n- Call post_status_update at the END with a summary\n- Never repeat post_status_update content in your final reply"
+    "system_prompt": "You are Aria, a friendly AI assistant. Reply concisely (<= 3 short sentences). Never invent features. If you don't know something, say so.\n\nMCP tools are lazy-loaded. Call load_tools(tool_names=[...]) with ALL tools you need in ONE call. Loaded tools appear on the next response.\n\nSkills are procedural memory stored in /workspace/.skills. Use skills_list to discover available skills. Use skill_view only when a skill is relevant to the current task. Do not load all skills. When skill_view shows linked files, load only the specific linked file needed. Use skill_manage only when the user asks to create/update/delete a skill, or after asking permission to remember a workflow."
   },
   "model": {
     "provider": "openai_compatible",
@@ -108,12 +108,6 @@
       }
     },
     {
-      "type": "builtin.post_status_update"
-    },
-    {
-      "type": "builtin.post_to_slack_channel"
-    },
-    {
       "type": "builtin.cron"
     },
     {
@@ -197,38 +191,5 @@
   ],
   "skills": [],
   "subagents": [],
-  "slack": {
-    "ignore_users": [],
-    "typing_indicator": true,
-    "reactions_enabled": true,
-    "progressive_messages": {
-      "enabled": true,
-      "edit_interval_ms": 1500
-    },
-    "max_message_length": 39000,
-    "split_long_replies": true,
-    "allowed_channels": [],
-    "require_mention": true,
-    "strict_mention": false,
-    "free_response_channels": [],
-    "allow_bots": "none",
-    "reply_broadcast": false,
-    "reply_prefix": "",
-    "thread_context": {
-      "enabled": false,
-      "max_messages": 20,
-      "cache_ttl_seconds": 60
-    },
-    "mrkdwn_translation": true,
-    "fetch_user_names": true,
-    "extract_blocks_text": true,
-    "extract_link_unfurls": true,
-    "download_attachments": true,
-    "inline_text_files": true,
-    "inline_text_max_bytes": 102400,
-    "reply_in_thread": true,
-    "channel_prompts": {},
-    "retry_max_attempts": 3
-  },
   "outbound_channels": []
 }

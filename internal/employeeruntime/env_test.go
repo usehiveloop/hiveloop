@@ -13,8 +13,6 @@ func TestEmployeeEnvCatalogGolden(t *testing.T) {
 	}
 	want := []string{
 		EmployeeEnvRuntimeSecret,
-		EmployeeEnvSlackBotToken,
-		EmployeeEnvSlackAppToken,
 		EmployeeEnvProxyAPIKey,
 		EmployeeEnvAgentModel,
 		EmployeeEnvAgentBaseURL,
@@ -80,9 +78,6 @@ func TestEmployeeEnvReport_TracksMissingForbiddenAndRedactedValues(t *testing.T)
 	}
 	if got := byKey[EmployeeEnvAgentBaseURL]; !got.Set || got.Value != "https://proxy.example.test/v1" || got.Redacted {
 		t.Fatalf("non-sensitive env report = %+v", got)
-	}
-	if got := byKey[EmployeeEnvSlackBotToken]; got.Set || got.Status != EmployeeEnvStatusMissing || !got.Sensitive {
-		t.Fatalf("missing slack token report = %+v", got)
 	}
 	if got := byKey[EmployeeForbiddenEnvOpenRouterAPIKey]; !got.Set || got.Status != EmployeeEnvStatusForbidden || !got.Forbidden {
 		t.Fatalf("forbidden provider key report = %+v", got)

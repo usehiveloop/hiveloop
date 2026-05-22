@@ -102,23 +102,16 @@ fn event_kind_for_message(message: &AgentMessage) -> EventKind {
 
 fn format_history_user(user_id: String, name: Option<String>, text: String) -> String {
     let user_id = user_id.trim();
-    let mention = slack_user_mention(user_id);
-    match (name.map(|name| name.trim().to_string()), mention) {
-        (Some(name), Some(mention)) if !name.is_empty() => format!("{name} ({mention}): {text}"),
-        (Some(name), None) if !name.is_empty() => format!("{name}: {text}"),
-        (_, Some(mention)) => format!("{mention}: {text}"),
+    match name.map(|name| name.trim().to_string()) {
+        Some(name) if !name.is_empty() && !user_id.is_empty() => {
+            format!("{name} ({user_id}): {text}")
+        }
+        Some(name) if !name.is_empty() => format!("{name}: {text}"),
+        _ if !user_id.is_empty() && user_id != "cron" && user_id != "bot" => {
+            format!("{user_id}: {text}")
+        }
         _ => text,
     }
-}
-
-fn slack_user_mention(user_id: &str) -> Option<String> {
-    if user_id.is_empty() || user_id == "cron" || user_id == "bot" {
-        return None;
-    }
-    if user_id.starts_with('U') || user_id.starts_with('W') {
-        return Some(format!("<@{user_id}>"));
-    }
-    None
 }
 
 #[cfg(test)]
@@ -253,7 +246,7 @@ mod tests {
             crate::primitives::MessagePart::Text { text } => text,
             _ => panic!("expected text"),
         };
-        assert_eq!(seeded_text, "Kim (<@U123>): hi");
+        assert_eq!(seeded_text, "Kim (U123): hi");
         assert_eq!(
             load_model_history(Some(repo.as_ref()), &session_id, 100)
                 .await
@@ -295,7 +288,7 @@ mod tests {
     }
 
     #[test]
-    fn visible_gateway_history_keeps_slack_user_id_with_name() {
+    fn visible_gateway_history_keeps_user_id_with_name() {
         let messages = visible_messages_from_gateway(vec![HistoryEntry {
             role: HistoryRole::User,
             speaker_id: "U08P1G9EDNG".into(),
@@ -306,9 +299,6 @@ mod tests {
             crate::primitives::MessagePart::Text { text } => text,
             _ => panic!("expected text"),
         };
-        assert_eq!(
-            text,
-            "Nora (<@U08P1G9EDNG>): Loop me in on invoice failures."
-        );
+        assert_eq!(text, "Nora (U08P1G9EDNG): Loop me in on invoice failures.");
     }
 }

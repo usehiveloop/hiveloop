@@ -24,7 +24,6 @@ type syncEmployeeResponse struct {
 // @Summary Push compiled config to an employee sandbox
 // @Description Compiles the employee config, provisions an employee sandbox if
 // @Description needed, pushes it to the runtime, and verifies readiness.
-// @Description Requires the org to have an active Slack connection.
 // @Tags employees
 // @Produce json
 // @Param id path string true "Agent UUID"
@@ -71,17 +70,6 @@ func (h *EmployeeHandler) Sync(w http.ResponseWriter, r *http.Request) {
 		return
 	} else if ok {
 		writeEmployeeUpgradeConflict(w, upgrade)
-		return
-	}
-
-	hasProfile, err := h.orgHasActiveSlackConnection(ctx, org.ID)
-	if err != nil {
-		log.ErrorContext(ctx, "count Slack org connections", "error", err, "agent_id", agentID)
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to load Slack connection"})
-		return
-	}
-	if !hasProfile {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "organization must have an active Slack connection"})
 		return
 	}
 

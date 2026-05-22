@@ -52,7 +52,6 @@ func TestEmployeeSandboxUpgrade_StartRequiresAdmin(t *testing.T) {
 	h := newEmployeeHarness(t)
 	m := h.createOrgWithRole(t, "member")
 	agent := h.seedEmployeeAgent(t, m)
-	h.seedSlackProfile(t, m, agent.ID)
 	h.seedSandbox(t, m, agent.ID)
 
 	rr := h.postUpgrade(t, m, agent.ID, nil, "member")
@@ -65,7 +64,6 @@ func TestEmployeeSandboxUpgrade_StartEnqueuesOperation(t *testing.T) {
 	h := newEmployeeHarness(t)
 	m := h.createOrg(t)
 	agent := h.seedEmployeeAgent(t, m)
-	h.seedSlackProfile(t, m, agent.ID)
 	oldSandbox := h.seedSandbox(t, m, agent.ID)
 
 	rr := h.postUpgrade(t, m, agent.ID, nil, "admin")
@@ -104,7 +102,6 @@ func TestEmployeeSandboxUpgrade_DuplicateActiveReturnsExisting(t *testing.T) {
 	h := newEmployeeHarness(t)
 	m := h.createOrg(t)
 	agent := h.seedEmployeeAgent(t, m)
-	h.seedSlackProfile(t, m, agent.ID)
 	oldSandbox := h.seedSandbox(t, m, agent.ID)
 	existing := model.EmployeeSandboxUpgrade{
 		OrgID:        m.org.ID,
@@ -140,7 +137,6 @@ func TestEmployeeSandboxUpgrade_DeletesStaleTaskAfterFailedUpgrade(t *testing.T)
 	h := newEmployeeHarness(t)
 	m := h.createOrg(t)
 	agent := h.seedEmployeeAgent(t, m)
-	h.seedSlackProfile(t, m, agent.ID)
 	oldSandbox := h.seedSandbox(t, m, agent.ID)
 	failed := model.EmployeeSandboxUpgrade{
 		OrgID:        m.org.ID,
@@ -172,10 +168,6 @@ func TestEmployeeSandboxUpgrade_MissingProfileOrSandbox(t *testing.T) {
 	m := h.createOrg(t)
 	agent := h.seedEmployeeAgent(t, m)
 
-	if rr := h.postUpgrade(t, m, agent.ID, nil, "admin"); rr.Code != http.StatusBadRequest {
-		t.Fatalf("missing profile: expected 400, got %d: %s", rr.Code, rr.Body.String())
-	}
-	h.seedSlackProfile(t, m, agent.ID)
 	if rr := h.postUpgrade(t, m, agent.ID, nil, "admin"); rr.Code != http.StatusConflict {
 		t.Fatalf("missing sandbox: expected 409, got %d: %s", rr.Code, rr.Body.String())
 	}

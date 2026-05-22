@@ -473,7 +473,7 @@
         ]
       }
     },
-    "/sessions/{channel}/{thread_ts}": {
+    "/sessions/{session_id}": {
       "get": {
         "tags": [
           "crate::handlers"
@@ -481,18 +481,9 @@
         "operationId": "get_session_detail",
         "parameters": [
           {
-            "name": "channel",
+            "name": "session_id",
             "in": "path",
-            "description": "Slack channel identifier",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "thread_ts",
-            "in": "path",
-            "description": "Slack thread timestamp",
+            "description": "Session identifier",
             "required": true,
             "schema": {
               "type": "string"
@@ -577,9 +568,6 @@
               "$ref": "#/components/schemas/SkillSpec"
             }
           },
-          "slack": {
-            "$ref": "#/components/schemas/SlackConfig"
-          },
           "subagents": {
             "type": "array",
             "items": {
@@ -610,14 +598,6 @@
             "type": "string"
           }
         }
-      },
-      "AllowBotsMode": {
-        "type": "string",
-        "enum": [
-          "none",
-          "mentions",
-          "all"
-        ]
       },
       "Attachment": {
         "type": "object",
@@ -1750,23 +1730,6 @@
           "payload": {}
         }
       },
-      "ProgressiveMessages": {
-        "type": "object",
-        "required": [
-          "enabled",
-          "edit_interval_ms"
-        ],
-        "properties": {
-          "edit_interval_ms": {
-            "type": "integer",
-            "format": "int32",
-            "minimum": 0
-          },
-          "enabled": {
-            "type": "boolean"
-          }
-        }
-      },
       "PromptFragment": {
         "type": "object",
         "properties": {
@@ -1938,7 +1901,7 @@
       },
       "SessionId": {
         "type": "string",
-        "description": "`SessionId` is the canonical identifier for a session.\n\nFormat for Slack: `\"{channel}-{thread_ts}\"`. Top-level Slack messages with\nno `thread_ts` use the message's own `ts` (so each top-level @mention\nbecomes its own session)."
+        "description": "`SessionId` is the canonical identifier for a session."
       },
       "SessionStatus": {
         "type": "string",
@@ -2052,134 +2015,6 @@
           }
         ]
       },
-      "SlackChannelSpec": {
-        "type": "object",
-        "required": [
-          "id",
-          "name"
-        ],
-        "properties": {
-          "description": {
-            "type": "string"
-          },
-          "id": {
-            "type": "string"
-          },
-          "is_private": {
-            "type": "boolean"
-          },
-          "name": {
-            "type": "string"
-          }
-        }
-      },
-      "SlackConfig": {
-        "type": "object",
-        "properties": {
-          "allow_bots": {
-            "$ref": "#/components/schemas/AllowBotsMode"
-          },
-          "allowed_channels": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "channel_prompts": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "string"
-            },
-            "propertyNames": {
-              "type": "string"
-            }
-          },
-          "download_attachments": {
-            "type": "boolean"
-          },
-          "extract_blocks_text": {
-            "type": "boolean"
-          },
-          "extract_link_unfurls": {
-            "type": "boolean"
-          },
-          "fetch_user_names": {
-            "type": "boolean"
-          },
-          "free_response_channels": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "ignore_users": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "inline_text_files": {
-            "type": "boolean"
-          },
-          "inline_text_max_bytes": {
-            "type": "integer",
-            "format": "int64",
-            "minimum": 0
-          },
-          "max_message_length": {
-            "type": "integer",
-            "format": "int32",
-            "minimum": 0
-          },
-          "mrkdwn_translation": {
-            "type": "boolean"
-          },
-          "postable_channels": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/SlackChannelSpec"
-            }
-          },
-          "progressive_messages": {
-            "$ref": "#/components/schemas/ProgressiveMessages"
-          },
-          "reactions_enabled": {
-            "type": "boolean"
-          },
-          "reply_broadcast": {
-            "type": "boolean"
-          },
-          "reply_in_thread": {
-            "type": "boolean"
-          },
-          "reply_prefix": {
-            "type": "string"
-          },
-          "require_mention": {
-            "type": "boolean"
-          },
-          "retry_max_attempts": {
-            "type": [
-              "integer",
-              "null"
-            ],
-            "format": "int32",
-            "minimum": 0
-          },
-          "split_long_replies": {
-            "type": "boolean"
-          },
-          "strict_mention": {
-            "type": "boolean"
-          },
-          "thread_context": {
-            "$ref": "#/components/schemas/ThreadContextConfig"
-          },
-          "typing_indicator": {
-            "type": "boolean"
-          }
-        }
-      },
       "SubagentDefinition": {
         "type": "object",
         "required": [
@@ -2237,29 +2072,6 @@
           },
           "tool_name": {
             "type": "string"
-          }
-        }
-      },
-      "ThreadContextConfig": {
-        "type": "object",
-        "required": [
-          "enabled",
-          "max_messages",
-          "cache_ttl_seconds"
-        ],
-        "properties": {
-          "cache_ttl_seconds": {
-            "type": "integer",
-            "format": "int64",
-            "minimum": 0
-          },
-          "enabled": {
-            "type": "boolean"
-          },
-          "max_messages": {
-            "type": "integer",
-            "format": "int32",
-            "minimum": 0
           }
         }
       },
@@ -2338,34 +2150,6 @@
                 "type": "string",
                 "enum": [
                   "builtin.write_file"
-                ]
-              }
-            }
-          },
-          {
-            "type": "object",
-            "required": [
-              "type"
-            ],
-            "properties": {
-              "type": {
-                "type": "string",
-                "enum": [
-                  "builtin.post_status_update"
-                ]
-              }
-            }
-          },
-          {
-            "type": "object",
-            "required": [
-              "type"
-            ],
-            "properties": {
-              "type": {
-                "type": "string",
-                "enum": [
-                  "builtin.post_to_slack_channel"
                 ]
               }
             }

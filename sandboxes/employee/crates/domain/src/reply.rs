@@ -1,7 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-/// Outbound reply payload. `Rich` is per-platform (Slack Block Kit, Discord
-/// Components, Teams Adaptive Cards, ...) — adapters render it themselves.
+/// Outbound reply payload. `Rich` is gateway-specific structured content.
 #[derive(Debug, Clone)]
 pub enum Reply {
     Text(String),

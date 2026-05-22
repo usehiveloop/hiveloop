@@ -63,8 +63,8 @@ func TestBuildPromptFragments_UpgradesDefaultManagedIdentityPrompt(t *testing.T)
 
 			fragments := buildPromptFragments(context.Background(), nil, agent, description)
 
-			if !strings.Contains(fragments.Identity.Content, "Slack communication contract") {
-				t.Fatalf("identity fragment missing current Slack communication contract: %#v", fragments.Identity)
+			if !strings.Contains(fragments.Identity.Content, "Communication contract") {
+				t.Fatalf("identity fragment missing current communication contract: %#v", fragments.Identity)
 			}
 			if !strings.Contains(fragments.Identity.Content, "Do not say \"specialist runtime\"") {
 				t.Fatalf("identity fragment missing specialist runtime leakage guard: %#v", fragments.Identity)
@@ -90,7 +90,7 @@ func TestBuildPromptFragments_PreservesCustomIdentityPrompt(t *testing.T) {
 	if strings.Contains(fragments.Identity.Content, custom) {
 		t.Fatalf("identity fragment should ignore custom identity prompt: %#v", fragments.Identity)
 	}
-	if !strings.Contains(fragments.Identity.Content, "Slack communication contract") {
+	if !strings.Contains(fragments.Identity.Content, "Communication contract") {
 		t.Fatalf("identity fragment should use backend-owned default: %#v", fragments.Identity)
 	}
 }
