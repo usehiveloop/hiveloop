@@ -9,7 +9,6 @@ import {
   materialDark,
   materialLight,
 } from "@uiw/codemirror-theme-material"
-import { useTheme } from "next-themes"
 
 const CodeMirror = dynamic(
   () => import("@uiw/react-codemirror").then((mod) => mod.default),
@@ -18,7 +17,7 @@ const CodeMirror = dynamic(
     loading: () => (
       <div className="h-[200px] w-full animate-pulse rounded-xl border border-input bg-muted/30" />
     ),
-  },
+  }
 )
 
 const chromeOverrides = EditorView.theme({
@@ -34,6 +33,18 @@ const chromeOverrides = EditorView.theme({
   ".cm-scroller": { overflow: "auto" },
 })
 
+function useSystemDark() {
+  const [isDark, setIsDark] = React.useState(false)
+  React.useEffect(() => {
+    const mq = window.matchMedia("(prefers-color-scheme: dark)")
+    setIsDark(mq.matches)
+    const handler = (e: MediaQueryListEvent) => setIsDark(e.matches)
+    mq.addEventListener("change", handler)
+    return () => mq.removeEventListener("change", handler)
+  }, [])
+  return isDark
+}
+
 interface BuildCommandsEditorProps {
   value: string
   onChange: (value: string) => void
@@ -47,8 +58,7 @@ export function BuildCommandsEditor({
   placeholder,
   height = "200px",
 }: BuildCommandsEditorProps) {
-  const { resolvedTheme } = useTheme()
-  const isDark = resolvedTheme === "dark"
+  const isDark = useSystemDark()
 
   const extensions = React.useMemo(
     () => [StreamLanguage.define(shell), chromeOverrides, EditorView.lineWrapping],

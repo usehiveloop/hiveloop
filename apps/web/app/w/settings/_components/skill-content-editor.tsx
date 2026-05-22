@@ -8,7 +8,6 @@ import {
   materialDark,
   materialLight,
 } from "@uiw/codemirror-theme-material"
-import { useTheme } from "next-themes"
 import { cn } from "@/lib/utils"
 
 const CodeMirror = dynamic(
@@ -18,7 +17,7 @@ const CodeMirror = dynamic(
     loading: () => (
       <div className="h-[280px] w-full animate-pulse rounded-xl border border-input bg-muted/30" />
     ),
-  },
+  }
 )
 
 const chromeOverrides = EditorView.theme({
@@ -33,6 +32,18 @@ const chromeOverrides = EditorView.theme({
   ".cm-line": { padding: "0" },
   ".cm-scroller": { overflow: "auto" },
 })
+
+function useSystemDark() {
+  const [isDark, setIsDark] = React.useState(false)
+  React.useEffect(() => {
+    const mq = window.matchMedia("(prefers-color-scheme: dark)")
+    setIsDark(mq.matches)
+    const handler = (e: MediaQueryListEvent) => setIsDark(e.matches)
+    mq.addEventListener("change", handler)
+    return () => mq.removeEventListener("change", handler)
+  }, [])
+  return isDark
+}
 
 interface SkillContentEditorProps {
   value: string
@@ -49,8 +60,7 @@ export function SkillContentEditor({
   height = "280px",
   className,
 }: SkillContentEditorProps) {
-  const { resolvedTheme } = useTheme()
-  const isDark = resolvedTheme === "dark"
+  const isDark = useSystemDark()
 
   const extensions = React.useMemo(
     () => [markdown(), chromeOverrides, EditorView.lineWrapping],

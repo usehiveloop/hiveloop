@@ -1,585 +1,1367 @@
 "use client"
 
+import { useState, useRef, useEffect } from "react"
 import Link from "next/link"
+import { usePathname } from "next/navigation"
+import { AnimatePresence, motion } from "motion/react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { HugeiconsIcon } from "@hugeicons/react"
-import { ArrowRight01Icon, CpuIcon } from "@hugeicons/core-free-icons"
-import { motion } from "motion/react"
+import { Switch } from "@/components/ui/switch"
+import { Badge } from "@/components/ui/badge"
+import {
+  NavigationMenu,
+  NavigationMenuContent,
+  NavigationMenuItem,
+  NavigationMenuLink,
+  NavigationMenuList,
+  NavigationMenuTrigger,
+} from "@/components/ui/navigation-menu"
+import {
+  GithubIcon,
+  SlackIcon,
+  FigmaIcon,
+  VercelIcon,
+  StripeIcon,
+  GoogleDriveIcon,
+  GoogleExcelIcon,
+  TrelloIcon,
+  SentryIcon,
+  AwsIcon,
+  PostgresIcon,
+  GoogleCloudIcon,
+  GoogleChromeIcon,
+  TiktokIcon,
+  ClickupIcon,
+  InstagramIcon,
+  PosthogIcon,
+  GoogleAnalyticsIcon,
+  GoogleCalendarIcon,
+  PhotoshopIcon,
+  GoogleSlidesIcon,
+} from "@/components/icons"
+import { MarketingFooter } from "./_components/footer"
 
-export default function Home() {
+/* ─────────────────────────── Navbar ─────────────────────────── */
+
+function Navbar() {
+  const pathname = usePathname()
+  const isActive = (href: string) => pathname === href
+
   return (
-    <div className="w-full bg-background flex flex-col relative">
-      <div className="flex flex-1 px-4 sm:px-6 lg:px-8">
-        <div className="w-full max-w-424 lg:min-h-325 mx-auto relative overflow-hidden">
-          {/* Grid background */}
+    <NavigationMenu viewport={false} className="hidden items-center md:flex">
+      <nav className="flex h-11 items-center rounded-full border border-[var(--nav-border)] bg-[var(--nav-bg)] px-2 backdrop-blur-lg">
+        <NavigationMenuList>
+          <NavigationMenuItem>
+            <NavigationMenuLink
+              href="#"
+              className={isActive("/") ? "bg-black/[0.03] text-foreground dark:bg-white/[0.05]" : undefined}
+            >
+              Product
+            </NavigationMenuLink>
+          </NavigationMenuItem>
+          <NavigationMenuItem>
+            <NavigationMenuTrigger>Resources</NavigationMenuTrigger>
+            <NavigationMenuContent>
+              <ul className="grid w-44 gap-0.5 p-1.5">
+                <li>
+                  <NavigationMenuLink href="#">Blog</NavigationMenuLink>
+                </li>
+                <li>
+                  <NavigationMenuLink href="#">Changelog</NavigationMenuLink>
+                </li>
+                <li>
+                  <NavigationMenuLink href="#">Docs</NavigationMenuLink>
+                </li>
+              </ul>
+            </NavigationMenuContent>
+          </NavigationMenuItem>
+          <NavigationMenuItem>
+            <NavigationMenuTrigger>Solutions</NavigationMenuTrigger>
+            <NavigationMenuContent>
+              <ul className="grid w-44 gap-0.5 p-1.5">
+                <li>
+                  <NavigationMenuLink href="#">Use cases</NavigationMenuLink>
+                </li>
+                <li>
+                  <NavigationMenuLink href="#">Integrations</NavigationMenuLink>
+                </li>
+              </ul>
+            </NavigationMenuContent>
+          </NavigationMenuItem>
+          <NavigationMenuItem>
+            <NavigationMenuLink
+              asChild
+              className={isActive("/pricing") ? "bg-black/[0.03] text-foreground dark:bg-white/[0.05]" : undefined}
+            >
+              <Link href="/pricing">Pricing</Link>
+            </NavigationMenuLink>
+          </NavigationMenuItem>
+          <NavigationMenuItem>
+            <NavigationMenuLink
+              href="https://github.com/usehivy/hivy"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="ml-1 inline-flex flex-row items-center gap-1.5"
+            >
+              <GithubIcon size={16} />
+              <span>2.4k</span>
+            </NavigationMenuLink>
+          </NavigationMenuItem>
+        </NavigationMenuList>
+      </nav>
+    </NavigationMenu>
+  )
+}
+
+/* ─────────────────────────── Announcement Pill ─────────────────────────── */
+
+function AnnouncementPill() {
+  return (
+    <Badge variant="dot">
+      <span className="relative flex h-2 w-2">
+        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--pill-from)] opacity-75" />
+        <span className="relative inline-flex h-2 w-2 rounded-full bg-[var(--pill-from)]" />
+      </span>
+      Meet Hivy — your AI coworker for busy teams
+    </Badge>
+  )
+}
+
+/* ─────────────────────────── Ghost ─────────────────────────── */
+
+function Ghost({
+  color,
+  bgColor,
+  size = 64,
+  className = "",
+}: {
+  color: string
+  bgColor: string
+  size?: number
+  className?: string
+}) {
+  return (
+    <svg
+      viewBox="0 0 640 640"
+      width={size}
+      height={size}
+      style={{ color }}
+      fill="currentColor"
+      className={className}
+    >
+      <path
+        d="M63.7314 260.875C115.623 104.119 238.334 51.5019 291.736 44.0986C600.403 1.30772 662.211 304.136 543.862 460.66C441.808 595.633 262.075 620.78 154.214 585.754C59.2103 554.903 6.44755 433.92 63.7314 260.875Z"
+        fill="currentColor"
+      />
+      <ellipse cx="318.5" cy="282" rx="45.5" ry="101" fill={bgColor} />
+      <ellipse cx="457.5" cy="282" rx="45.5" ry="101" fill={bgColor} />
+      <path
+        d="M 80 550 C 40 600, 0 620, -60 650 C -120 680, -140 720, -180 750 C -220 780, -240 820, -260 850 C -280 880, -300 920, -340 950"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="54"
+        strokeLinecap="round"
+      />
+    </svg>
+  )
+}
+
+/* ─────────────────────────── Hero ─────────────────────────── */
+
+const scatteredIconMap: Record<string, React.ReactNode> = {
+  github: <GithubIcon size={20} />,
+  slack: <SlackIcon size={20} />,
+  aws: <AwsIcon size={20} />,
+  figma: <FigmaIcon size={20} />,
+  vercel: <VercelIcon size={20} />,
+  stripe: <StripeIcon size={20} />,
+  postgres: <PostgresIcon size={20} />,
+  "google-cloud": <GoogleCloudIcon size={20} />,
+  sentry: <SentryIcon size={20} />,
+  trello: <TrelloIcon size={20} />,
+  "google-chrome": <GoogleChromeIcon size={20} />,
+  tiktok: <TiktokIcon size={20} />,
+  clickup: <ClickupIcon size={20} />,
+  instagram: <InstagramIcon size={20} />,
+  "google-excel": <GoogleExcelIcon size={20} />,
+  "google-drive": <GoogleDriveIcon size={20} />,
+  posthog: <PosthogIcon size={20} />,
+  "google-analytics": <GoogleAnalyticsIcon size={20} />,
+  "google-calendar": <GoogleCalendarIcon size={20} />,
+  photoshop: <PhotoshopIcon size={20} />,
+  "google-slides": <GoogleSlidesIcon size={20} />,
+}
+
+function ScatteredIcons() {
+  const icons: {
+    name: string
+    x: number
+    y: number
+    size: number
+    delay: string
+    drift: number
+    opacity: number
+  }[] = [
+    {
+      name: "github",
+      x: 27,
+      y: 30,
+      size: 36,
+      delay: "0s",
+      drift: 7,
+      opacity: 0.8,
+    },
+    {
+      name: "postgres",
+      x: 38,
+      y: 22,
+      size: 36,
+      delay: "0.35s",
+      drift: 5,
+      opacity: 0.8,
+    },
+    {
+      name: "slack",
+      x: 62,
+      y: 23,
+      size: 36,
+      delay: "0.75s",
+      drift: 6,
+      opacity: 0.8,
+    },
+    {
+      name: "figma",
+      x: 75,
+      y: 33,
+      size: 36,
+      delay: "1.15s",
+      drift: 5,
+      opacity: 0.8,
+    },
+    {
+      name: "vercel",
+      x: 34,
+      y: 40,
+      size: 36,
+      delay: "1.55s",
+      drift: 6,
+      opacity: 0.8,
+    },
+    {
+      name: "aws",
+      x: 20,
+      y: 46,
+      size: 36,
+      delay: "0.2s",
+      drift: 6,
+      opacity: 0.8,
+    },
+    {
+      name: "sentry",
+      x: 17,
+      y: 58,
+      size: 36,
+      delay: "0.55s",
+      drift: 7,
+      opacity: 0.8,
+    },
+    {
+      name: "google-chrome",
+      x: 23,
+      y: 68,
+      size: 36,
+      delay: "0.95s",
+      drift: 5,
+      opacity: 0.8,
+    },
+    {
+      name: "posthog",
+      x: 36,
+      y: 76,
+      size: 36,
+      delay: "1.45s",
+      drift: 6,
+      opacity: 0.8,
+    },
+    {
+      name: "stripe",
+      x: 80,
+      y: 44,
+      size: 36,
+      delay: "0.3s",
+      drift: 5,
+      opacity: 0.8,
+    },
+    {
+      name: "trello",
+      x: 83,
+      y: 57,
+      size: 36,
+      delay: "0.7s",
+      drift: 7,
+      opacity: 0.8,
+    },
+    {
+      name: "google-drive",
+      x: 78,
+      y: 68,
+      size: 36,
+      delay: "1.05s",
+      drift: 5,
+      opacity: 0.8,
+    },
+    {
+      name: "google-cloud",
+      x: 69,
+      y: 76,
+      size: 36,
+      delay: "1.65s",
+      drift: 6,
+      opacity: 0.8,
+    },
+    {
+      name: "google-analytics",
+      x: 43,
+      y: 82,
+      size: 36,
+      delay: "1.35s",
+      drift: 5,
+      opacity: 0.8,
+    },
+    {
+      name: "tiktok",
+      x: 60,
+      y: 84,
+      size: 36,
+      delay: "1.8s",
+      drift: 7,
+      opacity: 0.8,
+    },
+    {
+      name: "instagram",
+      x: 50,
+      y: 89,
+      size: 36,
+      delay: "0.5s",
+      drift: 5,
+      opacity: 0.8,
+    },
+    {
+      name: "clickup",
+      x: 57,
+      y: 74,
+      size: 36,
+      delay: "1.95s",
+      drift: 6,
+      opacity: 0.8,
+    },
+  ]
+
+  return (
+    <div
+      aria-hidden="true"
+      className="pointer-events-none absolute top-1/2 left-1/2 z-0 hidden h-[clamp(560px,58vw,760px)] w-[min(1500px,calc(100vw-32px))] -translate-x-1/2 -translate-y-[45%] lg:block"
+    >
+      {icons.map((icon) => (
+        <div
+          key={`${icon.name}-${icon.x}-${icon.y}`}
+          className="absolute"
+          style={{
+            left: `${icon.x}%`,
+            top: `${icon.y}%`,
+            transform: "translate(-50%, -50%)",
+            opacity: icon.opacity,
+          }}
+        >
           <div
-            className="absolute inset-0 pointer-events-none"
+            className="flex items-center justify-center rounded-[40%] border border-black/[0.04] bg-white/80 shadow-sm backdrop-blur-sm dark:border-white/[0.08] dark:bg-white"
             style={{
-              backgroundImage:
-                "linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg, var(--border) 1px, transparent 1px)",
-              backgroundSize: "40px 40px",
-              maskImage:
-                "radial-gradient(ellipse at center, black, transparent 80%)",
+              width: icon.size,
+              height: icon.size,
+              animation:
+                "hero-icon-drift 5.8s cubic-bezier(0.22, 1, 0.36, 1) infinite",
+              animationDelay: icon.delay,
+              ["--hero-icon-drift" as string]: `${icon.drift}px`,
+            }}
+          >
+            {scatteredIconMap[icon.name]}
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function HeroContent() {
+  return (
+    <div className="relative isolate flex flex-col items-center text-center">
+      <ScatteredIcons />
+
+      <div className="ghost-container animate-ghost-float absolute -top-24 left-1/2 z-10 -translate-x-1/2 cursor-pointer">
+        <svg
+          viewBox="0 0 640 640"
+          width="64"
+          height="64"
+          className="text-muted-foreground drop-shadow-[0_0_16px_rgba(139,140,246,0.35)]"
+          fill="currentColor"
+        >
+          <g>
+            <path
+              d="M63.7314 260.875C115.623 104.119 238.334 51.5019 291.736 44.0986C600.403 1.30772 662.211 304.136 543.862 460.66C441.808 595.633 262.075 620.78 154.214 585.754C59.2103 554.903 6.44755 433.92 63.7314 260.875Z"
+              fill="currentColor"
+            />
+            <g className="ghost-eye">
+              <ellipse
+                cx="318.5"
+                cy="282"
+                rx="45.5"
+                ry="101"
+                fill="var(--background)"
+              />
+            </g>
+            <g className="ghost-eye">
+              <ellipse
+                cx="457.5"
+                cy="282"
+                rx="45.5"
+                ry="101"
+                fill="var(--background)"
+              />
+            </g>
+            <path
+              className="ghost-tail"
+              d="M 80 550 C 40 600, 0 620, -60 650 C -120 680, -140 720, -180 750 C -220 780, -240 820, -260 850 C -280 880, -300 920, -340 950"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="54"
+              strokeLinecap="round"
+            />
+          </g>
+        </svg>
+      </div>
+
+      <div className="relative z-10 mb-6">
+        <AnnouncementPill />
+      </div>
+      <h1 className="relative z-10 max-w-3xl font-heading text-5xl leading-none font-normal tracking-[-0.02em] text-foreground md:text-6xl lg:text-7xl">
+        Your AI coworker
+        <br />
+        that gets work done
+      </h1>
+      <p className="relative z-10 mt-5 max-w-lg text-base leading-[1.6] text-muted-foreground sm:text-lg">
+        Hivy connects to your tools, understands your work, and completes tasks
+        across your team — from follow-ups and reports to pull requests and
+        project updates.
+      </p>
+      <div className="relative z-10 mt-7 flex flex-col items-center gap-3 sm:flex-row">
+        <Button size="lg" asChild>
+          <a href="#">Hire hivy</a>
+        </Button>
+        <Button variant="secondary" size="lg" asChild>
+          <a href="#">Talk to Sales</a>
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+function TrustedLogos() {
+  const logos = ["stripe", "notion", "linear", "vercel", "figma", "slack"]
+  return (
+    <div className="w-full max-w-5xl px-6 pt-2 pb-8">
+      <div className="flex flex-wrap items-center justify-center gap-x-10 gap-y-5 sm:gap-x-14 lg:gap-x-20">
+        {logos.map((name) => (
+          <span
+            key={name}
+            className="font-heading text-2xl font-normal tracking-tight text-foreground opacity-40 transition-opacity duration-300 select-none hover:opacity-80 sm:text-2xl"
+          >
+            {name}
+          </span>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+/* ─────────────────────────── Features Bento ─────────────────────────── */
+
+function WorksWhereYouWorkVisual() {
+  const orbit = [
+    { name: "slack", angle: -90, icon: <SlackIcon size={16} /> },
+    { name: "figma", angle: -45, icon: <FigmaIcon size={16} /> },
+    { name: "github", angle: 0, icon: <GithubIcon size={20} /> },
+    { name: "drive", angle: 45, icon: <GoogleDriveIcon size={16} /> },
+    { name: "sheets", angle: 90, icon: <GoogleExcelIcon size={16} /> },
+    { name: "trello", angle: 135, icon: <TrelloIcon size={16} /> },
+    { name: "sentry", angle: 180, icon: <SentryIcon size={16} /> },
+    { name: "vercel", angle: -135, icon: <VercelIcon size={16} /> },
+  ]
+
+  return (
+    <div className="relative h-full w-full overflow-hidden">
+      <div
+        className="absolute inset-0 opacity-[0.05]"
+        style={{
+          background:
+            "radial-gradient(circle at 50% 50%, var(--pill-from), transparent 70%)",
+        }}
+      />
+      {[0, 1, 2].map((delay) => (
+        <div
+          key={delay}
+          className="absolute top-1/2 left-1/2 h-20 w-20 -translate-x-1/2 -translate-y-1/2"
+        >
+          <div
+            className="h-full w-full rounded-full border opacity-0"
+            style={{
+              borderColor: "var(--pill-from)",
+              animation: `pulse-ring 3s ease-out ${delay}s infinite`,
             }}
           />
-          {/* Hero glow */}
-          <div
-            className="absolute inset-0 pointer-events-none"
-            style={{
-              background:
-                "radial-gradient(circle at 50% 40%, color-mix(in oklch, var(--primary) 12%, transparent) 0%, transparent 70%)",
-            }}
+        </div>
+      ))}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
+        <Ghost
+          color="var(--muted-foreground)"
+          bgColor="var(--secondary)"
+          size={40}
+        />
+      </div>
+      {orbit.map((item) => (
+        <div
+          key={item.name}
+          className="absolute top-1/2 left-1/2"
+          style={{
+            transform: `translate(-50%, -50%) rotate(${item.angle}deg) translateX(120px) rotate(${-item.angle}deg)`,
+          }}
+        >
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-black/[0.04] bg-white/80 shadow-sm backdrop-blur-sm dark:border-white/[0.08] dark:bg-white">
+            {item.icon}
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function RemembersEverythingVisual() {
+  const brainX = 165
+  const brainY = 25
+
+  const nodes = [
+    { id: 1, x: 35, y: 12, type: "person" as const, delay: "0s" },
+    { id: 2, x: 25, y: 25, type: "generic" as const, delay: "0.8s" },
+    { id: 3, x: 40, y: 38, type: "doc" as const, delay: "1.6s" },
+  ]
+
+  const curvePaths = [
+    `M${nodes[0].x},${nodes[0].y} C${nodes[0].x + 40},${nodes[0].y - 8} ${brainX - 40},${brainY - 8} ${brainX},${brainY}`,
+    `M${nodes[1].x},${nodes[1].y} C${nodes[1].x + 45},${nodes[1].y} ${brainX - 45},${brainY} ${brainX},${brainY}`,
+    `M${nodes[2].x},${nodes[2].y} C${nodes[2].x + 40},${nodes[2].y + 8} ${brainX - 40},${brainY + 8} ${brainX},${brainY}`,
+  ]
+
+  return (
+    <div className="relative h-full w-full overflow-hidden">
+      <div
+        className="absolute inset-0 opacity-[0.05]"
+        style={{
+          background:
+            "radial-gradient(circle at 85% 50%, var(--pill-from), transparent 70%)",
+        }}
+      />
+      <svg viewBox="0 0 200 50" className="h-full w-full">
+        {nodes.map((node, i) => (
+          <g key={`line-${node.id}`}>
+            <path
+              d={curvePaths[i]}
+              fill="none"
+              stroke="var(--border)"
+              strokeWidth="0.75"
+              opacity="0.5"
+            />
+            <circle r="1.5" fill="var(--pill-from)" opacity="0.8">
+              <animateMotion
+                dur={`${2 + ((node.id * 0.4) % 1.5)}s`}
+                repeatCount="indefinite"
+                path={curvePaths[i]}
+              />
+            </circle>
+          </g>
+        ))}
+        {nodes.map((node) => (
+          <g
+            key={node.id}
+            className="animate-node-fade-in"
+            style={{ animationDelay: node.delay }}
+          >
+            {node.type === "person" && (
+              <>
+                <circle
+                  cx={node.x}
+                  cy={node.y}
+                  r="5"
+                  fill="var(--secondary)"
+                  stroke="var(--pill-from)"
+                  strokeWidth="1"
+                />
+                <circle
+                  cx={node.x}
+                  cy={node.y - 1.2}
+                  r="1.5"
+                  fill="var(--muted-foreground)"
+                  opacity="0.4"
+                />
+                <path
+                  d={`M${node.x - 2},${node.y + 2.5} Q${node.x},${node.y + 0.8} ${node.x + 2},${node.y + 2.5}`}
+                  stroke="var(--muted-foreground)"
+                  strokeWidth="0.75"
+                  fill="none"
+                  opacity="0.4"
+                />
+              </>
+            )}
+            {node.type === "doc" && (
+              <>
+                <rect
+                  x={node.x - 4}
+                  y={node.y - 5.5}
+                  width="8"
+                  height="11"
+                  rx="1.5"
+                  fill="var(--secondary)"
+                  stroke="var(--pill-to)"
+                  strokeWidth="0.75"
+                />
+                <line
+                  x1={node.x - 2}
+                  y1={node.y - 2.5}
+                  x2={node.x + 2}
+                  y2={node.y - 2.5}
+                  stroke="var(--muted-foreground)"
+                  strokeWidth="0.5"
+                  opacity="0.3"
+                />
+                <line
+                  x1={node.x - 2}
+                  y1={node.y}
+                  x2={node.x + 0.5}
+                  y2={node.y}
+                  stroke="var(--muted-foreground)"
+                  strokeWidth="0.5"
+                  opacity="0.3"
+                />
+              </>
+            )}
+            {node.type === "generic" && (
+              <>
+                <circle
+                  cx={node.x}
+                  cy={node.y}
+                  r="3"
+                  fill="var(--secondary)"
+                  stroke="var(--pill-via)"
+                  strokeWidth="0.75"
+                />
+                <circle
+                  cx={node.x}
+                  cy={node.y}
+                  r="1.2"
+                  fill="var(--pill-from)"
+                  opacity="0.5"
+                />
+              </>
+            )}
+          </g>
+        ))}
+        <g className="animate-node-fade-in">
+          <circle
+            cx={brainX}
+            cy={brainY}
+            r="9"
+            fill="var(--secondary)"
+            stroke="var(--pill-from)"
+            strokeWidth="1"
+            opacity="0.9"
           />
-          <div className="relative flex flex-col items-center gap-6 sm:gap-8 pt-12 sm:pt-16 lg:pt-25 px-6 sm:px-8 lg:px-10">
-            <div className="flex items-center gap-2 px-4 py-2 bg-muted border border-border rounded-full">
-              <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
-              <span className="font-mono text-[11px] font-medium uppercase tracking-[0.5px] text-muted-foreground">
-                Hire AI employees for your team
+        </g>
+      </svg>
+    </div>
+  )
+}
+
+function SecureByDefaultVisual() {
+  const [selected, setSelected] = useState("sheets")
+  const [perms, setPerms] = useState<Record<string, Record<string, boolean>>>({
+    sheets: {
+      "Read cells": true,
+      "List sheets": true,
+      "Download CSV": true,
+      "View formulas": true,
+      "Export PDF": true,
+      "Check history": true,
+      "Write cells": true,
+      "Append rows": true,
+      "Clone sheet": true,
+      "Create sheet": true,
+      "Rename sheet": true,
+      "Format cells": true,
+      "Delete sheet": false,
+      "Share sheet": false,
+      "Change permissions": false,
+      "Delete rows": false,
+      "Merge cells": false,
+      "Protect range": false,
+    },
+    slack: {
+      "Read messages": true,
+      "List channels": true,
+      "Search history": true,
+      "View files": true,
+      "See members": true,
+      "Check status": true,
+      "Send messages": true,
+      "Create channels": true,
+      "Upload files": true,
+      "React to posts": true,
+      "Start threads": true,
+      "Set reminders": true,
+      "Delete channels": false,
+      "Invite users": false,
+      "Manage webhooks": false,
+      "Delete messages": false,
+      "Archive channels": false,
+      "Admin settings": false,
+    },
+    github: {
+      "Read repos": true,
+      "View issues": true,
+      "List branches": true,
+      "See PRs": true,
+      "Read commits": true,
+      "View wiki": true,
+      "Create PRs": true,
+      "Open issues": true,
+      "Push commits": true,
+      "Comment on PRs": true,
+      "Label issues": true,
+      "Request review": true,
+      "Delete repos": false,
+      "Manage secrets": false,
+      "Admin access": false,
+      "Force push": false,
+      "Delete branches": false,
+      "Modify rules": false,
+    },
+  })
+
+  const connections = [
+    {
+      id: "sheets",
+      name: "Google Sheets",
+      icon: <GoogleExcelIcon size={18} />,
+    },
+    { id: "slack", name: "Slack", icon: <SlackIcon size={18} /> },
+    { id: "github", name: "GitHub", icon: <GithubIcon size={18} /> },
+  ]
+
+  const currentPerms = perms[selected]
+  const readKeys = Object.keys(currentPerms).slice(0, 6)
+  const writeKeys = Object.keys(currentPerms).slice(6, 12)
+  const adminKeys = Object.keys(currentPerms).slice(12, 18)
+
+  const toggle = (key: string) => {
+    setPerms((prev) => ({
+      ...prev,
+      [selected]: { ...prev[selected], [key]: !prev[selected][key] },
+    }))
+  }
+
+  const renderRow = (key: string) => {
+    const on = currentPerms[key]
+    return (
+      <div
+        key={key}
+        className="flex items-center justify-between rounded-lg border bg-background px-3 py-2"
+        style={{
+          borderColor: on
+            ? "var(--border)"
+            : "color-mix(in srgb, var(--border) 60%, transparent)",
+        }}
+      >
+        <span
+          className="text-sm font-medium"
+          style={{
+            color: on ? "var(--foreground)" : "var(--muted-foreground)",
+          }}
+        >
+          {key}
+        </span>
+        <Switch checked={on} onCheckedChange={() => toggle(key)} />
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex h-full w-full flex-col px-6 pt-4 pb-5">
+      <div className="mb-5 flex gap-3">
+        {connections.map((c) => (
+          <button
+            key={c.id}
+            type="button"
+            onClick={() => setSelected(c.id)}
+            className="flex items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-sm font-medium transition-all"
+            style={{
+              backgroundColor:
+                selected === c.id
+                  ? "color-mix(in srgb, var(--pill-from) 7%, transparent)"
+                  : "var(--secondary)",
+              border: `1px solid ${selected === c.id ? "color-mix(in srgb, var(--pill-from) 25%, transparent)" : "var(--border)"}`,
+              color:
+                selected === c.id
+                  ? "var(--foreground)"
+                  : "var(--muted-foreground)",
+              boxShadow:
+                selected === c.id
+                  ? "0 0 0 3px color-mix(in srgb, var(--pill-from) 8%, transparent)"
+                  : "none",
+            }}
+          >
+            {c.icon}
+            <span>{c.name}</span>
+          </button>
+        ))}
+      </div>
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={selected}
+          className="grid flex-1 grid-cols-3 gap-4"
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -8 }}
+          transition={{ duration: 0.2, ease: "easeOut" }}
+        >
+          <div className="flex flex-col gap-2">
+            <div className="mb-1 flex items-center gap-2">
+              <span className="h-2 w-2 rounded-full bg-green-500" />
+              <span className="text-sm font-semibold text-foreground">
+                Read
               </span>
             </div>
-            <h1 className="font-heading text-[28px] sm:text-[40px] lg:text-[56px] font-bold text-foreground text-center leading-[1.15] -tracking-[0.5px] sm:-tracking-[1px]">
-              The AI employee for any role
-            </h1>
-            <p className="text-base sm:text-lg lg:text-xl text-muted-foreground text-center leading-relaxed max-w-160">
-              Hire AI employees that learn your ways, work autonomously,
-              <br className="hidden sm:block" />
-              and take initiative on their own.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-2.5 pt-2 w-full sm:w-auto">
-              <Input
-                type="email"
-                placeholder="Enter your email"
-                className="h-10 sm:h-12 sm:w-72 rounded-full text-sm sm:text-base px-5"
-              />
-              <Link href="/demo" className="sm:hidden">
-                <Button size="default" className="rounded-full h-10 w-full">Book a Demo</Button>
-              </Link>
-              <Link href="/demo" className="hidden sm:inline-block">
-                <Button size="lg" className="rounded-full h-12">Book a Demo</Button>
-              </Link>
+            {readKeys.map(renderRow)}
+          </div>
+          <div className="flex flex-col gap-2">
+            <div className="mb-1 flex items-center gap-2">
+              <span className="h-2 w-2 rounded-full bg-[var(--pill-from)]" />
+              <span className="text-sm font-semibold text-foreground">
+                Write
+              </span>
+            </div>
+            {writeKeys.map(renderRow)}
+          </div>
+          <div className="flex flex-col gap-2">
+            <div className="mb-1 flex items-center gap-2">
+              <span className="h-2 w-2 rounded-full bg-red-500" />
+              <span className="text-sm font-semibold text-foreground">
+                Admin
+              </span>
+            </div>
+            {adminKeys.map(renderRow)}
+          </div>
+        </motion.div>
+      </AnimatePresence>
+    </div>
+  )
+}
+
+function FeaturesBento() {
+  const features = [
+    {
+      title: "Works where you work",
+      description:
+        "Slack, Google Sheets, GitHub, Google Meet — Hivy lives inside the tools your team already uses. No new tabs, no context switching.",
+      span: "md:row-span-2",
+      height: "min-h-72 md:min-h-0",
+      textPosition: "bottom" as const,
+    },
+    {
+      title: "Remembers everything",
+      description:
+        "Hivy builds a living memory of your business, your teammates, and your decisions — so nothing important is ever lost.",
+      span: "",
+      height: "min-h-64",
+      textPosition: "top" as const,
+    },
+    {
+      title: "Automates the boring stuff",
+      description:
+        "Set unlimited recurring tasks on any schedule. Reports, follow-ups, reminders — Hivy handles it all while you focus on what matters.",
+      span: "",
+      height: "min-h-64",
+      textPosition: "overlay" as const,
+    },
+    {
+      title: "Secure by default",
+      description:
+        "Granular permissions let you control exactly what Hivy can and cannot do. Your data stays yours, always.",
+      span: "md:col-span-2",
+      height: "min-h-56",
+      textPosition: "top" as const,
+    },
+  ]
+
+  return (
+    <section className="relative z-10 -mt-24 w-full max-w-5xl px-4 py-8 sm:py-8 md:px-0">
+      <div className="mb-12 text-center sm:mb-16">
+        <h2 className="font-heading text-3xl leading-[1.1] font-normal tracking-[-0.02em] text-foreground md:text-4xl">
+          Built for the way you work
+        </h2>
+        <p className="mx-auto mt-4 max-w-lg text-base leading-[1.6] text-muted-foreground">
+          Four reasons teams choose Hivy as their AI coworker.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-5">
+        {features.map((f, i) => (
+          <div
+            key={i}
+            className={`group relative flex flex-col overflow-hidden rounded-2xl border border-border bg-secondary transition-all duration-300 ${f.span} ${f.height}`}
+          >
+            {f.textPosition === "top" && (
+              <div className="px-6 pt-6 pb-2">
+                <h3 className="font-heading text-lg leading-snug font-medium tracking-tight text-foreground sm:text-xl">
+                  {f.title}
+                </h3>
+                <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                  {f.description}
+                </p>
+              </div>
+            )}
+            <div
+              className={`relative overflow-hidden ${i === 0 || i === 1 || f.textPosition === "overlay" ? "flex-1" : i === 3 ? "h-[412px]" : "h-44"}`}
+            >
+              {i === 0 ? (
+                <WorksWhereYouWorkVisual />
+              ) : i === 1 ? (
+                <RemembersEverythingVisual />
+              ) : i === 3 ? (
+                <SecureByDefaultVisual />
+              ) : (
+                <>
+                  <div
+                    className="absolute inset-0 opacity-[0.06]"
+                    style={{
+                      background:
+                        "linear-gradient(135deg, var(--pill-from), var(--pill-to))",
+                    }}
+                  />
+                  <div className="flex h-full w-full items-center justify-center">
+                    <span className="text-xs font-medium text-muted-foreground opacity-40">
+                      Graphic placeholder
+                    </span>
+                  </div>
+                </>
+              )}
+            </div>
+            {f.textPosition === "bottom" && (
+              <div className="px-6 pt-4 pb-6">
+                <h3 className="font-heading text-lg leading-snug font-medium tracking-tight text-foreground sm:text-xl">
+                  {f.title}
+                </h3>
+                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                  {f.description}
+                </p>
+              </div>
+            )}
+            {f.textPosition === "overlay" && (
+              <div className="absolute right-0 bottom-0 left-0 px-6 pt-8 pb-5 backdrop-blur-sm">
+                <h3 className="font-heading text-lg leading-snug font-medium tracking-tight text-foreground sm:text-xl">
+                  {f.title}
+                </h3>
+                <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                  {f.description}
+                </p>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+/* ─────────────────────────── Slack Chat ─────────────────────────── */
+
+function SlackChatSection() {
+  const messages = [
+    {
+      sender: "user",
+      name: "Alex",
+      text: "Hey team, can someone pull the Q3 numbers from the Sheets?",
+      time: "9:41 AM",
+    },
+    {
+      sender: "hivy",
+      name: "hivy",
+      text: "On it — pulling Q3 revenue, expenses, and growth metrics from the master sheet now.",
+      time: "9:41 AM",
+    },
+    {
+      sender: "user",
+      name: "Alex",
+      text: "Also draft a follow-up email to the investors?",
+      time: "9:42 AM",
+    },
+    {
+      sender: "hivy",
+      name: "hivy",
+      text: "Draft ready in your Gmail drafts. I used last quarter's template and plugged in the new numbers.",
+      time: "9:42 AM",
+    },
+    {
+      sender: "user",
+      name: "Alex",
+      text: "You're a lifesaver 🙏",
+      time: "9:43 AM",
+    },
+    {
+      sender: "hivy",
+      name: "hivy",
+      text: "Anytime. I'll also create a GitHub issue to track the follow-up tasks.",
+      time: "9:43 AM",
+    },
+  ]
+
+  const channels = ["general", "engineering", "design", "announcements"]
+  const dms = ["Sarah", "hivy", "Mike"]
+
+  return (
+    <section className="relative z-10 w-full max-w-5xl px-4 py-16 sm:py-24 md:px-0">
+      <div className="mb-10 text-center sm:mb-14">
+        <h2 className="font-heading text-3xl leading-[1.1] font-normal tracking-[-0.02em] text-foreground md:text-4xl">
+          Say hello to hivy, your new coworker
+        </h2>
+        <p className="mx-auto mt-4 max-w-lg text-base leading-[1.6] text-muted-foreground">
+          Hivy lives in your Slack, hears your requests, and gets things done —
+          just like a teammate who never sleeps.
+        </p>
+      </div>
+
+      <div
+        className="rounded-3xl p-8 sm:p-12"
+        style={{
+          background:
+            "linear-gradient(135deg, color-mix(in srgb, var(--pill-from) 30%, transparent), color-mix(in srgb, var(--pill-via) 20%, transparent), color-mix(in srgb, var(--pill-to) 30%, transparent))",
+        }}
+      >
+        <div
+          className="flex overflow-hidden rounded-xl shadow-2xl"
+          style={{ height: 600 }}
+        >
+          <div
+            className="flex w-52 shrink-0 flex-col"
+            style={{ backgroundColor: "#3F0E40" }}
+          >
+            <div className="flex items-center gap-2 px-4 py-3">
+              <div className="flex h-6 w-6 items-center justify-center rounded bg-white/10">
+                <svg viewBox="0 0 127 127" className="h-3.5 w-3.5">
+                  <path
+                    d="M27.2 80.0c0 7.3-5.9 13.2-13.2 13.2S.8 87.3.8 80c0-7.3 5.9-13.2 13.2-13.2h13.2v13.2zm6.6 0c0-7.3 5.9-13.2 13.2-13.2s13.2 5.9 13.2 13.2v33c0 7.3-5.9 13.2-13.2 13.2s-13.2-5.9-13.2-13.2V80z"
+                    fill="#E01E5A"
+                  />
+                  <path
+                    d="M47.0 27.0c-7.3 0-13.2-5.9-13.2-13.2S39.7.6 47.0.6s13.2 5.9 13.2 13.2v13.2H47.0zm0 6.7c7.3 0 13.2 5.9 13.2 13.2s-5.9 13.2-13.2 13.2H13.5C6.2 60.1.3 54.2.3 46.9s5.9-13.2 13.2-13.2h33.5z"
+                    fill="#36C5F0"
+                  />
+                  <path
+                    d="M99.9 46.9c0-7.3 5.9-13.2 13.2-13.2s13.2 5.9 13.2 13.2-5.9 13.2-13.2 13.2H99.9V46.9zm-6.6 0c0 7.3-5.9 13.2-13.2 13.2s-13.2-5.9-13.2-13.2V13.5C66.9 6.2 72.8.3 80.1.3s13.2 5.9 13.2 13.2v33.4z"
+                    fill="#2EB67D"
+                  />
+                  <path
+                    d="M80.1 99.8c7.3 0 13.2 5.9 13.2 13.2s-5.9 13.2-13.2 13.2-13.2-5.9-13.2-13.2V99.8h13.2zm0-6.6c-7.3 0-13.2-5.9-13.2-13.2s5.9-13.2 13.2-13.2h33.5c7.3 0 13.2 5.9 13.2 13.2s-5.9 13.2-13.2 13.2H80.1z"
+                    fill="#ECB22E"
+                  />
+                </svg>
+              </div>
+              <div>
+                <div className="text-sm font-bold text-white">Acme Inc</div>
+                <div className="text-xs text-white/50">hivy workspace</div>
+              </div>
+            </div>
+            <div className="px-3 py-2">
+              <div className="mb-1 px-2 text-xs font-semibold tracking-wide text-white/40 uppercase">
+                Channels
+              </div>
+              {channels.map((c) => (
+                <div
+                  key={c}
+                  className="flex items-center gap-2 rounded px-2 py-1 text-sm"
+                  style={{
+                    color: c === "general" ? "white" : "rgba(255,255,255,0.6)",
+                    backgroundColor:
+                      c === "general" ? "#1164A3" : "transparent",
+                  }}
+                >
+                  <span className="text-white/40">#</span>
+                  <span>{c}</span>
+                </div>
+              ))}
+            </div>
+            <div className="px-3 py-2">
+              <div className="mb-1 px-2 text-xs font-semibold tracking-wide text-white/40 uppercase">
+                Direct messages
+              </div>
+              {dms.map((dm) => (
+                <div
+                  key={dm}
+                  className="flex items-center gap-2 rounded px-2 py-1 text-sm text-white/60"
+                >
+                  <span className="relative flex h-2 w-2">
+                    <span className="absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+                    <span className="relative inline-flex h-2 w-2 rounded-full bg-green-400" />
+                  </span>
+                  <span>{dm}</span>
+                  {dm === "hivy" && (
+                    <span className="ml-auto rounded bg-white/10 px-1.5 py-0 text-[10px] text-white/60">
+                      APP
+                    </span>
+                  )}
+                </div>
+              ))}
             </div>
           </div>
 
-          <div className="px-6 lg:px-10">
-            <div className="relative z-10 w-full max-w-5xl bg-black dark:bg-card min-h-60 sm:min-h-80 lg:min-h-180 mt-8 sm:mt-12 lg:mt-16 mx-auto border border-border rounded-4xl shadow-[0_0_60px_-20px_color-mix(in_oklch,var(--primary)_12%,transparent),0_0_20px_-10px_color-mix(in_oklch,var(--primary)_8%,transparent)] flex items-center justify-center">
-              <div className="relative flex items-center justify-center">
-                {/* Pulse rings */}
-                <span className="absolute w-12 h-12 lg:w-32 lg:h-32 rounded-full border border-foreground/20 lg:border-2 animate-[ping_2.5s_ease-out_infinite]" />
-                <span className="absolute w-12 h-12 lg:w-32 lg:h-32 rounded-full border border-foreground/12 lg:border-2 animate-[ping_2.5s_ease-out_0.8s_infinite]" />
-                <span className="absolute w-12 h-12 lg:w-32 lg:h-32 rounded-full bg-foreground/5 animate-[ping_2.5s_ease-out_0.4s_infinite]" />
+          <div className="flex flex-1 flex-col bg-white">
+            <div className="flex items-center border-b border-gray-200 px-5 py-3">
+              <div className="flex items-center gap-2">
+                <span className="text-lg font-bold text-gray-400">#</span>
+                <span className="text-base font-bold text-gray-900">
+                  general
+                </span>
+              </div>
+              <div className="ml-4 flex items-center gap-1 text-sm text-gray-400">
                 <svg
-                  className="relative w-8 h-8 lg:w-20 lg:h-20 text-muted-foreground"
-                  viewBox="0 0 24 24"
+                  className="h-4 w-4"
                   fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
                 >
-                  <title>play</title>
                   <path
-                    fillRule="evenodd"
-                    clipRule="evenodd"
-                    d="M7.23832 3.04445C5.65196 2.1818 3.75 3.31957 3.75 5.03299L3.75 18.9672C3.75 20.6806 5.65196 21.8184 7.23832 20.9557L20.0503 13.9886C21.6499 13.1188 21.6499 10.8814 20.0503 10.0116L7.23832 3.04445ZM2.25 5.03299C2.25 2.12798 5.41674 0.346438 7.95491 1.72669L20.7669 8.6938C23.411 10.1317 23.411 13.8685 20.7669 15.3064L7.95491 22.2735C5.41674 23.6537 2.25 21.8722 2.25 18.9672L2.25 5.03299Z"
-                    fill="currentColor"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
                   />
                 </svg>
+                <span>3</span>
+              </div>
+            </div>
+            <div className="flex-1 overflow-y-auto px-5 py-4">
+              {messages.map((msg, i) => (
+                <div
+                  key={i}
+                  className="group flex items-start gap-3 py-2 hover:bg-gray-50"
+                >
+                  <div
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-sm font-bold text-white"
+                    style={{
+                      backgroundColor:
+                        msg.sender === "hivy" ? "var(--pill-from)" : "#E01E5A",
+                    }}
+                  >
+                    {msg.sender === "hivy" ? (
+                      <svg
+                        viewBox="0 0 640 640"
+                        className="h-5 w-5"
+                        fill="currentColor"
+                      >
+                        <path d="M63.7314 260.875C115.623 104.119 238.334 51.5019 291.736 44.0986C600.403 1.30772 662.211 304.136 543.862 460.66C441.808 595.633 262.075 620.78 154.214 585.754C59.2103 554.903 6.44755 433.92 63.7314 260.875Z" />
+                        <ellipse
+                          cx="318.5"
+                          cy="282"
+                          rx="45.5"
+                          ry="101"
+                          fill="white"
+                        />
+                        <ellipse
+                          cx="457.5"
+                          cy="282"
+                          rx="45.5"
+                          ry="101"
+                          fill="white"
+                        />
+                      </svg>
+                    ) : (
+                      msg.name[0]
+                    )}
+                  </div>
+                  <div className="flex flex-col">
+                    <div className="flex items-baseline gap-2">
+                      <span
+                        className="text-sm font-bold"
+                        style={{
+                          color:
+                            msg.sender === "hivy"
+                              ? "var(--pill-from)"
+                              : "#1D1C1D",
+                        }}
+                      >
+                        {msg.name}
+                      </span>
+                      {msg.sender === "hivy" && (
+                        <span className="rounded bg-gray-100 px-1 py-0 text-[10px] font-semibold text-gray-500">
+                          APP
+                        </span>
+                      )}
+                      <span className="text-xs text-gray-400">{msg.time}</span>
+                    </div>
+                    <p className="text-sm leading-relaxed text-gray-700">
+                      {msg.text}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="border-t border-gray-200 px-5 py-3">
+              <div className="flex items-center gap-2 rounded-lg border border-gray-300 px-4 py-2.5">
+                <svg
+                  className="h-5 w-5 text-gray-400"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 4v16m8-8H4"
+                  />
+                </svg>
+                <span className="text-sm text-gray-400">Message #general</span>
+                <div className="ml-auto flex items-center gap-1 rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-500">
+                  <svg
+                    className="h-3 w-3"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"
+                    />
+                  </svg>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </div>
+    </section>
+  )
+}
 
-      {/* Value proposition: AI employees */}
-      <motion.section
-        initial={{ opacity: 0, y: 20 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true, margin: "-100px" }}
-        transition={{ duration: 0.6, ease: "easeOut" }}
-        className="w-full px-6 sm:px-8 lg:px-10"
-      >
-        <div className="w-full max-w-424 mx-auto relative">
-          {/* Grid background */}
-          <div
-            className="absolute inset-0 pointer-events-none"
-            style={{
-              backgroundImage:
-                "linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg, var(--border) 1px, transparent 1px)",
-              backgroundSize: "40px 40px",
-              maskImage:
-                "radial-gradient(ellipse at center, black, transparent 70%)",
-            }}
-          />
-          <div
-            className="absolute inset-0 pointer-events-none"
-            style={{
-              background:
-                "radial-gradient(circle at 50% 50%, color-mix(in oklch, var(--primary) 8%, transparent) 0%, transparent 60%)",
-            }}
-          />
+/* ─────────────────────────── Page ─────────────────────────── */
 
-          <div className="relative flex flex-col items-center gap-10 sm:gap-14 pb-20 sm:pb-28 lg:pb-36">
-            {/* Section header */}
-            <div className="flex flex-col items-center gap-5 sm:gap-6 max-w-3xl text-center px-4">
-              <p className="font-mono text-[11px] font-medium uppercase tracking-[1.5px] text-primary">
-                Why Hivy
-              </p>
-              <h2 className="font-heading text-[24px] sm:text-[32px] lg:text-[44px] font-bold text-foreground leading-[1.15] -tracking-[0.5px] sm:-tracking-[1px]">
-                AI employees that learn, understand, take initiative.
-              </h2>
-              <p className="text-base sm:text-lg text-muted-foreground leading-relaxed max-w-2xl">
-                Unlike generic AI tools, Hivy employees learn your ways of working,
-                understand your organization, and take initiative on their own.
-              </p>
+export default function HomePage() {
+  return (
+    <>
+      <style>{`
+        @keyframes fade-in-down {
+          from { opacity: 0; transform: translateY(-8px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes fade-in-up {
+          from { opacity: 0; transform: translateY(16px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in-down {
+          animation: fade-in-down 0.6s ease-out both;
+        }
+        .animate-fade-in-up {
+          animation: fade-in-up 0.7s ease-out 0.15s both;
+        }
+        @keyframes ghost-float {
+          0%, 100% { transform: translateY(0px); }
+          50% { transform: translateY(-8px); }
+        }
+        .animate-ghost-float {
+          animation: ghost-float 3s ease-in-out infinite;
+        }
+        @keyframes hero-icon-drift {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(calc(var(--hero-icon-drift) * -1)); }
+        }
+        @keyframes pulse-ring {
+          0% { transform: scale(0.5); opacity: 0.3; }
+          100% { transform: scale(2.5); opacity: 0; }
+        }
+        @keyframes node-fade-in {
+          0% { opacity: 0; transform: scale(0.5); }
+          100% { opacity: 1; transform: scale(1); }
+        }
+        .animate-node-fade-in {
+          animation: node-fade-in 0.8s ease-out both;
+        }
+        .ghost-eye {
+          transition: transform 0.25s ease;
+        }
+        .ghost-container:hover .ghost-eye {
+          transform: translateX(-14px);
+        }
+        .ghost-tail {
+          transform-origin: 80px 550px;
+        }
+        .ghost-container:hover .ghost-tail {
+          animation: tail-wiggle 0.12s linear infinite;
+        }
+        @keyframes tail-wiggle {
+          0% { transform: rotate(-6deg); }
+          50% { transform: rotate(6deg); }
+          100% { transform: rotate(-6deg); }
+        }
+      `}</style>
+      <main className="relative flex min-h-screen flex-col items-center bg-background font-display text-foreground">
+        <div className="pointer-events-none absolute inset-0 overflow-hidden">
+          <div className="absolute -top-52 -left-28 h-[28rem] w-[28rem] rounded-full bg-[var(--glow-left)] opacity-55 blur-[140px]" />
+          <div className="absolute -top-40 left-1/2 h-[28rem] w-[28rem] -translate-x-1/2 rounded-full bg-[var(--glow-center)] opacity-50 blur-[140px]" />
+          <div className="absolute -top-52 -right-28 h-[28rem] w-[28rem] rounded-full bg-[var(--glow-right)] opacity-50 blur-[140px]" />
+        </div>
+
+        <div className="fixed top-5 right-0 left-0 z-50 mx-auto flex max-w-5xl items-center justify-between px-4 md:px-0">
+          <Link
+            href="/"
+            className="font-heading text-xl font-bold tracking-tight text-foreground"
+          >
+            hivy
+          </Link>
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
+            <Navbar />
+          </div>
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="hidden sm:block">
+              <Button variant="ghost" size="sm" asChild>
+                <a href="#">Talk to Sales</a>
+              </Button>
             </div>
+            <Button size="sm" asChild>
+              <a href="#">Hire hivy</a>
+            </Button>
+          </div>
+        </div>
 
-            {/* AI Employees Grid */}
-            <div className="w-full max-w-5xl mx-auto rounded-4xl border border-border ring-1 ring-foreground/5 shadow-[0_0_60px_-20px_color-mix(in_oklch,var(--primary)_12%,transparent),0_0_20px_-10px_color-mix(in_oklch,var(--primary)_8%,transparent)] overflow-hidden bg-background">
-              <div className="p-6 sm:p-8 lg:p-10">
-                <div className="flex items-center gap-2 mb-8">
-                  <span className="w-2 h-2 rounded-full bg-primary" />
-                  <span className="font-mono text-[11px] font-medium uppercase tracking-[1.5px] text-foreground">
-                    AI Employees
-                  </span>
-                </div>
-
-                <div className="flex flex-col gap-3">
-                  {[
-                    {
-                      name: "code-reviewer",
-                      desc: "Reviews PRs on every push",
-                    },
-                    {
-                      name: "ui-builder",
-                      desc: "Generates components from designs",
-                    },
-                    {
-                      name: "content-writer",
-                      desc: "Drafts blog posts from outlines",
-                    },
-                    {
-                      name: "support-agent",
-                      desc: "Answers tickets from your docs",
-                    },
-                    {
-                      name: "code-assistant",
-                      desc: "Helps across the codebase",
-                    },
-                    {
-                      name: "deploy-monitor",
-                      desc: "Watches deploys, alerts on failure",
-                    },
-                  ].map((agent) => (
-                    <div
-                      key={agent.name}
-                      className="flex items-center justify-between py-3 px-4 rounded-2xl bg-muted/40 dark:bg-white/[0.04] border border-border/60"
-                    >
-                      <div className="flex items-center gap-3">
-                        <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
-                        <div className="flex flex-col">
-                          <span className="text-sm font-semibold font-mono text-foreground">
-                            {agent.name}
-                          </span>
-                          <span className="text-xs text-muted-foreground">
-                            {agent.desc}
-                          </span>
-                        </div>
-                      </div>
-                      <span className="text-xs font-mono text-green-600 dark:text-green-400 bg-green-500/10 px-2 py-0.5 rounded-full">
-                        active
-                      </span>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="mt-8 flex flex-col items-center gap-2">
-                  <span className="font-mono text-[11px] text-muted-foreground uppercase tracking-[1.5px]">
-                    Hire your first AI employee
-                  </span>
-                  <Link href="/demo">
-                    <Button variant="outline" size="sm" className="rounded-full">
-                      Book a Demo
-                      <HugeiconsIcon
-                        icon={ArrowRight01Icon}
-                        size={14}
-                        className="ml-1 opacity-80"
-                      />
-                    </Button>
-                  </Link>
-                </div>
-              </div>
-            </div>
-
-            {/* Stats */}
-            <div className="grid grid-cols-3 gap-6 sm:gap-12 lg:gap-20 pt-4 sm:pt-8 px-4">
-              {[
-                {
-                  value: "Learning",
-                  label: "adapts to your ways",
-                },
-                {
-                  value: "Autonomous",
-                  label: "takes initiative",
-                },
-                {
-                  value: "Integrated",
-                  label: "works with your tools",
-                },
-              ].map((stat) => (
-                <div
-                  key={stat.value}
-                  className="flex flex-col items-center text-center gap-1.5"
-                >
-                  <span className="font-heading text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground -tracking-[0.5px]">
-                    {stat.value}
-                  </span>
-                  <span className="text-xs sm:text-sm text-muted-foreground leading-snug max-w-32">
-                    {stat.label}
-                  </span>
-                </div>
-              ))}
+        <div className="relative flex min-h-screen w-full flex-col items-center px-4 pt-36 sm:pt-44 lg:pt-52">
+          <div className="animate-fade-in-up flex flex-1 flex-col items-center justify-center pb-10 sm:pb-14">
+            <HeroContent />
+            <div className="mt-36 sm:mt-44">
+              <TrustedLogos />
             </div>
           </div>
         </div>
-      </motion.section>
 
-      {/* Agent Forger */}
-      <motion.section
-        initial={{ opacity: 0, y: 20 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true, margin: "-100px" }}
-        transition={{ duration: 0.6, ease: "easeOut" }}
-        className="w-full px-6 sm:px-8 lg:px-10"
-      >
-        <div className="w-full max-w-424 mx-auto relative">
-          <div
-            className="absolute inset-0 pointer-events-none"
-            style={{
-              backgroundImage:
-                "linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg, var(--border) 1px, transparent 1px)",
-              backgroundSize: "40px 40px",
-              maskImage:
-                "radial-gradient(ellipse at center, black, transparent 70%)",
-            }}
-          />
-          <div
-            className="absolute inset-0 pointer-events-none"
-            style={{
-              background:
-                "radial-gradient(circle at 50% 30%, color-mix(in oklch, var(--primary) 8%, transparent) 0%, transparent 60%)",
-            }}
-          />
-
-          <div className="relative flex flex-col items-center gap-10 sm:gap-14 pb-20 sm:pb-28 lg:pb-36">
-            {/* Section header */}
-            <div className="flex flex-col items-center gap-5 sm:gap-6 max-w-3xl text-center px-4 mt-28">
-              <p className="font-mono text-[11px] font-medium uppercase tracking-[1.5px] text-primary">
-                The Agent Forger
-              </p>
-              <h2 className="font-heading text-[24px] sm:text-[32px] lg:text-[44px] font-bold text-foreground leading-[1.15] -tracking-[0.5px] sm:-tracking-[1px]">
-                Meet your AI employee
-              </h2>
-              <p className="text-base sm:text-lg text-muted-foreground leading-relaxed max-w-2xl">
-                Define behavior, connect tools, and deploy.
-                <br className="hidden sm:block" />
-                Have your AI employee working alongside you today.
-              </p>
-            </div>
-
-            {/* Three creation modes */}
-            <div className="w-full max-w-4xl mx-auto grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 lg:px-0">
-              {[
-                {
-                  icon: (
-                    <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  ),
-                  title: "Create from scratch",
-                  description:
-                    "Write your own system prompt, pick a model, connect integrations, and deploy.",
-                },
-                {
-                  icon: (
-                    <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  ),
-                  title: "Forge with AI",
-                  description:
-                    "Describe what you need. AI generates an optimized agent with the right prompt and config.",
-                },
-                {
-                  icon: (
-                    <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M13.5 21v-7.5a.75.75 0 01.75-.75h3a.75.75 0 01.75.75V21m-4.5 0H2.36m11.14 0H18m0 0h3.64m-1.39 0V9.349m-16.5 11.65V9.35m0 0a3.001 3.001 0 003.75-.615A2.993 2.993 0 009.75 9.75c.896 0 1.7-.393 2.25-1.016a2.993 2.993 0 002.25 1.016c.896 0 1.7-.393 2.25-1.016A3.001 3.001 0 0021 9.349m-18 0a2.999 2.999 0 00.97-1.599L5.49 3h13.02l1.52 4.75A2.999 2.999 0 0021 9.349" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  ),
-                  title: "Deploy instantly",
-                  description:
-                    "One click to deploy your agent. Connect your keys and run immediately.",
-                },
-              ].map((mode) => (
-                <div
-                  key={mode.title}
-                  className="flex flex-col gap-4 rounded-2xl border border-border bg-background p-6 transition-colors"
-                >
-                  <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-muted text-foreground">
-                    {mode.icon}
-                  </div>
-                  <h3 className="font-heading text-base font-semibold text-foreground">
-                    {mode.title}
-                  </h3>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    {mode.description}
-                  </p>
-                </div>
-              ))}
-            </div>
-
-            {/* Steps preview */}
-            <div className="w-full max-w-5xl mx-auto rounded-4xl border border-border ring-1 ring-foreground/5 shadow-[0_0_60px_-20px_color-mix(in_oklch,var(--primary)_12%,transparent),0_0_20px_-10px_color-mix(in_oklch,var(--primary)_8%,transparent)] overflow-hidden bg-background">
-              <div className="p-6 sm:p-8 lg:p-10">
-                <div className="flex items-center gap-2 mb-8">
-                  <span className="w-2 h-2 rounded-full bg-primary" />
-                  <span className="font-mono text-[11px] font-medium uppercase tracking-[1.5px] text-foreground">
-                    How it works
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
-                  {[
-                    {
-                      step: "01",
-                      title: "Pick your model",
-                      description:
-                        "Bring your own API key. Choose from GPT, Claude, Gemini, Llama, or any provider.",
-                    },
-                    {
-                      step: "02",
-                      title: "Add skills & tools",
-                      description:
-                        "Connect GitHub, Slack, Linear, and more. Select exactly which actions the agent can take.",
-                    },
-                    {
-                      step: "03",
-                      title: "Write the prompt",
-                      description:
-                        "Define behavior with a system prompt and instructions — or let AI generate them.",
-                    },
-                    {
-                      step: "04",
-                      title: "Deploy & run",
-                      description:
-                        "Your agent goes live in a sandboxed environment with full observability from day one.",
-                    },
-                  ].map((item) => (
-                    <div key={item.step} className="flex flex-col gap-3">
-                      <span className="font-mono text-xs text-primary font-medium">
-                        {item.step}
-                      </span>
-                      <h3 className="font-heading text-base font-semibold text-foreground">
-                        {item.title}
-                      </h3>
-                      <p className="text-sm text-muted-foreground leading-relaxed">
-                        {item.description}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </motion.section>
-
-      {/* What makes an AI employee effective */}
-      <motion.section
-        initial={{ opacity: 0, y: 20 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true, margin: "-100px" }}
-        transition={{ duration: 0.6, ease: "easeOut" }}
-        className="w-full px-6 sm:px-8 lg:px-10"
-      >
-        <div className="w-full max-w-424 mx-auto relative">
-          <div
-            className="absolute inset-0 pointer-events-none"
-            style={{
-              backgroundImage:
-                "linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg, var(--border) 1px, transparent 1px)",
-              backgroundSize: "40px 40px",
-              maskImage:
-                "radial-gradient(ellipse at center, black, transparent 70%)",
-            }}
-          />
-          <div
-            className="absolute inset-0 pointer-events-none"
-            style={{
-              background:
-                "radial-gradient(circle at 50% 50%, color-mix(in oklch, var(--primary) 8%, transparent) 0%, transparent 60%)",
-            }}
-          />
-
-          <div className="relative flex flex-col items-center gap-10 sm:gap-14 pb-20 sm:pb-28 lg:pb-36">
-            {/* Section header */}
-            <div className="flex flex-col items-center gap-5 sm:gap-6 max-w-3xl text-center px-4">
-              <p className="font-mono text-[11px] font-medium uppercase tracking-[1.5px] text-primary">
-                AI Employee Capabilities
-              </p>
-              <h2 className="font-heading text-[24px] sm:text-[32px] lg:text-[44px] font-bold text-foreground leading-[1.15] -tracking-[0.5px] sm:-tracking-[1px]">
-                Everything your AI employee needs to work autonomously
-              </h2>
-              <p className="text-base sm:text-lg text-muted-foreground leading-relaxed max-w-2xl">
-                Each AI employee learns, remembers, and takes initiative — just like a human teammate.
-              </p>
-            </div>
-
-            {/* Bento grid */}
-            <div className="w-full max-w-5xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 px-4 lg:px-0">
-              {[
-                {
-                  icon: (
-                    <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375m16.5 0v3.75m-16.5-3.75v3.75m16.5 0v3.75C20.25 16.153 16.556 18 12 18s-8.25-1.847-8.25-4.125v-3.75m16.5 0c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  ),
-                  title: "Long-term memory",
-                  description:
-                    "Agents remember context across conversations. Persistent memory that grows smarter over time.",
-                },
-                {
-                  icon: (
-                    <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M14.25 6.087c0-.355.186-.676.401-.959.221-.29.349-.634.349-1.003 0-1.036-1.007-1.875-2.25-1.875s-2.25.84-2.25 1.875c0 .369.128.713.349 1.003.215.283.401.604.401.959v0a.64.64 0 01-.657.643 48.39 48.39 0 01-4.163-.3c.186 1.613.293 3.25.315 4.907a.656.656 0 01-.658.663v0c-.355 0-.676-.186-.959-.401a1.647 1.647 0 00-1.003-.349c-1.036 0-1.875 1.007-1.875 2.25s.84 2.25 1.875 2.25c.369 0 .713-.128 1.003-.349.283-.215.604-.401.959-.401v0c.31 0 .555.26.532.57a48.039 48.039 0 01-.642 5.056c1.518.19 3.058.309 4.616.354a.64.64 0 00.657-.643v0c0-.355-.186-.676-.401-.959a1.647 1.647 0 01-.349-1.003c0-1.035 1.008-1.875 2.25-1.875 1.243 0 2.25.84 2.25 1.875 0 .369-.128.713-.349 1.003-.215.283-.4.604-.4.959v0c0 .333.277.599.61.58a48.1 48.1 0 005.427-.63 48.05 48.05 0 00.582-4.717.532.532 0 00-.533-.57v0c-.355 0-.676.186-.959.401-.29.221-.634.349-1.003.349-1.035 0-1.875-1.007-1.875-2.25s.84-2.25 1.875-2.25c.37 0 .713.128 1.003.349.283.215.604.401.96.401v0a.656.656 0 00.657-.663 48.422 48.422 0 00-.37-5.36c-1.886.342-3.81.574-5.766.689a.578.578 0 01-.61-.58v0z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  ),
-                  title: "Skills & tools",
-                  description:
-                    "Plug in reusable capabilities — API calls, workflows, code execution. Compose agents from building blocks.",
-                },
-                {
-                  icon: (
-                    <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m8.5-3l1 3m0 0l.5 1.5m-.5-1.5h-9.5m0 0l-.5 1.5m.75-9l3-3 2.148 2.148A12.061 12.061 0 0116.5 7.605" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  ),
-                  title: "Observability",
-                  description:
-                    "Traces, logs, and cost tracking for every run. Know exactly what your agents are doing and what they cost.",
-                },
-                {
-                  icon: (
-                    <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  ),
-                  title: "Access control",
-                  description:
-                    "Fine-grained permissions for every agent. Scope API keys, assign team roles, and control what each agent can access.",
-                },
-                {
-                  icon: (
-                    <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m9.86-2.814a4.5 4.5 0 00-1.242-7.244l4.5-4.5a4.5 4.5 0 116.364 6.364l-1.757 1.757" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  ),
-                  title: "Connections",
-                  description:
-                    "Native integrations with GitHub, Slack, Linear, Notion, and more. Select exactly which actions each agent can perform.",
-                },
-                {
-                  icon: (
-                    <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M5.25 14.25h13.5m-13.5 0a3 3 0 01-3-3m3 3a3 3 0 100 6h13.5a3 3 0 100-6m-16.5-3a3 3 0 013-3h13.5a3 3 0 013 3m-19.5 0a4.5 4.5 0 01.9-2.7L5.737 5.1a3.375 3.375 0 012.7-1.35h7.126c1.062 0 2.062.5 2.7 1.35l2.587 3.45a4.5 4.5 0 01.9 2.7m0 0a3 3 0 013 3m0 3h.008v.008h-.008v-.008zm0-6h.008v.008h-.008v-.008zm-3 6h.008v.008h-.008v-.008zm0-6h.008v.008h-.008v-.008z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  ),
-                  title: "Sandboxed execution",
-                  description:
-                    "Every agent runs in an isolated environment. Shared for API-only or dedicated for full system access.",
-                },
-              ].map((feature) => (
-                <div
-                  key={feature.title}
-                  className="flex flex-col gap-4 rounded-2xl border border-border bg-background p-6 transition-colors"
-                >
-                  <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-muted text-foreground">
-                    {feature.icon}
-                  </div>
-                  <h3 className="font-heading text-base font-semibold text-foreground">
-                    {feature.title}
-                  </h3>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    {feature.description}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </motion.section>
-
-      {/* Start with 1,000 free credits */}
-      <motion.section
-        initial={{ opacity: 0, y: 20 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true, margin: "-100px" }}
-        transition={{ duration: 0.6, ease: "easeOut" }}
-        className="w-full px-6 sm:px-8 lg:px-10"
-      >
-        <div className="w-full max-w-424 mx-auto relative pb-20 sm:pb-28 lg:pb-36">
-          <div
-            className="absolute inset-0 pointer-events-none"
-            style={{
-              backgroundImage:
-                "linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg, var(--border) 1px, transparent 1px)",
-              backgroundSize: "40px 40px",
-              maskImage:
-                "radial-gradient(ellipse at center, black, transparent 70%)",
-            }}
-          />
-          <div
-            className="absolute inset-0 pointer-events-none"
-            style={{
-              background:
-                "radial-gradient(ellipse 50% 60% at 50% 40%, color-mix(in oklch, var(--primary) 12%, transparent) 0%, transparent 70%)",
-            }}
-          />
-
-          <div className="relative flex flex-col items-center gap-6 sm:gap-7 pt-20 sm:pt-28 text-center">
-            <HugeiconsIcon
-              icon={CpuIcon}
-              size={22}
-              className="text-primary"
-            />
-            <p className="font-mono text-[11px] font-medium uppercase tracking-[2px] text-primary">
-              AI Employees Platform
-            </p>
-            <h2 className="font-heading text-[36px] sm:text-[52px] lg:text-[64px] font-bold text-foreground leading-[1.03] -tracking-[1px] sm:-tracking-[1.4px] max-w-3xl">
-              Hire your first
-              <span className="italic font-medium text-primary">
-                {" "}AI employee today.
-              </span>
-            </h2>
-            <p className="text-base sm:text-lg text-muted-foreground leading-relaxed max-w-xl">
-              Your AI employee learns your ways of working.
-            </p>
-            <div className="flex flex-col items-center gap-3">
-              <Link href="/demo">
-                <Button size="lg" className="group cursor-pointer">
-                  Book a Demo
-                  <HugeiconsIcon
-                    icon={ArrowRight01Icon}
-                    size={15}
-                    className="ml-1.5 opacity-80 group-hover:translate-x-0.5 transition-transform"
-                  />
-                </Button>
-              </Link>
-              <p className="font-mono text-[10px] uppercase tracking-[1.8px] text-muted-foreground/70">
-                No card required · First employee free
-              </p>
-            </div>
-          </div>
-        </div>
-      </motion.section>
-
-    </div>
+        <FeaturesBento />
+        <SlackChatSection />
+        <MarketingFooter />
+      </main>
+    </>
   )
 }

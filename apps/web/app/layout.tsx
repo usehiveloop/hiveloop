@@ -1,29 +1,9 @@
-import { Geist, Geist_Mono, Bricolage_Grotesque, Sora } from "next/font/google"
 import type { Metadata } from "next"
 
 import "./globals.css"
-import { ThemeProvider } from "@/components/theme-provider"
 import { QueryProvider } from "@/components/query-provider"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { Toaster } from "@/components/ui/sonner"
-import { cn } from "@/lib/utils";
-
-const geist = Geist({subsets:['latin'],variable:'--font-sans'})
-
-const fontMono = Geist_Mono({
-  subsets: ["latin"],
-  variable: "--font-mono",
-})
-
-const bricolage = Bricolage_Grotesque({
-  subsets: ["latin"],
-  variable: "--font-bricolage",
-})
-
-const sora = Sora({
-  subsets: ["latin"],
-  variable: "--font-sora",
-})
 
 export const metadata: Metadata = {
   title: {
@@ -50,15 +30,12 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      suppressHydrationWarning
-      className={cn("antialiased", fontMono.variable, "font-sans", geist.variable, bricolage.variable, sora.variable)}
+      className="antialiased font-sans"
     >
-      <body suppressHydrationWarning>
+      <body>
         <QueryProvider>
-          <ThemeProvider>
-            <TooltipProvider>{children}</TooltipProvider>
-            <Toaster position="top-center" />
-          </ThemeProvider>
+          <TooltipProvider>{children}</TooltipProvider>
+          <Toaster position="top-center" />
         </QueryProvider>
       </body>
     </html>
