@@ -2,11 +2,11 @@ import { NextRequest, NextResponse } from "next/server"
 
 const SESSION_COOKIE = "__session"
 
-export function middleware(req: NextRequest) {
+export function proxy(req: NextRequest) {
   const hasSession = req.cookies.has(SESSION_COOKIE)
   const { pathname } = req.nextUrl
 
-  // Protected routes — require session
+  // Protected routes: require a session.
   if (pathname.startsWith("/w") && !hasSession) {
     return NextResponse.redirect(new URL("/auth", req.url))
   }
