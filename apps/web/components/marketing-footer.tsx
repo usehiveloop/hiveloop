@@ -3,7 +3,6 @@ import { Logo } from "@/components/logo"
 
 const footerLinks = {
   resources: [
-    { label: "Blog", href: "/blog" },
     { label: "Community", href: "https://discord.gg/hivy", external: true },
     { label: "GitHub", href: "https://github.com/usehivy", external: true },
   ],

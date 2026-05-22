@@ -5,9 +5,7 @@ import { usePathname } from "next/navigation"
 import { Logo } from "@/components/logo"
 import { Button } from "@/components/ui/button"
 
-const navLinks = [
-  { label: "Blog", href: "/blog" },
-]
+const navLinks: Array<{ label: string; href: string }> = []
 
 export function MarketingNav() {
   const pathname = usePathname()

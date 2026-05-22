@@ -453,11 +453,11 @@ function HeroContent() {
         project updates.
       </p>
       <div className="relative z-10 mt-7 flex flex-col items-center gap-3 sm:flex-row">
-        <Button size="lg" asChild>
-          <a href="/auth/signup">Hire hivy</a>
+        <Button size="lg" render={<a href="/auth/signup" />}>
+          Hire hivy
         </Button>
-        <Button variant="secondary" size="lg" asChild>
-          <a href="#">Talk to sales</a>
+        <Button variant="secondary" size="lg" render={<a href="#" />}>
+          Talk to sales
         </Button>
       </div>
     </div>
@@ -1339,12 +1339,12 @@ export default function HomePage() {
           </div>
           <div className="flex items-center gap-2 sm:gap-3">
             <div className="hidden sm:block">
-              <Button variant="ghost" size="sm" asChild>
-                <a href="#">Talk to sales</a>
+              <Button variant="ghost" size="sm" render={<a href="#" />}>
+                Talk to sales
               </Button>
             </div>
-            <Button size="sm" asChild>
-              <a href="/auth/signup">Hire hivy</a>
+            <Button size="sm" render={<a href="/auth/signup" />}>
+              Hire hivy
             </Button>
           </div>
         </div>

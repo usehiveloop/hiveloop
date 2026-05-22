@@ -1,7 +1,0 @@
-{
-  "title": "Dashboard",
-  "description": "dashboard",
-  "pages": [
-    "v1/dashboard/get"
-  ]
-}

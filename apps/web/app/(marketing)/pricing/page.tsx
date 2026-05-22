@@ -409,8 +409,8 @@ function CustomPlanCTA() {
         </div>
       </div>
       <div className="shrink-0 sm:self-center">
-        <Button variant="secondary" size="lg" asChild>
-          <a href="#">Talk to sales</a>
+        <Button variant="secondary" size="lg" render={<a href="#" />}>
+          Talk to sales
         </Button>
       </div>
     </div>
@@ -444,12 +444,12 @@ export default function PricingPage() {
         </div>
         <div className="flex items-center gap-2 sm:gap-3">
           <div className="hidden sm:block">
-            <Button variant="ghost" size="sm" asChild>
-              <a href="#">Talk to sales</a>
+            <Button variant="ghost" size="sm" render={<a href="#" />}>
+              Talk to sales
             </Button>
           </div>
-          <Button size="sm" asChild>
-            <a href="/auth/signup">Hire hivy</a>
+          <Button size="sm" render={<a href="/auth/signup" />}>
+            Hire hivy
           </Button>
         </div>
       </div>
