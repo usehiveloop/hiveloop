@@ -12,7 +12,7 @@ import {
   Search01Icon,
   SlackIcon,
 } from "@hugeicons/core-free-icons"
-import { AddConnectionDialog } from "@/app/w/connections/_components/add-connection-dialog"
+import { AddConnectionDialog } from "@/app/w-old/connections/_components/add-connection-dialog"
 import { IntegrationLogo } from "@/components/integration-logo"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"

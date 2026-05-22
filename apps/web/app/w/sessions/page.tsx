@@ -1,15 +1,12 @@
-import { PageHeader } from "@/components/page-header"
-
 export default function SessionsPage() {
   return (
-    <>
-      <PageHeader title="Sessions" />
-      <div className="mx-auto flex w-full max-w-md flex-col items-center justify-center gap-2 px-6 py-24 text-center">
-        <h1 className="text-lg font-medium text-foreground">Coming soon.</h1>
-        <p className="text-sm text-muted-foreground">
-          Browse past Hivy sessions and conversations.
-        </p>
-      </div>
-    </>
+    <div className="flex flex-1 flex-col items-center justify-center text-center">
+      <h1 className="font-heading text-3xl font-normal tracking-[-0.02em] text-foreground">
+        Sessions
+      </h1>
+      <p className="mt-3 text-sm text-muted-foreground">
+        Review past conversations.
+      </p>
+    </div>
   )
 }

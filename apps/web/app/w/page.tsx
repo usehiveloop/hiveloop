@@ -3,225 +3,246 @@
 import Link from "next/link"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
-  ArrowRight01Icon,
-  Calendar03Icon,
-  CreditCardIcon,
+  ZapIcon,
   Plug01Icon,
-  Rocket01Icon,
+  CheckmarkCircle01Icon,
+  ArrowRight01Icon,
+  SlackIcon,
+  UserAdd01Icon,
+  AwardIcon,
+  CommandIcon,
+  BookOpen02Icon,
+  PlayIcon,
 } from "@hugeicons/core-free-icons"
-import { PageHeader } from "@/components/page-header"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
-import { Skeleton } from "@/components/ui/skeleton"
-import { $api } from "@/lib/api/hooks"
-import { changelogAnnouncements } from "@/lib/changelog"
+import { cn } from "@/lib/utils"
 
-export default function WorkspaceHome() {
-  const { data, isLoading } = $api.useQuery("get", "/v1/dashboard")
+const stats = [
+  {
+    label: "Credits used",
+    value: "6,240",
+    sub: "of 10,000 this month",
+    icon: ZapIcon,
+    color: "text-primary",
+    bg: "bg-primary/10",
+  },
+  {
+    label: "Active connections",
+    value: "4",
+    sub: "Slack, GitHub, Sheets, Drive",
+    icon: Plug01Icon,
+    color: "text-green-600",
+    bg: "bg-green-500/10",
+  },
+  {
+    label: "Tasks completed",
+    value: "128",
+    sub: "Last 30 days",
+    icon: CheckmarkCircle01Icon,
+    color: "text-amber-600",
+    bg: "bg-amber-500/10",
+  },
+]
 
-  const planDone = data?.onboarding?.plan_selected === true
-  const toolsConnected = data?.onboarding?.extra_tools_connected ?? 0
-  const toolsRequired = data?.onboarding?.extra_tools_required ?? 3
-  const toolsDone = toolsConnected >= toolsRequired
-  const progressTotal = 1 + toolsRequired
-  const progressDone = (planDone ? 1 : 0) + Math.min(toolsConnected, toolsRequired)
-  const progress = progressTotal > 0 ? progressDone / progressTotal : 0
+const onboardingSteps = [
+  {
+    id: 1,
+    label: "Connect Slack",
+    description: "Invite hivy to your workspace",
+    icon: SlackIcon,
+    done: true,
+  },
+  {
+    id: 2,
+    label: "Add connections",
+    description: "Link your tools and services",
+    icon: Plug01Icon,
+    done: true,
+  },
+  {
+    id: 3,
+    label: "Invite your team",
+    description: "Collaborate with coworkers",
+    icon: UserAdd01Icon,
+    done: false,
+  },
+  {
+    id: 4,
+    label: "Claim free credits",
+    description: "Get more usage on us",
+    icon: AwardIcon,
+    done: false,
+  },
+  {
+    id: 5,
+    label: "Create a skill",
+    description: "Teach hivy something new",
+    icon: CommandIcon,
+    done: false,
+  },
+]
 
+function CheckIcon({ className }: { className?: string }) {
   return (
-    <>
-      <PageHeader
-        title="Dashboard"
-        actions={
-          <Button render={<Link href="/w/connections" />}>
-            <HugeiconsIcon icon={Plug01Icon} size={16} data-icon="inline-start" />
-            Add connection
-          </Button>
-        }
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 16 16"
+      fill="none"
+      className={className}
+    >
+      <path
+        d="M3 8.5L6.5 12L13 5"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
       />
-      <main className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-6 py-8">
-        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {isLoading ? (
-            Array.from({ length: 4 }).map((_, index) => (
-              <Skeleton key={index} className="h-44 w-full rounded-lg" />
-            ))
-          ) : (
-            <>
-              <MetricCard
-                icon={CreditCardIcon}
-                label="Credits"
-                value={formatCredits(data?.credits?.balance ?? 0)}
-                detail={`${formatCredits(data?.credits?.spent_this_period ?? 0)} spent this period`}
-                href="/w/settings/billing"
-              />
-              <MetricCard
-                icon={Plug01Icon}
-                label="Connections"
-                value={String(data?.connections?.total ?? 0)}
-                detail={
-                  data?.connections?.slack_connected
-                    ? `${data?.connections?.non_slack_connected ?? 0} tools beyond Slack`
-                    : "Slack is not connected"
-                }
-                href="/w/connections"
-              />
-              <SetupCard
-                progress={progress}
-                planDone={planDone}
-                toolsDone={toolsDone}
-                toolsConnected={toolsConnected}
-                toolsRequired={toolsRequired}
-              />
-              <MetricCard
-                icon={Calendar03Icon}
-                label="Scheduled tasks"
-                value={String(data?.schedules?.total ?? 0)}
-                detail="Cron jobs Hivy has scheduled"
-                href="/w/sessions"
-              />
-            </>
-          )}
-        </section>
-
-        <section className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
-          <div className="rounded-lg border border-border bg-muted/15 p-6">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <h2 className="text-lg font-semibold tracking-tight">Hivy workspace</h2>
-                <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-                  Hivy is ready to work from Slack, use connected tools, and call installed skills from your workspace.
-                </p>
-              </div>
-              <Badge variant="secondary">Managed</Badge>
-            </div>
-            <div className="mt-6 grid gap-3 sm:grid-cols-3">
-              <QuickLink href="/w/skills" label="Manage skills" />
-              <QuickLink href="/w/knowledge" label="Knowledge base" />
-              <QuickLink href="/w/settings/sandboxes" label="Sandbox setup" />
-            </div>
-          </div>
-
-          <div className="rounded-lg border border-border p-6">
-            <h2 className="text-lg font-semibold tracking-tight">Latest updates</h2>
-            <div className="mt-5 flex flex-col gap-4">
-              {changelogAnnouncements.slice(0, 3).map((item) => (
-                <article key={item.title} className="border-b border-border/60 pb-4 last:border-0 last:pb-0">
-                  <time className="font-mono text-[11px] text-muted-foreground">
-                    {formatDate(item.date)}
-                  </time>
-                  <h3 className="mt-1 text-sm font-medium">{item.title}</h3>
-                  <p className="mt-1 text-sm leading-5 text-muted-foreground">
-                    {item.summary}
-                  </p>
-                </article>
-              ))}
-            </div>
-          </div>
-        </section>
-      </main>
-    </>
+    </svg>
   )
 }
 
-function MetricCard({
-  icon,
-  label,
-  value,
-  detail,
-  href,
-}: {
-  icon: typeof CreditCardIcon
-  label: string
-  value: string
-  detail: string
-  href: string
-}) {
+export default function DashboardV2Page() {
+  const completedSteps = onboardingSteps.filter((s) => s.done).length
+  const progress = (completedSteps / onboardingSteps.length) * 100
+
   return (
-    <Link
-      href={href}
-      className="group rounded-lg border border-border bg-background p-5 transition-colors hover:bg-muted/25"
-    >
-      <div className="flex items-center justify-between gap-3">
-        <span className="flex size-10 items-center justify-center rounded-md bg-muted text-muted-foreground">
-          <HugeiconsIcon icon={icon} size={18} />
-        </span>
+    <div className="mx-auto w-full max-w-5xl space-y-8">
+      {/* Header */}
+      <div>
+        <h1 className="font-heading text-3xl font-normal tracking-[-0.02em] text-foreground md:text-4xl">
+          Dashboard
+        </h1>
+
+      </div>
+
+      {/* Stats cards */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {stats.map((stat) => (
+          <div
+            key={stat.label}
+            className="flex flex-col rounded-2xl border border-border bg-card p-5"
+          >
+            <div className="flex items-center gap-3">
+              <div
+                className={cn(
+                  "flex h-10 w-10 items-center justify-center rounded-xl",
+                  stat.bg
+                )}
+              >
+                <HugeiconsIcon icon={stat.icon} size={20} className={stat.color} />
+              </div>
+              <span className="text-sm text-muted-foreground">{stat.label}</span>
+            </div>
+            <div className="mt-4">
+              <p className="font-heading text-2xl font-medium tracking-tight text-foreground">
+                {stat.value}
+              </p>
+              <p className="mt-0.5 text-xs text-muted-foreground">{stat.sub}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Video prompt card */}
+      <Link
+        href="#"
+        className="group flex items-center gap-4 rounded-2xl border border-border bg-card p-5 transition-all hover:border-muted-foreground/20 hover:bg-muted/30"
+      >
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+          <HugeiconsIcon icon={PlayIcon} size={24} />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-semibold text-foreground">
+            Watch the 3-minute hivy walkthrough
+          </p>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            Learn how to get the most out of your AI coworker.
+          </p>
+        </div>
         <HugeiconsIcon
           icon={ArrowRight01Icon}
           size={16}
-          className="text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100"
+          className="shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5"
         />
-      </div>
-      <p className="mt-5 text-sm text-muted-foreground">{label}</p>
-      <p className="mt-1 text-2xl font-semibold tracking-tight">{value}</p>
-      <p className="mt-2 text-sm leading-5 text-muted-foreground">{detail}</p>
-    </Link>
-  )
-}
+      </Link>
 
-function SetupCard({
-  progress,
-  planDone,
-  toolsDone,
-  toolsConnected,
-  toolsRequired,
-}: {
-  progress: number
-  planDone: boolean
-  toolsDone: boolean
-  toolsConnected: number
-  toolsRequired: number
-}) {
-  return (
-    <div className="rounded-lg border border-border bg-background p-5">
-      <div className="flex items-center justify-between gap-3">
-        <span className="flex size-10 items-center justify-center rounded-md bg-muted text-muted-foreground">
-          <HugeiconsIcon icon={Rocket01Icon} size={18} />
-        </span>
-        <Badge variant={progress >= 1 ? "secondary" : "outline"}>
-          {Math.round(progress * 100)}%
-        </Badge>
-      </div>
-      <p className="mt-5 text-sm text-muted-foreground">Onboarding progress</p>
-      <Progress className="mt-3" value={progress * 100} />
-      <div className="mt-4 space-y-2 text-sm">
-        <SetupRow done={planDone} label="Pick a plan" href="/w/settings/billing" />
-        <SetupRow
-          done={toolsDone}
-          label={`${Math.min(toolsConnected, toolsRequired)}/${toolsRequired} extra tools connected`}
-          href="/w/connections"
-        />
+      {/* Onboarding card */}
+      <div className="rounded-2xl border border-border bg-card p-6 sm:p-8">
+        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h2 className="font-heading text-xl font-medium tracking-[-0.02em] text-foreground">
+              Getting started
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Complete these steps to get the most out of hivy.
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-medium text-foreground">
+              {completedSteps} of {onboardingSteps.length}
+            </span>
+            <div className="w-32">
+              <Progress value={progress} />
+            </div>
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-3">
+          {onboardingSteps.map((step, index) => (
+            <Link
+              key={step.id}
+              href="#"
+              className={cn(
+                "group relative flex flex-1 items-center gap-4 rounded-xl border p-4 transition-all",
+                step.done
+                  ? "border-primary/20 bg-primary/[0.03]"
+                  : "border-border bg-background hover:border-muted-foreground/20 hover:bg-muted/30"
+              )}
+            >
+              {/* Icon */}
+              <div
+                className={cn(
+                  "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl",
+                  step.done ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
+                )}
+              >
+                <HugeiconsIcon icon={step.icon} size={20} />
+              </div>
+
+              {/* Text */}
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-semibold text-foreground">
+                    {step.label}
+                  </p>
+                  {step.done && (
+                    <span className="rounded-full bg-primary/10 px-1.5 py-0 text-[10px] font-medium text-primary">
+                      Done
+                    </span>
+                  )}
+                </div>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  {step.description}
+                </p>
+              </div>
+
+              {/* Step number or arrow */}
+              <div className="shrink-0">
+                {step.done ? (
+                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                    <CheckIcon className="size-3" />
+                  </span>
+                ) : (
+                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-muted text-[11px] font-semibold text-muted-foreground">
+                    {index + 1}
+                  </span>
+                )}
+              </div>
+            </Link>
+          ))}
+        </div>
       </div>
     </div>
   )
 }
-
-function SetupRow({ done, label, href }: { done: boolean; label: string; href: string }) {
-  return (
-    <Link href={href} className="flex items-center justify-between gap-2 rounded-md py-1 text-muted-foreground hover:text-foreground">
-      <span>{label}</span>
-      <span className={done ? "text-foreground" : "text-muted-foreground"}>{done ? "Done" : "Open"}</span>
-    </Link>
-  )
-}
-
-function QuickLink({ href, label }: { href: string; label: string }) {
-  return (
-    <Button variant="outline" render={<Link href={href} />}>
-      {label}
-      <HugeiconsIcon icon={ArrowRight01Icon} size={14} data-icon="inline-end" />
-    </Button>
-  )
-}
-
-function formatCredits(value: number) {
-  return `${new Intl.NumberFormat("en-US").format(value)} credits`
-}
-
-function formatDate(value: string) {
-  return new Date(value).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  })
-}
-
