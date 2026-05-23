@@ -90,7 +90,7 @@ func main() {
 			name := skill.manifest.Name
 			if existingSkill, found := existing[name]; found {
 				log.Printf("[%s] exists (id=%s), updating...", name, existingSkill.ID)
-				if err := client.updateMetadata(existingSkill.ID, name, skill.manifest.Description); err != nil {
+				if err := client.updateMetadata(existingSkill.ID, skill); err != nil {
 					errors[index] = err
 					return
 				}

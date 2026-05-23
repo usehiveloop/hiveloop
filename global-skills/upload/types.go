@@ -1,10 +1,12 @@
 package main
 
 type manifest struct {
-	Name        string         `json:"name"`
-	Description string         `json:"description"`
-	Root        string         `json:"root"`
-	Files       []manifestFile `json:"files"`
+	Name           string         `json:"name"`
+	Description    string         `json:"description"`
+	Root           string         `json:"root"`
+	Files          []manifestFile `json:"files"`
+	Tags           []string       `json:"tags,omitempty"`
+	IntegrationIDs []string       `json:"integration_ids,omitempty"`
 
 	// Internal skills are local-only documentation for AI coding agents
 	// working on this repo (test runbooks, fake-server references, etc.).
@@ -31,10 +33,12 @@ type reference struct {
 }
 
 type createRequest struct {
-	Name        string  `json:"name"`
-	Description *string `json:"description,omitempty"`
-	SourceType  string  `json:"source_type"`
-	Bundle      *bundle `json:"bundle,omitempty"`
+	Name           string   `json:"name"`
+	Description    *string  `json:"description,omitempty"`
+	SourceType     string   `json:"source_type"`
+	Tags           []string `json:"tags,omitempty"`
+	IntegrationIDs []string `json:"integration_ids,omitempty"`
+	Bundle         *bundle  `json:"bundle,omitempty"`
 }
 
 type skillResponse struct {

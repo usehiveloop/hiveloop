@@ -81,10 +81,12 @@ func (client *apiClient) listAllSkills() (map[string]skillResponse, error) {
 func (client *apiClient) createSkill(skill *loadedSkill) error {
 	description := skill.manifest.Description
 	request := createRequest{
-		Name:        skill.manifest.Name,
-		Description: &description,
-		SourceType:  "inline",
-		Bundle:      &skill.bundle,
+		Name:           skill.manifest.Name,
+		Description:    &description,
+		SourceType:     "inline",
+		Tags:           skill.manifest.Tags,
+		IntegrationIDs: skill.manifest.IntegrationIDs,
+		Bundle:         &skill.bundle,
 	}
 	responseBody, status, err := client.do("POST", "/v1/skills", request)
 	if err != nil {
@@ -108,8 +110,13 @@ func (client *apiClient) updateContent(skillID string, content *bundle) error {
 	return nil
 }
 
-func (client *apiClient) updateMetadata(skillID string, name string, description string) error {
-	request := map[string]any{"name": name, "description": description}
+func (client *apiClient) updateMetadata(skillID string, skill *loadedSkill) error {
+	request := map[string]any{
+		"name":            skill.manifest.Name,
+		"description":     skill.manifest.Description,
+		"tags":            skill.manifest.Tags,
+		"integration_ids": skill.manifest.IntegrationIDs,
+	}
 	responseBody, status, err := client.do("PATCH", "/v1/skills/"+skillID, request)
 	if err != nil {
 		return fmt.Errorf("updating metadata for %s: %w", skillID, err)

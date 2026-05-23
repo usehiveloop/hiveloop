@@ -61,6 +61,31 @@ func createTestInIntegration(t *testing.T, db *gorm.DB, provider string) model.I
 	return found
 }
 
+func createTestIntegrationManagedSkill(t *testing.T, db *gorm.DB, name string, integrationIDs []string) model.Skill {
+	t.Helper()
+	description := name + " skill"
+	skill := model.Skill{
+		ID:             uuid.New(),
+		Slug:           model.GenerateSlug(name),
+		Name:           name,
+		Description:    &description,
+		SourceType:     model.SkillSourceInline,
+		RepoRef:        "main",
+		Bundle:         model.RawJSON(`{"id":"test","title":"test","description":"test","content":"# Test"}`),
+		Tags:           []string{"test"},
+		IntegrationIDs: integrationIDs,
+		Status:         model.SkillStatusPublished,
+	}
+	if err := db.Create(&skill).Error; err != nil {
+		t.Fatalf("create integration-managed skill: %v", err)
+	}
+	t.Cleanup(func() {
+		db.Where("skill_id = ?", skill.ID).Delete(&model.AgentSkill{})
+		db.Where("id = ?", skill.ID).Delete(&model.Skill{})
+	})
+	return skill
+}
+
 func cleanupInIntegrations(t *testing.T, db *gorm.DB) {
 	t.Helper()
 	t.Cleanup(func() {

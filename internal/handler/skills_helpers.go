@@ -15,20 +15,21 @@ import (
 
 func toSkillResponse(s model.Skill) skillResponse {
 	resp := skillResponse{
-		ID:           s.ID.String(),
-		Slug:         s.Slug,
-		Name:         s.Name,
-		Description:  s.Description,
-		SourceType:   s.SourceType,
-		RepoURL:      s.RepoURL,
-		RepoSubpath:  s.RepoSubpath,
-		RepoRef:      s.RepoRef,
-		Tags:         []string(s.Tags),
-		InstallCount: s.InstallCount,
-		Featured:     s.Featured,
-		Status:       s.Status,
-		CreatedAt:    s.CreatedAt,
-		UpdatedAt:    s.UpdatedAt,
+		ID:             s.ID.String(),
+		Slug:           s.Slug,
+		Name:           s.Name,
+		Description:    s.Description,
+		SourceType:     s.SourceType,
+		RepoURL:        s.RepoURL,
+		RepoSubpath:    s.RepoSubpath,
+		RepoRef:        s.RepoRef,
+		Tags:           []string(s.Tags),
+		IntegrationIDs: []string(s.IntegrationIDs),
+		InstallCount:   s.InstallCount,
+		Featured:       s.Featured,
+		Status:         s.Status,
+		CreatedAt:      s.CreatedAt,
+		UpdatedAt:      s.UpdatedAt,
 	}
 	if s.OrgID != nil {
 		orgIDStr := s.OrgID.String()
@@ -40,6 +41,9 @@ func toSkillResponse(s model.Skill) skillResponse {
 	}
 	if resp.Tags == nil {
 		resp.Tags = []string{}
+	}
+	if resp.IntegrationIDs == nil {
+		resp.IntegrationIDs = []string{}
 	}
 
 	switch {

@@ -143,6 +143,46 @@ func TestSeedGlobalSkills_PreservesRequiredEnvironmentVariables(t *testing.T) {
 	}
 }
 
+func TestSeedGlobalSkills_PreservesTagsAndIntegrationIDs(t *testing.T) {
+	db := connectDB(t)
+	name := "seed-tags-test-" + uuid.New().String()
+	dir := t.TempDir()
+	writeGlobalSkill(t, dir, name, "has metadata", "# Skill\n", nil)
+
+	manifestPath := filepath.Join(dir, name, "skill.json")
+	body, err := os.ReadFile(manifestPath)
+	if err != nil {
+		t.Fatalf("read manifest: %v", err)
+	}
+	var manifest map[string]any
+	if err := json.Unmarshal(body, &manifest); err != nil {
+		t.Fatalf("decode manifest: %v", err)
+	}
+	manifest["tags"] = []string{"linear", "issues"}
+	manifest["integration_ids"] = []string{"linear", "github-app"}
+	body, err = json.Marshal(manifest)
+	if err != nil {
+		t.Fatalf("marshal manifest: %v", err)
+	}
+	if err := os.WriteFile(manifestPath, body, 0o644); err != nil {
+		t.Fatalf("write manifest: %v", err)
+	}
+
+	if _, err := skills.SeedGlobalSkills(context.Background(), db, dir); err != nil {
+		t.Fatalf("seed: %v", err)
+	}
+	var skill model.Skill
+	if err := db.Where("org_id IS NULL AND name = ?", name).First(&skill).Error; err != nil {
+		t.Fatalf("load skill: %v", err)
+	}
+	if want := []string{"linear", "issues"}; !reflect.DeepEqual([]string(skill.Tags), want) {
+		t.Fatalf("tags = %#v, want %#v", []string(skill.Tags), want)
+	}
+	if want := []string{"linear", "github-app"}; !reflect.DeepEqual([]string(skill.IntegrationIDs), want) {
+		t.Fatalf("integration ids = %#v, want %#v", []string(skill.IntegrationIDs), want)
+	}
+}
+
 func TestBundledAssetUploadsSkillDeclaresUploadEnv(t *testing.T) {
 	dir, err := skillsForRepoTest()
 	if err != nil {

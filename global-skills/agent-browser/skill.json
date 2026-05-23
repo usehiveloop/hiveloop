@@ -2,6 +2,7 @@
   "name": "agent-browser",
   "description": "Browser automation CLI for AI agents via Chrome CDP.",
   "root": "./SKILL.md",
+  "tags": ["browser", "automation", "testing", "web"],
   "files": [
     {
       "path": "references/commands.md",

@@ -6,6 +6,7 @@ import (
 	"sort"
 
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 
@@ -13,9 +14,42 @@ import (
 	"github.com/usehivy/hivy/internal/model"
 )
 
-func employeeRequiredSkillNames(ctx context.Context, db *gorm.DB, orgID uuid.UUID) (map[string]bool, []string, error) {
-	names := map[string]bool{}
+func employeeRequiredSkills(ctx context.Context, db *gorm.DB, orgID uuid.UUID) (map[uuid.UUID]model.Skill, []string, error) {
+	providers, displays, err := activeEmployeeConnectionProviders(ctx, db, orgID)
+	if err != nil {
+		return nil, nil, err
+	}
+	if len(providers) == 0 {
+		return map[uuid.UUID]model.Skill{}, nil, nil
+	}
+
+	skills, err := loadPublishedGlobalSkillsByIntegrationIDs(ctx, db, providers)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	warnings := make([]string, 0)
+	mappedProviders := map[string]bool{}
+	for _, skill := range skills {
+		for _, integrationID := range skill.IntegrationIDs {
+			mappedProviders[integrationID] = true
+		}
+	}
+	for _, provider := range providers {
+		if mappedProviders[provider] {
+			continue
+		}
+		display := displays[provider]
+		if display == "" {
+			display = provider
+		}
+		warnings = append(warnings, fmt.Sprintf("%s connections do not have an employee skill mapping yet", display))
+	}
+	sort.Strings(warnings)
+	return skills, warnings, nil
+}
+
+func activeEmployeeConnectionProviders(ctx context.Context, db *gorm.DB, orgID uuid.UUID) ([]string, map[string]string, error) {
 	var connections []model.InConnection
 	if err := db.WithContext(ctx).
 		Preload("InIntegration").
@@ -25,47 +59,35 @@ func employeeRequiredSkillNames(ctx context.Context, db *gorm.DB, orgID uuid.UUI
 		return nil, nil, fmt.Errorf("load employee connection providers: %w", err)
 	}
 
+	seen := map[string]bool{}
+	providers := make([]string, 0, len(connections))
+	displays := make(map[string]string, len(connections))
 	for _, conn := range connections {
 		provider := conn.InIntegration.Provider
 		if provider == "" {
 			provider = conn.InIntegration.UniqueKey
 		}
-		mapped := employeeConnectionSkillNames[provider]
-		if len(mapped) == 0 {
-			display := conn.InIntegration.DisplayName
-			if display == "" {
-				display = provider
-			}
-			warnings = append(warnings, fmt.Sprintf("%s connections do not have an employee skill mapping yet", display))
+		if provider == "" || seen[provider] {
 			continue
 		}
-		for _, name := range mapped {
-			names[name] = true
-		}
+		seen[provider] = true
+		providers = append(providers, provider)
+		displays[provider] = conn.InIntegration.DisplayName
 	}
-	return names, warnings, nil
+	sort.Strings(providers)
+	return providers, displays, nil
 }
 
-func attachEmployeeRequiredSkills(ctx context.Context, db *gorm.DB, agentID uuid.UUID, names map[string]bool) ([]string, error) {
-	if len(names) == 0 {
-		return nil, nil
-	}
-	skills, err := loadPublishedGlobalSkillsByName(ctx, db, names)
-	if err != nil {
-		return nil, err
+func attachEmployeeRequiredSkills(ctx context.Context, db *gorm.DB, agentID uuid.UUID, skills map[uuid.UUID]model.Skill) error {
+	if len(skills) == 0 {
+		return nil
 	}
 
-	warnings := make([]string, 0)
-	for name := range names {
-		skill, ok := skills[name]
-		if !ok {
-			warnings = append(warnings, fmt.Sprintf("global skill %q is not published yet", name))
-			continue
-		}
+	for _, skill := range skills {
 		link := model.AgentSkill{AgentID: agentID, SkillID: skill.ID}
 		result := db.WithContext(ctx).Clauses(clause.OnConflict{DoNothing: true}).Create(&link)
 		if result.Error != nil {
-			return warnings, fmt.Errorf("attach global skill %q: %w", name, result.Error)
+			return fmt.Errorf("attach global skill %q: %w", skill.Name, result.Error)
 		}
 		if result.RowsAffected == 0 {
 			continue
@@ -74,23 +96,21 @@ func attachEmployeeRequiredSkills(ctx context.Context, db *gorm.DB, agentID uuid
 			Where("id = ?", skill.ID).
 			UpdateColumn("install_count", gorm.Expr("install_count + 1")).Error; err != nil {
 			logging.FromContext(ctx).WarnContext(ctx, "bump install_count for employee global skill",
-				"error", err, "skill_id", skill.ID, "skill_name", name)
+				"error", err, "skill_id", skill.ID, "skill_name", skill.Name)
 		}
 	}
-	sort.Strings(warnings)
-	return warnings, nil
+	return nil
 }
 
 func attachEmployeeRequiredSkillsForAgent(ctx context.Context, db *gorm.DB, orgID uuid.UUID, agent *model.Agent) error {
 	if agent == nil {
 		return nil
 	}
-	names, _, err := employeeRequiredSkillNames(ctx, db, orgID)
+	skills, warnings, err := employeeRequiredSkills(ctx, db, orgID)
 	if err != nil {
 		return err
 	}
-	warnings, err := attachEmployeeRequiredSkills(ctx, db, agent.ID, names)
-	if err != nil {
+	if err := attachEmployeeRequiredSkills(ctx, db, agent.ID, skills); err != nil {
 		return err
 	}
 	for _, warning := range warnings {
@@ -98,6 +118,27 @@ func attachEmployeeRequiredSkillsForAgent(ctx context.Context, db *gorm.DB, orgI
 			"warning", warning, "agent_id", agent.ID, "org_id", orgID)
 	}
 	return nil
+}
+
+func loadPublishedGlobalSkillsByIntegrationIDs(ctx context.Context, db *gorm.DB, integrationIDs []string) (map[uuid.UUID]model.Skill, error) {
+	if len(integrationIDs) == 0 {
+		return map[uuid.UUID]model.Skill{}, nil
+	}
+	var rows []model.Skill
+	if err := db.WithContext(ctx).
+		Where("org_id IS NULL AND status = ? AND integration_ids && ?", model.SkillStatusPublished, pq.Array(integrationIDs)).
+		Order("created_at DESC").
+		Find(&rows).Error; err != nil {
+		return nil, err
+	}
+	out := make(map[uuid.UUID]model.Skill, len(rows))
+	for _, row := range rows {
+		if _, exists := out[row.ID]; exists {
+			continue
+		}
+		out[row.ID] = row
+	}
+	return out, nil
 }
 
 func loadPublishedGlobalSkillsByName(ctx context.Context, db *gorm.DB, names map[string]bool) (map[string]model.Skill, error) {
@@ -127,11 +168,7 @@ func loadPublishedGlobalSkillsByName(ctx context.Context, db *gorm.DB, names map
 }
 
 func employeeLockedSkillIDs(ctx context.Context, db *gorm.DB, orgID uuid.UUID, agent *model.Agent) (map[uuid.UUID]bool, error) {
-	names, _, err := employeeRequiredSkillNames(ctx, db, orgID)
-	if err != nil {
-		return nil, err
-	}
-	skills, err := loadPublishedGlobalSkillsByName(ctx, db, names)
+	skills, _, err := employeeRequiredSkills(ctx, db, orgID)
 	if err != nil {
 		return nil, err
 	}
@@ -150,14 +187,18 @@ func markEmployeeSkillSummaries(ctx context.Context, db *gorm.DB, orgID uuid.UUI
 	if len(summaries) == 0 {
 		return summaries
 	}
-	names, _, err := employeeRequiredSkillNames(ctx, db, orgID)
+	skills, _, err := employeeRequiredSkills(ctx, db, orgID)
 	if err != nil {
-		logging.FromContext(ctx).WarnContext(ctx, "load employee required skill names",
+		logging.FromContext(ctx).WarnContext(ctx, "load employee required skills",
 			"error", err, "agent_id", agent.ID, "org_id", orgID)
 		return summaries
 	}
+	requiredIDs := make(map[string]bool, len(skills))
+	for id := range skills {
+		requiredIDs[id.String()] = true
+	}
 	for i := range summaries {
-		if names[summaries[i].Name] {
+		if requiredIDs[summaries[i].ID] {
 			summaries[i].Locked = true
 			summaries[i].Required = true
 		}

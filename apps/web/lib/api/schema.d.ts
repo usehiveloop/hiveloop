@@ -8411,6 +8411,7 @@ export interface components {
             /** @description Inline source */
             bundle?: components["schemas"]["Bundle"];
             description?: string;
+            integration_ids?: string[];
             name?: string;
             repo_ref?: string;
             repo_subpath?: string;
@@ -9182,6 +9183,7 @@ export interface components {
             hydration_status?: string;
             id?: string;
             install_count?: number;
+            integration_ids?: string[];
             name?: string;
             org_id?: string;
             public_skill_id?: string;
@@ -9203,6 +9205,7 @@ export interface components {
             hydration_status?: string;
             id?: string;
             install_count?: number;
+            integration_ids?: string[];
             name?: string;
             org_id?: string;
             public_skill_id?: string;
@@ -9384,6 +9387,7 @@ export interface components {
         };
         updateSkillRequest: {
             description?: string;
+            integration_ids?: string[];
             name?: string;
             repo_ref?: string;
             status?: string;

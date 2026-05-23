@@ -25,10 +25,11 @@ func NewSkillHandler(db *gorm.DB, enqueuer enqueue.TaskEnqueuer) *SkillHandler {
 }
 
 type createSkillRequest struct {
-	Name        string   `json:"name"`
-	Description *string  `json:"description,omitempty"`
-	SourceType  string   `json:"source_type"` // "inline" | "git"
-	Tags        []string `json:"tags,omitempty"`
+	Name           string   `json:"name"`
+	Description    *string  `json:"description,omitempty"`
+	SourceType     string   `json:"source_type"` // "inline" | "git"
+	Tags           []string `json:"tags,omitempty"`
+	IntegrationIDs []string `json:"integration_ids,omitempty"`
 
 	// Inline source
 	Bundle *skills.Bundle `json:"bundle,omitempty"`
@@ -40,11 +41,12 @@ type createSkillRequest struct {
 }
 
 type updateSkillRequest struct {
-	Name        *string   `json:"name,omitempty"`
-	Description *string   `json:"description,omitempty"`
-	Tags        *[]string `json:"tags,omitempty"`
-	RepoRef     *string   `json:"repo_ref,omitempty"`
-	Status      *string   `json:"status,omitempty"`
+	Name           *string   `json:"name,omitempty"`
+	Description    *string   `json:"description,omitempty"`
+	Tags           *[]string `json:"tags,omitempty"`
+	IntegrationIDs *[]string `json:"integration_ids,omitempty"`
+	RepoRef        *string   `json:"repo_ref,omitempty"`
+	Status         *string   `json:"status,omitempty"`
 }
 
 type updateContentRequest struct {
@@ -62,6 +64,7 @@ type skillResponse struct {
 	RepoSubpath     *string   `json:"repo_subpath,omitempty"`
 	RepoRef         string    `json:"repo_ref"`
 	Tags            []string  `json:"tags"`
+	IntegrationIDs  []string  `json:"integration_ids"`
 	InstallCount    int       `json:"install_count"`
 	Featured        bool      `json:"featured"`
 	Status          string    `json:"status"`
@@ -128,13 +131,14 @@ func (h *SkillHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	orgID := org.ID
 	skill := model.Skill{
-		OrgID:       &orgID,
-		Slug:        model.GenerateSlug(req.Name),
-		Name:        req.Name,
-		Description: req.Description,
-		SourceType:  req.SourceType,
-		Tags:        req.Tags,
-		Status:      model.SkillStatusDraft,
+		OrgID:          &orgID,
+		Slug:           model.GenerateSlug(req.Name),
+		Name:           req.Name,
+		Description:    req.Description,
+		SourceType:     req.SourceType,
+		Tags:           req.Tags,
+		IntegrationIDs: req.IntegrationIDs,
+		Status:         model.SkillStatusDraft,
 	}
 
 	if req.SourceType == model.SkillSourceGit {

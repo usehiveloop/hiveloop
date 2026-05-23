@@ -75,26 +75,21 @@ func (h *InConnectionHandler) Revoke(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *InConnectionHandler) afterConnectionRevoked(r *http.Request, orgID uuid.UUID, provider string) error {
-	var remaining int64
-	if err := h.db.WithContext(r.Context()).
-		Model(&model.InConnection{}).
-		Joins("JOIN in_integrations ON in_integrations.id = in_connections.in_integration_id AND in_integrations.deleted_at IS NULL").
-		Where("in_connections.org_id = ? AND in_connections.revoked_at IS NULL AND in_integrations.provider = ?", orgID, provider).
-		Count(&remaining).Error; err != nil {
-		return err
-	}
-	if remaining > 0 {
-		return nil
-	}
 	employee, err := ensureHivyEmployee(r.Context(), h.db, orgID)
 	if err != nil {
 		return err
 	}
-	for _, name := range employeeConnectionSkillNames[provider] {
-		var skill model.Skill
-		if err := h.db.WithContext(r.Context()).
-			Where("org_id IS NULL AND name = ?", name).
-			First(&skill).Error; err != nil {
+
+	revokedProviderSkills, err := loadPublishedGlobalSkillsByIntegrationIDs(r.Context(), h.db, []string{provider})
+	if err != nil {
+		return err
+	}
+	stillRequired, _, err := employeeRequiredSkills(r.Context(), h.db, orgID)
+	if err != nil {
+		return err
+	}
+	for skillID, skill := range revokedProviderSkills {
+		if _, required := stillRequired[skillID]; required {
 			continue
 		}
 		if err := h.db.WithContext(r.Context()).
@@ -104,6 +99,15 @@ func (h *InConnectionHandler) afterConnectionRevoked(r *http.Request, orgID uuid
 		}
 	}
 	if provider == "slack" {
+		providers, _, err := activeEmployeeConnectionProviders(r.Context(), h.db, orgID)
+		if err != nil {
+			return err
+		}
+		for _, activeProvider := range providers {
+			if activeProvider == "slack" {
+				return nil
+			}
+		}
 		return h.db.WithContext(r.Context()).Model(&model.Org{}).Where("id = ?", orgID).Update("onboarded", false).Error
 	}
 	return nil

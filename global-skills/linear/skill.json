@@ -2,5 +2,7 @@
   "name": "linear",
   "description": "Query Linear teams, projects, issues, comments, users, workflow states, and issue metadata through Linear GraphQL using LINEAR_URL, LINEAR_TOKEN, curl, and jq without dumping oversized GraphQL payloads into context.",
   "root": "./SKILL.md",
+  "tags": ["linear", "issues", "projects", "planning"],
+  "integration_ids": ["linear"],
   "files": []
 }

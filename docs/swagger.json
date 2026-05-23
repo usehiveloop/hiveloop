@@ -7752,6 +7752,12 @@
                 "description": {
                     "type": "string"
                 },
+                "integration_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
                 "name": {
                     "type": "string"
                 },
@@ -10049,6 +10055,12 @@
                 "install_count": {
                     "type": "integer"
                 },
+                "integration_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
                 "name": {
                     "type": "string"
                 },
@@ -10111,6 +10123,12 @@
                 },
                 "install_count": {
                     "type": "integer"
+                },
+                "integration_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 },
                 "name": {
                     "type": "string"
@@ -10635,6 +10653,12 @@
             "properties": {
                 "description": {
                     "type": "string"
+                },
+                "integration_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 },
                 "name": {
                     "type": "string"

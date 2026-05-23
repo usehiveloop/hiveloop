@@ -11,17 +11,6 @@ import (
 	"github.com/usehivy/hivy/internal/model"
 )
 
-var employeeConnectionSkillNames = map[string][]string{
-	"bugsink":                 {"bugsink"},
-	"github-app":              {"git-github"},
-	"github-app-code-reviews": {"git-github"},
-	"linear":                  {"linear"},
-	"notion":                  {"notion"},
-	"railway":                 {"railway"},
-	"slack":                   {"slack"},
-	"vercel":                  {"vercel"},
-}
-
 type employeeConnectionResponse struct {
 	ID                string     `json:"id"`
 	OrgID             string     `json:"org_id"`

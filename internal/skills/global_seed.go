@@ -36,6 +36,8 @@ type globalSkillManifest struct {
 	Root                         string                    `json:"root"`
 	Files                        []globalSkillManifestFile `json:"files"`
 	Internal                     bool                      `json:"internal,omitempty"`
+	Tags                         []string                  `json:"tags,omitempty"`
+	IntegrationIDs               []string                  `json:"integration_ids,omitempty"`
 	RequiredEnvironmentVariables []string                  `json:"required_environment_variables,omitempty"`
 }
 

@@ -7755,6 +7755,12 @@ const docTemplate = `{
                 "description": {
                     "type": "string"
                 },
+                "integration_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
                 "name": {
                     "type": "string"
                 },
@@ -10052,6 +10058,12 @@ const docTemplate = `{
                 "install_count": {
                     "type": "integer"
                 },
+                "integration_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
                 "name": {
                     "type": "string"
                 },
@@ -10114,6 +10126,12 @@ const docTemplate = `{
                 },
                 "install_count": {
                     "type": "integer"
+                },
+                "integration_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 },
                 "name": {
                     "type": "string"
@@ -10638,6 +10656,12 @@ const docTemplate = `{
             "properties": {
                 "description": {
                     "type": "string"
+                },
+                "integration_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 },
                 "name": {
                     "type": "string"

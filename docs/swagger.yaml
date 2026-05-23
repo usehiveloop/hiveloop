@@ -698,6 +698,10 @@ definitions:
         description: Inline source
       description:
         type: string
+      integration_ids:
+        items:
+          type: string
+        type: array
       name:
         type: string
       repo_ref:
@@ -2202,6 +2206,10 @@ definitions:
         type: string
       install_count:
         type: integer
+      integration_ids:
+        items:
+          type: string
+        type: array
       name:
         type: string
       org_id:
@@ -2244,6 +2252,10 @@ definitions:
         type: string
       install_count:
         type: integer
+      integration_ids:
+        items:
+          type: string
+        type: array
       name:
         type: string
       org_id:
@@ -2586,6 +2598,10 @@ definitions:
     properties:
       description:
         type: string
+      integration_ids:
+        items:
+          type: string
+        type: array
       name:
         type: string
       repo_ref:

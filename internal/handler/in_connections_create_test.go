@@ -124,6 +124,107 @@ func TestInConnectionHandler_CreateSlackKeepsOnboardingOpenAndEnsuresHivy(t *tes
 	}
 }
 
+func TestInConnectionHandler_CreateAttachesIntegrationManagedSkill(t *testing.T) {
+	db := connectTestDB(t)
+	t.Cleanup(func() {
+		db.Where("1=1").Delete(&model.InConnection{})
+		db.Where("1=1").Delete(&model.InIntegration{})
+	})
+
+	nangoSrv := httptest.NewServer(newNangoConnMock(&nangoConnMockConfig{}))
+	t.Cleanup(nangoSrv.Close)
+	nangoClient := nango.NewClient(nangoSrv.URL, "test-secret-key")
+	_ = nangoClient.FetchProviders(context.Background())
+
+	h := handler.NewInConnectionHandler(db, nangoClient, catalog.Global())
+	r := chi.NewRouter()
+	r.Post("/v1/in/integrations/{id}/connections", h.Create)
+
+	user := createTestUser(t, db, fmt.Sprintf("linear-conn-%s@test.com", uuid.New().String()[:8]))
+	org := createTestOrg(t, db)
+	integ := createTestInIntegration(t, db, "linear")
+	skill := createTestIntegrationManagedSkill(t, db, "linear-managed-"+uuid.New().String()[:8], []string{"linear"})
+
+	body, _ := json.Marshal(map[string]any{"nango_connection_id": "linear-conn-123"})
+	req := httptest.NewRequest(http.MethodPost, "/v1/in/integrations/"+integ.ID.String()+"/connections", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req = middleware.WithUser(req, &user)
+	req = middleware.WithOrg(req, &org)
+	rr := httptest.NewRecorder()
+	r.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusCreated {
+		t.Fatalf("expected 201, got %d: %s", rr.Code, rr.Body.String())
+	}
+
+	var employee model.Agent
+	if err := db.Where("org_id = ? AND status <> ?", org.ID, "archived").First(&employee).Error; err != nil {
+		t.Fatalf("load Hivy employee: %v", err)
+	}
+	var count int64
+	if err := db.Model(&model.AgentSkill{}).
+		Where("agent_id = ? AND skill_id = ?", employee.ID, skill.ID).
+		Count(&count).Error; err != nil {
+		t.Fatalf("count attached skill: %v", err)
+	}
+	if count != 1 {
+		t.Fatalf("integration-managed skill attachments = %d, want 1", count)
+	}
+}
+
+func TestSkillHandler_DetachRejectsActiveIntegrationManagedSkill(t *testing.T) {
+	db := connectTestDB(t)
+	t.Cleanup(func() {
+		db.Where("1=1").Delete(&model.InConnection{})
+		db.Where("1=1").Delete(&model.InIntegration{})
+	})
+
+	user := createTestUser(t, db, fmt.Sprintf("detach-managed-%s@test.com", uuid.New().String()[:8]))
+	org := createTestOrg(t, db)
+	integ := createTestInIntegration(t, db, "linear")
+	skill := createTestIntegrationManagedSkill(t, db, "locked-linear-"+uuid.New().String()[:8], []string{"linear"})
+	employee := model.Agent{
+		ID:          uuid.New(),
+		OrgID:       &org.ID,
+		Model:       "test-model",
+		Status:      "active",
+		Tools:       model.JSON{},
+		McpServers:  model.JSON{},
+		Skills:      model.JSON{},
+		AgentConfig: model.JSON{},
+		Permissions: model.JSON{},
+		Resources:   model.JSON{},
+	}
+	if err := db.Create(&employee).Error; err != nil {
+		t.Fatalf("create employee: %v", err)
+	}
+	if err := db.Create(&model.AgentSkill{AgentID: employee.ID, SkillID: skill.ID}).Error; err != nil {
+		t.Fatalf("attach skill: %v", err)
+	}
+	if err := db.Create(&model.InConnection{
+		ID:                uuid.New(),
+		OrgID:             org.ID,
+		UserID:            user.ID,
+		InIntegrationID:   integ.ID,
+		NangoConnectionID: "linear-active",
+	}).Error; err != nil {
+		t.Fatalf("create connection: %v", err)
+	}
+
+	h := handler.NewSkillHandler(db, nil)
+	r := chi.NewRouter()
+	r.Delete("/v1/employees/{id}/skills/{skillID}", h.DetachFromEmployee)
+
+	req := httptest.NewRequest(http.MethodDelete, "/v1/employees/"+employee.ID.String()+"/skills/"+skill.ID.String(), nil)
+	req = middleware.WithOrg(req, &org)
+	rr := httptest.NewRecorder()
+	r.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusConflict {
+		t.Fatalf("expected 409, got %d: %s", rr.Code, rr.Body.String())
+	}
+}
+
 func TestInConnectionHandler_Create_DuplicateUserIntegration(t *testing.T) {
 	db := connectTestDB(t)
 	t.Cleanup(func() {

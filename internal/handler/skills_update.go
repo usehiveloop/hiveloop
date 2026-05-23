@@ -54,6 +54,9 @@ func (h *SkillHandler) Update(w http.ResponseWriter, r *http.Request) {
 	if req.Tags != nil {
 		updates["tags"] = *req.Tags
 	}
+	if req.IntegrationIDs != nil {
+		updates["integration_ids"] = *req.IntegrationIDs
+	}
 	if req.RepoRef != nil && skill.SourceType == model.SkillSourceGit {
 		updates["repo_ref"] = *req.RepoRef
 	}

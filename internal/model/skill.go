@@ -31,10 +31,11 @@ type Skill struct {
 	HydratedAt        *time.Time
 	HydrationError    *string `gorm:"type:text"`
 
-	Tags         pq.StringArray `gorm:"type:text[];default:'{}'"`
-	InstallCount int            `gorm:"not null;default:0"`
-	Featured     bool           `gorm:"not null;default:false;index"`
-	VerifiedAt   *time.Time
+	Tags           pq.StringArray `gorm:"type:text[];default:'{}'"`
+	IntegrationIDs pq.StringArray `gorm:"type:text[];default:'{}'"`
+	InstallCount   int            `gorm:"not null;default:0"`
+	Featured       bool           `gorm:"not null;default:false;index"`
+	VerifiedAt     *time.Time
 
 	// Status is draft, published, or archived.
 	Status string `gorm:"not null;default:'draft';index"`

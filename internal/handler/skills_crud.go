@@ -41,11 +41,11 @@ func (h *SkillHandler) List(w http.ResponseWriter, r *http.Request) {
 	q := h.db.Model(&model.Skill{})
 	switch scope {
 	case "public":
-		q = q.Where("org_id IS NULL AND status = ?", model.SkillStatusPublished)
+		q = q.Where("org_id IS NULL AND status = ? AND "+publicSkillLibraryFilterSQL(), model.SkillStatusPublished)
 	case "own":
 		q = q.Where("org_id = ?", org.ID)
 	case "", "all":
-		q = q.Where("org_id = ? OR (org_id IS NULL AND status = ?)", org.ID, model.SkillStatusPublished)
+		q = q.Where("org_id = ? OR (org_id IS NULL AND status = ? AND "+publicSkillLibraryFilterSQL()+")", org.ID, model.SkillStatusPublished)
 	default:
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "scope must be public, own, or all"})
 		return
@@ -77,6 +77,10 @@ func (h *SkillHandler) List(w http.ResponseWriter, r *http.Request) {
 		result.NextCursor = &c
 	}
 	writeJSON(w, http.StatusOK, result)
+}
+
+func publicSkillLibraryFilterSQL() string {
+	return "COALESCE(array_length(integration_ids, 1), 0) = 0"
 }
 
 // Get handles GET /v1/skills/{id}.

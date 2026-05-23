@@ -53,14 +53,16 @@ func upsertGlobalSkill(ctx context.Context, db *gorm.DB, loaded loadedGlobalSkil
 
 func createGlobalSkill(tx *gorm.DB, skill *model.Skill, manifest globalSkillManifest, slug, description string, now time.Time) error {
 	*skill = model.Skill{
-		OrgID:       nil,
-		Slug:        slug,
-		Name:        manifest.Name,
-		Description: &description,
-		SourceType:  model.SkillSourceInline,
-		RepoRef:     "main",
-		Status:      model.SkillStatusPublished,
-		PublishedAt: &now,
+		OrgID:          nil,
+		Slug:           slug,
+		Name:           manifest.Name,
+		Description:    &description,
+		SourceType:     model.SkillSourceInline,
+		RepoRef:        "main",
+		Tags:           manifest.Tags,
+		IntegrationIDs: manifest.IntegrationIDs,
+		Status:         model.SkillStatusPublished,
+		PublishedAt:    &now,
 	}
 	if err := tx.Create(skill).Error; err != nil {
 		return fmt.Errorf("create global skill %s: %w", manifest.Name, err)
@@ -70,15 +72,17 @@ func createGlobalSkill(tx *gorm.DB, skill *model.Skill, manifest globalSkillMani
 
 func updateGlobalSkill(tx *gorm.DB, skill *model.Skill, manifest globalSkillManifest, slug, description string, now time.Time) error {
 	updates := map[string]any{
-		"slug":         slug,
-		"name":         manifest.Name,
-		"description":  &description,
-		"source_type":  model.SkillSourceInline,
-		"repo_url":     nil,
-		"repo_subpath": nil,
-		"repo_ref":     "main",
-		"status":       model.SkillStatusPublished,
-		"published_at": coalesceTime(skill.PublishedAt, now),
+		"slug":            slug,
+		"name":            manifest.Name,
+		"description":     &description,
+		"source_type":     model.SkillSourceInline,
+		"repo_url":        nil,
+		"repo_subpath":    nil,
+		"repo_ref":        "main",
+		"tags":            manifest.Tags,
+		"integration_ids": manifest.IntegrationIDs,
+		"status":          model.SkillStatusPublished,
+		"published_at":    coalesceTime(skill.PublishedAt, now),
 	}
 	if err := tx.Model(skill).Updates(updates).Error; err != nil {
 		return fmt.Errorf("update global skill %s: %w", manifest.Name, err)

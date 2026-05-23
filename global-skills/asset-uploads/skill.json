@@ -2,6 +2,7 @@
   "name": "asset-uploads",
   "description": "Upload any sandbox-produced file using HIVY_DRIVE_UPLOAD_URL and UPLOAD_BEARER, then return a stable file URL. Use for images, videos, screenshots, charts, exports, PDFs, archives, reports, and PR/demo artifacts.",
   "root": "./SKILL.md",
+  "tags": ["uploads", "files", "assets", "sharing"],
   "required_environment_variables": [
     "HIVY_DRIVE_UPLOAD_URL",
     "UPLOAD_BEARER"
