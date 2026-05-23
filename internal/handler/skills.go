@@ -27,6 +27,7 @@ func NewSkillHandler(db *gorm.DB, enqueuer enqueue.TaskEnqueuer) *SkillHandler {
 type createSkillRequest struct {
 	Name           string   `json:"name"`
 	Description    *string  `json:"description,omitempty"`
+	Category       string   `json:"category,omitempty"`
 	SourceType     string   `json:"source_type"` // "inline" | "git"
 	Tags           []string `json:"tags,omitempty"`
 	IntegrationIDs []string `json:"integration_ids,omitempty"`
@@ -43,6 +44,7 @@ type createSkillRequest struct {
 type updateSkillRequest struct {
 	Name           *string   `json:"name,omitempty"`
 	Description    *string   `json:"description,omitempty"`
+	Category       *string   `json:"category,omitempty"`
 	Tags           *[]string `json:"tags,omitempty"`
 	IntegrationIDs *[]string `json:"integration_ids,omitempty"`
 	RepoRef        *string   `json:"repo_ref,omitempty"`
@@ -59,6 +61,7 @@ type skillResponse struct {
 	Slug            string    `json:"slug"`
 	Name            string    `json:"name"`
 	Description     *string   `json:"description,omitempty"`
+	Category        string    `json:"category"`
 	SourceType      string    `json:"source_type"`
 	RepoURL         *string   `json:"repo_url,omitempty"`
 	RepoSubpath     *string   `json:"repo_subpath,omitempty"`
@@ -135,6 +138,7 @@ func (h *SkillHandler) Create(w http.ResponseWriter, r *http.Request) {
 		Slug:           model.GenerateSlug(req.Name),
 		Name:           req.Name,
 		Description:    req.Description,
+		Category:       req.Category,
 		SourceType:     req.SourceType,
 		Tags:           req.Tags,
 		IntegrationIDs: req.IntegrationIDs,

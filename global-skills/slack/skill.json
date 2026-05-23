@@ -1,6 +1,7 @@
 {
   "name": "slack",
   "description": "Use the connected Slack workspace through Hivy's backend Slack proxy. This placeholder skill is attached automatically when an organization connects Slack.",
+  "category": "Communication",
   "root": "./SKILL.md",
   "tags": ["slack", "chat", "workspace", "messaging"],
   "integration_ids": ["slack"],

@@ -83,6 +83,7 @@ func (client *apiClient) createSkill(skill *loadedSkill) error {
 	request := createRequest{
 		Name:           skill.manifest.Name,
 		Description:    &description,
+		Category:       skill.manifest.Category,
 		SourceType:     "inline",
 		Tags:           skill.manifest.Tags,
 		IntegrationIDs: skill.manifest.IntegrationIDs,
@@ -114,6 +115,7 @@ func (client *apiClient) updateMetadata(skillID string, skill *loadedSkill) erro
 	request := map[string]any{
 		"name":            skill.manifest.Name,
 		"description":     skill.manifest.Description,
+		"category":        skill.manifest.Category,
 		"tags":            skill.manifest.Tags,
 		"integration_ids": skill.manifest.IntegrationIDs,
 	}

@@ -19,6 +19,7 @@ func toSkillResponse(s model.Skill) skillResponse {
 		Slug:           s.Slug,
 		Name:           s.Name,
 		Description:    s.Description,
+		Category:       s.Category,
 		SourceType:     s.SourceType,
 		RepoURL:        s.RepoURL,
 		RepoSubpath:    s.RepoSubpath,

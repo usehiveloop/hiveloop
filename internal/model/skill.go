@@ -19,6 +19,7 @@ type Skill struct {
 	Slug        string  `gorm:"not null;index"`
 	Name        string  `gorm:"not null"`
 	Description *string `gorm:"type:text"`
+	Category    string  `gorm:"not null;default:'';size:64;index"`
 
 	// SourceType is "inline" (content authored in the UI) or "git" (hydrated from a repo).
 	SourceType  string  `gorm:"not null"`

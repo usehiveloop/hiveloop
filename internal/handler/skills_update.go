@@ -51,6 +51,9 @@ func (h *SkillHandler) Update(w http.ResponseWriter, r *http.Request) {
 	if req.Description != nil {
 		updates["description"] = *req.Description
 	}
+	if req.Category != nil {
+		updates["category"] = *req.Category
+	}
 	if req.Tags != nil {
 		updates["tags"] = *req.Tags
 	}

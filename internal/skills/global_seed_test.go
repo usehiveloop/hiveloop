@@ -158,6 +158,7 @@ func TestSeedGlobalSkills_PreservesTagsAndIntegrationIDs(t *testing.T) {
 	if err := json.Unmarshal(body, &manifest); err != nil {
 		t.Fatalf("decode manifest: %v", err)
 	}
+	manifest["category"] = "Project management"
 	manifest["tags"] = []string{"linear", "issues"}
 	manifest["integration_ids"] = []string{"linear", "github-app"}
 	body, err = json.Marshal(manifest)
@@ -174,6 +175,9 @@ func TestSeedGlobalSkills_PreservesTagsAndIntegrationIDs(t *testing.T) {
 	var skill model.Skill
 	if err := db.Where("org_id IS NULL AND name = ?", name).First(&skill).Error; err != nil {
 		t.Fatalf("load skill: %v", err)
+	}
+	if skill.Category != "Project management" {
+		t.Fatalf("category = %q, want %q", skill.Category, "Project management")
 	}
 	if want := []string{"linear", "issues"}; !reflect.DeepEqual([]string(skill.Tags), want) {
 		t.Fatalf("tags = %#v, want %#v", []string(skill.Tags), want)

@@ -3,6 +3,7 @@ package main
 type manifest struct {
 	Name           string         `json:"name"`
 	Description    string         `json:"description"`
+	Category       string         `json:"category,omitempty"`
 	Root           string         `json:"root"`
 	Files          []manifestFile `json:"files"`
 	Tags           []string       `json:"tags,omitempty"`
@@ -35,6 +36,7 @@ type reference struct {
 type createRequest struct {
 	Name           string   `json:"name"`
 	Description    *string  `json:"description,omitempty"`
+	Category       string   `json:"category,omitempty"`
 	SourceType     string   `json:"source_type"`
 	Tags           []string `json:"tags,omitempty"`
 	IntegrationIDs []string `json:"integration_ids,omitempty"`

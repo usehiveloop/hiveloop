@@ -33,6 +33,7 @@ type GlobalSeedResult struct {
 type globalSkillManifest struct {
 	Name                         string                    `json:"name"`
 	Description                  string                    `json:"description"`
+	Category                     string                    `json:"category,omitempty"`
 	Root                         string                    `json:"root"`
 	Files                        []globalSkillManifestFile `json:"files"`
 	Internal                     bool                      `json:"internal,omitempty"`

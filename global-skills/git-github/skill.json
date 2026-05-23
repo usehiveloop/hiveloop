@@ -1,6 +1,7 @@
 {
   "name": "git-github",
   "description": "Perform common human git and GitHub workflows from the CLI: branching, committing, opening pull requests (with images), commenting, reacting, labeling, reviewing — while respecting each repo's existing conventions.",
+  "category": "Engineering",
   "root": "./SKILL.md",
   "tags": ["git", "github", "pull-requests", "code-review"],
   "integration_ids": ["github-app", "github-app-code-reviews"],
