@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -110,7 +111,7 @@ func TestPayloadLooksSensitive(t *testing.T) {
 	}
 }
 
-func TestIntegration_EmployeeSkillSync_UpsertsVersionsAndAttachesAgent(t *testing.T) {
+func TestIntegration_EmployeeSkillSync_UpsertsSkillAndAttachesAgent(t *testing.T) {
 	db := connectEmployeeSkillSyncTestDB(t)
 	org1 := model.Org{Name: "skill-sync-" + uuid.NewString()}
 	org2 := model.Org{Name: "skill-sync-" + uuid.NewString()}
@@ -165,12 +166,8 @@ func TestIntegration_EmployeeSkillSync_UpsertsVersionsAndAttachesAgent(t *testin
 	if links != 1 {
 		t.Fatalf("agent skill links = %d", links)
 	}
-	var version model.SkillVersion
-	if err := db.First(&version, "id = ?", *skill.LatestVersionID).Error; err != nil {
-		t.Fatalf("load latest version: %v", err)
-	}
 	var bundle skillpkg.Bundle
-	if err := json.Unmarshal(version.Bundle, &bundle); err != nil {
+	if err := json.Unmarshal(skill.Bundle, &bundle); err != nil {
 		t.Fatalf("decode bundle: %v", err)
 	}
 	if bundle.Content != "\n# Debug\nCheck logs first." || bundle.Files["references/errors.md"] != "# Errors" {
@@ -182,10 +179,11 @@ func TestIntegration_EmployeeSkillSync_UpsertsVersionsAndAttachesAgent(t *testin
 	if err := h.syncSkillEvent(t.Context(), sb1, payload); err != nil {
 		t.Fatalf("sync update: %v", err)
 	}
-	var versionCount int64
-	db.Model(&model.SkillVersion{}).Where("skill_id = ?", skill.ID).Count(&versionCount)
-	if versionCount != 2 {
-		t.Fatalf("version count = %d", versionCount)
+	if err := db.First(&skill, "id = ?", skill.ID).Error; err != nil {
+		t.Fatalf("reload updated skill: %v", err)
+	}
+	if !strings.Contains(string(skill.Bundle), "Check deployment logs first.") {
+		t.Fatalf("bundle did not update: %s", string(skill.Bundle))
 	}
 	if err := h.syncSkillEvent(t.Context(), sb2, payload); err != nil {
 		t.Fatalf("same slug in second org should be allowed: %v", err)

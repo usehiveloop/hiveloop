@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
-	"time"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -14,7 +13,7 @@ import (
 	"github.com/usehivy/hivy/internal/skills"
 )
 
-func toSkillResponse(s model.Skill, latestVersion *model.SkillVersion) skillResponse {
+func toSkillResponse(s model.Skill) skillResponse {
 	resp := skillResponse{
 		ID:           s.ID.String(),
 		Slug:         s.Slug,
@@ -35,10 +34,6 @@ func toSkillResponse(s model.Skill, latestVersion *model.SkillVersion) skillResp
 		orgIDStr := s.OrgID.String()
 		resp.OrgID = &orgIDStr
 	}
-	if s.LatestVersionID != nil {
-		latestIDStr := s.LatestVersionID.String()
-		resp.LatestVersionID = &latestIDStr
-	}
 	if s.PublicSkillID != nil {
 		publicIDStr := s.PublicSkillID.String()
 		resp.PublicSkillID = &publicIDStr
@@ -48,11 +43,11 @@ func toSkillResponse(s model.Skill, latestVersion *model.SkillVersion) skillResp
 	}
 
 	switch {
-	case s.LatestVersionID == nil:
+	case len(s.Bundle) == 0 || string(s.Bundle) == "{}" || string(s.Bundle) == "null":
 		resp.HydrationStatus = "pending"
-	case latestVersion != nil && latestVersion.HydrationError != nil:
+	case s.HydrationError != nil:
 		resp.HydrationStatus = "error"
-		resp.HydrationError = latestVersion.HydrationError
+		resp.HydrationError = s.HydrationError
 	default:
 		resp.HydrationStatus = "ready"
 	}
@@ -60,56 +55,16 @@ func toSkillResponse(s model.Skill, latestVersion *model.SkillVersion) skillResp
 	return resp
 }
 
-// loadVersionMap batch-loads SkillVersions for the given skills and returns
-// them keyed by version ID. Skills without a LatestVersionID are skipped.
-func (h *SkillHandler) loadVersionMap(skills []model.Skill) map[uuid.UUID]model.SkillVersion {
-	versionIDs := make([]uuid.UUID, 0, len(skills))
-	for _, s := range skills {
-		if s.LatestVersionID != nil {
-			versionIDs = append(versionIDs, *s.LatestVersionID)
-		}
-	}
-	if len(versionIDs) == 0 {
-		return nil
-	}
-	var versions []model.SkillVersion
-	if err := h.db.Where("id IN ?", versionIDs).Find(&versions).Error; err != nil {
-		return nil
-	}
-	result := make(map[uuid.UUID]model.SkillVersion, len(versions))
-	for _, sv := range versions {
-		result[sv.ID] = sv
-	}
-	return result
-}
-
-func toSkillDetailResponse(s model.Skill, latest *model.SkillVersion) skillDetailResponse {
-	detail := skillDetailResponse{skillResponse: toSkillResponse(s, latest)}
-	if latest == nil {
+func toSkillDetailResponse(s model.Skill) skillDetailResponse {
+	detail := skillDetailResponse{skillResponse: toSkillResponse(s)}
+	if len(s.Bundle) == 0 {
 		return detail
 	}
-	if len(latest.Bundle) > 0 {
-		var bundle skills.Bundle
-		if err := json.Unmarshal(latest.Bundle, &bundle); err == nil {
-			detail.Bundle = &bundle
-		}
+	var bundle skills.Bundle
+	if err := json.Unmarshal(s.Bundle, &bundle); err == nil {
+		detail.Bundle = &bundle
 	}
 	return detail
-}
-
-func toSkillVersionResponse(sv model.SkillVersion) skillVersionResponse {
-	resp := skillVersionResponse{
-		ID:             sv.ID.String(),
-		Version:        sv.Version,
-		CommitSHA:      sv.CommitSHA,
-		HydrationError: sv.HydrationError,
-		CreatedAt:      sv.CreatedAt,
-	}
-	if sv.HydratedAt != nil {
-		formatted := sv.HydratedAt.Format(time.RFC3339)
-		resp.HydratedAt = &formatted
-	}
-	return resp
 }
 
 // loadSkillVisibleToOrg returns a skill if it is public-and-published or owned
@@ -174,11 +129,7 @@ func toAgentSkillResponse(link model.AgentSkill, skill model.Skill) agentSkillRe
 	resp := agentSkillResponse{
 		SkillID:   link.SkillID.String(),
 		CreatedAt: link.CreatedAt,
-		Skill:     toSkillResponse(skill, nil),
-	}
-	if link.PinnedVersionID != nil {
-		pid := link.PinnedVersionID.String()
-		resp.PinnedVersionID = &pid
+		Skill:     toSkillResponse(skill),
 	}
 	return resp
 }

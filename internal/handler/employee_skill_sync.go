@@ -143,12 +143,8 @@ func (h *EmployeeOutboundWebhookHandler) upsertSyncedSkill(ctx context.Context, 
 			}
 		}
 
-		var versionCount int64
-		if err := tx.Model(&model.SkillVersion{}).Where("skill_id = ?", skill.ID).Count(&versionCount).Error; err != nil {
-			return fmt.Errorf("count versions: %w", err)
-		}
-		if _, err := skillpkg.HydrateInline(ctx, tx, skill.ID, bundle, fmt.Sprintf("v%d", versionCount+1)); err != nil {
-			return fmt.Errorf("hydrate inline skill: %w", err)
+		if _, err := skillpkg.HydrateInline(ctx, tx, skill.ID, bundle); err != nil {
+			return fmt.Errorf("update inline skill content: %w", err)
 		}
 		link := model.AgentSkill{AgentID: agentID, SkillID: skill.ID}
 		if err := tx.Where("agent_id = ? AND skill_id = ?", agentID, skill.ID).

@@ -61,7 +61,6 @@ type skillResponse struct {
 	RepoURL         *string   `json:"repo_url,omitempty"`
 	RepoSubpath     *string   `json:"repo_subpath,omitempty"`
 	RepoRef         string    `json:"repo_ref"`
-	LatestVersionID *string   `json:"latest_version_id,omitempty"`
 	Tags            []string  `json:"tags"`
 	InstallCount    int       `json:"install_count"`
 	Featured        bool      `json:"featured"`
@@ -79,27 +78,16 @@ type skillDetailResponse struct {
 	HydrationError *string        `json:"hydration_error,omitempty"`
 }
 
-type skillVersionResponse struct {
-	ID             string    `json:"id"`
-	Version        string    `json:"version"`
-	CommitSHA      *string   `json:"commit_sha,omitempty"`
-	HydratedAt     *string   `json:"hydrated_at,omitempty"`
-	HydrationError *string   `json:"hydration_error,omitempty"`
-	CreatedAt      time.Time `json:"created_at"`
-}
-
 type attachSkillRequest struct {
-	SkillID         string  `json:"skill_id"`
-	PinnedVersionID *string `json:"pinned_version_id,omitempty"`
+	SkillID string `json:"skill_id"`
 }
 
 type agentSkillResponse struct {
-	SkillID         string        `json:"skill_id"`
-	PinnedVersionID *string       `json:"pinned_version_id,omitempty"`
-	CreatedAt       time.Time     `json:"created_at"`
-	Skill           skillResponse `json:"skill"`
-	Locked          bool          `json:"locked,omitempty"`
-	Required        bool          `json:"required,omitempty"`
+	SkillID   string        `json:"skill_id"`
+	CreatedAt time.Time     `json:"created_at"`
+	Skill     skillResponse `json:"skill"`
+	Locked    bool          `json:"locked,omitempty"`
+	Required  bool          `json:"required,omitempty"`
 }
 
 // Create handles POST /v1/skills.
@@ -168,8 +156,6 @@ func (h *SkillHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var latest *model.SkillVersion
-
 	if req.SourceType == model.SkillSourceInline {
 		if req.Bundle == nil {
 			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "bundle is required for inline skills"})
@@ -184,12 +170,12 @@ func (h *SkillHandler) Create(w http.ResponseWriter, r *http.Request) {
 		if req.Bundle.Description == "" && skill.Description != nil {
 			req.Bundle.Description = *skill.Description
 		}
-		sv, err := skills.HydrateInline(r.Context(), h.db, skill.ID, req.Bundle, "v1")
+		updated, err := skills.HydrateInline(r.Context(), h.db, skill.ID, req.Bundle)
 		if err != nil {
-			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to create skill version"})
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to set skill content"})
 			return
 		}
-		latest = sv
+		skill = *updated
 	} else {
 		if h.enqueuer != nil {
 			task, err := tasks.NewSkillHydrateTask(skill.ID)
@@ -199,11 +185,10 @@ func (h *SkillHandler) Create(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Reload to pick up latest_version_id if we hydrated inline.
 	_ = h.db.First(&skill, "id = ?", skill.ID).Error
 	if employee, err := ensureHivyEmployee(r.Context(), h.db, org.ID); err == nil {
-		_, _ = h.attachSkillToEmployee(r.Context(), employee.ID, skill.ID, nil)
+		_, _ = h.attachSkillToEmployee(r.Context(), employee.ID, skill.ID)
 	}
 
-	writeJSON(w, http.StatusCreated, toSkillDetailResponse(skill, latest))
+	writeJSON(w, http.StatusCreated, toSkillDetailResponse(skill))
 }

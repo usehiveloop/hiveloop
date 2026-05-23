@@ -254,8 +254,6 @@ definitions:
         type: string
       locked:
         type: boolean
-      pinned_version_id:
-        type: string
       required:
         type: boolean
       skill:
@@ -334,8 +332,6 @@ definitions:
     type: object
   attachSkillRequest:
     properties:
-      pinned_version_id:
-        type: string
       skill_id:
         type: string
     type: object
@@ -2206,8 +2202,6 @@ definitions:
         type: string
       install_count:
         type: integer
-      latest_version_id:
-        type: string
       name:
         type: string
       org_id:
@@ -2250,8 +2244,6 @@ definitions:
         type: string
       install_count:
         type: integer
-      latest_version_id:
-        type: string
       name:
         type: string
       org_id:
@@ -2275,21 +2267,6 @@ definitions:
           type: string
         type: array
       updated_at:
-        type: string
-    type: object
-  skillVersionResponse:
-    properties:
-      commit_sha:
-        type: string
-      created_at:
-        type: string
-      hydrated_at:
-        type: string
-      hydration_error:
-        type: string
-      id:
-        type: string
-      version:
         type: string
     type: object
   slackChannelResponse:
@@ -4784,8 +4761,7 @@ paths:
     post:
       consumes:
       - application/json
-      description: Creates an employee skill attachment. PinnedVersionID is optional
-        — when null the employee follows the skill's latest version.
+      description: Creates an employee skill attachment.
       parameters:
       - description: Employee ID
         in: path
@@ -4982,7 +4958,6 @@ paths:
       description: |-
         Compiles the employee config, provisions an employee sandbox if
         needed, pushes it to the runtime, and verifies readiness.
-        Requires the org to have an active Slack connection.
       parameters:
       - description: Agent UUID
         in: path
@@ -6715,8 +6690,7 @@ paths:
     put:
       consumes:
       - application/json
-      description: Creates a new SkillVersion with the provided bundle. Works for
-        both inline and git-sourced skills. The new version becomes the latest.
+      description: Replaces the current bundle for an org-owned skill.
       parameters:
       - description: Skill ID
         in: path
@@ -6746,7 +6720,7 @@ paths:
             $ref: '#/definitions/errorResponse'
       security:
       - BearerAuth: []
-      summary: Push a new inline version for a skill
+      summary: Update skill content
       tags:
       - skills
   /v1/skills/{id}/hydrate:
@@ -6779,33 +6753,6 @@ paths:
       security:
       - BearerAuth: []
       summary: Re-hydrate a git-sourced skill
-      tags:
-      - skills
-  /v1/skills/{id}/versions:
-    get:
-      description: Returns all SkillVersion rows for a skill, newest first.
-      parameters:
-      - description: Skill ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            items:
-              $ref: '#/definitions/skillVersionResponse'
-            type: array
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/errorResponse'
-      security:
-      - BearerAuth: []
-      summary: List skill versions
       tags:
       - skills
   /v1/slack/channels:

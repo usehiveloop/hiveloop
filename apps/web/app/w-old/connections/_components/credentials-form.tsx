@@ -135,7 +135,7 @@ export function CredentialsForm({
         <button
           type="button"
           onClick={onBack}
-          className="flex items-center justify-center h-7 w-7 rounded-lg hover:bg-muted transition-colors -ml-1 cursor-pointer"
+          className="flex items-center justify-center h-7 w-7 rounded-md hover:bg-muted transition-colors -ml-1 cursor-pointer"
         >
           <HugeiconsIcon icon={ArrowLeft01Icon} size={16} className="text-muted-foreground" />
         </button>
@@ -207,7 +207,7 @@ export function CredentialsForm({
         ))}
 
         {isOutbound && (
-          <p className="text-xs text-muted-foreground rounded-lg bg-muted p-3">
+          <p className="text-xs text-muted-foreground rounded-md bg-muted p-3">
             After submitting, go to {integration.display_name}&apos;s settings to accept and install the integration.
           </p>
         )}

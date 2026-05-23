@@ -143,7 +143,6 @@ func setupV1Routes(
 					r.Delete("/{id}", skillHandler.Delete)
 					r.Put("/{id}/content", skillHandler.UpdateContent)
 					r.Post("/{id}/hydrate", skillHandler.Hydrate)
-					r.Get("/{id}/versions", skillHandler.ListVersions)
 				})
 				triggerDeliveryHandler := handler.NewTriggerDeliveryHandler(database)
 				if employeeHandler != nil {

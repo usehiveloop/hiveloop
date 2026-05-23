@@ -32,50 +32,20 @@ func buildSkills(ctx context.Context, db *gorm.DB, agentID uuid.UUID) ([]SkillSp
 		return []SkillSpec{}, nil
 	}
 	ids := make([]uuid.UUID, 0, len(links))
-	pinnedBySkill := make(map[uuid.UUID]*uuid.UUID, len(links))
 	for _, link := range links {
 		ids = append(ids, link.SkillID)
-		pinnedBySkill[link.SkillID] = link.PinnedVersionID
 	}
 	var skills []model.Skill
 	if err := db.WithContext(ctx).Where("id IN ?", ids).Find(&skills).Error; err != nil {
 		return nil, err
 	}
-	versionIDs := make([]uuid.UUID, 0, len(skills))
-	for _, skill := range skills {
-		if pinned := pinnedBySkill[skill.ID]; pinned != nil {
-			versionIDs = append(versionIDs, *pinned)
-		} else if skill.LatestVersionID != nil {
-			versionIDs = append(versionIDs, *skill.LatestVersionID)
-		}
-	}
-	if len(versionIDs) == 0 {
-		return []SkillSpec{}, nil
-	}
-	var versions []model.SkillVersion
-	if err := db.WithContext(ctx).Where("id IN ?", versionIDs).Find(&versions).Error; err != nil {
-		return nil, err
-	}
-	versionsByID := make(map[uuid.UUID]model.SkillVersion, len(versions))
-	for _, version := range versions {
-		versionsByID[version.ID] = version
-	}
 	out := make([]SkillSpec, 0, len(skills))
 	for _, skill := range skills {
-		var versionID uuid.UUID
-		if pinned := pinnedBySkill[skill.ID]; pinned != nil {
-			versionID = *pinned
-		} else if skill.LatestVersionID != nil {
-			versionID = *skill.LatestVersionID
-		} else {
-			continue
-		}
-		version, ok := versionsByID[versionID]
-		if !ok {
+		if len(skill.Bundle) == 0 {
 			continue
 		}
 		var bundle skillBundle
-		if err := json.Unmarshal(version.Bundle, &bundle); err != nil {
+		if err := json.Unmarshal(skill.Bundle, &bundle); err != nil {
 			continue
 		}
 		description := bundle.Description

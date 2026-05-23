@@ -5,7 +5,7 @@ import { useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
-  CheckmarkCircle01Icon,
+  CheckmarkCircle02Icon,
   Delete02Icon,
   MoreHorizontalIcon,
   Plug01Icon,
@@ -233,13 +233,13 @@ export default function ConnectionsPage() {
 
                 <div className="min-w-0 flex-1">
                   <div className="flex min-w-0 items-center gap-2">
-                    <h2 className="truncate text-sm font-semibold text-foreground">
+                    <h2 className="truncate text-sm font-medium text-foreground">
                       {label}
                     </h2>
                     {isConnected ? (
                       <HugeiconsIcon
-                        icon={CheckmarkCircle01Icon}
-                        className="size-4 shrink-0 text-emerald-600"
+                        icon={CheckmarkCircle02Icon}
+                        className="size-4 ml-2 shrink-0 text-emerald-600"
                         aria-label="Connected"
                       />
                     ) : null}
@@ -291,8 +291,7 @@ export default function ConnectionsPage() {
                 ) : (
                   <Button
                     type="button"
-                    size="sm"
-                    variant="outline"
+                    variant="secondary"
                     loading={isBusy}
                     disabled={connectingId !== null}
                     onClick={(event) => {

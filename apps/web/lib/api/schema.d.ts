@@ -3902,7 +3902,7 @@ export interface paths {
         put?: never;
         /**
          * Attach a skill to an employee
-         * @description Creates an employee skill attachment. PinnedVersionID is optional — when null the employee follows the skill's latest version.
+         * @description Creates an employee skill attachment.
          */
         post: {
             parameters: {
@@ -4250,7 +4250,6 @@ export interface paths {
          * Push compiled config to an employee sandbox
          * @description Compiles the employee config, provisions an employee sandbox if
          *     needed, pushes it to the runtime, and verifies readiness.
-         *     Requires the org to have an active Slack connection.
          */
         post: {
             parameters: {
@@ -7339,8 +7338,8 @@ export interface paths {
         };
         get?: never;
         /**
-         * Push a new inline version for a skill
-         * @description Creates a new SkillVersion with the provided bundle. Works for both inline and git-sourced skills. The new version becomes the latest.
+         * Update skill content
+         * @description Replaces the current bundle for an org-owned skill.
          */
         put: {
             parameters: {
@@ -7451,57 +7450,6 @@ export interface paths {
                 };
             };
         };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/skills/{id}/versions": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List skill versions
-         * @description Returns all SkillVersion rows for a skill, newest first.
-         */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description Skill ID */
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["skillVersionResponse"][];
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -8231,7 +8179,6 @@ export interface components {
         agentSkillResponse: {
             created_at?: string;
             locked?: boolean;
-            pinned_version_id?: string;
             required?: boolean;
             skill?: components["schemas"]["skillResponse"];
             skill_id?: string;
@@ -8273,7 +8220,6 @@ export interface components {
             updated_at?: string;
         };
         attachSkillRequest: {
-            pinned_version_id?: string;
             skill_id?: string;
         };
         auditEntryResponse: {
@@ -9236,7 +9182,6 @@ export interface components {
             hydration_status?: string;
             id?: string;
             install_count?: number;
-            latest_version_id?: string;
             name?: string;
             org_id?: string;
             public_skill_id?: string;
@@ -9258,7 +9203,6 @@ export interface components {
             hydration_status?: string;
             id?: string;
             install_count?: number;
-            latest_version_id?: string;
             name?: string;
             org_id?: string;
             public_skill_id?: string;
@@ -9270,14 +9214,6 @@ export interface components {
             status?: string;
             tags?: string[];
             updated_at?: string;
-        };
-        skillVersionResponse: {
-            commit_sha?: string;
-            created_at?: string;
-            hydrated_at?: string;
-            hydration_error?: string;
-            id?: string;
-            version?: string;
         };
         slackChannelResponse: {
             id?: string;

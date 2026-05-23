@@ -41,7 +41,7 @@ func TestSeedGlobalSkills_CreatesPublishedOrgNullSkillAndOverridesContent(t *tes
 	if skill.OrgID != nil {
 		t.Fatalf("org_id should be null")
 	}
-	firstVersion := *skill.LatestVersionID
+	firstBundle := string(skill.Bundle)
 
 	result, err = skills.SeedGlobalSkills(context.Background(), db, dir)
 	if err != nil {
@@ -53,8 +53,8 @@ func TestSeedGlobalSkills_CreatesPublishedOrgNullSkillAndOverridesContent(t *tes
 	if err := db.Where("org_id IS NULL AND name = ?", name).First(&skill).Error; err != nil {
 		t.Fatalf("reload seeded skill: %v", err)
 	}
-	if *skill.LatestVersionID == firstVersion {
-		t.Fatalf("second seed should replace latest version")
+	if string(skill.Bundle) != firstBundle {
+		t.Fatalf("second seed should keep same current bundle")
 	}
 
 	writeGlobalSkill(t, dir, name, "second description", "# Second\n", nil)
@@ -68,15 +68,11 @@ func TestSeedGlobalSkills_CreatesPublishedOrgNullSkillAndOverridesContent(t *tes
 	if err := db.Where("org_id IS NULL AND name = ?", name).First(&skill).Error; err != nil {
 		t.Fatalf("reload updated skill: %v", err)
 	}
-	if *skill.LatestVersionID == firstVersion {
-		t.Fatalf("updated seed should create a new latest version")
+	if string(skill.Bundle) == firstBundle {
+		t.Fatalf("updated seed should replace current bundle")
 	}
-	var version model.SkillVersion
-	if err := db.Where("id = ?", *skill.LatestVersionID).First(&version).Error; err != nil {
-		t.Fatalf("load version: %v", err)
-	}
-	if !strings.Contains(string(version.Bundle), "# Second") {
-		t.Fatalf("latest bundle did not contain updated content: %s", string(version.Bundle))
+	if !strings.Contains(string(skill.Bundle), "# Second") {
+		t.Fatalf("bundle did not contain updated content: %s", string(skill.Bundle))
 	}
 }
 
@@ -101,12 +97,8 @@ func TestSeedGlobalSkills_FetchesManifestReferenceURLs(t *testing.T) {
 	if err := db.Where("org_id IS NULL AND name = ?", name).First(&skill).Error; err != nil {
 		t.Fatalf("load skill: %v", err)
 	}
-	var version model.SkillVersion
-	if err := db.Where("id = ?", *skill.LatestVersionID).First(&version).Error; err != nil {
-		t.Fatalf("load version: %v", err)
-	}
-	if !strings.Contains(string(version.Bundle), "remote reference body") {
-		t.Fatalf("bundle missing remote reference: %s", string(version.Bundle))
+	if !strings.Contains(string(skill.Bundle), "remote reference body") {
+		t.Fatalf("bundle missing remote reference: %s", string(skill.Bundle))
 	}
 }
 
@@ -141,12 +133,8 @@ func TestSeedGlobalSkills_PreservesRequiredEnvironmentVariables(t *testing.T) {
 	if err := db.Where("org_id IS NULL AND name = ?", name).First(&skill).Error; err != nil {
 		t.Fatalf("load skill: %v", err)
 	}
-	var version model.SkillVersion
-	if err := db.Where("id = ?", *skill.LatestVersionID).First(&version).Error; err != nil {
-		t.Fatalf("load version: %v", err)
-	}
 	var bundle skills.Bundle
-	if err := json.Unmarshal(version.Bundle, &bundle); err != nil {
+	if err := json.Unmarshal(skill.Bundle, &bundle); err != nil {
 		t.Fatalf("decode bundle: %v", err)
 	}
 	want := []string{"HIVY_DRIVE_UPLOAD_URL", "UPLOAD_BEARER"}

@@ -84,7 +84,7 @@ type SkillHydratePayload struct {
 }
 
 // NewSkillHydrateTask creates a task that pulls a git-sourced skill at its
-// tracked ref and writes a new SkillVersion.
+// tracked ref and updates the skill's current bundle.
 func NewSkillHydrateTask(skillID uuid.UUID) (*asynq.Task, error) {
 	payload, err := json.Marshal(SkillHydratePayload{SkillID: skillID})
 	if err != nil {

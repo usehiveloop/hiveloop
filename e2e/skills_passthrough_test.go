@@ -62,9 +62,12 @@ func TestSkillsPassthrough_NewWireShape(t *testing.T) {
 	}
 	skillIDs := make([]uuid.UUID, 0, len(skillFixtures))
 	for _, sf := range skillFixtures {
-		sv := model.SkillVersion{
-			ID:      uuid.New(),
-			Version: "v1",
+		sk := model.Skill{
+			ID:         uuid.New(),
+			Slug:       sf.bundleID,
+			Name:       sf.title,
+			SourceType: "inline",
+			Status:     "published",
 			Bundle: model.RawJSON(`{
 				"id": "` + sf.bundleID + `",
 				"title": "` + sf.title + `",
@@ -72,22 +75,11 @@ func TestSkillsPassthrough_NewWireShape(t *testing.T) {
 				"content": "# ` + sf.title + `\nbody"
 			}`),
 		}
-		sk := model.Skill{
-			ID:              uuid.New(),
-			Slug:            sf.bundleID,
-			Name:            sf.title,
-			SourceType:      "inline",
-			Status:          "published",
-			LatestVersionID: &sv.ID,
-		}
-		sv.SkillID = sk.ID
 		h.db.Create(&sk)
-		h.db.Create(&sv)
 		h.db.Create(&model.AgentSkill{AgentID: agent.ID, SkillID: sk.ID})
 		skillIDs = append(skillIDs, sk.ID)
 		t.Cleanup(func() {
 			h.db.Where("agent_id = ? AND skill_id = ?", agent.ID, sk.ID).Delete(&model.AgentSkill{})
-			h.db.Where("skill_id = ?", sk.ID).Delete(&model.SkillVersion{})
 			h.db.Where("id = ?", sk.ID).Delete(&model.Skill{})
 		})
 	}

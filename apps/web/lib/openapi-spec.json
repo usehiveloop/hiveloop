@@ -66,7 +66,7 @@
     },
     "/auth/confirm-email": {
       "post": {
-        "description": "Confirms a user's email address using a verification token.",
+        "description": "Confirms a user's email address using a 6-digit code.",
         "tags": [
           "auth"
         ],
@@ -79,7 +79,7 @@
               }
             }
           },
-          "description": "Confirmation token",
+          "description": "Email and 6-digit code",
           "required": true
         },
         "responses": {
@@ -432,9 +432,71 @@
         }
       }
     },
+    "/auth/register": {
+      "post": {
+        "description": "Creates a user account with email and password.",
+        "tags": [
+          "auth"
+        ],
+        "summary": "Register",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/registerRequest"
+              }
+            }
+          },
+          "description": "Registration parameters",
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/authResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/auth/resend-confirmation": {
       "post": {
-        "description": "Sends a new email confirmation link. Rate limited to 1 per 60 seconds.",
+        "description": "Sends a new 6-digit email confirmation code. Rate limited to 1 per 60 seconds.",
         "tags": [
           "auth"
         ],
@@ -1195,7 +1257,7 @@
             }
           },
           {
-            "description": "Pagination cursor — created_at unix-nanos from the previous page's tail",
+            "description": "Pagination cursor \u2014 created_at unix-nanos from the previous page's tail",
             "name": "cursor",
             "in": "query",
             "schema": {
@@ -2320,7 +2382,7 @@
             }
           },
           {
-            "description": "Pagination cursor — sequence_number from previous page's tail. Returns events with sequence_number strictly less than this value.",
+            "description": "Pagination cursor \u2014 sequence_number from previous page's tail. Returns events with sequence_number strictly less than this value.",
             "name": "cursor",
             "in": "query",
             "schema": {
@@ -2422,7 +2484,7 @@
             "BearerAuth": []
           }
         ],
-        "description": "Returns chat-ready messages aggregated from raw events. Consecutive same-name tool calls are grouped (e.g. \"bash\" called 11 times in a row → one group with 11 calls). Pagination is by sequence_number; aggregation is per-page so a tool call split across pages will not pair.",
+        "description": "Returns chat-ready messages aggregated from raw events. Consecutive same-name tool calls are grouped (e.g. \"bash\" called 11 times in a row \u2192 one group with 11 calls). Pagination is by sequence_number; aggregation is per-page so a tool call split across pages will not pair.",
         "tags": [
           "conversations"
         ],
@@ -3162,7 +3224,7 @@
             "BearerAuth": []
           }
         ],
-        "description": "Returns all employees in the org with enabled specialists,\nskills (metadata only — no bundle content),\ntriggers, and the latest sandbox row.",
+        "description": "Returns all employees in the org with enabled specialists,\nskills (metadata only \u2014 no bundle content),\ntriggers, and the latest sandbox row.",
         "tags": [
           "employees"
         ],
@@ -3234,7 +3296,7 @@
             "BearerAuth": []
           }
         ],
-        "description": "Returns one employee in the org with enabled specialists,\nskills (metadata only — no bundle content),\ntriggers, and the latest sandbox row.",
+        "description": "Returns one employee in the org with enabled specialists,\nskills (metadata only \u2014 no bundle content),\ntriggers, and the latest sandbox row.",
         "tags": [
           "employees"
         ],
@@ -3757,7 +3819,7 @@
             "BearerAuth": []
           }
         ],
-        "description": "Creates an employee skill attachment. PinnedVersionID is optional — when null the employee follows the skill's latest version.",
+        "description": "Creates an employee skill attachment.",
         "tags": [
           "skills"
         ],
@@ -4140,7 +4202,7 @@
             "BearerAuth": []
           }
         ],
-        "description": "Compiles the employee config, provisions an employee sandbox if\nneeded, pushes it to the runtime, and verifies readiness.\nRequires the org to have an active Slack connection.",
+        "description": "Compiles the employee config, provisions an employee sandbox if\nneeded, pushes it to the runtime, and verifies readiness.",
         "tags": [
           "employees"
         ],
@@ -5136,7 +5198,7 @@
             "BearerAuth": []
           }
         ],
-        "description": "Updates name and/or logo_url on the current organization. Admins\nand owners only. Pass an empty string for logo_url to clear it.",
+        "description": "Updates workspace profile fields on the current organization.\nAdmins and owners only. Pass an empty string for optional fields to clear them.",
         "tags": [
           "orgs"
         ],
@@ -5452,7 +5514,7 @@
     },
     "/v1/plans": {
       "get": {
-        "description": "Returns the public catalog of billing plans, ordered by price\nascending (free first). Public — no authentication required.",
+        "description": "Returns the public catalog of billing plans, ordered by price\nascending (free first). Public \u2014 no authentication required.",
         "tags": [
           "plans"
         ],
@@ -5823,7 +5885,7 @@
             "BearerAuth": []
           }
         ],
-        "description": "Patches mutable fields (name, status pause/resume, refresh / prune / perm-sync frequencies, indexing_start floor). Only ACTIVE ↔ PAUSED transitions are client-settable; DELETING is server-managed.",
+        "description": "Patches mutable fields (name, status pause/resume, refresh / prune / perm-sync frequencies, indexing_start floor). Only ACTIVE \u2194 PAUSED transitions are client-settable; DELETING is server-managed.",
         "tags": [
           "rag"
         ],
@@ -7301,11 +7363,11 @@
             "BearerAuth": []
           }
         ],
-        "description": "Creates a new SkillVersion with the provided bundle. Works for both inline and git-sourced skills. The new version becomes the latest.",
+        "description": "Replaces the current bundle for an org-owned skill.",
         "tags": [
           "skills"
         ],
-        "summary": "Push a new inline version for a skill",
+        "summary": "Update skill content",
         "parameters": [
           {
             "description": "Skill ID",
@@ -7405,56 +7467,6 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/skills/{id}/versions": {
-      "get": {
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "description": "Returns all SkillVersion rows for a skill, newest first.",
-        "tags": [
-          "skills"
-        ],
-        "summary": "List skill versions",
-        "parameters": [
-          {
-            "description": "Skill ID",
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/skillVersionResponse"
-                  }
                 }
               }
             }
@@ -8472,9 +8484,6 @@
           "locked": {
             "type": "boolean"
           },
-          "pinned_version_id": {
-            "type": "string"
-          },
           "required": {
             "type": "boolean"
           },
@@ -8595,9 +8604,6 @@
       "attachSkillRequest": {
         "type": "object",
         "properties": {
-          "pinned_version_id": {
-            "type": "string"
-          },
           "skill_id": {
             "type": "string"
           }
@@ -8712,7 +8718,10 @@
       "confirmEmailRequest": {
         "type": "object",
         "properties": {
-          "token": {
+          "code": {
+            "type": "string"
+          },
+          "email": {
             "type": "string"
           }
         }
@@ -10270,6 +10279,9 @@
           },
           "rate_limit": {
             "type": "integer"
+          },
+          "website": {
+            "type": "string"
           }
         }
       },
@@ -11120,6 +11132,20 @@
           }
         }
       },
+      "registerRequest": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          }
+        }
+      },
       "reportRow": {
         "type": "object",
         "properties": {
@@ -11433,9 +11459,6 @@
           "install_count": {
             "type": "integer"
           },
-          "latest_version_id": {
-            "type": "string"
-          },
           "name": {
             "type": "string"
           },
@@ -11499,9 +11522,6 @@
           "install_count": {
             "type": "integer"
           },
-          "latest_version_id": {
-            "type": "string"
-          },
           "name": {
             "type": "string"
           },
@@ -11536,29 +11556,6 @@
             }
           },
           "updated_at": {
-            "type": "string"
-          }
-        }
-      },
-      "skillVersionResponse": {
-        "type": "object",
-        "properties": {
-          "commit_sha": {
-            "type": "string"
-          },
-          "created_at": {
-            "type": "string"
-          },
-          "hydrated_at": {
-            "type": "string"
-          },
-          "hydration_error": {
-            "type": "string"
-          },
-          "id": {
-            "type": "string"
-          },
-          "version": {
             "type": "string"
           }
         }
@@ -11991,6 +11988,9 @@
           },
           "prompt_company": {
             "type": "string"
+          },
+          "website": {
+            "type": "string"
           }
         }
       },
@@ -12179,131 +12179,5 @@
         }
       }
     }
-  },
-  "tags": [
-    {
-      "name": "auth",
-      "description": "Authentication"
-    },
-    {
-      "name": "triggers",
-      "description": "triggers"
-    },
-    {
-      "name": "webhooks",
-      "description": "webhooks"
-    },
-    {
-      "name": "oauth",
-      "description": "OAuth"
-    },
-    {
-      "name": "api-keys",
-      "description": "API Keys"
-    },
-    {
-      "name": "assets",
-      "description": "assets"
-    },
-    {
-      "name": "audit",
-      "description": "Audit"
-    },
-    {
-      "name": "billing",
-      "description": "Billing"
-    },
-    {
-      "name": "integrations",
-      "description": "Integrations"
-    },
-    {
-      "name": "conversations",
-      "description": "Conversations"
-    },
-    {
-      "name": "credentials",
-      "description": "Credentials"
-    },
-    {
-      "name": "custom-domains",
-      "description": "Custom Domains"
-    },
-    {
-      "name": "dashboard",
-      "description": "dashboard"
-    },
-    {
-      "name": "employees",
-      "description": "employees"
-    },
-    {
-      "name": "skills",
-      "description": "skills"
-    },
-    {
-      "name": "generations",
-      "description": "Generations"
-    },
-    {
-      "name": "in-connections",
-      "description": "Internal Connections"
-    },
-    {
-      "name": "in-integrations",
-      "description": "Internal Integrations"
-    },
-    {
-      "name": "org-invites",
-      "description": "org-invites"
-    },
-    {
-      "name": "providers",
-      "description": "Providers"
-    },
-    {
-      "name": "orgs",
-      "description": "Organizations"
-    },
-    {
-      "name": "plans",
-      "description": "plans"
-    },
-    {
-      "name": "rag",
-      "description": "rag"
-    },
-    {
-      "name": "reporting",
-      "description": "Reporting"
-    },
-    {
-      "name": "sandbox-templates",
-      "description": "Sandbox Templates"
-    },
-    {
-      "name": "sandboxes",
-      "description": "Sandboxes"
-    },
-    {
-      "name": "slack",
-      "description": "slack"
-    },
-    {
-      "name": "system",
-      "description": "system"
-    },
-    {
-      "name": "tokens",
-      "description": "Tokens"
-    },
-    {
-      "name": "uploads",
-      "description": "uploads"
-    },
-    {
-      "name": "usage",
-      "description": "Usage"
-    }
-  ]
+  }
 }

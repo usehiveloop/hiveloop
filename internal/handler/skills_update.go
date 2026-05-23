@@ -2,7 +2,6 @@ package handler
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -75,19 +74,12 @@ func (h *SkillHandler) Update(w http.ResponseWriter, r *http.Request) {
 		}
 		_ = h.db.First(skill, "id = ?", skill.ID).Error
 	}
-	var latestVersion *model.SkillVersion
-	if skill.LatestVersionID != nil {
-		var sv model.SkillVersion
-		if err := h.db.First(&sv, "id = ?", *skill.LatestVersionID).Error; err == nil {
-			latestVersion = &sv
-		}
-	}
-	writeJSON(w, http.StatusOK, toSkillResponse(*skill, latestVersion))
+	writeJSON(w, http.StatusOK, toSkillResponse(*skill))
 }
 
 // UpdateContent handles PUT /v1/skills/{id}/content.
-// @Summary Push a new inline version for a skill
-// @Description Creates a new SkillVersion with the provided bundle. Works for both inline and git-sourced skills. The new version becomes the latest.
+// @Summary Update skill content
+// @Description Replaces the current bundle for an org-owned skill.
 // @Tags skills
 // @Accept json
 // @Produce json
@@ -126,17 +118,11 @@ func (h *SkillHandler) UpdateContent(w http.ResponseWriter, r *http.Request) {
 		req.Bundle.Description = *skill.Description
 	}
 
-	var versionCount int64
-	h.db.Model(&model.SkillVersion{}).Where("skill_id = ?", skill.ID).Count(&versionCount)
-	versionLabel := fmt.Sprintf("v%d", versionCount+1)
-
-	latest, err := skills.HydrateInline(r.Context(), h.db, skill.ID, &req.Bundle, versionLabel)
+	updated, err := skills.HydrateInline(r.Context(), h.db, skill.ID, &req.Bundle)
 	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to create version"})
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to update skill content"})
 		return
 	}
 
-	_ = h.db.First(skill, "id = ?", skill.ID).Error
-
-	writeJSON(w, http.StatusOK, toSkillDetailResponse(*skill, latest))
+	writeJSON(w, http.StatusOK, toSkillDetailResponse(*updated))
 }

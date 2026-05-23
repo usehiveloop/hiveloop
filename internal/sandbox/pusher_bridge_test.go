@@ -63,9 +63,9 @@ func TestPusherBuildAgentDefinition(t *testing.T) {
 	db.Create(&agent)
 	t.Cleanup(func() { db.Where("id = ?", agent.ID).Delete(&model.Agent{}) })
 
-	skillVersion := model.SkillVersion{
-		ID:      uuid.New(),
-		Version: "v1",
+	skill := model.Skill{
+		ID: uuid.New(), Slug: "use-railway-test-" + uuid.New().String()[:8],
+		Name: "use-railway", SourceType: "inline", Status: "published",
 		Bundle: model.RawJSON(`{
 			"id": "use-railway-test",
 			"title": "use-railway",
@@ -73,18 +73,10 @@ func TestPusherBuildAgentDefinition(t *testing.T) {
 			"content": "# Use Railway\nDeploy and manage services on Railway."
 		}`),
 	}
-	skill := model.Skill{
-		ID: uuid.New(), Slug: "use-railway-test-" + uuid.New().String()[:8],
-		Name: "use-railway", SourceType: "inline", Status: "published",
-		LatestVersionID: &skillVersion.ID,
-	}
-	skillVersion.SkillID = skill.ID
 	db.Create(&skill)
-	db.Create(&skillVersion)
 	db.Create(&model.AgentSkill{AgentID: agent.ID, SkillID: skill.ID})
 	t.Cleanup(func() {
 		db.Where("agent_id = ? AND skill_id = ?", agent.ID, skill.ID).Delete(&model.AgentSkill{})
-		db.Where("skill_id = ?", skill.ID).Delete(&model.SkillVersion{})
 		db.Where("id = ?", skill.ID).Delete(&model.Skill{})
 	})
 
@@ -189,9 +181,9 @@ func createPusherSkill(t *testing.T, db interface {
 	Where(query any, args ...any) *gorm.DB
 }, name string) model.Skill {
 	t.Helper()
-	skillVersion := model.SkillVersion{
-		ID:      uuid.New(),
-		Version: "v1",
+	skill := model.Skill{
+		ID: uuid.New(), Slug: name + "-test-" + uuid.New().String()[:8],
+		Name: name, SourceType: "inline", Status: "published",
 		Bundle: model.RawJSON(`{
 			"id": "` + name + `-test",
 			"title": "` + name + `",
@@ -199,20 +191,10 @@ func createPusherSkill(t *testing.T, db interface {
 			"content": "# ` + name + `"
 		}`),
 	}
-	skill := model.Skill{
-		ID: uuid.New(), Slug: name + "-test-" + uuid.New().String()[:8],
-		Name: name, SourceType: "inline", Status: "published",
-		LatestVersionID: &skillVersion.ID,
-	}
-	skillVersion.SkillID = skill.ID
 	if err := db.Create(&skill).Error; err != nil {
 		t.Fatalf("create skill: %v", err)
 	}
-	if err := db.Create(&skillVersion).Error; err != nil {
-		t.Fatalf("create skill version: %v", err)
-	}
 	t.Cleanup(func() {
-		db.Where("skill_id = ?", skill.ID).Delete(&model.SkillVersion{})
 		db.Where("skill_id = ?", skill.ID).Delete(&model.AgentSkill{})
 		db.Where("id = ?", skill.ID).Delete(&model.Skill{})
 	})

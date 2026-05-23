@@ -3173,7 +3173,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Creates an employee skill attachment. PinnedVersionID is optional — when null the employee follows the skill's latest version.",
+                "description": "Creates an employee skill attachment.",
                 "consumes": [
                     "application/json"
                 ],
@@ -3476,7 +3476,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Compiles the employee config, provisions an employee sandbox if\nneeded, pushes it to the runtime, and verifies readiness.\nRequires the org to have an active Slack connection.",
+                "description": "Compiles the employee config, provisions an employee sandbox if\nneeded, pushes it to the runtime, and verifies readiness.",
                 "produces": [
                     "application/json"
                 ],
@@ -6136,7 +6136,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Creates a new SkillVersion with the provided bundle. Works for both inline and git-sourced skills. The new version becomes the latest.",
+                "description": "Replaces the current bundle for an org-owned skill.",
                 "consumes": [
                     "application/json"
                 ],
@@ -6146,7 +6146,7 @@ const docTemplate = `{
                 "tags": [
                     "skills"
                 ],
-                "summary": "Push a new inline version for a skill",
+                "summary": "Update skill content",
                 "parameters": [
                     {
                         "type": "string",
@@ -6225,49 +6225,6 @@ const docTemplate = `{
                         "description": "Bad Request",
                         "schema": {
                             "$ref": "#/definitions/errorResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/errorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/skills/{id}/versions": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Returns all SkillVersion rows for a skill, newest first.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "skills"
-                ],
-                "summary": "List skill versions",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Skill ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/skillVersionResponse"
-                            }
                         }
                     },
                     "404": {
@@ -7120,9 +7077,6 @@ const docTemplate = `{
                 "locked": {
                     "type": "boolean"
                 },
-                "pinned_version_id": {
-                    "type": "string"
-                },
                 "required": {
                     "type": "boolean"
                 },
@@ -7243,9 +7197,6 @@ const docTemplate = `{
         "attachSkillRequest": {
             "type": "object",
             "properties": {
-                "pinned_version_id": {
-                    "type": "string"
-                },
                 "skill_id": {
                     "type": "string"
                 }
@@ -10101,9 +10052,6 @@ const docTemplate = `{
                 "install_count": {
                     "type": "integer"
                 },
-                "latest_version_id": {
-                    "type": "string"
-                },
                 "name": {
                     "type": "string"
                 },
@@ -10167,9 +10115,6 @@ const docTemplate = `{
                 "install_count": {
                     "type": "integer"
                 },
-                "latest_version_id": {
-                    "type": "string"
-                },
                 "name": {
                     "type": "string"
                 },
@@ -10204,29 +10149,6 @@ const docTemplate = `{
                     }
                 },
                 "updated_at": {
-                    "type": "string"
-                }
-            }
-        },
-        "skillVersionResponse": {
-            "type": "object",
-            "properties": {
-                "commit_sha": {
-                    "type": "string"
-                },
-                "created_at": {
-                    "type": "string"
-                },
-                "hydrated_at": {
-                    "type": "string"
-                },
-                "hydration_error": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "version": {
                     "type": "string"
                 }
             }

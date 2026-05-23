@@ -66,16 +66,9 @@ func (h *SkillHandler) List(w http.ResponseWriter, r *http.Request) {
 	if hasMore {
 		rows = rows[:limit]
 	}
-	versionMap := h.loadVersionMap(rows)
 	resp := make([]skillResponse, len(rows))
 	for i, s := range rows {
-		var version *model.SkillVersion
-		if s.LatestVersionID != nil {
-			if sv, ok := versionMap[*s.LatestVersionID]; ok {
-				version = &sv
-			}
-		}
-		resp[i] = toSkillResponse(s, version)
+		resp[i] = toSkillResponse(s)
 	}
 	result := paginatedResponse[skillResponse]{Data: resp, HasMore: hasMore}
 	if hasMore {
@@ -109,14 +102,7 @@ func (h *SkillHandler) Get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var latest *model.SkillVersion
-	if skill.LatestVersionID != nil {
-		var sv model.SkillVersion
-		if err := h.db.First(&sv, "id = ?", *skill.LatestVersionID).Error; err == nil {
-			latest = &sv
-		}
-	}
-	writeJSON(w, http.StatusOK, toSkillDetailResponse(*skill, latest))
+	writeJSON(w, http.StatusOK, toSkillDetailResponse(*skill))
 }
 
 // Delete handles DELETE /v1/skills/{id}. Soft-deletes by marking archived.
@@ -187,38 +173,4 @@ func (h *SkillHandler) Hydrate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusAccepted, map[string]string{"status": "hydrating"})
-}
-
-// ListVersions handles GET /v1/skills/{id}/versions.
-// @Summary List skill versions
-// @Description Returns all SkillVersion rows for a skill, newest first.
-// @Tags skills
-// @Produce json
-// @Param id path string true "Skill ID"
-// @Success 200 {array} skillVersionResponse
-// @Failure 404 {object} errorResponse
-// @Security BearerAuth
-// @Router /v1/skills/{id}/versions [get]
-func (h *SkillHandler) ListVersions(w http.ResponseWriter, r *http.Request) {
-	org, ok := middleware.OrgFromContext(r.Context())
-	if !ok {
-		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "missing org context"})
-		return
-	}
-	skill, err := h.loadSkillVisibleToOrg(r.Context(), chi.URLParam(r, "id"), org.ID)
-	if err != nil {
-		writeSkillLookupError(w, err)
-		return
-	}
-
-	var versions []model.SkillVersion
-	if err := h.db.Where("skill_id = ?", skill.ID).Order("created_at DESC").Find(&versions).Error; err != nil {
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to list versions"})
-		return
-	}
-	resp := make([]skillVersionResponse, len(versions))
-	for i, v := range versions {
-		resp[i] = toSkillVersionResponse(v)
-	}
-	writeJSON(w, http.StatusOK, resp)
 }

@@ -26,11 +26,10 @@ type Skill struct {
 	RepoSubpath *string `gorm:"type:text"`
 	RepoRef     string  `gorm:"not null;default:'main'"`
 
-	// LatestVersionID points at the newest SkillVersion for this skill. It is
-	// intentionally not a foreign-key association — SkillVersion has a FK back
-	// to Skill, and declaring both sides creates a cyclical migration that
-	// Postgres rejects at AutoMigrate time.
-	LatestVersionID *uuid.UUID `gorm:"type:uuid"`
+	Bundle            RawJSON `gorm:"type:jsonb;not null;default:'{}'"`
+	HydratedCommitSHA *string `gorm:"type:text"`
+	HydratedAt        *time.Time
+	HydrationError    *string `gorm:"type:text"`
 
 	Tags         pq.StringArray `gorm:"type:text[];default:'{}'"`
 	InstallCount int            `gorm:"not null;default:0"`

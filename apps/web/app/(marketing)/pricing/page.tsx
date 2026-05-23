@@ -393,7 +393,7 @@ function CustomPlanCTA() {
   ]
 
   return (
-    <div className="mx-auto flex max-w-4xl flex-col gap-6 rounded-2xl border border-border bg-secondary p-6 sm:flex-row sm:items-start sm:justify-between sm:p-8">
+    <div className="mx-auto flex max-w-4xl flex-col gap-6 rounded-md border border-border bg-secondary p-6 sm:flex-row sm:items-start sm:justify-between sm:p-8">
       <div className="flex-1">
         <h3 className="font-heading text-xl font-medium text-foreground">
           Need a custom plan?

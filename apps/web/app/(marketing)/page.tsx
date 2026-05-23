@@ -808,7 +808,7 @@ function SecureByDefaultVisual() {
             key={c.id}
             type="button"
             onClick={() => setSelected(c.id)}
-            className="flex items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-sm font-medium transition-all"
+            className="flex items-center gap-2.5 rounded-md px-3.5 py-2.5 text-sm font-medium transition-all"
             style={{
               backgroundColor:
                 selected === c.id

@@ -3819,7 +3819,7 @@
             "BearerAuth": []
           }
         ],
-        "description": "Creates an employee skill attachment. PinnedVersionID is optional \u2014 when null the employee follows the skill's latest version.",
+        "description": "Creates an employee skill attachment.",
         "tags": [
           "skills"
         ],
@@ -4202,7 +4202,7 @@
             "BearerAuth": []
           }
         ],
-        "description": "Compiles the employee config, provisions an employee sandbox if\nneeded, pushes it to the runtime, and verifies readiness.\nRequires the org to have an active Slack connection.",
+        "description": "Compiles the employee config, provisions an employee sandbox if\nneeded, pushes it to the runtime, and verifies readiness.",
         "tags": [
           "employees"
         ],
@@ -7363,11 +7363,11 @@
             "BearerAuth": []
           }
         ],
-        "description": "Creates a new SkillVersion with the provided bundle. Works for both inline and git-sourced skills. The new version becomes the latest.",
+        "description": "Replaces the current bundle for an org-owned skill.",
         "tags": [
           "skills"
         ],
-        "summary": "Push a new inline version for a skill",
+        "summary": "Update skill content",
         "parameters": [
           {
             "description": "Skill ID",
@@ -7467,56 +7467,6 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/skills/{id}/versions": {
-      "get": {
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "description": "Returns all SkillVersion rows for a skill, newest first.",
-        "tags": [
-          "skills"
-        ],
-        "summary": "List skill versions",
-        "parameters": [
-          {
-            "description": "Skill ID",
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/skillVersionResponse"
-                  }
                 }
               }
             }
@@ -8534,9 +8484,6 @@
           "locked": {
             "type": "boolean"
           },
-          "pinned_version_id": {
-            "type": "string"
-          },
           "required": {
             "type": "boolean"
           },
@@ -8657,9 +8604,6 @@
       "attachSkillRequest": {
         "type": "object",
         "properties": {
-          "pinned_version_id": {
-            "type": "string"
-          },
           "skill_id": {
             "type": "string"
           }
@@ -11515,9 +11459,6 @@
           "install_count": {
             "type": "integer"
           },
-          "latest_version_id": {
-            "type": "string"
-          },
           "name": {
             "type": "string"
           },
@@ -11581,9 +11522,6 @@
           "install_count": {
             "type": "integer"
           },
-          "latest_version_id": {
-            "type": "string"
-          },
           "name": {
             "type": "string"
           },
@@ -11618,29 +11556,6 @@
             }
           },
           "updated_at": {
-            "type": "string"
-          }
-        }
-      },
-      "skillVersionResponse": {
-        "type": "object",
-        "properties": {
-          "commit_sha": {
-            "type": "string"
-          },
-          "created_at": {
-            "type": "string"
-          },
-          "hydrated_at": {
-            "type": "string"
-          },
-          "hydration_error": {
-            "type": "string"
-          },
-          "id": {
-            "type": "string"
-          },
-          "version": {
             "type": "string"
           }
         }

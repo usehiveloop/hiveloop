@@ -141,7 +141,6 @@ func AutoMigrate(db *gorm.DB) (err error) {
 		&CreditLedgerEntry{},
 		&DriveAsset{},
 		&Skill{},
-		&SkillVersion{},
 		&AgentSkill{},
 		&FailedEvent{},
 		&EmployeeAsset{},

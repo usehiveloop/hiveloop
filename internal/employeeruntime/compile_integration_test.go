@@ -107,17 +107,10 @@ func TestCompile_SerializesSkillOptionalArraysAsEmptyArrays(t *testing.T) {
 		SourceType:  model.SkillSourceInline,
 		RepoRef:     "main",
 		Status:      model.SkillStatusPublished,
+		Bundle:      model.RawJSON(`{"description":"Upload generated artifacts.","content":"Use the upload endpoint.","files":{}}`),
 	}
 	if err := db.Create(&skill).Error; err != nil {
 		t.Fatalf("create skill: %v", err)
-	}
-	bundle := model.RawJSON(`{"description":"Upload generated artifacts.","content":"Use the upload endpoint.","files":{}}`)
-	version := model.SkillVersion{ID: uuid.New(), SkillID: skill.ID, Version: "v1", Bundle: bundle}
-	if err := db.Create(&version).Error; err != nil {
-		t.Fatalf("create skill version: %v", err)
-	}
-	if err := db.Model(&skill).Update("latest_version_id", version.ID).Error; err != nil {
-		t.Fatalf("update latest version: %v", err)
 	}
 	if err := db.Create(&model.AgentSkill{AgentID: agent.ID, SkillID: skill.ID}).Error; err != nil {
 		t.Fatalf("attach skill: %v", err)
@@ -179,22 +172,15 @@ func TestCompile_PreservesSkillRequiredEnvironmentVariables(t *testing.T) {
 		SourceType:  model.SkillSourceInline,
 		RepoRef:     "main",
 		Status:      model.SkillStatusPublished,
+		Bundle: model.RawJSON(`{
+			"description":"Upload generated artifacts.",
+			"content":"Use the upload endpoint.",
+			"files":{},
+			"required_environment_variables":["UPLOAD_BEARER","HIVY_DRIVE_UPLOAD_URL","UPLOAD_BEARER"]
+		}`),
 	}
 	if err := db.Create(&skill).Error; err != nil {
 		t.Fatalf("create skill: %v", err)
-	}
-	bundle := model.RawJSON(`{
-		"description":"Upload generated artifacts.",
-		"content":"Use the upload endpoint.",
-		"files":{},
-		"required_environment_variables":["UPLOAD_BEARER","HIVY_DRIVE_UPLOAD_URL","UPLOAD_BEARER"]
-	}`)
-	version := model.SkillVersion{ID: uuid.New(), SkillID: skill.ID, Version: "v1", Bundle: bundle}
-	if err := db.Create(&version).Error; err != nil {
-		t.Fatalf("create skill version: %v", err)
-	}
-	if err := db.Model(&skill).Update("latest_version_id", version.ID).Error; err != nil {
-		t.Fatalf("update latest version: %v", err)
 	}
 	if err := db.Create(&model.AgentSkill{AgentID: agent.ID, SkillID: skill.ID}).Error; err != nil {
 		t.Fatalf("attach skill: %v", err)

@@ -105,27 +105,27 @@ func TestHydrateInline(t *testing.T) {
 		Content:     "body of the skill",
 	}
 
-	sv, err := skills.HydrateInline(context.Background(), db, skill.ID, bundle, "v1")
+	updated, err := skills.HydrateInline(context.Background(), db, skill.ID, bundle)
 	if err != nil {
 		t.Fatalf("HydrateInline: %v", err)
-	}
-	if sv.ID == uuid.Nil {
-		t.Fatal("expected non-nil version id")
-	}
-	if sv.CommitSHA != nil {
-		t.Errorf("inline version should not have a commit sha, got %q", *sv.CommitSHA)
 	}
 
 	var reloaded model.Skill
 	if err := db.First(&reloaded, "id = ?", skill.ID).Error; err != nil {
 		t.Fatalf("reload skill: %v", err)
 	}
-	if reloaded.LatestVersionID == nil || *reloaded.LatestVersionID != sv.ID {
-		t.Errorf("latest_version_id not updated: got %v, want %v", reloaded.LatestVersionID, sv.ID)
+	if updated.ID != reloaded.ID {
+		t.Errorf("updated skill id = %v, want %v", updated.ID, reloaded.ID)
+	}
+	if reloaded.HydratedCommitSHA != nil {
+		t.Errorf("inline skill should not have hydrated commit sha, got %q", *reloaded.HydratedCommitSHA)
+	}
+	if reloaded.HydratedAt == nil {
+		t.Fatal("expected hydrated_at to be set")
 	}
 
 	var parsedBundle skills.Bundle
-	if err := json.Unmarshal(sv.Bundle, &parsedBundle); err != nil {
+	if err := json.Unmarshal(reloaded.Bundle, &parsedBundle); err != nil {
 		t.Fatalf("unmarshal bundle: %v", err)
 	}
 	if parsedBundle.Content != "body of the skill" {
@@ -164,16 +164,16 @@ func TestHydrateFromGit(t *testing.T) {
 	}
 	_ = orgID
 
-	sv, err := skills.HydrateFromGit(context.Background(), db, fetcher, skill.ID)
+	updated, err := skills.HydrateFromGit(context.Background(), db, fetcher, skill.ID)
 	if err != nil {
 		t.Fatalf("HydrateFromGit: %v", err)
 	}
-	if sv.CommitSHA == nil || *sv.CommitSHA != sha {
-		t.Errorf("commit sha = %v, want %q", sv.CommitSHA, sha)
+	if updated.HydratedCommitSHA == nil || *updated.HydratedCommitSHA != sha {
+		t.Errorf("commit sha = %v, want %q", updated.HydratedCommitSHA, sha)
 	}
 
 	var parsed skills.Bundle
-	if err := json.Unmarshal(sv.Bundle, &parsed); err != nil {
+	if err := json.Unmarshal(updated.Bundle, &parsed); err != nil {
 		t.Fatalf("unmarshal bundle: %v", err)
 	}
 	if parsed.Title != "greet" {
@@ -194,20 +194,12 @@ func TestHydrateFromGit(t *testing.T) {
 		t.Errorf("required environment variables = %+v", parsed.RequiredEnvironmentVariables)
 	}
 
-	sv2, err := skills.HydrateFromGit(context.Background(), db, fetcher, skill.ID)
+	updated2, err := skills.HydrateFromGit(context.Background(), db, fetcher, skill.ID)
 	if err != nil {
 		t.Fatalf("second HydrateFromGit: %v", err)
 	}
-	if sv2.ID != sv.ID {
-		t.Errorf("expected dedupe (same id), got %v and %v", sv.ID, sv2.ID)
-	}
-
-	var count int64
-	if err := db.Model(&model.SkillVersion{}).Where("skill_id = ?", skill.ID).Count(&count).Error; err != nil {
-		t.Fatalf("count versions: %v", err)
-	}
-	if count != 1 {
-		t.Errorf("expected 1 version, got %d", count)
+	if updated2.ID != updated.ID {
+		t.Errorf("expected same skill row, got %v and %v", updated.ID, updated2.ID)
 	}
 }
 

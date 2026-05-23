@@ -2,8 +2,6 @@ package skills
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -20,7 +18,6 @@ func upsertGlobalSkill(ctx context.Context, db *gorm.DB, loaded loadedGlobalSkil
 	if err != nil {
 		return false, false, fmt.Errorf("marshal global skill %s: %w", loaded.manifest.Name, err)
 	}
-	versionLabel := bundledVersionLabel(raw)
 	description := loaded.manifest.Description
 	slug := model.GenerateSlug(loaded.manifest.Name)
 	now := time.Now()
@@ -45,7 +42,7 @@ func upsertGlobalSkill(ctx context.Context, db *gorm.DB, loaded loadedGlobalSkil
 			}
 		}
 
-		if err := createGlobalSkillVersion(tx, skill.ID, loaded.manifest.Name, raw, versionLabel, now); err != nil {
+		if err := updateGlobalSkillBundle(tx, skill.ID, loaded.manifest.Name, raw, now); err != nil {
 			return err
 		}
 		changed = !created
@@ -89,18 +86,15 @@ func updateGlobalSkill(tx *gorm.DB, skill *model.Skill, manifest globalSkillMani
 	return nil
 }
 
-func createGlobalSkillVersion(tx *gorm.DB, skillID uuid.UUID, name string, raw []byte, versionLabel string, now time.Time) error {
-	version := &model.SkillVersion{
-		SkillID:    skillID,
-		Version:    versionLabel,
-		Bundle:     model.RawJSON(raw),
-		HydratedAt: &now,
+func updateGlobalSkillBundle(tx *gorm.DB, skillID uuid.UUID, name string, raw []byte, now time.Time) error {
+	updates := map[string]any{
+		"bundle":              model.RawJSON(raw),
+		"hydrated_commit_sha": nil,
+		"hydrated_at":         &now,
+		"hydration_error":     nil,
 	}
-	if err := tx.Create(version).Error; err != nil {
-		return fmt.Errorf("create global skill version %s: %w", name, err)
-	}
-	if err := tx.Model(&model.Skill{}).Where("id = ?", skillID).Update("latest_version_id", version.ID).Error; err != nil {
-		return fmt.Errorf("update latest version %s: %w", name, err)
+	if err := tx.Model(&model.Skill{}).Where("id = ?", skillID).Updates(updates).Error; err != nil {
+		return fmt.Errorf("update global skill bundle %s: %w", name, err)
 	}
 	return nil
 }
@@ -127,11 +121,6 @@ func archiveObsoleteGlobalSkills(ctx context.Context, db *gorm.DB) error {
 		return fmt.Errorf("archive obsolete global skills: %w", err)
 	}
 	return nil
-}
-
-func bundledVersionLabel(raw []byte) string {
-	sum := sha256.Sum256(raw)
-	return "bundled-" + hex.EncodeToString(sum[:])[:12]
 }
 
 func coalesceTime(existing *time.Time, fallback time.Time) *time.Time {

@@ -15,7 +15,7 @@ import (
 
 // AttachToEmployee handles POST /v1/employees/{id}/skills.
 // @Summary Attach a skill to an employee
-// @Description Creates an employee skill attachment. PinnedVersionID is optional — when null the employee follows the skill's latest version.
+// @Description Creates an employee skill attachment.
 // @Tags skills
 // @Accept json
 // @Produce json
@@ -55,22 +55,7 @@ func (h *SkillHandler) AttachToEmployee(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	var pinnedID *uuid.UUID
-	if req.PinnedVersionID != nil && *req.PinnedVersionID != "" {
-		pid, err := uuid.Parse(*req.PinnedVersionID)
-		if err != nil {
-			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid pinned_version_id"})
-			return
-		}
-		var sv model.SkillVersion
-		if err := h.db.Where("id = ? AND skill_id = ?", pid, skill.ID).First(&sv).Error; err != nil {
-			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "pinned version does not belong to skill"})
-			return
-		}
-		pinnedID = &pid
-	}
-
-	link, err := h.attachSkillToEmployee(r.Context(), agent.ID, skill.ID, pinnedID)
+	link, err := h.attachSkillToEmployee(r.Context(), agent.ID, skill.ID)
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to attach skill"})
 		return
@@ -83,11 +68,10 @@ func (h *SkillHandler) AttachToEmployee(w http.ResponseWriter, r *http.Request) 
 	writeJSON(w, http.StatusCreated, toAgentSkillResponse(link, *skill))
 }
 
-func (h *SkillHandler) attachSkillToEmployee(ctx context.Context, employeeID, skillID uuid.UUID, pinnedID *uuid.UUID) (model.AgentSkill, error) {
+func (h *SkillHandler) attachSkillToEmployee(ctx context.Context, employeeID, skillID uuid.UUID) (model.AgentSkill, error) {
 	link := model.AgentSkill{
-		AgentID:         employeeID,
-		SkillID:         skillID,
-		PinnedVersionID: pinnedID,
+		AgentID: employeeID,
+		SkillID: skillID,
 	}
 	err := h.db.WithContext(ctx).Save(&link).Error
 	return link, err

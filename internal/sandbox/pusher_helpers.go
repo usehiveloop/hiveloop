@@ -151,36 +151,13 @@ func (p *Pusher) loadBridgeSkills(ctx context.Context, agentID uuid.UUID, inheri
 		return nil
 	}
 
-	var versionIDs []uuid.UUID
-	for _, skill := range skills {
-		if skill.LatestVersionID != nil {
-			versionIDs = append(versionIDs, *skill.LatestVersionID)
-		}
-	}
-	if len(versionIDs) == 0 {
-		return nil
-	}
-
-	var versions []model.SkillVersion
-	if err := p.db.WithContext(ctx).Where("id IN ?", versionIDs).Find(&versions).Error; err != nil {
-		return nil
-	}
-	versionByID := make(map[uuid.UUID]model.SkillVersion, len(versions))
-	for _, version := range versions {
-		versionByID[version.ID] = version
-	}
-
 	var result []bridgepkg.SkillDefinition
 	for _, skill := range skills {
-		if skill.LatestVersionID == nil {
-			continue
-		}
-		version, ok := versionByID[*skill.LatestVersionID]
-		if !ok {
+		if len(skill.Bundle) == 0 {
 			continue
 		}
 		var def bridgepkg.SkillDefinition
-		if err := json.Unmarshal(version.Bundle, &def); err != nil {
+		if err := json.Unmarshal(skill.Bundle, &def); err != nil {
 			logging.Capture(ctx, fmt.Errorf("unmarshal skill bundle %s: %w", skill.ID, err))
 			continue
 		}

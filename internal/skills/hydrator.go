@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/binary"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -15,8 +14,7 @@ import (
 	"github.com/usehivy/hivy/internal/model"
 )
 
-// Bundle is the JSON shape persisted in SkillVersion.Bundle. The Phase 4
-// resolver adapts it into a bridge.SkillDefinition at agent-run time.
+// Bundle is the JSON shape persisted on Skill.Bundle.
 type Bundle struct {
 	ID                           string            `json:"id"`
 	Title                        string            `json:"title"`
@@ -37,12 +35,11 @@ type Reference struct {
 }
 
 // HydrateFromGit fetches the skill's repo at its tracked ref, parses
-// SKILL.md + references, and writes a new SkillVersion — unless one already
-// exists for that commit SHA, in which case it returns the existing row.
+// SKILL.md + references, and writes the current Skill bundle.
 //
 // Concurrent hydrations of the same skill are coalesced via a Postgres
 // transaction-scoped advisory lock keyed on the skill ID.
-func HydrateFromGit(ctx context.Context, db *gorm.DB, fetcher *GitFetcher, skillID uuid.UUID) (*model.SkillVersion, error) {
+func HydrateFromGit(ctx context.Context, db *gorm.DB, fetcher *GitFetcher, skillID uuid.UUID) (*model.Skill, error) {
 	var skill model.Skill
 	if err := db.WithContext(ctx).First(&skill, "id = ?", skillID).Error; err != nil {
 		return nil, fmt.Errorf("loading skill %s: %w", skillID, err)
@@ -55,23 +52,22 @@ func HydrateFromGit(ctx context.Context, db *gorm.DB, fetcher *GitFetcher, skill
 	if err != nil {
 		return nil, fmt.Errorf("resolve ref: %w", err)
 	}
-
-	if existing, err := findVersionBySHA(ctx, db, skillID, sha); err != nil {
-		return nil, err
-	} else if existing != nil {
-		return existing, nil
+	if skill.HydratedCommitSHA != nil && *skill.HydratedCommitSHA == sha && len(skill.Bundle) > 0 {
+		return &skill, nil
 	}
 
-	var result *model.SkillVersion
+	var result *model.Skill
 	txErr := db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		if err := tx.Exec("SELECT pg_advisory_xact_lock(?)", advisoryLockKey(skillID)).Error; err != nil {
 			return fmt.Errorf("acquire advisory lock: %w", err)
 		}
 
-		if existing, err := findVersionBySHA(ctx, tx, skillID, sha); err != nil {
-			return err
-		} else if existing != nil {
-			result = existing
+		var lockedSkill model.Skill
+		if err := tx.First(&lockedSkill, "id = ?", skillID).Error; err != nil {
+			return fmt.Errorf("reload skill: %w", err)
+		}
+		if lockedSkill.HydratedCommitSHA != nil && *lockedSkill.HydratedCommitSHA == sha && len(lockedSkill.Bundle) > 0 {
+			result = &lockedSkill
 			return nil
 		}
 
@@ -107,23 +103,19 @@ func HydrateFromGit(ctx context.Context, db *gorm.DB, fetcher *GitFetcher, skill
 		}
 
 		now := time.Now()
-		sha := sha
-		sv := &model.SkillVersion{
-			SkillID:    skillID,
-			Version:    shortSHA(sha),
-			CommitSHA:  &sha,
-			Bundle:     model.RawJSON(raw),
-			HydratedAt: &now,
+		updates := map[string]any{
+			"bundle":              model.RawJSON(raw),
+			"hydrated_commit_sha": sha,
+			"hydrated_at":         &now,
+			"hydration_error":     nil,
 		}
-		if err := tx.Create(sv).Error; err != nil {
-			return fmt.Errorf("create skill version: %w", err)
+		if err := tx.Model(&lockedSkill).Updates(updates).Error; err != nil {
+			return fmt.Errorf("update skill bundle: %w", err)
 		}
-		if err := tx.Model(&model.Skill{}).
-			Where("id = ?", skillID).
-			Update("latest_version_id", sv.ID).Error; err != nil {
-			return fmt.Errorf("update latest_version_id: %w", err)
+		if err := tx.First(&lockedSkill, "id = ?", skillID).Error; err != nil {
+			return fmt.Errorf("reload updated skill: %w", err)
 		}
-		result = sv
+		result = &lockedSkill
 		return nil
 	})
 	if txErr != nil {
@@ -132,35 +124,10 @@ func HydrateFromGit(ctx context.Context, db *gorm.DB, fetcher *GitFetcher, skill
 	return result, nil
 }
 
-// findVersionBySHA returns the existing SkillVersion for (skillID, sha) or nil
-// if none exists. Errors other than record-not-found are surfaced.
-func findVersionBySHA(ctx context.Context, db *gorm.DB, skillID uuid.UUID, sha string) (*model.SkillVersion, error) {
-	var sv model.SkillVersion
-	err := db.WithContext(ctx).
-		Where("skill_id = ? AND commit_sha = ?", skillID, sha).
-		First(&sv).Error
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, nil
-	}
-	if err != nil {
-		return nil, fmt.Errorf("lookup version by sha: %w", err)
-	}
-	return &sv, nil
-}
-
 // advisoryLockKey hashes a skill UUID down to a bigint for pg_advisory_xact_lock.
 // Collisions are harmless — two unrelated skills occasionally serializing is fine.
 func advisoryLockKey(skillID uuid.UUID) int64 {
 	return int64(binary.BigEndian.Uint64(skillID[:8])) // #nosec G115 -- hash truncation; sign bit is part of the hash distribution
-}
-
-// shortSHA returns the first 7 characters of a commit SHA, or the whole string
-// if shorter. Used as the human-readable Version label.
-func shortSHA(sha string) string {
-	if len(sha) <= 7 {
-		return sha
-	}
-	return sha[:7]
 }
 
 // manifestString reads a string field from a parsed YAML manifest, falling
@@ -221,36 +188,32 @@ func derefString(s *string) string {
 	return *s
 }
 
-// HydrateInline creates a new SkillVersion from a caller-supplied bundle and
-// points the parent Skill at it. Used for inline-authored skills that never
-// touch git.
-func HydrateInline(ctx context.Context, db *gorm.DB, skillID uuid.UUID, bundle *Bundle, version string) (*model.SkillVersion, error) {
+// HydrateInline writes a caller-supplied bundle as the current Skill content.
+func HydrateInline(ctx context.Context, db *gorm.DB, skillID uuid.UUID, bundle *Bundle) (*model.Skill, error) {
 	raw, err := json.Marshal(bundle)
 	if err != nil {
 		return nil, fmt.Errorf("marshal bundle: %w", err)
 	}
 
 	now := time.Now()
-	sv := &model.SkillVersion{
-		SkillID:    skillID,
-		Version:    version,
-		Bundle:     model.RawJSON(raw),
-		HydratedAt: &now,
-	}
-
+	var skill model.Skill
 	err = db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		if err := tx.Create(sv).Error; err != nil {
-			return fmt.Errorf("create skill version: %w", err)
+		if err := tx.First(&skill, "id = ?", skillID).Error; err != nil {
+			return fmt.Errorf("load skill: %w", err)
 		}
-		if err := tx.Model(&model.Skill{}).
-			Where("id = ?", skillID).
-			Update("latest_version_id", sv.ID).Error; err != nil {
-			return fmt.Errorf("update latest_version_id: %w", err)
+		updates := map[string]any{
+			"bundle":              model.RawJSON(raw),
+			"hydrated_commit_sha": nil,
+			"hydrated_at":         &now,
+			"hydration_error":     nil,
 		}
-		return nil
+		if err := tx.Model(&skill).Updates(updates).Error; err != nil {
+			return fmt.Errorf("update skill bundle: %w", err)
+		}
+		return tx.First(&skill, "id = ?", skillID).Error
 	})
 	if err != nil {
 		return nil, err
 	}
-	return sv, nil
+	return &skill, nil
 }

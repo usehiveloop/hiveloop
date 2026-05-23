@@ -14,7 +14,7 @@ import (
 	"github.com/usehivy/hivy/internal/skills"
 )
 
-// SkillHydrateHandler pulls a git-sourced skill and creates a SkillVersion.
+// SkillHydrateHandler pulls a git-sourced skill and updates its current bundle.
 type SkillHydrateHandler struct {
 	db      *gorm.DB
 	fetcher *skills.GitFetcher
@@ -27,8 +27,8 @@ func NewSkillHydrateHandler(db *gorm.DB, fetcher *skills.GitFetcher) *SkillHydra
 }
 
 // Handle runs one hydration job. On failure, the error message is persisted
-// to the latest SkillVersion row (if any) for UI surfacing, and the task is
-// returned so asynq will retry according to the task's MaxRetry setting.
+// to the Skill row for UI surfacing, and the task is returned so asynq will
+// retry according to the task's MaxRetry setting.
 func (h *SkillHydrateHandler) Handle(ctx context.Context, t *asynq.Task) error {
 	var payload SkillHydratePayload
 	if err := json.Unmarshal(t.Payload(), &payload); err != nil {
@@ -39,10 +39,8 @@ func (h *SkillHydrateHandler) Handle(ctx context.Context, t *asynq.Task) error {
 	if err != nil {
 		msg := err.Error()
 		now := time.Now()
-		h.db.Model(&model.SkillVersion{}).
-			Where("skill_id = ?", payload.SkillID).
-			Order("created_at DESC").
-			Limit(1).
+		h.db.Model(&model.Skill{}).
+			Where("id = ?", payload.SkillID).
 			Updates(map[string]any{
 				"hydration_error": msg,
 				"hydrated_at":     now,
