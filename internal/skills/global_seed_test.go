@@ -185,6 +185,32 @@ func TestSeedGlobalSkills_PreservesTagsAndIntegrationIDs(t *testing.T) {
 	if want := []string{"linear", "github-app"}; !reflect.DeepEqual([]string(skill.IntegrationIDs), want) {
 		t.Fatalf("integration ids = %#v, want %#v", []string(skill.IntegrationIDs), want)
 	}
+
+	manifest["category"] = "Engineering"
+	manifest["tags"] = []string{"github", "review"}
+	manifest["integration_ids"] = []string{"github-app", "github-app-code-reviews"}
+	body, err = json.Marshal(manifest)
+	if err != nil {
+		t.Fatalf("marshal updated manifest: %v", err)
+	}
+	if err := os.WriteFile(manifestPath, body, 0o644); err != nil {
+		t.Fatalf("write updated manifest: %v", err)
+	}
+	if _, err := skills.SeedGlobalSkills(context.Background(), db, dir); err != nil {
+		t.Fatalf("reseed: %v", err)
+	}
+	if err := db.Where("id = ?", skill.ID).First(&skill).Error; err != nil {
+		t.Fatalf("reload skill: %v", err)
+	}
+	if skill.Category != "Engineering" {
+		t.Fatalf("updated category = %q, want %q", skill.Category, "Engineering")
+	}
+	if want := []string{"github", "review"}; !reflect.DeepEqual([]string(skill.Tags), want) {
+		t.Fatalf("updated tags = %#v, want %#v", []string(skill.Tags), want)
+	}
+	if want := []string{"github-app", "github-app-code-reviews"}; !reflect.DeepEqual([]string(skill.IntegrationIDs), want) {
+		t.Fatalf("updated integration ids = %#v, want %#v", []string(skill.IntegrationIDs), want)
+	}
 }
 
 func TestBundledAssetUploadsSkillDeclaresUploadEnv(t *testing.T) {

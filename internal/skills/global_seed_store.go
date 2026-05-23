@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 	"gorm.io/gorm"
 
 	"github.com/usehivy/hivy/internal/model"
@@ -81,8 +82,8 @@ func updateGlobalSkill(tx *gorm.DB, skill *model.Skill, manifest globalSkillMani
 		"repo_url":        nil,
 		"repo_subpath":    nil,
 		"repo_ref":        "main",
-		"tags":            manifest.Tags,
-		"integration_ids": manifest.IntegrationIDs,
+		"tags":            pq.StringArray(manifest.Tags),
+		"integration_ids": pq.StringArray(manifest.IntegrationIDs),
 		"status":          model.SkillStatusPublished,
 		"published_at":    coalesceTime(skill.PublishedAt, now),
 	}

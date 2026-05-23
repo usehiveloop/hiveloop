@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/lib/pq"
 
 	"github.com/usehivy/hivy/internal/middleware"
 	"github.com/usehivy/hivy/internal/model"
@@ -55,10 +56,10 @@ func (h *SkillHandler) Update(w http.ResponseWriter, r *http.Request) {
 		updates["category"] = *req.Category
 	}
 	if req.Tags != nil {
-		updates["tags"] = *req.Tags
+		updates["tags"] = pq.StringArray(*req.Tags)
 	}
 	if req.IntegrationIDs != nil {
-		updates["integration_ids"] = *req.IntegrationIDs
+		updates["integration_ids"] = pq.StringArray(*req.IntegrationIDs)
 	}
 	if req.RepoRef != nil && skill.SourceType == model.SkillSourceGit {
 		updates["repo_ref"] = *req.RepoRef
