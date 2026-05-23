@@ -7752,6 +7752,9 @@ const docTemplate = `{
                         }
                     ]
                 },
+                "category": {
+                    "type": "string"
+                },
                 "description": {
                     "type": "string"
                 },
@@ -10036,6 +10039,9 @@ const docTemplate = `{
                 "bundle": {
                     "$ref": "#/definitions/Bundle"
                 },
+                "category": {
+                    "type": "string"
+                },
                 "created_at": {
                     "type": "string"
                 },
@@ -10105,6 +10111,9 @@ const docTemplate = `{
         "skillResponse": {
             "type": "object",
             "properties": {
+                "category": {
+                    "type": "string"
+                },
                 "created_at": {
                     "type": "string"
                 },
@@ -10654,6 +10663,9 @@ const docTemplate = `{
         "updateSkillRequest": {
             "type": "object",
             "properties": {
+                "category": {
+                    "type": "string"
+                },
                 "description": {
                     "type": "string"
                 },

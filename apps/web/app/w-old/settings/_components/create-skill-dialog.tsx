@@ -33,6 +33,8 @@ export function CreateSkillDialog({
   const [sourceType, setSourceType] = useState<"inline" | "git">("inline")
   const [name, setName] = useState("")
   const [description, setDescription] = useState("")
+  const [category, setCategory] = useState("")
+  const [tags, setTags] = useState("")
   const [content, setContent] = useState("")
   const [repoUrl, setRepoUrl] = useState("")
   const [repoSubpath, setRepoSubpath] = useState("")
@@ -43,6 +45,8 @@ export function CreateSkillDialog({
     setSourceType("inline")
     setName("")
     setDescription("")
+    setCategory("")
+    setTags("")
     setContent("")
     setRepoUrl("")
     setRepoSubpath("")
@@ -61,7 +65,15 @@ export function CreateSkillDialog({
     const body: Record<string, unknown> = {
       name: name.trim(),
       description: description.trim() || undefined,
+      category: category.trim() || undefined,
       source_type: sourceType,
+    }
+    const parsedTags = tags
+      .split(",")
+      .map((tag) => tag.trim().replace(/^#/, ""))
+      .filter(Boolean)
+    if (parsedTags.length > 0) {
+      body.tags = Array.from(new Set(parsedTags))
     }
 
     if (sourceType === "git") {
@@ -148,6 +160,26 @@ export function CreateSkillDialog({
                     rows={4}
                   />
                 </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor="skill-category-inline">Category</Label>
+                    <Input
+                      id="skill-category-inline"
+                      value={category}
+                      onChange={(event) => setCategory(event.target.value)}
+                      placeholder="Engineering"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor="skill-tags-inline">Tags</Label>
+                    <Input
+                      id="skill-tags-inline"
+                      value={tags}
+                      onChange={(event) => setTags(event.target.value)}
+                      placeholder="review, github"
+                    />
+                  </div>
+                </div>
                 <div className="flex flex-col gap-2">
                   <Label htmlFor="skill-content-inline">Content</Label>
                   <SkillContentEditor
@@ -180,6 +212,26 @@ export function CreateSkillDialog({
                     placeholder="What this skill does..."
                     rows={4}
                   />
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor="skill-category-git">Category</Label>
+                    <Input
+                      id="skill-category-git"
+                      value={category}
+                      onChange={(event) => setCategory(event.target.value)}
+                      placeholder="Engineering"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor="skill-tags-git">Tags</Label>
+                    <Input
+                      id="skill-tags-git"
+                      value={tags}
+                      onChange={(event) => setTags(event.target.value)}
+                      placeholder="review, github"
+                    />
+                  </div>
                 </div>
                 <div className="flex flex-col gap-2">
                   <Label htmlFor="skill-repo-url">Repository URL</Label>

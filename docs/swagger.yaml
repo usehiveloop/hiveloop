@@ -696,6 +696,8 @@ definitions:
         allOf:
         - $ref: '#/definitions/Bundle'
         description: Inline source
+      category:
+        type: string
       description:
         type: string
       integration_ids:
@@ -2191,6 +2193,8 @@ definitions:
     properties:
       bundle:
         $ref: '#/definitions/Bundle'
+      category:
+        type: string
       created_at:
         type: string
       description:
@@ -2237,6 +2241,8 @@ definitions:
     type: object
   skillResponse:
     properties:
+      category:
+        type: string
       created_at:
         type: string
       description:
@@ -2596,6 +2602,8 @@ definitions:
     type: object
   updateSkillRequest:
     properties:
+      category:
+        type: string
       description:
         type: string
       integration_ids:

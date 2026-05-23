@@ -7749,6 +7749,9 @@
                         }
                     ]
                 },
+                "category": {
+                    "type": "string"
+                },
                 "description": {
                     "type": "string"
                 },
@@ -10033,6 +10036,9 @@
                 "bundle": {
                     "$ref": "#/definitions/Bundle"
                 },
+                "category": {
+                    "type": "string"
+                },
                 "created_at": {
                     "type": "string"
                 },
@@ -10102,6 +10108,9 @@
         "skillResponse": {
             "type": "object",
             "properties": {
+                "category": {
+                    "type": "string"
+                },
                 "created_at": {
                     "type": "string"
                 },
@@ -10651,6 +10660,9 @@
         "updateSkillRequest": {
             "type": "object",
             "properties": {
+                "category": {
+                    "type": "string"
+                },
                 "description": {
                     "type": "string"
                 },

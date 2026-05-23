@@ -8410,6 +8410,7 @@ export interface components {
         createSkillRequest: {
             /** @description Inline source */
             bundle?: components["schemas"]["Bundle"];
+            category?: string;
             description?: string;
             integration_ids?: string[];
             name?: string;
@@ -9175,6 +9176,7 @@ export interface components {
         };
         skillDetailResponse: {
             bundle?: components["schemas"]["Bundle"];
+            category?: string;
             created_at?: string;
             description?: string;
             featured?: boolean;
@@ -9197,6 +9199,7 @@ export interface components {
             updated_at?: string;
         };
         skillResponse: {
+            category?: string;
             created_at?: string;
             description?: string;
             featured?: boolean;
@@ -9386,6 +9389,7 @@ export interface components {
             name?: string;
         };
         updateSkillRequest: {
+            category?: string;
             description?: string;
             integration_ids?: string[];
             name?: string;
