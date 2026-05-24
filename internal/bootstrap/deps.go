@@ -191,6 +191,9 @@ func New(ctx context.Context) (*Deps, error) {
 
 	actionsCatalog := catalog.Global()
 	logging.FromContext(ctx).InfoContext(ctx, "actions catalog ready", "providers", len(actionsCatalog.ListProviders()))
+	if err := seedGlobalIntegrations(ctx, database, nangoClient, actionsCatalog); err != nil {
+		return nil, err
+	}
 
 	var spiderClient *spider.Client
 	var toolUsageWriter *middleware.ToolUsageWriter

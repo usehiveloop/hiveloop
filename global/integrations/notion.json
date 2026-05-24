@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "id": "notion",
+  "provider": "notion",
+  "unique_key": "notion",
+  "display_name": "Notion",
+  "enabled": true,
+  "required": false,
+  "supports_rag_source": true,
+  "credentials": {
+    "type": "OAUTH2",
+    "client_id_env": "NANGO_NOTION_CLIENT_ID",
+    "client_secret_env": "NANGO_NOTION_CLIENT_SECRET"
+  }
+}

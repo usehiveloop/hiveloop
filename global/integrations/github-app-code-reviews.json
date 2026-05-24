@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "id": "github-app-code-reviews",
+  "provider": "github-app-code-reviews",
+  "nango_provider": "github-app-oauth",
+  "unique_key": "github-app-code-reviews",
+  "display_name": "GitHub Code Reviews",
+  "enabled": true,
+  "required": false,
+  "supports_rag_source": false,
+  "credentials": {
+    "type": "APP",
+    "app_id_env": "NANGO_GITHUB_CODE_REVIEWS_APP_ID",
+    "app_link_env": "NANGO_GITHUB_CODE_REVIEWS_APP_LINK",
+    "private_key_env": "NANGO_GITHUB_CODE_REVIEWS_APP_PRIVATE_KEY",
+    "webhook_secret_env": "NANGO_GITHUB_CODE_REVIEWS_APP_WEBHOOK_SECRET"
+  }
+}

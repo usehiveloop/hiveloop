@@ -27,6 +27,10 @@ func (h *InIntegrationHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to find integration"})
 		return
 	}
+	if integ.ManagedBy != "" {
+		writeJSON(w, http.StatusConflict, map[string]string{"error": "managed integration is read-only"})
+		return
+	}
 
 	nk := inNangoKey(integ.UniqueKey)
 	if err := h.nango.DeleteIntegration(r.Context(), nk); err != nil {

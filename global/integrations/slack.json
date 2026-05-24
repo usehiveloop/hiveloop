@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "id": "slack",
+  "provider": "slack",
+  "unique_key": "slack",
+  "display_name": "Slack",
+  "enabled": true,
+  "required": false,
+  "supports_rag_source": true,
+  "credentials": {
+    "type": "OAUTH2",
+    "client_id_env": "NANGO_SLACK_CLIENT_ID",
+    "client_secret_env": "NANGO_SLACK_CLIENT_SECRET",
+    "scopes": "channels:read,chat:write,users:read"
+  }
+}

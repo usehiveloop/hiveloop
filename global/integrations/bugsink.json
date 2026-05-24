@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "id": "bugsink",
+  "provider": "bugsink",
+  "unique_key": "bugsink",
+  "display_name": "Bugsink",
+  "enabled": true,
+  "required": false,
+  "supports_rag_source": false,
+  "allow_no_catalog": false
+}

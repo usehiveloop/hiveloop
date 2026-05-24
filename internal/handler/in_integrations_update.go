@@ -29,6 +29,10 @@ func (h *InIntegrationHandler) Update(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to find integration"})
 		return
 	}
+	if integ.ManagedBy != "" {
+		writeJSON(w, http.StatusConflict, map[string]string{"error": "managed integration is read-only"})
+		return
+	}
 
 	var req updateInIntegrationRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {

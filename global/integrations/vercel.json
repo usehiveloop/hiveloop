@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "id": "vercel",
+  "provider": "vercel",
+  "unique_key": "vercel",
+  "display_name": "Vercel",
+  "enabled": true,
+  "required": false,
+  "supports_rag_source": false
+}

@@ -5,14 +5,48 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/docker/docker/api/types/build"
+	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/image"
+	"github.com/docker/docker/errdefs"
 	"github.com/usehivy/hivy/internal/sandbox"
 )
+
+const integrationLabelPrefix = "hivytest"
+
+func TestMain(m *testing.M) {
+	code := runIntegrationTests(m)
+	os.Exit(code)
+}
+
+func runIntegrationTests(m *testing.M) int {
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	defer cancel()
+
+	driver, err := NewDriver(Config{
+		PublicHost:           "127.0.0.1",
+		ContainerLabelPrefix: integrationLabelPrefix,
+	})
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "NewDriver: %v\n", err)
+		return 1
+	}
+	if err := driver.Validate(ctx); err != nil {
+		fmt.Fprintf(os.Stderr, "Validate: %v\n", err)
+		return 1
+	}
+	if err := cleanupIntegrationArtifacts(ctx, driver); err != nil {
+		fmt.Fprintf(os.Stderr, "cleanup integration artifacts: %v\n", err)
+		return 1
+	}
+	return m.Run()
+}
 
 func TestDockerDriverLifecycleEndpointExecAndResources(t *testing.T) {
 	ctx := context.Background()
@@ -30,7 +64,6 @@ func TestDockerDriverLifecycleEndpointExecAndResources(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateSandbox: %v", err)
 	}
-	t.Cleanup(func() { _ = driver.DeleteSandbox(context.Background(), info.ExternalID) })
 
 	url, err := driver.GetEndpoint(ctx, info.ExternalID, 8080)
 	if err != nil {
@@ -95,7 +128,6 @@ func TestDockerDriverBuildTemplateCreatesLocalImage(t *testing.T) {
 	if err != nil {
 		t.Fatalf("BuildTemplateWithLogs: %v", err)
 	}
-	t.Cleanup(func() { _ = driver.DeleteTemplate(context.Background(), templateRef) })
 
 	status, err := driver.GetTemplateStatus(ctx, templateRef)
 	if err != nil {
@@ -112,7 +144,6 @@ func TestDockerDriverBuildTemplateCreatesLocalImage(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateSandbox from template: %v", err)
 	}
-	t.Cleanup(func() { _ = driver.DeleteSandbox(context.Background(), info.ExternalID) })
 
 	output, err := driver.ExecuteCommand(ctx, info.ExternalID, "cat /template-marker")
 	if err != nil {
@@ -128,7 +159,7 @@ func newIntegrationDriver(t *testing.T, ctx context.Context) *Driver {
 
 	driver, err := NewDriver(Config{
 		PublicHost:           "127.0.0.1",
-		ContainerLabelPrefix: "hivytest",
+		ContainerLabelPrefix: integrationLabelPrefix,
 	})
 	if err != nil {
 		t.Fatalf("NewDriver: %v", err)
@@ -160,10 +191,48 @@ func buildIntegrationImage(t *testing.T, ctx context.Context, driver *Driver, na
 	if err := streamBuildLogs(response.Body, func(line string) { t.Log(line) }); err != nil {
 		t.Fatalf("ImageBuild stream %s: %v", ref, err)
 	}
-	t.Cleanup(func() {
-		_, _ = driver.cli.ImageRemove(context.Background(), ref, image.RemoveOptions{Force: true, PruneChildren: false})
-	})
 	return ref
+}
+
+func cleanupIntegrationArtifacts(ctx context.Context, driver *Driver) error {
+	label := integrationLabelPrefix + ".provider=docker"
+	containers, err := driver.cli.ContainerList(ctx, container.ListOptions{
+		All:     true,
+		Filters: filters.NewArgs(filters.Arg("label", label)),
+	})
+	if err != nil {
+		return fmt.Errorf("listing docker test containers: %w", err)
+	}
+	for _, item := range containers {
+		err := driver.cli.ContainerRemove(ctx, item.ID, container.RemoveOptions{
+			Force:         true,
+			RemoveVolumes: true,
+		})
+		if err != nil && !errdefs.IsNotFound(err) {
+			return fmt.Errorf("removing docker test container %s: %w", item.ID, err)
+		}
+	}
+
+	images, err := driver.cli.ImageList(ctx, image.ListOptions{All: true})
+	if err != nil {
+		return fmt.Errorf("listing docker test images: %w", err)
+	}
+	for _, item := range images {
+		for _, ref := range item.RepoTags {
+			if !isIntegrationImageRef(ref) {
+				continue
+			}
+			_, err := driver.cli.ImageRemove(ctx, ref, image.RemoveOptions{Force: true, PruneChildren: false})
+			if err != nil && !errdefs.IsNotFound(err) {
+				return fmt.Errorf("removing docker test image %s: %w", ref, err)
+			}
+		}
+	}
+	return nil
+}
+
+func isIntegrationImageRef(ref string) bool {
+	return strings.HasPrefix(ref, "hivy-docker-test-") || strings.HasPrefix(ref, "hivy-template:integration-")
 }
 
 func integrationRuntimeDockerfile() string {

@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "id": "github-app",
+  "provider": "github-app",
+  "nango_provider": "github-app-oauth",
+  "unique_key": "github-app",
+  "display_name": "GitHub",
+  "enabled": true,
+  "required": false,
+  "supports_rag_source": true,
+  "credentials": {
+    "type": "APP",
+    "app_id_env": "NANGO_GITHUB_APP_ID",
+    "app_link_env": "NANGO_GITHUB_APP_LINK",
+    "private_key_env": "NANGO_GITHUB_APP_PRIVATE_KEY",
+    "webhook_secret_env": "NANGO_GITHUB_APP_WEBHOOK_SECRET"
+  }
+}

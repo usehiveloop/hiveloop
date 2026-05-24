@@ -10,7 +10,10 @@ import (
 	"github.com/usehivy/hivy/internal/counter"
 	"github.com/usehivy/hivy/internal/credentials"
 	"github.com/usehivy/hivy/internal/crypto"
+	"github.com/usehivy/hivy/internal/integrations"
 	"github.com/usehivy/hivy/internal/logging"
+	"github.com/usehivy/hivy/internal/mcp/catalog"
+	"github.com/usehivy/hivy/internal/nango"
 	"github.com/usehivy/hivy/internal/skills"
 )
 
@@ -37,6 +40,21 @@ func seedGlobalLLMCredentials(ctx context.Context, database *gorm.DB, kms *crypt
 		"updated", result.Updated,
 		"unchanged", result.Unchanged,
 		"revoked", result.Revoked,
+		"skipped", result.Skipped,
+	)
+	return nil
+}
+
+func seedGlobalIntegrations(ctx context.Context, database *gorm.DB, nangoClient *nango.Client, cat *catalog.Catalog) error {
+	result, err := integrations.SeedGlobalIntegrations(ctx, database, nangoClient, cat, "global/integrations")
+	if err != nil {
+		return fmt.Errorf("seeding global integrations: %w", err)
+	}
+	logging.FromContext(ctx).InfoContext(ctx, "global integrations seeded",
+		"created", result.Created,
+		"updated", result.Updated,
+		"unchanged", result.Unchanged,
+		"deleted", result.Deleted,
 		"skipped", result.Skipped,
 	)
 	return nil

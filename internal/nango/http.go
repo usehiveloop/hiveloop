@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 )
@@ -40,7 +39,7 @@ func (c *Client) doJSON(ctx context.Context, method, path string, payload any) (
 	}
 
 	if resp.StatusCode >= 400 {
-		return nil, fmt.Errorf("nango API error %d: %s", resp.StatusCode, string(respBody))
+		return nil, &APIError{StatusCode: resp.StatusCode, Body: string(respBody)}
 	}
 
 	if len(respBody) == 0 || (respBody[0] != '{' && respBody[0] != '[') {

@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "id": "linear",
+  "provider": "linear",
+  "unique_key": "linear",
+  "display_name": "Linear",
+  "enabled": true,
+  "required": false,
+  "supports_rag_source": false,
+  "credentials": {
+    "type": "OAUTH2",
+    "client_id_env": "NANGO_LINEAR_CLIENT_ID",
+    "client_secret_env": "NANGO_LINEAR_CLIENT_SECRET",
+    "scopes": "read,write"
+  }
+}

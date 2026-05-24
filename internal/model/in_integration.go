@@ -18,6 +18,10 @@ type InIntegration struct {
 	CustomApp   bool       `gorm:"not null;default:false;index"`
 	Meta        JSON       `gorm:"type:jsonb;default:'{}'"`
 	NangoConfig JSON       `gorm:"type:jsonb;default:'{}'" json:"nango_config"`
+	ManagedBy   string     `gorm:"not null;default:'';index" json:"managed_by,omitempty"`
+	ManagedID   string     `gorm:"not null;default:'';index" json:"managed_id,omitempty"`
+	ManagedHash string     `gorm:"not null;default:''" json:"managed_hash,omitempty"`
+	Required    bool       `gorm:"not null;default:false" json:"required"`
 	// SupportsRAGSource is the admin-UI picker gate: only integrations
 	// with this flag true appear in "Add RAG source". Seeded true for
 	// the known-good providers (github, notion, slack, confluence,

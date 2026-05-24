@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "id": "railway",
+  "provider": "railway",
+  "unique_key": "railway",
+  "display_name": "Railway",
+  "enabled": true,
+  "required": false,
+  "supports_rag_source": false
+}

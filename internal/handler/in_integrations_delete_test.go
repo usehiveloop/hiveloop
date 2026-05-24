@@ -64,3 +64,26 @@ func TestInIntegrationHandler_Delete_NangoFailure(t *testing.T) {
 		t.Fatalf("expected 502, got %d: %s", rr.Code, rr.Body.String())
 	}
 }
+
+func TestInIntegrationHandler_Delete_ManagedIntegrationReadOnly(t *testing.T) {
+	h := newInIntegHarness(t, nil)
+	user := createTestUser(t, h.db, fmt.Sprintf("admin-%s@test.com", uuid.New().String()[:8]))
+	integ := model.InIntegration{
+		ID:          uuid.New(),
+		UniqueKey:   "managed-" + uuid.New().String()[:8],
+		Provider:    "github",
+		DisplayName: "Managed GitHub",
+		ManagedBy:   "global_integrations",
+		ManagedID:   "github",
+		ManagedHash: "hash",
+	}
+	if err := h.db.Create(&integ).Error; err != nil {
+		t.Fatalf("create managed integration: %v", err)
+	}
+
+	rr := h.doRequest(t, http.MethodDelete, "/v1/in/integrations/"+integ.ID.String(), nil, &user)
+
+	if rr.Code != http.StatusConflict {
+		t.Fatalf("expected 409, got %d: %s", rr.Code, rr.Body.String())
+	}
+}
