@@ -247,31 +247,31 @@ func setupConnectRoutes(
 	rsaPub *rsa.PublicKey,
 	database *gorm.DB,
 	platformAdminEmails []string,
-	inIntegrationHandler *handler.InIntegrationHandler,
-	inConnectionHandler *handler.InConnectionHandler,
+	integrationHandler *handler.IntegrationHandler,
+	connectionHandler *handler.ConnectionHandler,
 ) {
-	r.Route("/v1/in", func(r chi.Router) {
+	r.Route("/v1", func(r chi.Router) {
 		r.Use(middleware.RequireAuth(rsaPub, cfg.AuthIssuer, cfg.AuthAudience))
 		r.Use(middleware.RequireEmailConfirmed(database))
 		r.Use(middleware.ResolveUser(database))
 		r.Group(func(r chi.Router) {
 			r.Use(middleware.RequirePlatformAdmin(platformAdminEmails))
-			r.Post("/integrations", inIntegrationHandler.Create)
-			r.Get("/integrations", inIntegrationHandler.List)
-			r.Get("/integrations/{id}", inIntegrationHandler.Get)
-			r.Put("/integrations/{id}", inIntegrationHandler.Update)
-			r.Delete("/integrations/{id}", inIntegrationHandler.Delete)
+			r.Post("/integrations", integrationHandler.Create)
+			r.Get("/integrations", integrationHandler.List)
+			r.Get("/integrations/{id}", integrationHandler.Get)
+			r.Put("/integrations/{id}", integrationHandler.Update)
+			r.Delete("/integrations/{id}", integrationHandler.Delete)
 		})
 		r.Group(func(r chi.Router) {
 			r.Use(middleware.ResolveOrgFlexible(database))
-			r.Post("/integrations/{id}/connect-session", inConnectionHandler.CreateConnectSession)
-			r.Post("/integrations/{id}/connections", inConnectionHandler.Create)
-			r.Get("/connections", inConnectionHandler.List)
-			r.Get("/connections/{id}", inConnectionHandler.Get)
-			r.Get("/connections/{id}/resources/{type}", inConnectionHandler.ListResources)
-			r.Post("/connections/{id}/reconnect-session", inConnectionHandler.CreateReconnectSession)
-			r.Patch("/connections/{id}/webhook-configured", inConnectionHandler.MarkWebhookConfigured)
-			r.Delete("/connections/{id}", inConnectionHandler.Revoke)
+			r.Post("/integrations/{id}/connect-session", connectionHandler.CreateConnectSession)
+			r.Post("/integrations/{id}/connections", connectionHandler.Create)
+			r.Get("/connections", connectionHandler.List)
+			r.Get("/connections/{id}", connectionHandler.Get)
+			r.Get("/connections/{id}/resources/{type}", connectionHandler.ListResources)
+			r.Post("/connections/{id}/reconnect-session", connectionHandler.CreateReconnectSession)
+			r.Patch("/connections/{id}/webhook-configured", connectionHandler.MarkWebhookConfigured)
+			r.Delete("/connections/{id}", connectionHandler.Revoke)
 		})
 	})
 }

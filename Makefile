@@ -1,4 +1,4 @@
-.PHONY: build test test-e2e test-handler-sharded lint check-file-length vet check up down dev dev-nango dev-nango-secret clean fetch-actions generate docker-build docker-run test-clean test-clean-auth test-clean-nango test-clean-proxy test-clean-connect test-clean-integrations test-auth test-nango test-real-nango test-proxy test-connect test-integrations test-connections test-sandbox-docker test-setup test-setup-nango openapi generate-auth-keys generate-bridge-client generate-employee-bridge-client build-employee-sandbox-templates employee-env-doctor employee-debug-pack test-services-up test-services-down ragtest-slack-live ragtest-kb-search-live seed-test local-up local-down local-reset local-status login-test asynq-peek
+.PHONY: build test test-e2e test-handler-sharded lint check-file-length vet check up down dev dev-nango dev-nango-secret clean fetch-actions generate docker-build docker-run migrate-up migrate-status migrate-version test-clean test-clean-auth test-clean-nango test-clean-proxy test-clean-connect test-clean-integrations test-auth test-nango test-real-nango test-proxy test-connect test-integrations test-connections test-sandbox-docker test-setup test-setup-nango openapi generate-auth-keys generate-bridge-client generate-employee-bridge-client build-employee-sandbox-templates employee-env-doctor employee-debug-pack test-services-up test-services-down ragtest-slack-live ragtest-kb-search-live seed-test local-up local-down local-reset local-status login-test asynq-peek
 .PHONY: sandbox-specialists-build sandbox-specialists-test sandbox-specialists-fmt-check sandbox-specialists-clippy sandbox-specialists-openapi sandbox-employee-build sandbox-employee-test sandbox-employee-fmt-check sandbox-employee-openapi employee-openapi sandbox-employee-image sandbox-employee-image-test
 
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
@@ -376,6 +376,15 @@ docker-run:
 		-e HIVY_FRONTEND_URL=http://localhost:30112 \
 		-e HIVY_SPECIALIST_SANDBOX_RUNTIME_VERSION=dev \
 		$(IMAGE):latest
+
+migrate-up:
+	go run ./cmd/server migrate up
+
+migrate-status:
+	go run ./cmd/server migrate status
+
+migrate-version:
+	go run ./cmd/server migrate version
 
 # --- RAG test-service targets (Phase 0) ---
 

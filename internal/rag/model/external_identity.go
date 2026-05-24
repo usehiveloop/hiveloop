@@ -11,7 +11,7 @@ import (
 // → source-native-identity on-demand inside its perm-sync code; we persist
 // the mapping so our sync tasks have an O(1) lookup for ACL matching.
 //
-// One row per (Hivy user, InConnection). The same GitHub user in two
+// One row per (Hivy user, Connection). The same GitHub user in two
 // different Hivy orgs is two distinct rows — enforced by the org-scoped
 // (provider, external_user_id, org_id) unique.
 //
@@ -22,7 +22,7 @@ import (
 type RAGExternalIdentity struct {
 	// ID is a bigserial surrogate key; this table is high-churn
 	// (one row per user per connection) and we never look up by it
-	// directly — queries are always by (user_id, in_connection_id) or
+	// directly — queries are always by (user_id, connection_id) or
 	// (provider, external_user_id, org_id).
 	ID int64 `gorm:"primaryKey;autoIncrement"`
 
@@ -36,7 +36,7 @@ type RAGExternalIdentity struct {
 	// invalidates any identity cached against it.
 	RAGSourceID uuid.UUID `gorm:"type:uuid;not null;uniqueIndex:uq_rag_external_identity_user_source;index:idx_rag_external_identity_source"`
 
-	// Provider mirrors the parent InIntegration's provider string
+	// Provider mirrors the parent Integration's provider string
 	// (e.g. "github", "notion"). Denormalized so lookups by
 	// (provider, external_user_id, org_id) don't require a join.
 	Provider string `gorm:"not null;uniqueIndex:uq_rag_external_identity_provider_ext_id_org"`

@@ -1752,6 +1752,239 @@ const docTemplate = `{
                 }
             }
         },
+        "/v1/connections": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns the authenticated user's non-revoked platform integration connections.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "connections"
+                ],
+                "summary": "List user's connections",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter by provider",
+                        "name": "provider",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Pagination cursor",
+                        "name": "cursor",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/paginatedResponse-connectionResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/connections/{id}": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Revokes a user's platform integration connection and removes it from Nango.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "connections"
+                ],
+                "summary": "Disconnect an connection",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Connection ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/errorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/connections/{id}/reconnect-session": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Creates a Nango connect session scoped to an existing connection, allowing OAuth re-authorization without creating a duplicate.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "connections"
+                ],
+                "summary": "Create a reconnect session for an existing connection",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Connection ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/connectSessionResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/errorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/connections/{id}/resources/{type}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Fetches available resources of a specific type from the provider API. For example, list all repositories for a GitHub connection.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "connections"
+                ],
+                "summary": "List available resources for a connection",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "In-Connection ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Resource type (e.g., repository, project)",
+                        "name": "type",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/DiscoveryResult"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/errorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/errorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/errorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/errorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/connections/{id}/webhook-configured": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Sets the webhook_configured flag to true on a connection, indicating the user has manually configured the webhook URL in the provider's dashboard.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "connections"
+                ],
+                "summary": "Mark webhook as configured",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Connection ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/connectionResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/errorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/v1/conversations/{convID}": {
             "get": {
                 "security": [
@@ -3155,7 +3388,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/agentSkillResponse"
+                                "$ref": "#/definitions/employeeSkillResponse"
                             }
                         }
                     },
@@ -3206,7 +3439,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/agentSkillResponse"
+                            "$ref": "#/definitions/employeeSkillResponse"
                         }
                     },
                     "400": {
@@ -3487,7 +3720,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Agent UUID",
+                        "description": "Employee UUID",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -3684,240 +3917,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/v1/in/connections": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Returns the authenticated user's non-revoked platform integration connections.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "in-connections"
-                ],
-                "summary": "List user's in-connections",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Filter by provider",
-                        "name": "provider",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "description": "Page size",
-                        "name": "limit",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Pagination cursor",
-                        "name": "cursor",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/paginatedResponse-inConnectionResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/in/connections/{id}": {
-            "delete": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Revokes a user's platform integration connection and removes it from Nango.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "in-connections"
-                ],
-                "summary": "Disconnect an in-connection",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Connection ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/errorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/in/connections/{id}/reconnect-session": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Creates a Nango connect session scoped to an existing connection, allowing OAuth re-authorization without creating a duplicate.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "in-connections"
-                ],
-                "summary": "Create a reconnect session for an existing connection",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Connection ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Created",
-                        "schema": {
-                            "$ref": "#/definitions/inConnectSessionResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/errorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/in/connections/{id}/resources/{type}": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Fetches available resources of a specific type from the provider API. For example, list all repositories for a GitHub connection.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "in-connections"
-                ],
-                "summary": "List available resources for a connection",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "In-Connection ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Resource type (e.g., repository, project)",
-                        "name": "type",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/DiscoveryResult"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/errorResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/errorResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/errorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/errorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/in/connections/{id}/webhook-configured": {
-            "patch": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Sets the webhook_configured flag to true on a connection, indicating the user has manually configured the webhook URL in the provider's dashboard.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "in-connections"
-                ],
-                "summary": "Mark webhook as configured",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Connection ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/inConnectionResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/errorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/in/integrations/available": {
+        "/v1/integrations/available": {
             "get": {
                 "security": [
                     {
@@ -3929,7 +3929,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "in-integrations"
+                    "integrations"
                 ],
                 "summary": "List available platform integrations",
                 "responses": {
@@ -3938,14 +3938,14 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/inIntegrationAvailableResponse"
+                                "$ref": "#/definitions/integrationAvailableResponse"
                             }
                         }
                     }
                 }
             }
         },
-        "/v1/in/integrations/{id}/connect-session": {
+        "/v1/integrations/{id}/connect-session": {
             "post": {
                 "security": [
                     {
@@ -3957,7 +3957,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "in-connections"
+                    "connections"
                 ],
                 "summary": "Create a connect session",
                 "parameters": [
@@ -3973,7 +3973,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/inConnectSessionResponse"
+                            "$ref": "#/definitions/connectSessionResponse"
                         }
                     },
                     "400": {
@@ -3991,7 +3991,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/v1/in/integrations/{id}/connections": {
+        "/v1/integrations/{id}/connections": {
             "post": {
                 "security": [
                     {
@@ -4006,9 +4006,9 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "in-connections"
+                    "connections"
                 ],
-                "summary": "Create an in-connection",
+                "summary": "Create an connection",
                 "parameters": [
                     {
                         "type": "string",
@@ -4023,7 +4023,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/createInConnectionRequest"
+                            "$ref": "#/definitions/createConnectionRequest"
                         }
                     }
                 ],
@@ -4031,7 +4031,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/inConnectionResponse"
+                            "$ref": "#/definitions/connectionResponse"
                         }
                     },
                     "400": {
@@ -4790,7 +4790,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Creates a new RAG source that the scheduler will pick up on the next tick. Kind=integration requires a valid in_connection_id pointing at an integration whose supports_rag_source flag is true. Refresh / prune / perm-sync frequencies are validated against per-org minimums.",
+                "description": "Creates a new RAG source that the scheduler will pick up on the next tick. Kind=integration requires a valid connection_id pointing at an integration whose supports_rag_source flag is true. Refresh / prune / perm-sync frequencies are validated against per-org minimums.",
                 "consumes": [
                     "application/json"
                 ],
@@ -7068,26 +7068,6 @@ const docTemplate = `{
                 }
             }
         },
-        "agentSkillResponse": {
-            "type": "object",
-            "properties": {
-                "created_at": {
-                    "type": "string"
-                },
-                "locked": {
-                    "type": "boolean"
-                },
-                "required": {
-                    "type": "boolean"
-                },
-                "skill": {
-                    "$ref": "#/definitions/skillResponse"
-                },
-                "skill_id": {
-                    "type": "string"
-                }
-            }
-        },
         "apiKeyResponse": {
             "type": "object",
             "properties": {
@@ -7316,6 +7296,67 @@ const docTemplate = `{
                 },
                 "email": {
                     "type": "string"
+                }
+            }
+        },
+        "connectSessionResponse": {
+            "type": "object",
+            "properties": {
+                "provider_config_key": {
+                    "type": "string"
+                },
+                "token": {
+                    "type": "string"
+                }
+            }
+        },
+        "connectionResponse": {
+            "type": "object",
+            "properties": {
+                "actions_count": {
+                    "type": "integer"
+                },
+                "configurable_resources": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/ConfigurableResourceSummary"
+                    }
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "display_name": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "integration_id": {
+                    "type": "string"
+                },
+                "meta": {
+                    "$ref": "#/definitions/JSON"
+                },
+                "nango_connection_id": {
+                    "type": "string"
+                },
+                "org_id": {
+                    "type": "string"
+                },
+                "provider": {
+                    "type": "string"
+                },
+                "provider_config": {
+                    "$ref": "#/definitions/JSON"
+                },
+                "revoked_at": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "webhook_configured": {
+                    "type": "boolean"
                 }
             }
         },
@@ -7575,6 +7616,17 @@ const docTemplate = `{
                 }
             }
         },
+        "createConnectionRequest": {
+            "type": "object",
+            "properties": {
+                "meta": {
+                    "$ref": "#/definitions/JSON"
+                },
+                "nango_connection_id": {
+                    "type": "string"
+                }
+            }
+        },
         "createCredentialRequest": {
             "type": "object",
             "properties": {
@@ -7656,17 +7708,6 @@ const docTemplate = `{
                 }
             }
         },
-        "createInConnectionRequest": {
-            "type": "object",
-            "properties": {
-                "meta": {
-                    "$ref": "#/definitions/JSON"
-                },
-                "nango_connection_id": {
-                    "type": "string"
-                }
-            }
-        },
         "createOrgInviteRequest": {
             "type": "object",
             "properties": {
@@ -7695,7 +7736,7 @@ const docTemplate = `{
                 "config": {
                     "$ref": "#/definitions/JSON"
                 },
-                "in_connection_id": {
+                "connection_id": {
                     "type": "string"
                 },
                 "kind": {
@@ -8109,6 +8150,26 @@ const docTemplate = `{
                 }
             }
         },
+        "employeeSkillResponse": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "locked": {
+                    "type": "boolean"
+                },
+                "required": {
+                    "type": "boolean"
+                },
+                "skill": {
+                    "$ref": "#/definitions/skillResponse"
+                },
+                "skill_id": {
+                    "type": "string"
+                }
+            }
+        },
         "employeeSkillSummary": {
             "type": "object",
             "properties": {
@@ -8352,90 +8413,6 @@ const docTemplate = `{
                 }
             }
         },
-        "inConnectSessionResponse": {
-            "type": "object",
-            "properties": {
-                "provider_config_key": {
-                    "type": "string"
-                },
-                "token": {
-                    "type": "string"
-                }
-            }
-        },
-        "inConnectionResponse": {
-            "type": "object",
-            "properties": {
-                "actions_count": {
-                    "type": "integer"
-                },
-                "configurable_resources": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/ConfigurableResourceSummary"
-                    }
-                },
-                "created_at": {
-                    "type": "string"
-                },
-                "display_name": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "in_integration_id": {
-                    "type": "string"
-                },
-                "meta": {
-                    "$ref": "#/definitions/JSON"
-                },
-                "nango_connection_id": {
-                    "type": "string"
-                },
-                "org_id": {
-                    "type": "string"
-                },
-                "provider": {
-                    "type": "string"
-                },
-                "provider_config": {
-                    "$ref": "#/definitions/JSON"
-                },
-                "revoked_at": {
-                    "type": "string"
-                },
-                "updated_at": {
-                    "type": "string"
-                },
-                "webhook_configured": {
-                    "type": "boolean"
-                }
-            }
-        },
-        "inIntegrationAvailableResponse": {
-            "type": "object",
-            "properties": {
-                "created_at": {
-                    "type": "string"
-                },
-                "display_name": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "meta": {
-                    "$ref": "#/definitions/JSON"
-                },
-                "nango_config": {
-                    "$ref": "#/definitions/NangoConfig"
-                },
-                "provider": {
-                    "type": "string"
-                }
-            }
-        },
         "initUpgradeRequest": {
             "type": "object",
             "properties": {
@@ -8457,6 +8434,29 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "reference": {
+                    "type": "string"
+                }
+            }
+        },
+        "integrationAvailableResponse": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "display_name": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "meta": {
+                    "$ref": "#/definitions/JSON"
+                },
+                "nango_config": {
+                    "$ref": "#/definitions/NangoConfig"
+                },
+                "provider": {
                     "type": "string"
                 }
             }
@@ -8915,6 +8915,23 @@ const docTemplate = `{
                 }
             }
         },
+        "paginatedResponse-connectionResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/connectionResponse"
+                    }
+                },
+                "has_more": {
+                    "type": "boolean"
+                },
+                "next_cursor": {
+                    "type": "string"
+                }
+            }
+        },
         "paginatedResponse-conversationResponse": {
             "type": "object",
             "properties": {
@@ -9092,23 +9109,6 @@ const docTemplate = `{
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/tokenListItem"
-                    }
-                },
-                "has_more": {
-                    "type": "boolean"
-                },
-                "next_cursor": {
-                    "type": "string"
-                }
-            }
-        },
-        "paginatedResponse-inConnectionResponse": {
-            "type": "object",
-            "properties": {
-                "data": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/inConnectionResponse"
                     }
                 },
                 "has_more": {
@@ -9595,6 +9595,9 @@ const docTemplate = `{
                         "type": "integer"
                     }
                 },
+                "connection_id": {
+                    "type": "string"
+                },
                 "created_at": {
                     "type": "string"
                 },
@@ -9602,9 +9605,6 @@ const docTemplate = `{
                     "type": "boolean"
                 },
                 "id": {
-                    "type": "string"
-                },
-                "in_connection_id": {
                     "type": "string"
                 },
                 "in_repeated_error_state": {
@@ -9672,6 +9672,9 @@ const docTemplate = `{
                         "type": "integer"
                     }
                 },
+                "connection_id": {
+                    "type": "string"
+                },
                 "created_at": {
                     "type": "string"
                 },
@@ -9679,9 +9682,6 @@ const docTemplate = `{
                     "type": "boolean"
                 },
                 "id": {
-                    "type": "string"
-                },
-                "in_connection_id": {
                     "type": "string"
                 },
                 "in_repeated_error_state": {

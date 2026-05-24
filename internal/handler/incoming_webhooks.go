@@ -83,15 +83,15 @@ func (h *IncomingWebhookHandler) Handle(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	var connection model.InConnection
-	if err := h.db.Preload("InIntegration").
+	var connection model.Connection
+	if err := h.db.Preload("Integration").
 		Where("id = ? AND revoked_at IS NULL", connectionID).
 		First(&connection).Error; err != nil {
 		writeJSON(w, http.StatusNotFound, errorResponse{Error: "connection not found"})
 		return
 	}
 
-	if connection.InIntegration.DeletedAt != nil {
+	if connection.Integration.DeletedAt != nil {
 		writeJSON(w, http.StatusNotFound, errorResponse{Error: "integration not found"})
 		return
 	}

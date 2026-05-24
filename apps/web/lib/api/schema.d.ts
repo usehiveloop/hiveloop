@@ -2287,6 +2287,287 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/connections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List user's connections
+         * @description Returns the authenticated user's non-revoked platform integration connections.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Filter by provider */
+                    provider?: string;
+                    /** @description Page size */
+                    limit?: number;
+                    /** @description Pagination cursor */
+                    cursor?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["paginatedResponse-connectionResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/connections/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Disconnect an connection
+         * @description Revokes a user's platform integration connection and removes it from Nango.
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Connection ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/connections/{id}/reconnect-session": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create a reconnect session for an existing connection
+         * @description Creates a Nango connect session scoped to an existing connection, allowing OAuth re-authorization without creating a duplicate.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Connection ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["connectSessionResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/connections/{id}/resources/{type}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List available resources for a connection
+         * @description Fetches available resources of a specific type from the provider API. For example, list all repositories for a GitHub connection.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description In-Connection ID */
+                    id: string;
+                    /** @description Resource type (e.g., repository, project) */
+                    type: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DiscoveryResult"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/connections/{id}/webhook-configured": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Mark webhook as configured
+         * @description Sets the webhook_configured flag to true on a connection, indicating the user has manually configured the webhook URL in the provider's dashboard.
+         */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Connection ID */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["connectionResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
+        trace?: never;
+    };
     "/v1/conversations/{convID}": {
         parameters: {
             query?: never;
@@ -3885,7 +4166,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["agentSkillResponse"][];
+                        "application/json": components["schemas"]["employeeSkillResponse"][];
                     };
                 };
                 /** @description Not Found */
@@ -3927,7 +4208,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["agentSkillResponse"];
+                        "application/json": components["schemas"]["employeeSkillResponse"];
                     };
                 };
                 /** @description Bad Request */
@@ -4256,7 +4537,7 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
-                    /** @description Agent UUID */
+                    /** @description Employee UUID */
                     id: string;
                 };
                 cookie?: never;
@@ -4486,288 +4767,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/in/connections": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List user's in-connections
-         * @description Returns the authenticated user's non-revoked platform integration connections.
-         */
-        get: {
-            parameters: {
-                query?: {
-                    /** @description Filter by provider */
-                    provider?: string;
-                    /** @description Page size */
-                    limit?: number;
-                    /** @description Pagination cursor */
-                    cursor?: string;
-                };
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["paginatedResponse-inConnectionResponse"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/in/connections/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /**
-         * Disconnect an in-connection
-         * @description Revokes a user's platform integration connection and removes it from Nango.
-         */
-        delete: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description Connection ID */
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-            };
-        };
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/in/connections/{id}/reconnect-session": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Create a reconnect session for an existing connection
-         * @description Creates a Nango connect session scoped to an existing connection, allowing OAuth re-authorization without creating a duplicate.
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description Connection ID */
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Created */
-                201: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["inConnectSessionResponse"];
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/in/connections/{id}/resources/{type}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List available resources for a connection
-         * @description Fetches available resources of a specific type from the provider API. For example, list all repositories for a GitHub connection.
-         */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description In-Connection ID */
-                    id: string;
-                    /** @description Resource type (e.g., repository, project) */
-                    type: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["DiscoveryResult"];
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Unauthorized */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-                /** @description Internal Server Error */
-                500: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/in/connections/{id}/webhook-configured": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /**
-         * Mark webhook as configured
-         * @description Sets the webhook_configured flag to true on a connection, indicating the user has manually configured the webhook URL in the provider's dashboard.
-         */
-        patch: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description Connection ID */
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["inConnectionResponse"];
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-            };
-        };
-        trace?: never;
-    };
-    "/v1/in/integrations/available": {
+    "/v1/integrations/available": {
         parameters: {
             query?: never;
             header?: never;
@@ -4793,7 +4793,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["inIntegrationAvailableResponse"][];
+                        "application/json": components["schemas"]["integrationAvailableResponse"][];
                     };
                 };
             };
@@ -4806,7 +4806,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/in/integrations/{id}/connect-session": {
+    "/v1/integrations/{id}/connect-session": {
         parameters: {
             query?: never;
             header?: never;
@@ -4837,7 +4837,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["inConnectSessionResponse"];
+                        "application/json": components["schemas"]["connectSessionResponse"];
                     };
                 };
                 /** @description Bad Request */
@@ -4866,7 +4866,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/in/integrations/{id}/connections": {
+    "/v1/integrations/{id}/connections": {
         parameters: {
             query?: never;
             header?: never;
@@ -4876,7 +4876,7 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Create an in-connection
+         * Create an connection
          * @description Stores a connection after the OAuth flow completes via Nango.
          */
         post: {
@@ -4892,7 +4892,7 @@ export interface paths {
             /** @description Connection details */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["createInConnectionRequest"];
+                    "application/json": components["schemas"]["createConnectionRequest"];
                 };
             };
             responses: {
@@ -4902,7 +4902,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["inConnectionResponse"];
+                        "application/json": components["schemas"]["connectionResponse"];
                     };
                 };
                 /** @description Bad Request */
@@ -5908,7 +5908,7 @@ export interface paths {
         put?: never;
         /**
          * Create a RAG source
-         * @description Creates a new RAG source that the scheduler will pick up on the next tick. Kind=integration requires a valid in_connection_id pointing at an integration whose supports_rag_source flag is true. Refresh / prune / perm-sync frequencies are validated against per-org minimums.
+         * @description Creates a new RAG source that the scheduler will pick up on the next tick. Kind=integration requires a valid connection_id pointing at an integration whose supports_rag_source flag is true. Refresh / prune / perm-sync frequencies are validated against per-org minimums.
          */
         post: {
             parameters: {
@@ -8176,13 +8176,6 @@ export interface components {
             resource_type?: string;
             response_schema?: string;
         };
-        agentSkillResponse: {
-            created_at?: string;
-            locked?: boolean;
-            required?: boolean;
-            skill?: components["schemas"]["skillResponse"];
-            skill_id?: string;
-        };
         apiKeyResponse: {
             created_at?: string;
             expires_at?: string;
@@ -8262,6 +8255,26 @@ export interface components {
         confirmEmailRequest: {
             code?: string;
             email?: string;
+        };
+        connectSessionResponse: {
+            provider_config_key?: string;
+            token?: string;
+        };
+        connectionResponse: {
+            actions_count?: number;
+            configurable_resources?: components["schemas"]["ConfigurableResourceSummary"][];
+            created_at?: string;
+            display_name?: string;
+            id?: string;
+            integration_id?: string;
+            meta?: components["schemas"]["JSON"];
+            nango_connection_id?: string;
+            org_id?: string;
+            provider?: string;
+            provider_config?: components["schemas"]["JSON"];
+            revoked_at?: string;
+            updated_at?: string;
+            webhook_configured?: boolean;
         };
         conversationEventResponse: {
             created_at?: string;
@@ -8351,6 +8364,10 @@ export interface components {
             checkout_url?: string;
             reference?: string;
         };
+        createConnectionRequest: {
+            meta?: components["schemas"]["JSON"];
+            nango_connection_id?: string;
+        };
         createCredentialRequest: {
             api_key?: string;
             auth_scheme?: string;
@@ -8378,10 +8395,6 @@ export interface components {
             verified?: boolean;
             verified_at?: string;
         };
-        createInConnectionRequest: {
-            meta?: components["schemas"]["JSON"];
-            nango_connection_id?: string;
-        };
         createOrgInviteRequest: {
             email?: string;
             role?: string;
@@ -8392,7 +8405,7 @@ export interface components {
         createRAGSourceRequest: {
             access_type?: string;
             config?: components["schemas"]["JSON"];
-            in_connection_id?: string;
+            connection_id?: string;
             kind?: string;
             name?: string;
             perm_sync_freq_seconds?: number;
@@ -8529,6 +8542,13 @@ export interface components {
             thread_ts?: string;
             trigger_delivery?: components["schemas"]["triggerDeliveryResponse"];
         };
+        employeeSkillResponse: {
+            created_at?: string;
+            locked?: boolean;
+            required?: boolean;
+            skill?: components["schemas"]["skillResponse"];
+            skill_id?: string;
+        };
         employeeSkillSummary: {
             description?: string;
             id?: string;
@@ -8615,34 +8635,6 @@ export interface components {
             upstream_status?: number;
             user_id?: string;
         };
-        inConnectSessionResponse: {
-            provider_config_key?: string;
-            token?: string;
-        };
-        inConnectionResponse: {
-            actions_count?: number;
-            configurable_resources?: components["schemas"]["ConfigurableResourceSummary"][];
-            created_at?: string;
-            display_name?: string;
-            id?: string;
-            in_integration_id?: string;
-            meta?: components["schemas"]["JSON"];
-            nango_connection_id?: string;
-            org_id?: string;
-            provider?: string;
-            provider_config?: components["schemas"]["JSON"];
-            revoked_at?: string;
-            updated_at?: string;
-            webhook_configured?: boolean;
-        };
-        inIntegrationAvailableResponse: {
-            created_at?: string;
-            display_name?: string;
-            id?: string;
-            meta?: components["schemas"]["JSON"];
-            nango_config?: components["schemas"]["NangoConfig"];
-            provider?: string;
-        };
         initUpgradeRequest: {
             quote_id?: string;
         };
@@ -8651,6 +8643,14 @@ export interface components {
             amount_minor?: number;
             currency?: string;
             reference?: string;
+        };
+        integrationAvailableResponse: {
+            created_at?: string;
+            display_name?: string;
+            id?: string;
+            meta?: components["schemas"]["JSON"];
+            nango_config?: components["schemas"]["NangoConfig"];
+            provider?: string;
         };
         integrationDetail: {
             actions?: components["schemas"]["actionSummary"][];
@@ -8806,6 +8806,11 @@ export interface components {
             code?: string;
             email?: string;
         };
+        "paginatedResponse-connectionResponse": {
+            data?: components["schemas"]["connectionResponse"][];
+            has_more?: boolean;
+            next_cursor?: string;
+        };
         "paginatedResponse-conversationResponse": {
             data?: components["schemas"]["conversationResponse"][];
             has_more?: boolean;
@@ -8858,11 +8863,6 @@ export interface components {
         };
         "paginatedResponse-handler_tokenListItem": {
             data?: components["schemas"]["tokenListItem"][];
-            has_more?: boolean;
-            next_cursor?: string;
-        };
-        "paginatedResponse-inConnectionResponse": {
-            data?: components["schemas"]["inConnectionResponse"][];
             has_more?: boolean;
             next_cursor?: string;
         };
@@ -9021,10 +9021,10 @@ export interface components {
         ragSourceDetailResponse: {
             access_type?: string;
             config?: number[];
+            connection_id?: string;
             created_at?: string;
             enabled?: boolean;
             id?: string;
-            in_connection_id?: string;
             in_repeated_error_state?: boolean;
             indexing_start?: string;
             kind?: string;
@@ -9045,10 +9045,10 @@ export interface components {
         ragSourceResponse: {
             access_type?: string;
             config?: number[];
+            connection_id?: string;
             created_at?: string;
             enabled?: boolean;
             id?: string;
-            in_connection_id?: string;
             in_repeated_error_state?: boolean;
             indexing_start?: string;
             kind?: string;

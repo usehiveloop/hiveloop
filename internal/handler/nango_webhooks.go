@@ -49,8 +49,8 @@ type nangoWebhook struct {
 }
 
 type webhookContext struct {
-	orgID        uuid.UUID
-	inConnection *model.InConnection
+	orgID      uuid.UUID
+	connection *model.Connection
 }
 
 // Handle processes POST /internal/webhooks/nango.

@@ -14,7 +14,7 @@ import (
 type employeeConnectionResponse struct {
 	ID                string     `json:"id"`
 	OrgID             string     `json:"org_id"`
-	InIntegrationID   string     `json:"in_integration_id"`
+	IntegrationID     string     `json:"integration_id"`
 	Provider          string     `json:"provider"`
 	DisplayName       string     `json:"display_name"`
 	NangoConnectionID string     `json:"nango_connection_id"`
@@ -49,12 +49,12 @@ func (h *EmployeeHandler) ListAvailableConnections(w http.ResponseWriter, r *htt
 		return
 	}
 
-	var connections []model.InConnection
+	var connections []model.Connection
 	if err := h.db.WithContext(ctx).
-		Preload("InIntegration").
-		Joins("JOIN in_integrations ON in_integrations.id = in_connections.in_integration_id AND in_integrations.deleted_at IS NULL").
-		Where("in_connections.org_id = ? AND in_connections.revoked_at IS NULL", org.ID).
-		Order("in_connections.created_at DESC, in_connections.id DESC").
+		Preload("Integration").
+		Joins("JOIN integrations ON integrations.id = connections.integration_id AND integrations.deleted_at IS NULL").
+		Where("connections.org_id = ? AND connections.revoked_at IS NULL", org.ID).
+		Order("connections.created_at DESC, connections.id DESC").
 		Find(&connections).Error; err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to list employee connections"})
 		return
@@ -71,20 +71,20 @@ func (h *EmployeeHandler) ListAvailableConnections(w http.ResponseWriter, r *htt
 	})
 }
 
-func employeeConnectionProvider(conn model.InConnection) string {
-	if conn.InIntegration.Provider != "" {
-		return conn.InIntegration.Provider
+func employeeConnectionProvider(conn model.Connection) string {
+	if conn.Integration.Provider != "" {
+		return conn.Integration.Provider
 	}
-	return conn.InIntegration.UniqueKey
+	return conn.Integration.UniqueKey
 }
 
-func toEmployeeConnectionResponse(conn model.InConnection) employeeConnectionResponse {
+func toEmployeeConnectionResponse(conn model.Connection) employeeConnectionResponse {
 	return employeeConnectionResponse{
 		ID:                conn.ID.String(),
 		OrgID:             conn.OrgID.String(),
-		InIntegrationID:   conn.InIntegrationID.String(),
+		IntegrationID:     conn.IntegrationID.String(),
 		Provider:          employeeConnectionProvider(conn),
-		DisplayName:       conn.InIntegration.DisplayName,
+		DisplayName:       conn.Integration.DisplayName,
 		NangoConnectionID: conn.NangoConnectionID,
 		Meta:              conn.Meta,
 		CreatedAt:         conn.CreatedAt.Format(time.RFC3339),

@@ -150,12 +150,12 @@ func seedDashboardPlanAndSubscription(t *testing.T, db *gorm.DB, orgID uuid.UUID
 
 func seedDashboardConnection(t *testing.T, db *gorm.DB, orgID, userID uuid.UUID, provider string) {
 	t.Helper()
-	integ := createTestInIntegration(t, db, provider)
-	conn := model.InConnection{
+	integ := createTestIntegration(t, db, provider)
+	conn := model.Connection{
 		ID:                uuid.New(),
 		OrgID:             orgID,
 		UserID:            userID,
-		InIntegrationID:   integ.ID,
+		IntegrationID:     integ.ID,
 		NangoConnectionID: provider + "-conn",
 	}
 	if err := db.Create(&conn).Error; err != nil {

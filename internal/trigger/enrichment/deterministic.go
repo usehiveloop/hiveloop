@@ -78,18 +78,18 @@ func (enricher *DeterministicEnricher) Enrich(ctx context.Context, input Determi
 		return "", nil
 	}
 
-	// Load InConnection + InIntegration for Nango credentials.
-	var inConn model.InConnection
-	if err := enricher.db.Preload("InIntegration").
+	// Load Connection + Integration for Nango credentials.
+	var conn model.Connection
+	if err := enricher.db.Preload("Integration").
 		Where("id = ? AND revoked_at IS NULL", input.ConnectionID).
-		First(&inConn).Error; err != nil {
+		First(&conn).Error; err != nil {
 		logging.Capture(ctx, fmt.Errorf("enrichment connection %s not found: %w", input.ConnectionID, err))
 		return "", nil
 	}
 
-	providerCfgKey := inConn.InIntegration.UniqueKey
-	nangoConnID := inConn.NangoConnectionID
-	providerName := inConn.InIntegration.Provider
+	providerCfgKey := conn.Integration.UniqueKey
+	nangoConnID := conn.NangoConnectionID
+	providerName := conn.Integration.Provider
 
 	// Load provider schemas for GraphQL selection set building.
 	var providerSchemas map[string]catalog.SchemaDefinition

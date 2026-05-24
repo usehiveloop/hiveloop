@@ -668,7 +668,7 @@
       },
       "AgentConfig": {
         "type": "object",
-        "description": "Per-agent configuration written into the harness's settings file at\nsession start. Every field is harness-agnostic in shape — the adapter\nis responsible for translating it into the harness-native config\n(`~/.claude/settings.json`, `~/.config/opencode/opencode.json`, etc.).",
+        "description": "Per-agent configuration written into the harness's settings file at\nsession start. Every field is harness-agnostic in shape — the adapter\nis responsible for translating it into the harness-native config.",
         "properties": {
           "allowed_tools": {
             "type": "array",
@@ -724,14 +724,14 @@
               "string",
               "null"
             ],
-            "description": "Permission mode written to the harness config. Harness-specific\nstring. Claude Code: `\"default\"` / `\"acceptEdits\"` /\n`\"bypassPermissions\"` / `\"plan\"`. OpenCode has its own set."
+            "description": "Permission mode written to the harness config. Harness-specific string."
           },
           "reasoning_effort": {
             "type": [
               "string",
               "null"
             ],
-            "description": "Reasoning effort hint. Forwarded to harnesses that support it\n(Claude Code thinking budget, OpenCode reasoning effort).\nConventional values: `\"low\"`, `\"medium\"`, `\"high\"`."
+            "description": "Reasoning effort hint. Forwarded to harnesses that support it.\nConventional values: `\"low\"`, `\"medium\"`, `\"high\"`."
           },
           "small_fast_model": {
             "type": [
@@ -810,7 +810,7 @@
             "items": {
               "$ref": "#/components/schemas/SkillDefinition"
             },
-            "description": "Skills written to the harness's skill discovery directory at session start\n(e.g. `~/.claude/skills/<id>/SKILL.md` for Claude Code)."
+            "description": "Skills written to the harness's skill discovery directory at session start."
           },
           "system_prompt": {
             "type": "string",
@@ -1332,7 +1332,6 @@
         "type": "string",
         "description": "Which underlying coding-agent harness this agent runs against.",
         "enum": [
-          "claude",
           "open_code"
         ]
       },
@@ -1894,7 +1893,7 @@
       },
       "SkillFrontmatter": {
         "type": "object",
-        "description": "Frontmatter configuration parsed from a SKILL.md YAML header.\n\nOnly applicable to sources that support frontmatter (ClaudeCode, AgentSkills).",
+        "description": "Frontmatter configuration parsed from a SKILL.md YAML header.\n\nOnly applicable to sources that support frontmatter.",
         "properties": {
           "agent": {
             "type": [
@@ -1972,7 +1971,6 @@
         "description": "Where a skill originated from.",
         "enum": [
           "control_plane",
-          "claude_code",
           "agent_skills",
           "cursor_rules",
           "git_hub_copilot",

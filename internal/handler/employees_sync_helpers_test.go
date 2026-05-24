@@ -157,9 +157,9 @@ func (h *employeeHarness) setRuntimeEnvVars(t *testing.T, agentID uuid.UUID, var
 	}
 }
 
-func (h *employeeHarness) seedWhatsappProfile(t *testing.T, m orgWithMember, agentID uuid.UUID) model.InConnection {
+func (h *employeeHarness) seedWhatsappProfile(t *testing.T, m orgWithMember, agentID uuid.UUID) model.Connection {
 	t.Helper()
-	integ := model.InIntegration{
+	integ := model.Integration{
 		ID:          uuid.New(),
 		UniqueKey:   "whatsapp-test-" + uuid.NewString()[:8],
 		Provider:    "whatsapp",
@@ -168,18 +168,18 @@ func (h *employeeHarness) seedWhatsappProfile(t *testing.T, m orgWithMember, age
 	if err := h.db.Create(&integ).Error; err != nil {
 		t.Fatalf("create whatsapp integration: %v", err)
 	}
-	conn := model.InConnection{
+	conn := model.Connection{
 		ID:                uuid.New(),
 		OrgID:             m.org.ID,
 		UserID:            m.user.ID,
-		InIntegrationID:   integ.ID,
+		IntegrationID:     integ.ID,
 		NangoConnectionID: "whatsapp-conn-test",
 		Meta:              model.JSON{},
 	}
 	if err := h.db.Create(&conn).Error; err != nil {
 		t.Fatalf("create whatsapp connection: %v", err)
 	}
-	conn.InIntegration = integ
+	conn.Integration = integ
 	return conn
 }
 

@@ -54,7 +54,7 @@ func (agent *EnrichmentAgent) newFetchHandler(
 			return "", false, fmt.Errorf("action %q not found for %s. Available: %s", args.Action, conn.Provider, strings.Join(available, ", "))
 		}
 
-		providerCfgKey := fmt.Sprintf("%s_%s", orgID.String(), conn.Connection.InIntegration.UniqueKey)
+		providerCfgKey := fmt.Sprintf("%s_%s", orgID.String(), conn.Connection.Integration.UniqueKey)
 		nangoConnID := conn.Connection.NangoConnectionID
 
 		result, err := mcpserver.ExecuteAction(

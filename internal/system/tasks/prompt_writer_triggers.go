@@ -64,9 +64,9 @@ func lookupConnectionProvider(deps system.ResolveDeps, connID string) (string, s
 	}
 	var r row
 	if err := deps.DB.
-		Table("in_connections AS ic").
+		Table("connections AS ic").
 		Select("ii.provider, ii.display_name").
-		Joins("JOIN in_integrations ii ON ii.id = ic.in_integration_id").
+		Joins("JOIN integrations ii ON ii.id = ic.integration_id").
 		Where("ic.id = ? AND ic.org_id = ? AND ic.revoked_at IS NULL", parsed, deps.OrgID).
 		Scan(&r).Error; err != nil {
 		return "", "", fmt.Errorf("load connection: %w", err)

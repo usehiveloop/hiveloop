@@ -100,20 +100,20 @@ func TestPickerScoring_AnthropicSelected(t *testing.T) {
 
 func TestPickerScoring_NoCredentials(t *testing.T) {
 	// PickBestCredential requires a DB. This is a smoke test for the
-	// error path — covered fully in integration tests with real DB.
+	// error path — covered fully integration tests with real DB.
 	_ = uuid.New() // org with no credentials
 	// Assertion: PickBestCredential(db, reg, orgID) returns error
-	// "no active credentials found". Tested in integration layer.
+	// "no active credentials found". Tested integration layer.
 }
 
 func TestPickerScoring_SingleCredential(t *testing.T) {
 	// Single credential should always be selected regardless of cost.
-	// Covered in integration tests with real DB.
+	// Covered integration tests with real DB.
 }
 
 func TestPickerScoring_CrossProvider(t *testing.T) {
 	// When cheapest overall is Anthropic but org also has OpenAI,
-	// picker should select Anthropic. Covered in integration tests.
+	// picker should select Anthropic. Covered integration tests.
 	reg := registry.Global()
 
 	// Verify we have at least 2 providers with tool-call models.

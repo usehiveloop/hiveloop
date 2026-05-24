@@ -4481,7 +4481,7 @@
         }
       }
     },
-    "/v1/in/connections": {
+    "/v1/connections": {
       "get": {
         "security": [
           {
@@ -4490,9 +4490,9 @@
         ],
         "description": "Returns the authenticated user's non-revoked platform integration connections.",
         "tags": [
-          "in-connections"
+          "connections"
         ],
-        "summary": "List user's in-connections",
+        "summary": "List user's connections",
         "parameters": [
           {
             "description": "Filter by provider",
@@ -4525,7 +4525,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/paginatedResponse-inConnectionResponse"
+                  "$ref": "#/components/schemas/paginatedResponse-connectionResponse"
                 }
               }
             }
@@ -4533,7 +4533,7 @@
         }
       }
     },
-    "/v1/in/connections/{id}": {
+    "/v1/connections/{id}": {
       "delete": {
         "security": [
           {
@@ -4542,9 +4542,9 @@
         ],
         "description": "Revokes a user's platform integration connection and removes it from Nango.",
         "tags": [
-          "in-connections"
+          "connections"
         ],
-        "summary": "Disconnect an in-connection",
+        "summary": "Disconnect an connection",
         "parameters": [
           {
             "description": "Connection ID",
@@ -4583,7 +4583,7 @@
         }
       }
     },
-    "/v1/in/connections/{id}/reconnect-session": {
+    "/v1/connections/{id}/reconnect-session": {
       "post": {
         "security": [
           {
@@ -4592,7 +4592,7 @@
         ],
         "description": "Creates a Nango connect session scoped to an existing connection, allowing OAuth re-authorization without creating a duplicate.",
         "tags": [
-          "in-connections"
+          "connections"
         ],
         "summary": "Create a reconnect session for an existing connection",
         "parameters": [
@@ -4612,7 +4612,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/inConnectSessionResponse"
+                  "$ref": "#/components/schemas/connectSessionResponse"
                 }
               }
             }
@@ -4630,7 +4630,7 @@
         }
       }
     },
-    "/v1/in/connections/{id}/resources/{type}": {
+    "/v1/connections/{id}/resources/{type}": {
       "get": {
         "security": [
           {
@@ -4639,7 +4639,7 @@
         ],
         "description": "Fetches available resources of a specific type from the provider API. For example, list all repositories for a GitHub connection.",
         "tags": [
-          "in-connections"
+          "connections"
         ],
         "summary": "List available resources for a connection",
         "parameters": [
@@ -4716,7 +4716,7 @@
         }
       }
     },
-    "/v1/in/connections/{id}/webhook-configured": {
+    "/v1/connections/{id}/webhook-configured": {
       "patch": {
         "security": [
           {
@@ -4725,7 +4725,7 @@
         ],
         "description": "Sets the webhook_configured flag to true on a connection, indicating the user has manually configured the webhook URL in the provider's dashboard.",
         "tags": [
-          "in-connections"
+          "connections"
         ],
         "summary": "Mark webhook as configured",
         "parameters": [
@@ -4745,7 +4745,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/inConnectionResponse"
+                  "$ref": "#/components/schemas/connectionResponse"
                 }
               }
             }
@@ -4763,7 +4763,7 @@
         }
       }
     },
-    "/v1/in/integrations/available": {
+    "/v1/integrations/available": {
       "get": {
         "security": [
           {
@@ -4772,7 +4772,7 @@
         ],
         "description": "Returns non-deleted platform integrations with safe fields for end users.",
         "tags": [
-          "in-integrations"
+          "integrations"
         ],
         "summary": "List available platform integrations",
         "responses": {
@@ -4783,7 +4783,7 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/inIntegrationAvailableResponse"
+                    "$ref": "#/components/schemas/integrationAvailableResponse"
                   }
                 }
               }
@@ -4792,7 +4792,7 @@
         }
       }
     },
-    "/v1/in/integrations/{id}/connect-session": {
+    "/v1/integrations/{id}/connect-session": {
       "post": {
         "security": [
           {
@@ -4801,7 +4801,7 @@
         ],
         "description": "Creates a Nango connect session for the authenticated user to initiate OAuth.",
         "tags": [
-          "in-connections"
+          "connections"
         ],
         "summary": "Create a connect session",
         "parameters": [
@@ -4821,7 +4821,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/inConnectSessionResponse"
+                  "$ref": "#/components/schemas/connectSessionResponse"
                 }
               }
             }
@@ -4849,7 +4849,7 @@
         }
       }
     },
-    "/v1/in/integrations/{id}/connections": {
+    "/v1/integrations/{id}/connections": {
       "post": {
         "security": [
           {
@@ -4858,9 +4858,9 @@
         ],
         "description": "Stores a connection after the OAuth flow completes via Nango.",
         "tags": [
-          "in-connections"
+          "connections"
         ],
-        "summary": "Create an in-connection",
+        "summary": "Create an connection",
         "parameters": [
           {
             "description": "Integration ID",
@@ -4876,7 +4876,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/createInConnectionRequest"
+                "$ref": "#/components/schemas/createConnectionRequest"
               }
             }
           },
@@ -4889,7 +4889,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/inConnectionResponse"
+                  "$ref": "#/components/schemas/connectionResponse"
                 }
               }
             }
@@ -5785,7 +5785,7 @@
             "BearerAuth": []
           }
         ],
-        "description": "Creates a new RAG source that the scheduler will pick up on the next tick. Kind=integration requires a valid in_connection_id pointing at an integration whose supports_rag_source flag is true. Refresh / prune / perm-sync frequencies are validated against per-org minimums.",
+        "description": "Creates a new RAG source that the scheduler will pick up on the next tick. Kind=integration requires a valid connection_id pointing at an integration whose supports_rag_source flag is true. Refresh / prune / perm-sync frequencies are validated against per-org minimums.",
         "tags": [
           "rag"
         ],
@@ -9063,7 +9063,7 @@
           }
         }
       },
-      "createInConnectionRequest": {
+      "createConnectionRequest": {
         "type": "object",
         "properties": {
           "meta": {
@@ -9102,7 +9102,7 @@
           "config": {
             "$ref": "#/components/schemas/JSON"
           },
-          "in_connection_id": {
+          "connection_id": {
             "type": "string"
           },
           "kind": {
@@ -9759,7 +9759,7 @@
           }
         }
       },
-      "inConnectSessionResponse": {
+      "connectSessionResponse": {
         "type": "object",
         "properties": {
           "provider_config_key": {
@@ -9770,7 +9770,7 @@
           }
         }
       },
-      "inConnectionResponse": {
+      "connectionResponse": {
         "type": "object",
         "properties": {
           "actions_count": {
@@ -9791,7 +9791,7 @@
           "id": {
             "type": "string"
           },
-          "in_integration_id": {
+          "integration_id": {
             "type": "string"
           },
           "meta": {
@@ -9820,7 +9820,7 @@
           }
         }
       },
-      "inIntegrationAvailableResponse": {
+      "integrationAvailableResponse": {
         "type": "object",
         "properties": {
           "created_at": {
@@ -10509,13 +10509,13 @@
           }
         }
       },
-      "paginatedResponse-inConnectionResponse": {
+      "paginatedResponse-connectionResponse": {
         "type": "object",
         "properties": {
           "data": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/inConnectionResponse"
+              "$ref": "#/components/schemas/connectionResponse"
             }
           },
           "has_more": {
@@ -11011,7 +11011,7 @@
           "id": {
             "type": "string"
           },
-          "in_connection_id": {
+          "connection_id": {
             "type": "string"
           },
           "in_repeated_error_state": {
@@ -11088,7 +11088,7 @@
           "id": {
             "type": "string"
           },
-          "in_connection_id": {
+          "connection_id": {
             "type": "string"
           },
           "in_repeated_error_state": {

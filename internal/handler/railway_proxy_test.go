@@ -160,7 +160,7 @@ func TestRailwayProxy_NoRailwayConnection(t *testing.T) {
 
 	harness := newRailwayHarness(t, nangoHandler, railwayHandler)
 
-	harness.db.Where("org_id = ?", harness.orgID).Delete(&model.InConnection{})
+	harness.db.Where("org_id = ?", harness.orgID).Delete(&model.Connection{})
 
 	req := httptest.NewRequest(http.MethodPost,
 		"/internal/railway-proxy/"+harness.agentID.String(),

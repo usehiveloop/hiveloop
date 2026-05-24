@@ -69,7 +69,7 @@ export default function KnowledgePage() {
   )
   const { data: connectionsData } = $api.useQuery(
     "get",
-    "/v1/in/connections",
+    "/v1/connections",
   )
   const triggerSync = $api.useMutation("post", "/v1/rag/sources/{id}/sync")
   const deleteSource = $api.useMutation("delete", "/v1/rag/sources/{id}")
@@ -211,8 +211,8 @@ export default function KnowledgePage() {
             </div>
 
             {sources.map((s) => {
-              const provider = s.in_connection_id
-                ? providerByConnId.get(s.in_connection_id) ?? ""
+              const provider = s.connection_id
+                ? providerByConnId.get(s.connection_id) ?? ""
                 : ""
               const attempt = s.latest_attempt
               const indexed = attempt?.total_docs_indexed ?? s.total_docs_indexed ?? 0

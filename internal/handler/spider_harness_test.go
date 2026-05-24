@@ -15,6 +15,7 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
+	"github.com/usehivy/hivy/internal/testdb"
 	"github.com/usehivy/hivy/internal/handler"
 	"github.com/usehivy/hivy/internal/middleware"
 	"github.com/usehivy/hivy/internal/model"
@@ -43,9 +44,7 @@ func newSpiderHarness(t *testing.T, spiderHandler http.Handler) *spiderTestHarne
 	if err != nil {
 		t.Skipf("cannot connect to test database: %v", err)
 	}
-	if err := model.AutoMigrate(database); err != nil {
-		t.Fatalf("migration failed: %v", err)
-	}
+	testdb.ApplyMigrations(t, database)
 
 	mockServer := httptest.NewServer(spiderHandler)
 	t.Cleanup(mockServer.Close)

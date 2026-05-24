@@ -157,7 +157,7 @@ func newEmployeeUpgradeFixture(t *testing.T) *employeeUpgradeFixture {
 	t.Cleanup(func() {
 		db.Where("org_id = ?", org.ID).Delete(&model.EmployeeSandboxUpgrade{})
 		db.Where("org_id = ?", org.ID).Delete(&model.Sandbox{})
-		db.Where("org_id = ?", org.ID).Delete(&model.InConnection{})
+		db.Where("org_id = ?", org.ID).Delete(&model.Connection{})
 		db.Where("org_id = ?", org.ID).Delete(&model.Employee{})
 		db.Where("org_id = ?", org.ID).Delete(&model.Credential{})
 		db.Where("id = ?", org.ID).Delete(&model.Org{})

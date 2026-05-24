@@ -171,24 +171,24 @@ func (h *LinearProxyHandler) resolveOwningEmployee(ctx context.Context, orgID uu
 	return employee, nil
 }
 
-func (h *LinearProxyHandler) resolveLinearConnection(ctx context.Context, employee model.Employee) (model.InConnection, string, error) {
+func (h *LinearProxyHandler) resolveLinearConnection(ctx context.Context, employee model.Employee) (model.Connection, string, error) {
 	if employee.OrgID == nil {
-		return model.InConnection{}, "", gorm.ErrRecordNotFound
+		return model.Connection{}, "", gorm.ErrRecordNotFound
 	}
 
-	var conn model.InConnection
+	var conn model.Connection
 	if err := h.db.WithContext(ctx).
-		Preload("InIntegration").
-		Joins("JOIN in_integrations ON in_integrations.id = in_connections.in_integration_id AND in_integrations.deleted_at IS NULL").
-		Where("in_connections.org_id = ? AND in_connections.revoked_at IS NULL AND in_integrations.provider = ?", *employee.OrgID, linearProvider).
-		Order("in_connections.created_at ASC").
+		Preload("Integration").
+		Joins("JOIN integrations ON integrations.id = connections.integration_id AND integrations.deleted_at IS NULL").
+		Where("connections.org_id = ? AND connections.revoked_at IS NULL AND integrations.provider = ?", *employee.OrgID, linearProvider).
+		Order("connections.created_at ASC").
 		First(&conn).Error; err != nil {
-		return model.InConnection{}, "", err
+		return model.Connection{}, "", err
 	}
 	if conn.NangoConnectionID == "" {
-		return model.InConnection{}, "", fmt.Errorf("linear connection missing nango connection id")
+		return model.Connection{}, "", fmt.Errorf("linear connection missing nango connection id")
 	}
-	return conn, nangoProviderConfigKey(conn.InIntegration.UniqueKey), nil
+	return conn, nangoProviderConfigKey(conn.Integration.UniqueKey), nil
 }
 
 func (h *LinearProxyHandler) captureProxyFailure(ctx context.Context, eventCtx linearProxyContext, status int, reason string) {

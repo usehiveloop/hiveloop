@@ -49,7 +49,7 @@ pub struct RuntimeConfig {
     #[serde(default)]
     pub websocket_enabled: bool,
 
-    /// Enable auto-discovery of skills from .claude/skills/, .cursor/rules/,
+    /// Enable auto-discovery of skills from .cursor/rules/,
     /// .github/copilot-instructions.md, .windsurf/rules/, and .agent/skills/.
     /// Configured via `BRIDGE_SKILL_DISCOVERY_ENABLED` env var.
     #[serde(default)]

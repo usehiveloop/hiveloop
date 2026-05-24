@@ -44,7 +44,7 @@ type Source interface {
 }
 
 // Connector is the base trait every connector implements. It identifies
-// the provider kind (which matches InIntegration.Provider and the
+// the provider kind (which matches Integration.Provider and the
 // Factory registration key) and validates the per-source configuration
 // at registration time — before any ingest attempt fires.
 //
@@ -53,7 +53,7 @@ type Source interface {
 // Onyx surface (load_credentials, parse_metadata, oauth methods, raw
 // file callback, etc.) — those live above or below this layer in
 // Hivy's architecture (Nango handles creds; parse_metadata is a
-// pure helper; OAuth is handled at the InConnection layer).
+// pure helper; OAuth is handled at the Connection layer).
 type Connector interface {
 	// Kind returns the connector identifier (e.g. "github"). This
 	// MUST match the key used at registry.Register time.

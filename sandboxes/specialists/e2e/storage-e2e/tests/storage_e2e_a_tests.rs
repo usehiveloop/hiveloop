@@ -37,7 +37,7 @@ fn make_agent(id: &str, name: &str) -> AgentDefinition {
     serde_json::from_value(serde_json::json!({
         "id": id,
         "name": name,
-        "harness": "claude",
+        "harness": "open_code",
         "system_prompt": "You are a test agent.",
         "provider": {
             "provider_type": "open_ai",

@@ -40,7 +40,7 @@ Bridge loads configuration in this order (later sources override earlier ones):
 | `BRIDGE_DRAIN_TIMEOUT_SECS` | No | `60` | Graceful shutdown timeout in seconds |
 | `BRIDGE_MAX_CONCURRENT_CONVERSATIONS` | No | unlimited | Max concurrent conversations |
 | `BRIDGE_MAX_CONCURRENT_LLM_CALLS` | No | `500` | Global ceiling on simultaneous outbound LLM API calls |
-| `BRIDGE_SKILL_DISCOVERY_ENABLED` | No | `false` | Auto-discover skills from `.claude/skills/`, `.cursor/rules/`, etc. |
+| `BRIDGE_SKILL_DISCOVERY_ENABLED` | No | `false` | Auto-discover skills from `.cursor/rules/`, `.agent/skills/`, etc. |
 | `BRIDGE_SKILL_DISCOVERY_DIR` | No | cwd | Working directory for skill discovery |
 | `BRIDGE_ALLOW_STDIO_MCP_FROM_API` | No | `false` | Allow API clients to attach `stdio` MCP servers per conversation |
 | `BRIDGE_STANDALONE_AGENT` | No | `false` | Inject sandbox environment system reminder (resource limits, installed tools) |

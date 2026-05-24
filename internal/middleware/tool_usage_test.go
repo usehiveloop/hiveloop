@@ -12,6 +12,7 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
+	"github.com/usehivy/hivy/internal/testdb"
 	"github.com/usehivy/hivy/internal/middleware"
 	"github.com/usehivy/hivy/internal/model"
 )
@@ -28,9 +29,7 @@ func connectToolUsageTestDB(t *testing.T) *gorm.DB {
 	if err != nil {
 		t.Skipf("cannot connect to test database: %v", err)
 	}
-	if err := model.AutoMigrate(database); err != nil {
-		t.Fatalf("migration failed: %v", err)
-	}
+	testdb.ApplyMigrations(t, database)
 	return database
 }
 

@@ -11,6 +11,7 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 
+	"github.com/usehivy/hivy/internal/testdb"
 	"github.com/usehivy/hivy/internal/model"
 )
 
@@ -21,9 +22,7 @@ func setupTestDB(t *testing.T) *gorm.DB {
 	if err != nil {
 		t.Skipf("Postgres not available: %v", err)
 	}
-	if err := model.AutoMigrate(db); err != nil {
-		t.Fatalf("AutoMigrate: %v", err)
-	}
+	testdb.ApplyMigrations(t, db)
 	return db
 }
 

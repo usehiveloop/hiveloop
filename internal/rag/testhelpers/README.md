@@ -8,8 +8,8 @@ this package.
 
 | File | Purpose |
 |---|---|
-| `db.go` | `ConnectTestDB(t)` — real Postgres + `AutoMigrate`. |
-| `fixtures.go` | `NewTestOrg` / `NewTestUser` / `NewTestInConnection` typed constructors with cleanup. |
+| `db.go` | `ConnectTestDB(t)` — real Postgres + `goose migrations`. |
+| `fixtures.go` | `NewTestOrg` / `NewTestUser` / `NewTestConnection` typed constructors with cleanup. |
 | `rag_engine.go` | `StartRagEngineInTestMode(t, cfg)` — builds + runs the Rust engine. |
 | `ragengine_binary.go` | Per-worktree `cargo build` cache (sync.Once). |
 | `minio.go` | MinIO client + bucket/prefix lifecycle helpers. |

@@ -22,7 +22,7 @@ import { IntegrationLogo } from "@/components/integration-logo"
 import { CredentialsForm } from "./credentials-form"
 import type { components } from "@/lib/api/schema"
 
-type Integration = components["schemas"]["inIntegrationAvailableResponse"]
+type Integration = components["schemas"]["integrationAvailableResponse"]
 type ConnectionConfigField = components["schemas"]["ConnectionConfigField"]
 
 interface ConnectOptions {
@@ -77,14 +77,14 @@ export function AddConnectionDialog({
 
   const { data, isLoading } = $api.useQuery(
     "get",
-    "/v1/in/integrations/available",
+    "/v1/integrations/available",
     {},
     { enabled: open }
   )
 
   const { data: connectionsData } = $api.useQuery(
     "get",
-    "/v1/in/connections",
+    "/v1/connections",
     {},
     { enabled: open }
   )
@@ -92,7 +92,7 @@ export function AddConnectionDialog({
   const connectedIntegrationIds = useMemo(() => {
     const connections = connectionsData?.data ?? []
     return new Set(
-      connections.map((connection) => connection.in_integration_id)
+      connections.map((connection) => connection.integration_id)
     )
   }, [connectionsData])
 

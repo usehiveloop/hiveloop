@@ -1,4 +1,4 @@
-.PHONY: build build-release run run-release check fmt fmt-check lint test test-unit test-e2e test-e2e-opencode openapi clean help
+.PHONY: build build-release run run-release check fmt fmt-check lint test test-unit test-e2e openapi clean help
 
 # --- Build ---
 
@@ -38,22 +38,13 @@ test: ## Run all unit + integration tests
 test-unit: ## Run library tests only
 	cargo test --workspace --lib
 
-test-e2e: ## Tear down all stale state, rebuild the docker image, run the Claude harness E2E (6 phases)
+test-e2e: ## Tear down all stale state, rebuild the docker image, run the OpenCode harness E2E
 	@echo "→ stopping any running bridge-e2e container"
 	@docker rm -f bridge-e2e >/dev/null 2>&1 || true
 	@echo "→ removing any stale bridge-e2e image"
 	@docker rmi -f bridge-e2e:latest >/dev/null 2>&1 || true
 	@echo "→ removing dangling event traces"
 	@rm -f /tmp/bridge_events.* /tmp/phase3_dump.txt /tmp/e2e_run.log 2>/dev/null || true
-	./scripts/e2e_claude.sh
-
-test-e2e-opencode: ## Tear down + rebuild + run the OpenCode harness E2E. Requires OPENCODE_PROVIDER_TYPE / OPENCODE_MODEL / OPENCODE_API_KEY env (optional OPENCODE_BASE_URL).
-	@echo "→ stopping any running bridge-e2e container"
-	@docker rm -f bridge-e2e >/dev/null 2>&1 || true
-	@echo "→ removing any stale bridge-e2e image"
-	@docker rmi -f bridge-e2e:latest >/dev/null 2>&1 || true
-	@echo "→ removing dangling event traces"
-	@rm -f /tmp/bridge_events.* 2>/dev/null || true
 	./scripts/e2e_opencode.sh
 
 # --- OpenAPI ---

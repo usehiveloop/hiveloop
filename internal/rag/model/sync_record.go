@@ -34,7 +34,7 @@ type RAGSyncRecord struct {
 	// because every Hivy entity is uuid-keyed. Interpretation is
 	// driven by SyncType: for `connector_deletion` / `pruning` /
 	// `external_permissions` / `external_group` the EntityID refers to
-	// an InConnection.
+	// an Connection.
 	EntityID uuid.UUID `gorm:"type:uuid;not null"`
 
 	// SyncType — Onyx models.py:2454. See SyncType in

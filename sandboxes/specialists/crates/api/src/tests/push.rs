@@ -84,11 +84,11 @@ async fn upsert_agent_path_body_mismatch_returns_400() {
     let body = serde_json::json!({
         "id": "bar",
         "name": "Test",
-        "harness": "claude",
+        "harness": "open_code",
         "system_prompt": "test",
         "provider": {
-            "provider_type": "anthropic",
-            "model": "claude-sonnet-4-20250514",
+            "provider_type": "open_ai",
+            "model": "gpt-4o",
             "api_key": "provider-api-key"
         }
     });

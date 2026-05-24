@@ -2,12 +2,10 @@
 //!
 //! Adapts external coding-agent CLIs to Bridge's supervisor surface using
 //! the Agent Client Protocol (ACP) over stdio. The shared driver lives in
-//! [`acp_session`]; per-harness modules ([`claude`], [`opencode`]) handle
-//! spawn + per-harness config materialization. The supervisor calls
-//! [`spawn`] which dispatches based on `agent.harness`.
+//! [`acp_session`]; [`opencode`] handles spawn + per-harness config
+//! materialization. The supervisor calls [`spawn`].
 
 pub mod acp_session;
-pub mod claude;
 pub mod events;
 pub mod opencode;
 pub mod skills;
@@ -28,10 +26,6 @@ pub async fn spawn(
     permission_manager: Arc<PermissionManager>,
 ) -> Result<Arc<AcpSession>, BridgeError> {
     match agent.harness {
-        Harness::Claude => {
-            let opts = claude::ClaudeHarnessOptions::from_env();
-            claude::spawn(agent, opts, event_bus, permission_manager).await
-        }
         Harness::OpenCode => {
             let opts = opencode::OpenCodeHarnessOptions::from_env();
             opencode::spawn(agent, opts, event_bus, permission_manager).await

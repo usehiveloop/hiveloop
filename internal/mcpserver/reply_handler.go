@@ -49,16 +49,16 @@ func (handler *ReplyMCPHandler) serverFactory(request *http.Request) *mcpsdk.Ser
 		return emptyReplyServer()
 	}
 
-	var connection model.InConnection
+	var connection model.Connection
 	ctx := request.Context()
-	if err := handler.db.WithContext(ctx).Preload("InIntegration").
+	if err := handler.db.WithContext(ctx).Preload("Integration").
 		Where("id = ? AND revoked_at IS NULL", connectionID).
 		First(&connection).Error; err != nil {
 		logging.FromContext(ctx).WarnContext(ctx, "reply MCP: connection not found", "connection_id", connectionID, "error", err)
 		return emptyReplyServer()
 	}
 
-	provider := connection.InIntegration.Provider
+	provider := connection.Integration.Provider
 
 	providerDef, ok := handler.catalog.GetProvider(provider)
 	if !ok {

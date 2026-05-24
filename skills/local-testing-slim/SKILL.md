@@ -30,7 +30,7 @@ Ports / logs (under `/tmp/agent-test/`): postgres `cat pg.port` (5432), redis 63
 ## Two auth modes
 
 - **Bearer API key** for org-scoped routes (`/v1/agents`, `/v1/credentials`, admin POSTs).
-- **Session cookie** (`__session`, AES-GCM) for user-scoped routes (`/v1/in/connections`, `/v1/me`). `make login-test` writes one to the agent-browser profile. Bearer returns `{"error":"invalid token"}` for these.
+- **Session cookie** (`__session`, AES-GCM) for user-scoped routes (`/v1/connections`, `/v1/me`). `make login-test` writes one to the agent-browser profile. Bearer returns `{"error":"invalid token"}` for these.
 
 ## DB + queue
 
@@ -45,15 +45,15 @@ Direct SQL fine for assertions and fixture cleanup. Use the API for encrypted co
 ## OAuth approve recipe
 
 ```bash
-$PSQL -c "UPDATE in_connections SET revoked_at=NOW()
-  WHERE in_integration_id IN (SELECT id FROM in_integrations WHERE provider='github')
+$PSQL -c "UPDATE connections SET revoked_at=NOW()
+  WHERE integration_id IN (SELECT id FROM integrations WHERE provider='github')
   AND revoked_at IS NULL;"
 curl -sX POST http://localhost:13004/_admin/reset
 agent-browser open http://localhost:31112/w/connections
 agent-browser find role button click --name "Add connection"
 agent-browser find role button click --name "github GitHub"
 sleep 3   # popup → callback → ws notify → frontend POST → row persisted
-$PSQL -tAc "SELECT count(*) FROM in_connections c JOIN in_integrations i ON i.id=c.in_integration_id
+$PSQL -tAc "SELECT count(*) FROM connections c JOIN integrations i ON i.id=c.integration_id
   WHERE i.provider='github' AND c.revoked_at IS NULL;"   # expect 1
 ```
 
@@ -65,7 +65,7 @@ Reject path: `POST /_admin/outcome` with `{"provider_config_key":"in_github-test
 |---|---|
 | `invalid signature` on webhook | `NANGO_SECRET_KEY` ≠ fake-nango `-secret` (local-up aligns them) |
 | Popup hangs | fake-nango unreachable or `NEXT_PUBLIC_CONNECTIONS_HOST` wrong |
-| Toast "success" but `/v1/in/connections` empty | Bearer can't read user-scoped data — drive via UI |
+| Toast "success" but `/v1/connections` empty | Bearer can't read user-scoped data — drive via UI |
 | `make local-up` exits before seed | A supervisor reported `✗`. Check `/tmp/agent-test/*.log`, run `make seed-test` |
 | `pnpm dev` lock conflict | `make local-down` clears it |
 | `Element not found` | Stale agent-browser ref. Re-snapshot or `find role button click --name "..."` |

@@ -9,6 +9,7 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
+	"github.com/usehivy/hivy/internal/testdb"
 	"github.com/usehivy/hivy/internal/credentials"
 	"github.com/usehivy/hivy/internal/model"
 )
@@ -26,7 +27,7 @@ import (
 //nolint:gosec // G101: hardcoded local-dev DSN, mirrors sibling integration tests
 const testDBURL = "postgres://hivy:localdev@localhost:15432/hivy_test?sslmode=disable"
 
-// connectTestDB opens a real Postgres connection and runs model.AutoMigrate.
+// connectTestDB opens a real Postgres connection and runs goose migrations.
 // It follows the same shape as the sibling helpers but only migrates the core
 // schema — the rag schema isn't needed here.
 func connectTestDB(t *testing.T) *gorm.DB {
@@ -46,9 +47,7 @@ func connectTestDB(t *testing.T) *gorm.DB {
 	if err := sqlDB.Ping(); err != nil {
 		t.Fatalf("Postgres not reachable at %s: %v", dsn, err)
 	}
-	if err := model.AutoMigrate(db); err != nil {
-		t.Fatalf("AutoMigrate: %v", err)
-	}
+	testdb.ApplyMigrations(t, db)
 	t.Cleanup(func() { _ = sqlDB.Close() })
 	return db
 }

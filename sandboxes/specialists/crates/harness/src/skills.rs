@@ -51,9 +51,8 @@ pub fn write_skills(root: &Path, skills: &[SkillDefinition]) {
 
         let mut body = String::new();
         body.push_str("---\n");
-        // Both Claude Code and OpenCode key the skill by `name`, which
-        // by convention matches the directory name (== skill.id). Title
-        // goes nowhere structured — fold it into the body if needed.
+        // OpenCode keys the skill by `name`, which by convention matches
+        // the directory name (== skill.id). Title goes nowhere structured.
         body.push_str(&format!("name: {}\n", skill.id));
         body.push_str(&format!("description: {}\n", skill.description));
         if let Some(fm) = &skill.frontmatter {

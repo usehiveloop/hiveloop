@@ -12,8 +12,6 @@ pub enum SkillSource {
     /// Pushed by the control plane API.
     #[default]
     ControlPlane,
-    /// Discovered from .claude/skills/ or .claude/commands/.
-    ClaudeCode,
     /// Discovered from .agent/skills/.
     AgentSkills,
     /// Discovered from .cursor/rules/ or .cursorrules.
@@ -26,7 +24,7 @@ pub enum SkillSource {
 
 /// Frontmatter configuration parsed from a SKILL.md YAML header.
 ///
-/// Only applicable to sources that support frontmatter (ClaudeCode, AgentSkills).
+/// Only applicable to sources that support frontmatter.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct SkillFrontmatter {

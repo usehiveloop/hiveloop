@@ -257,16 +257,16 @@ func (h *SlackChannelHandler) joinRequestedChannels(ctx context.Context, botToke
 }
 
 func (h *SlackChannelHandler) loadSlackBotToken(ctx context.Context, orgID uuid.UUID) (string, error) {
-	var conn model.InConnection
+	var conn model.Connection
 	if err := h.db.WithContext(ctx).
-		Preload("InIntegration").
-		Joins("JOIN in_integrations ON in_integrations.id = in_connections.in_integration_id AND in_integrations.deleted_at IS NULL").
-		Where("in_connections.org_id = ? AND in_connections.revoked_at IS NULL AND in_integrations.provider = ?", orgID, slackapp.Provider).
-		Order("in_connections.created_at ASC").
+		Preload("Integration").
+		Joins("JOIN integrations ON integrations.id = connections.integration_id AND integrations.deleted_at IS NULL").
+		Where("connections.org_id = ? AND connections.revoked_at IS NULL AND integrations.provider = ?", orgID, slackapp.Provider).
+		Order("connections.created_at ASC").
 		First(&conn).Error; err != nil {
 		return "", fmt.Errorf("active Slack connection required: %w", err)
 	}
-	nangoConn, err := h.nango.GetConnection(ctx, conn.NangoConnectionID, nangoProviderConfigKey(conn.InIntegration.UniqueKey))
+	nangoConn, err := h.nango.GetConnection(ctx, conn.NangoConnectionID, nangoProviderConfigKey(conn.Integration.UniqueKey))
 	if err != nil {
 		return "", fmt.Errorf("load Slack connection credentials: %w", err)
 	}

@@ -31,9 +31,9 @@ func resolveIntegrations(deps system.ResolveDeps, raw map[string]any) ([]resolve
 
 	var rows []connRow
 	if err := deps.DB.
-		Table("in_connections AS ic").
+		Table("connections AS ic").
 		Select("ic.id, ii.provider, ii.display_name").
-		Joins("JOIN in_integrations ii ON ii.id = ic.in_integration_id").
+		Joins("JOIN integrations ii ON ii.id = ic.integration_id").
 		Where("ic.id IN ? AND ic.org_id = ? AND ic.revoked_at IS NULL", connIDs, deps.OrgID).
 		Scan(&rows).Error; err != nil {
 		return nil, fmt.Errorf("load connections: %w", err)

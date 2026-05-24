@@ -25,7 +25,7 @@ import (
 //
 //  3. FK EmbeddingModelID → rag_embedding_models(id). The catalog
 //     table is created by embedder.Migrate before rag model.Migrate
-//     installs this FK (see rag.AutoMigrate).
+//     installs this FK (see RAG goose migrations).
 //
 //  4. Hivy additions: RerankerModelID (per-org reranker choice —
 //     Qwen3-Reranker-0.6B default), HybridAlpha (BM25/vector weight

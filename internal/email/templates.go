@@ -468,7 +468,7 @@ var templateMeta = map[TemplateSlug]TemplateMeta{
 		Slug:        "integrations-revoked",
 		Name:        "Integrations — Connection revoked",
 		Subject:     "{{integration}} has been disconnected",
-		Description: "Sent when an integration connection is revoked (InConnection.RevokedAt set or Nango disconnect). Variables: firstName, integration, revokedAt.",
+		Description: "Sent when an integration connection is revoked (Connection.RevokedAt set or Nango disconnect). Variables: firstName, integration, revokedAt.",
 		Variables:   []string{"firstName", "integration", "revokedAt"},
 	},
 

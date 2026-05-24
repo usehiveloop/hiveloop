@@ -11,7 +11,7 @@ import (
 )
 
 func (s *Seeder) disableOne(ctx context.Context, m Manifest) (string, error) {
-	var existing model.InIntegration
+	var existing model.Integration
 	err := s.db.WithContext(ctx).
 		Where("managed_by = ? AND managed_id = ?", managedBy, m.ID).
 		First(&existing).Error
@@ -32,7 +32,7 @@ func (s *Seeder) disableOne(ctx context.Context, m Manifest) (string, error) {
 }
 
 func (s *Seeder) disableMissing(ctx context.Context, seen map[string]bool) (int, error) {
-	var integrations []model.InIntegration
+	var integrations []model.Integration
 	if err := s.db.WithContext(ctx).
 		Where("managed_by = ? AND deleted_at IS NULL", managedBy).
 		Find(&integrations).Error; err != nil {
@@ -54,7 +54,7 @@ func (s *Seeder) disableMissing(ctx context.Context, seen map[string]bool) (int,
 	return deleted, nil
 }
 
-func (s *Seeder) disableIntegration(ctx context.Context, integ *model.InIntegration) (bool, error) {
+func (s *Seeder) disableIntegration(ctx context.Context, integ *model.Integration) (bool, error) {
 	if integ.DeletedAt != nil {
 		return false, nil
 	}
@@ -75,8 +75,8 @@ func (s *Seeder) disableIntegration(ctx context.Context, integ *model.InIntegrat
 
 func (s *Seeder) activeConnectionCount(ctx context.Context, integrationID interface{}) (int64, error) {
 	var count int64
-	if err := s.db.WithContext(ctx).Model(&model.InConnection{}).
-		Where("in_integration_id = ? AND revoked_at IS NULL", integrationID).
+	if err := s.db.WithContext(ctx).Model(&model.Connection{}).
+		Where("integration_id = ? AND revoked_at IS NULL", integrationID).
 		Count(&count).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return 0, nil

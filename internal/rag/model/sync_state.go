@@ -13,7 +13,7 @@ import (
 //
 // ARCHITECTURAL NOTE: Onyx bundles identity + schedule + sync state
 // into a single `ConnectorCredentialPair` row. Hivy splits those
-// concerns: identity lives on `InConnection`, schedule + config live
+// concerns: identity lives on `Connection`, schedule + config live
 // on `RAGSource`, and sync state (this struct) is a 1:1 sibling of
 // `RAGSource` keyed by `rag_source_id`. The uniqueness of
 // `rag_source_id` is the invariant the three-loop scheduler (see Onyx
@@ -22,7 +22,7 @@ import (
 // on: every loop picks up at most one sync state per source.
 //
 // Skipped from Onyx 739-800: `connector_id`, `credential_id`, `name`
-// (identity columns — live on InConnection).
+// (identity columns — live on Connection).
 type RAGSyncState struct {
 	ID uuid.UUID `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
 
@@ -33,7 +33,7 @@ type RAGSyncState struct {
 	// RAGSourceID — 1:1 link to RAGSource. Unique: a source has at most
 	// one sync state. CASCADE mirrors the Onyx behavior where deleting
 	// a CCPair zaps its sync metadata. INTEGRATION-kind sources carry
-	// the InConnection reference on the RAGSource row itself; WEBSITE
+	// the Connection reference on the RAGSource row itself; WEBSITE
 	// / FILE_UPLOAD sources don't have one.
 	RAGSourceID uuid.UUID `gorm:"type:uuid;not null;uniqueIndex:uq_rag_sync_state_rag_source_id"`
 
@@ -96,6 +96,6 @@ type RAGSyncState struct {
 	UpdatedAt time.Time
 }
 
-// TableName — follow Hivy convention (`orgs`, `in_connections`,
+// TableName — follow Hivy convention (`orgs`, `connections`,
 // etc.); RAG tables prefixed `rag_`.
 func (RAGSyncState) TableName() string { return "rag_sync_states" }

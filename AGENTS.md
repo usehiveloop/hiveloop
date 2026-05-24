@@ -12,7 +12,7 @@ Hivy is a Go-first platform with a Go API/worker, Next.js web app, Rust speciali
 - `cmd/server both`: combined API and worker mode for deployments that run both in one process.
 - `apps/web`: primary Next.js customer app and docs surface. Calls the backend through `/api/proxy`.
 - `cmd/fake-nango`: local Nango-compatible OAuth/integration simulator.
-- Postgres: primary datastore. GORM models live in `internal/model`; migration is `model.AutoMigrate`.
+- Postgres: primary datastore. GORM models live in `internal/model`; migration is `goose migrations`.
 - Redis: cache, rate-limit, streaming, and Asynq queue backend.
 - Mailpit: local email capture for Docker-based flows.
 - MinIO: local S3-compatible storage for RAG, drive, uploads, and tests.

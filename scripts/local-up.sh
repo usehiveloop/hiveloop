@@ -174,6 +174,14 @@ start_backend() {
   wait_http "http://localhost:$BACKEND_PORT/healthz" "backend" 15
 }
 
+run_migrations() {
+  echo "==> migrations"
+  local args
+  args=$(grep -v '^\s*#' "$RUN_DIR/backend.env" | grep -v '^\s*$')
+  env $args "$RUN_DIR/hivy" migrate up
+  echo "  ✓ database schema current"
+}
+
 find_corepack() {
   command -v corepack >/dev/null 2>&1 && { command -v corepack; return; }
   local node_dir
@@ -253,6 +261,8 @@ build_binaries
 echo
 start_fake_nango
 write_backend_env
+echo
+run_migrations
 echo
 start_backend
 write_web_env

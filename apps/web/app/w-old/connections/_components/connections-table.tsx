@@ -37,17 +37,17 @@ import { ConfirmDialog } from "@/components/confirm-dialog"
 import { IntegrationLogo } from "@/components/integration-logo"
 import { useReconnectIntegration } from "../_hooks/use-reconnect-integration"
 
-export interface InConnection {
+export interface Connection {
   id?: string
   provider?: string
   display_name?: string
   webhook_configured?: boolean
-  in_integration_id?: string
+  integration_id?: string
   created_at?: string
 }
 
 interface ConnectionsTableProps {
-  connections: InConnection[]
+  connections: Connection[]
 }
 
 function formatDate(dateStr: string) {
@@ -69,10 +69,10 @@ function StatusDot() {
 
 export function ConnectionsTable({ connections }: ConnectionsTableProps) {
   const queryClient = useQueryClient()
-  const [disconnecting, setDisconnecting] = useState<InConnection | null>(null)
-  const [webhookConfiguring, setWebhookConfiguring] = useState<InConnection | null>(null)
-  const deleteConnection = $api.useMutation("delete", "/v1/in/connections/{id}")
-  const markWebhookConfigured = $api.useMutation("patch", "/v1/in/connections/{id}/webhook-configured")
+  const [disconnecting, setDisconnecting] = useState<Connection | null>(null)
+  const [webhookConfiguring, setWebhookConfiguring] = useState<Connection | null>(null)
+  const deleteConnection = $api.useMutation("delete", "/v1/connections/{id}")
+  const markWebhookConfigured = $api.useMutation("patch", "/v1/connections/{id}/webhook-configured")
   const { reconnect, reconnectingId } = useReconnectIntegration()
 
   function handleDisconnect() {
@@ -83,7 +83,7 @@ export function ConnectionsTable({ connections }: ConnectionsTableProps) {
       {
         onSuccess: () => {
           toast.success(`${disconnecting.display_name ?? "Connection"} disconnected`)
-          queryClient.invalidateQueries({ queryKey: ["get", "/v1/in/connections"] })
+          queryClient.invalidateQueries({ queryKey: ["get", "/v1/connections"] })
           setDisconnecting(null)
         },
         onError: (error) => {
@@ -197,7 +197,7 @@ export function ConnectionsTable({ connections }: ConnectionsTableProps) {
             {
               onSuccess: () => {
                 toast.success("Webhook marked as configured")
-                queryClient.invalidateQueries({ queryKey: ["get", "/v1/in/connections"] })
+                queryClient.invalidateQueries({ queryKey: ["get", "/v1/connections"] })
                 setWebhookConfiguring(null)
               },
               onError: (error) => {
@@ -269,7 +269,7 @@ function WebhookWarning({ onClick }: { onClick: () => void }) {
 }
 
 interface WebhookConfigDialogProps {
-  connection: InConnection | null
+  connection: Connection | null
   open: boolean
   onOpenChange: (open: boolean) => void
   loading: boolean

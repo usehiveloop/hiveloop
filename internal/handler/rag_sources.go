@@ -37,7 +37,7 @@ type ragSourceResponse struct {
 	Name                    string                  `json:"name"`
 	Status                  string                  `json:"status"`
 	Enabled                 bool                    `json:"enabled"`
-	InConnectionID          *string                 `json:"in_connection_id,omitempty"`
+	ConnectionID            *string                 `json:"connection_id,omitempty"`
 	AccessType              string                  `json:"access_type"`
 	Config                  json.RawMessage         `json:"config"`
 	IndexingStart           *time.Time              `json:"indexing_start,omitempty"`
@@ -156,9 +156,9 @@ func toRAGSourceResponse(s *ragmodel.RAGSource) ragSourceResponse {
 		CreatedAt:               s.CreatedAt,
 		UpdatedAt:               s.UpdatedAt,
 	}
-	if s.InConnectionID != nil {
-		v := s.InConnectionID.String()
-		resp.InConnectionID = &v
+	if s.ConnectionID != nil {
+		v := s.ConnectionID.String()
+		resp.ConnectionID = &v
 	}
 	return resp
 }
@@ -197,7 +197,7 @@ func toRAGLatestAttemptStatus(a *ragmodel.RAGIndexAttempt) *ragLatestAttemptStat
 	}
 }
 
-func toRAGIntegrationResponse(i *model.InIntegration) ragIntegrationResponse {
+func toRAGIntegrationResponse(i *model.Integration) ragIntegrationResponse {
 	return ragIntegrationResponse{
 		ID:          i.ID.String(),
 		UniqueKey:   i.UniqueKey,

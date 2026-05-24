@@ -50,11 +50,11 @@ func employeeRequiredSkills(ctx context.Context, db *gorm.DB, orgID uuid.UUID) (
 }
 
 func activeEmployeeConnectionProviders(ctx context.Context, db *gorm.DB, orgID uuid.UUID) ([]string, map[string]string, error) {
-	var connections []model.InConnection
+	var connections []model.Connection
 	if err := db.WithContext(ctx).
-		Preload("InIntegration").
-		Joins("JOIN in_integrations ON in_integrations.id = in_connections.in_integration_id AND in_integrations.deleted_at IS NULL").
-		Where("in_connections.org_id = ? AND in_connections.revoked_at IS NULL", orgID).
+		Preload("Integration").
+		Joins("JOIN integrations ON integrations.id = connections.integration_id AND integrations.deleted_at IS NULL").
+		Where("connections.org_id = ? AND connections.revoked_at IS NULL", orgID).
 		Find(&connections).Error; err != nil {
 		return nil, nil, fmt.Errorf("load employee connection providers: %w", err)
 	}
@@ -63,16 +63,16 @@ func activeEmployeeConnectionProviders(ctx context.Context, db *gorm.DB, orgID u
 	providers := make([]string, 0, len(connections))
 	displays := make(map[string]string, len(connections))
 	for _, conn := range connections {
-		provider := conn.InIntegration.Provider
+		provider := conn.Integration.Provider
 		if provider == "" {
-			provider = conn.InIntegration.UniqueKey
+			provider = conn.Integration.UniqueKey
 		}
 		if provider == "" || seen[provider] {
 			continue
 		}
 		seen[provider] = true
 		providers = append(providers, provider)
-		displays[provider] = conn.InIntegration.DisplayName
+		displays[provider] = conn.Integration.DisplayName
 	}
 	sort.Strings(providers)
 	return providers, displays, nil

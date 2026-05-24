@@ -20,14 +20,14 @@ func dispatchWebhookEvent(
 	wh *nangoWebhook,
 	wctx *webhookContext,
 ) {
-	if enqueuer == nil || wctx == nil || wctx.inConnection == nil {
+	if enqueuer == nil || wctx == nil || wctx.connection == nil {
 		return
 	}
 	if wh.Type != "forward" || len(wh.Payload) == 0 {
 		return
 	}
 
-	providerName := wctx.inConnection.InIntegration.Provider
+	providerName := wctx.connection.Integration.Provider
 
 	metadata, ok := extractEventMetadata(wh, providerName)
 	if !ok {
@@ -96,7 +96,7 @@ func enqueueTriggerDispatch(
 		EventAction:  metadata.EventAction,
 		DeliveryID:   deliveryID,
 		OrgID:        wctx.orgID,
-		ConnectionID: wctx.inConnection.ID,
+		ConnectionID: wctx.connection.ID,
 		PayloadJSON:  metadata.RawBody,
 	})
 	if err != nil {

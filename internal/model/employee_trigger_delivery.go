@@ -22,7 +22,7 @@ type EmployeeTriggerDelivery struct {
 	Trigger   EmployeeTrigger `gorm:"foreignKey:TriggerID;constraint:OnDelete:CASCADE"`
 
 	ConnectionID *uuid.UUID    `gorm:"type:uuid;index"`
-	Connection   *InConnection `gorm:"foreignKey:ConnectionID;constraint:OnDelete:SET NULL"`
+	Connection   *Connection `gorm:"foreignKey:ConnectionID;constraint:OnDelete:SET NULL"`
 
 	DeliveryID  string `gorm:"type:text;not null;index"`
 	EventKey    string `gorm:"type:text;not null;default:'';index"`

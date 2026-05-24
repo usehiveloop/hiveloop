@@ -4,11 +4,11 @@ use crate::provider::ProviderType;
 const SIMPLE_AGENT: &str = r#"{
     "id": "agent_simple",
     "name": "Simple Agent",
-    "harness": "claude",
+    "harness": "open_code",
     "system_prompt": "You are a helpful assistant.",
     "provider": {
-        "provider_type": "anthropic",
-        "model": "claude-sonnet-4-5",
+        "provider_type": "open_ai",
+        "model": "gpt-4o",
         "api_key": "<provider-api-key>"
     }
 }"#;
@@ -20,10 +20,10 @@ fn parse_simple_agent() {
 
     assert_eq!(agent.id, "agent_simple");
     assert_eq!(agent.name, "Simple Agent");
-    assert_eq!(agent.harness, Harness::Claude);
+    assert_eq!(agent.harness, Harness::OpenCode);
     assert_eq!(agent.system_prompt, "You are a helpful assistant.");
-    assert_eq!(agent.provider.provider_type, ProviderType::Anthropic);
-    assert_eq!(agent.provider.model, "claude-sonnet-4-5");
+    assert_eq!(agent.provider.provider_type, ProviderType::OpenAI);
+    assert_eq!(agent.provider.model, "gpt-4o");
     assert!(agent.mcp_servers.is_empty());
     assert!(agent.skills.is_empty());
     assert!(agent.permissions.is_empty());
@@ -31,11 +31,11 @@ fn parse_simple_agent() {
 }
 
 #[test]
-fn parse_opencode_harness() {
+fn rejects_removed_claude_harness() {
     let json = r#"{
-        "id": "ag_oc",
-        "name": "OC Agent",
-        "harness": "open_code",
+        "id": "agent_old",
+        "name": "Old Agent",
+        "harness": "claude",
         "system_prompt": "hi",
         "provider": {
             "provider_type": "open_ai",
@@ -43,8 +43,8 @@ fn parse_opencode_harness() {
             "api_key": "k"
         }
     }"#;
-    let agent: AgentDefinition = serde_json::from_str(json).unwrap();
-    assert_eq!(agent.harness, Harness::OpenCode);
+    let err = serde_json::from_str::<AgentDefinition>(json).unwrap_err();
+    assert!(err.to_string().contains("unknown variant"));
 }
 
 #[test]
@@ -52,11 +52,11 @@ fn agent_config_full_payload_roundtrip() {
     let json = r#"{
         "id": "ag",
         "name": "Ag",
-        "harness": "claude",
+        "harness": "open_code",
         "system_prompt": "hi",
         "provider": {
-            "provider_type": "anthropic",
-            "model": "claude-sonnet-4-5",
+            "provider_type": "open_ai",
+            "model": "gpt-4o",
             "api_key": "k"
         },
         "config": {
@@ -64,8 +64,8 @@ fn agent_config_full_payload_roundtrip() {
             "max_turns": 50,
             "temperature": 0.3,
             "reasoning_effort": "high",
-            "small_fast_model": "claude-haiku-4-5",
-            "fallback_model": "claude-opus-4-5",
+            "small_fast_model": "gpt-4o-mini",
+            "fallback_model": "gpt-4.1",
             "allowed_tools": ["Read", "Bash"],
             "disabled_tools": ["WebFetch"],
             "permission_mode": "acceptEdits",
@@ -77,7 +77,7 @@ fn agent_config_full_payload_roundtrip() {
     assert_eq!(agent.config.reasoning_effort.as_deref(), Some("high"));
     assert_eq!(
         agent.config.small_fast_model.as_deref(),
-        Some("claude-haiku-4-5")
+        Some("gpt-4o-mini")
     );
     assert_eq!(agent.config.allowed_tools, vec!["Read", "Bash"]);
     assert_eq!(agent.config.disabled_tools, vec!["WebFetch"]);

@@ -62,7 +62,6 @@ func main() {
 }
 
 func run(cmd string) error {
-
 	cfg, err := loadConfigForLogging()
 	if err != nil {
 		slog.Error("fatal", "error", err)
@@ -73,6 +72,14 @@ func run(cmd string) error {
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
+
+	if cmd == "migrate" {
+		if err := runMigrate(ctx, os.Args[2:]); err != nil {
+			slog.Error("migration failed", "error", err)
+			return err
+		}
+		return nil
+	}
 
 	deps, err := bootstrap.New(ctx)
 	if err != nil {
@@ -130,7 +137,7 @@ func dispatch(ctx context.Context, cmd string, deps *bootstrap.Deps) error {
 		}
 
 	default:
-		return fmt.Errorf("unknown command %q (use: serve, work, both, version)", cmd)
+		return fmt.Errorf("unknown command %q (use: serve, work, both, migrate, version)", cmd)
 	}
 }
 

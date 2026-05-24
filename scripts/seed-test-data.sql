@@ -24,7 +24,7 @@ ON CONFLICT (user_id, org_id) DO NOTHING;
 
 -- === enabled OAUTH2 integrations ===
 
-INSERT INTO in_integrations (id, unique_key, provider, display_name, meta, nango_config,
+INSERT INTO integrations (id, unique_key, provider, display_name, meta, nango_config,
                              supports_rag_source, created_at, updated_at)
 VALUES
   (gen_random_uuid(), 'github-test',     'github',     'GitHub',     '{}'::jsonb,
@@ -90,29 +90,24 @@ ON CONFLICT (key_hash) DO NOTHING;
 
 -- === starter agent ===
 
-INSERT INTO employees (id, org_id, name, description, category, system_prompt, model,
-                    provider_prompts, tools, mcp_servers, skills, integrations,
-                    agent_config, permissions, resources, team, shared_memory,
-                    sandbox_tools, setup_commands, status, is_system,
-                    provider_group, created_at, updated_at)
+INSERT INTO employees (id, org_id, instructions, model, tools, mcp_servers, skills,
+                    runtime_config, permissions, resources, shared_memory,
+                    sandbox_tools, setup_commands, status, created_at, updated_at)
 SELECT gen_random_uuid(),
        o.id,
-       'Test Agent',
-       'Pre-seeded agent for browser-driven tests',
-       'general',
        'You are a helpful test agent.',
        'claude-sonnet-4-5',
-       '{}'::jsonb, '{}'::jsonb, '{}'::jsonb, '{}'::jsonb, '{}'::jsonb,
        '{}'::jsonb, '{}'::jsonb, '{}'::jsonb,
-       '', false,
+       jsonb_build_object('name','Test Agent','description','Pre-seeded agent for browser-driven tests','category','general'),
+       '{}'::jsonb, '{}'::jsonb, false,
        '{}'::text[], '{}'::text[],
-       'active', false, '',
+       'active',
        NOW(), NOW()
   FROM orgs o
   WHERE o.name = 'Agent Test Workspace'
     AND NOT EXISTS (
       SELECT 1 FROM employees a
-      WHERE a.org_id = o.id AND a.name = 'Test Agent' AND a.deleted_at IS NULL
+      WHERE a.org_id = o.id AND a.runtime_config->>'name' = 'Test Agent'
     );
 
 -- === identity variety ===
@@ -167,19 +162,19 @@ ON CONFLICT (user_id, org_id) DO NOTHING;
 
 -- === pre-existing revoked connection ===
 
-INSERT INTO in_connections (id, org_id, user_id, in_integration_id, nango_connection_id, meta,
+INSERT INTO connections (id, org_id, user_id, integration_id, nango_connection_id, meta,
                             webhook_configured, revoked_at, created_at, updated_at)
 SELECT gen_random_uuid(), o.id, u.id, i.id,
        'previously-revoked-conn-id',
        '{}'::jsonb, true,
        NOW() - INTERVAL '7 days',
        NOW() - INTERVAL '14 days', NOW() - INTERVAL '7 days'
-  FROM users u, orgs o, in_integrations i
+  FROM users u, orgs o, integrations i
   WHERE u.email = 'agent-test@example.com'
     AND o.name  = 'Agent Test Workspace'
     AND i.provider = 'github'
     AND NOT EXISTS (
-      SELECT 1 FROM in_connections WHERE nango_connection_id = 'previously-revoked-conn-id'
+      SELECT 1 FROM connections WHERE nango_connection_id = 'previously-revoked-conn-id'
     );
 
 -- === summary ===
@@ -202,14 +197,14 @@ UNION ALL
 SELECT 'org (cross)',      name  FROM orgs  WHERE name  = 'Other Workspace'
 UNION ALL
 SELECT 'integrations',     string_agg(provider, ', ' ORDER BY provider)
-  FROM in_integrations  WHERE unique_key LIKE '%-test' AND deleted_at IS NULL
+  FROM integrations  WHERE unique_key LIKE '%-test' AND deleted_at IS NULL
 UNION ALL
 SELECT 'api_key',          'hvl_sk_aaaaaaaa…  scopes=' || array_to_string(k.scopes, ',')
   FROM api_keys k JOIN orgs o ON o.id = k.org_id
   WHERE o.name = 'Agent Test Workspace' AND k.revoked_at IS NULL
 UNION ALL
-SELECT 'agent',            a.name FROM employees a JOIN orgs o ON o.id = a.org_id
-  WHERE o.name = 'Agent Test Workspace' AND a.deleted_at IS NULL
+SELECT 'agent',            a.runtime_config->>'name' FROM employees a JOIN orgs o ON o.id = a.org_id
+  WHERE o.name = 'Agent Test Workspace' AND a.runtime_config->>'name' = 'Test Agent'
 UNION ALL
-SELECT 'revoked conn',     'github · revoked 7d ago' FROM in_connections
+SELECT 'revoked conn',     'github · revoked 7d ago' FROM connections
   WHERE nango_connection_id = 'previously-revoked-conn-id';

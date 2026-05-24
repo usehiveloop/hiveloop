@@ -1,9 +1,7 @@
 #!/usr/bin/env bash
 # End-to-end test against a Dockerized bridge running the OpenCode harness.
-# Mirrors scripts/e2e_claude.sh: same six phases, same assertions, just
-# with `harness: "open_code"` on the agent definition. opencode reads its
-# config from /work/.opencode/opencode.json which bridge writes per-agent
-# at session start.
+# opencode reads its config from /work/.opencode/opencode.json which bridge
+# writes per-agent at session start.
 #
 # Required env (no fallback — opencode needs a real provider):
 #   OPENCODE_PROVIDER_TYPE      bridge ProviderType (e.g. open_ai|anthropic)

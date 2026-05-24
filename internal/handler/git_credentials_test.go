@@ -18,6 +18,7 @@ import (
 	"github.com/usehivy/hivy/internal/handler"
 	"github.com/usehivy/hivy/internal/model"
 	"github.com/usehivy/hivy/internal/nango"
+	"github.com/usehivy/hivy/internal/testdb"
 )
 
 const gitCredsTestDBURL = "postgres://hivy:localdev@localhost:15432/hivy_test?sslmode=disable" // #nosec G101 -- test fixture, not a real secret
@@ -57,9 +58,7 @@ func newGitCredsHarness(t *testing.T, nangoHandler http.Handler) *gitCredsHarnes
 	if err != nil {
 		t.Skipf("cannot connect to test database: %v", err)
 	}
-	if err := model.AutoMigrate(database); err != nil {
-		t.Fatalf("migration failed: %v", err)
-	}
+	testdb.ApplyMigrations(t, database)
 
 	encKey := testSymmetricKey(t)
 
@@ -122,22 +121,22 @@ func newGitCredsHarness(t *testing.T, nangoHandler http.Handler) *gitCredsHarnes
 		t.Fatalf("create test user: %v", err)
 	}
 
-	inIntegration := createTestInIntegration(t, database, "github-app")
+	integration := createTestIntegration(t, database, "github-app")
 
-	inConnectionID := uuid.New()
-	inConnection := model.InConnection{
-		ID:                inConnectionID,
+	connectionID := uuid.New()
+	connection := model.Connection{
+		ID:                connectionID,
 		OrgID:             orgID,
 		UserID:            userID,
-		InIntegrationID:   inIntegration.ID,
+		IntegrationID:     integration.ID,
 		NangoConnectionID: "nango-conn-123",
 	}
-	if err := database.Create(&inConnection).Error; err != nil {
+	if err := database.Create(&connection).Error; err != nil {
 		t.Fatalf("create test in_connection: %v", err)
 	}
 
 	t.Cleanup(func() {
-		database.Where("org_id = ?", orgID).Delete(&model.InConnection{})
+		database.Where("org_id = ?", orgID).Delete(&model.Connection{})
 		database.Where("id = ?", sandboxID).Delete(&model.Sandbox{})
 		database.Where("org_id = ?", orgID).Delete(&model.Employee{})
 		database.Where("id = ?", userID).Delete(&model.User{})

@@ -15,6 +15,7 @@ import (
 	"github.com/usehivy/hivy/internal/handler"
 	"github.com/usehivy/hivy/internal/model"
 	"github.com/usehivy/hivy/internal/nango"
+	"github.com/usehivy/hivy/internal/testdb"
 )
 
 const railwayTestDBURL = "postgres://hivy:localdev@localhost:15432/hivy_test?sslmode=disable" // #nosec G101 -- test fixture, not a real secret
@@ -40,9 +41,7 @@ func newRailwayHarness(t *testing.T, nangoHandler http.Handler, railwayHandler h
 	if err != nil {
 		t.Skipf("cannot connect to test database: %v", err)
 	}
-	if err := model.AutoMigrate(database); err != nil {
-		t.Fatalf("migration failed: %v", err)
-	}
+	testdb.ApplyMigrations(t, database)
 
 	encKey := testSymmetricKey(t)
 
@@ -110,32 +109,32 @@ func newRailwayHarness(t *testing.T, nangoHandler http.Handler, railwayHandler h
 		t.Fatalf("create test user: %v", err)
 	}
 
-	inIntegrationID := uuid.New()
-	inIntegration := model.InIntegration{
-		ID:          inIntegrationID,
+	integrationID := uuid.New()
+	integration := model.Integration{
+		ID:          integrationID,
 		UniqueKey:   fmt.Sprintf("railway-test-%s", uuid.New().String()[:8]),
 		Provider:    "railway",
 		DisplayName: "Test Railway",
 	}
-	if err := database.Create(&inIntegration).Error; err != nil {
+	if err := database.Create(&integration).Error; err != nil {
 		t.Fatalf("create test in_integration: %v", err)
 	}
 
-	inConnectionID := uuid.New()
-	inConnection := model.InConnection{
-		ID:                inConnectionID,
+	connectionID := uuid.New()
+	connection := model.Connection{
+		ID:                connectionID,
 		OrgID:             orgID,
 		UserID:            userID,
-		InIntegrationID:   inIntegrationID,
+		IntegrationID:     integrationID,
 		NangoConnectionID: "nango-railway-conn-123",
 	}
-	if err := database.Create(&inConnection).Error; err != nil {
+	if err := database.Create(&connection).Error; err != nil {
 		t.Fatalf("create test in_connection: %v", err)
 	}
 
 	t.Cleanup(func() {
-		database.Where("org_id = ?", orgID).Delete(&model.InConnection{})
-		database.Where("id = ?", inIntegrationID).Delete(&model.InIntegration{})
+		database.Where("org_id = ?", orgID).Delete(&model.Connection{})
+		database.Where("id = ?", integrationID).Delete(&model.Integration{})
 		database.Where("id = ?", sandboxID).Delete(&model.Sandbox{})
 		database.Where("org_id = ?", orgID).Delete(&model.Employee{})
 		database.Where("id = ?", userID).Delete(&model.User{})

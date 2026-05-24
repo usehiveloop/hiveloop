@@ -10,18 +10,18 @@ import (
 )
 
 func (h *NangoWebhookHandler) identify(ctx context.Context, wh *nangoWebhook) *webhookContext {
-	var inConnection model.InConnection
-	err := h.db.Preload("InIntegration").
+	var connection model.Connection
+	err := h.db.Preload("Integration").
 		Where("nango_connection_id = ? AND revoked_at IS NULL", wh.ConnectionID).
 		Order("created_at DESC").
-		First(&inConnection).Error
+		First(&connection).Error
 	if err != nil {
 		return nil
 	}
 
 	return &webhookContext{
-		orgID:        inConnection.OrgID,
-		inConnection: &inConnection,
+		orgID:      connection.OrgID,
+		connection: &connection,
 	}
 }
 

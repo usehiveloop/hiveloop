@@ -45,19 +45,19 @@ func (h *employeeHarness) getEmployeeAvailableConnections(t *testing.T, m orgWit
 	return rr
 }
 
-func (h *employeeHarness) seedEmployeeConnection(t *testing.T, m orgWithMember, provider string) model.InConnection {
+func (h *employeeHarness) seedEmployeeConnection(t *testing.T, m orgWithMember, provider string) model.Connection {
 	t.Helper()
-	integ := createTestInIntegration(t, h.db, provider)
-	conn := model.InConnection{
+	integ := createTestIntegration(t, h.db, provider)
+	conn := model.Connection{
 		OrgID:             m.org.ID,
 		UserID:            m.user.ID,
-		InIntegrationID:   integ.ID,
+		IntegrationID:     integ.ID,
 		NangoConnectionID: provider + "-" + uuid.NewString()[:8],
 		Meta:              model.JSON{},
 	}
 	if err := h.db.Create(&conn).Error; err != nil {
-		t.Fatalf("create in connection: %v", err)
+		t.Fatalf("create connection: %v", err)
 	}
-	t.Cleanup(func() { h.db.Where("id = ?", conn.ID).Delete(&model.InConnection{}) })
+	t.Cleanup(func() { h.db.Where("id = ?", conn.ID).Delete(&model.Connection{}) })
 	return conn
 }

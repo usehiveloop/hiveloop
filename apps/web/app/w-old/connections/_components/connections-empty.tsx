@@ -14,7 +14,7 @@ type ConnectionConfigField = components["schemas"]["ConnectionConfigField"]
 const MAX_SUGGESTIONS = 10
 
 function needsForm(
-  integration: components["schemas"]["inIntegrationAvailableResponse"]
+  integration: components["schemas"]["integrationAvailableResponse"]
 ): boolean {
   const authMode = integration.nango_config?.auth_mode
   const installation = integration.nango_config?.installation
@@ -50,7 +50,7 @@ export function ConnectionsEmpty({
 }: ConnectionsEmptyProps) {
   const { data, isLoading } = $api.useQuery(
     "get",
-    "/v1/in/integrations/available"
+    "/v1/integrations/available"
   )
 
   const integrations = useMemo(() => data ?? [], [data])
@@ -73,7 +73,7 @@ export function ConnectionsEmpty({
   }, [integrations])
 
   function handleClick(
-    integration: components["schemas"]["inIntegrationAvailableResponse"]
+    integration: components["schemas"]["integrationAvailableResponse"]
   ) {
     if (needsForm(integration)) {
       onShowFormFor(integration.id!)

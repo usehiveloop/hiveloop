@@ -25,7 +25,7 @@ export function useConnectIntegration() {
       integrationId: string
       options?: ConnectOptions
     }) => {
-      const session = await api.POST("/v1/in/integrations/{id}/connect-session", {
+      const session = await api.POST("/v1/integrations/{id}/connect-session", {
         params: { path: { id: integrationId } },
       })
 
@@ -48,7 +48,7 @@ export function useConnectIntegration() {
         ? await nango.auth(providerConfigKey, authOptions)
         : await nango.auth(providerConfigKey)
 
-      const connection = await api.POST("/v1/in/integrations/{id}/connections", {
+      const connection = await api.POST("/v1/integrations/{id}/connections", {
         params: { path: { id: integrationId } },
         body: { nango_connection_id: authResult.connectionId } as never,
       })
@@ -61,7 +61,7 @@ export function useConnectIntegration() {
       setConnectingId(integrationId)
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["get", "/v1/in/connections"] })
+      queryClient.invalidateQueries({ queryKey: ["get", "/v1/connections"] })
       toast.success("Connection added successfully")
     },
     onError: (error) => {

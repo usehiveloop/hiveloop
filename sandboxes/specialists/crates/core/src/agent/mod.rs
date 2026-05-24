@@ -15,8 +15,6 @@ pub type AgentId = String;
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[serde(rename_all = "snake_case")]
 pub enum Harness {
-    /// Claude Code CLI driven via the Agent Client Protocol (ACP).
-    Claude,
     /// OpenCode CLI driven via the Agent Client Protocol (ACP).
     OpenCode,
 }
@@ -48,8 +46,7 @@ pub struct AgentDefinition {
     /// MCP server connections passed through to the harness as `--mcp-config`.
     #[serde(default)]
     pub mcp_servers: Vec<McpServerDefinition>,
-    /// Skills written to the harness's skill discovery directory at session start
-    /// (e.g. `~/.claude/skills/<id>/SKILL.md` for Claude Code).
+    /// Skills written to the harness's skill discovery directory at session start.
     #[serde(default)]
     pub skills: Vec<SkillDefinition>,
     /// Per-tool permission overrides. Drives the bridge approvals API
@@ -93,8 +90,7 @@ impl AgentDefinition {
 
 /// Per-agent configuration written into the harness's settings file at
 /// session start. Every field is harness-agnostic in shape — the adapter
-/// is responsible for translating it into the harness-native config
-/// (`~/.claude/settings.json`, `~/.config/opencode/opencode.json`, etc.).
+/// is responsible for translating it into the harness-native config.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct AgentConfig {
@@ -111,8 +107,7 @@ pub struct AgentConfig {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub temperature: Option<f64>,
 
-    /// Reasoning effort hint. Forwarded to harnesses that support it
-    /// (Claude Code thinking budget, OpenCode reasoning effort).
+    /// Reasoning effort hint. Forwarded to harnesses that support it.
     /// Conventional values: `"low"`, `"medium"`, `"high"`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub reasoning_effort: Option<String>,
@@ -138,9 +133,7 @@ pub struct AgentConfig {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub disabled_tools: Vec<String>,
 
-    /// Permission mode written to the harness config. Harness-specific
-    /// string. Claude Code: `"default"` / `"acceptEdits"` /
-    /// `"bypassPermissions"` / `"plan"`. OpenCode has its own set.
+    /// Permission mode written to the harness config. Harness-specific string.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub permission_mode: Option<String>,
 

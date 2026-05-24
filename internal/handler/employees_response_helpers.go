@@ -57,8 +57,8 @@ func (h *EmployeeHandler) loadEmployeeTriggers(agentIDs ...uuid.UUID) map[uuid.U
 			at.instructions,
 			at.secret_key
 		FROM employee_triggers at
-		LEFT JOIN in_connections ic ON ic.id = at.connection_id
-		LEFT JOIN in_integrations ii ON ii.id = ic.in_integration_id
+		LEFT JOIN connections ic ON ic.id = at.connection_id
+		LEFT JOIN integrations ii ON ii.id = ic.integration_id
 		WHERE at.employee_id IN ?
 		ORDER BY at.id ASC
 	`, agentIDs).Scan(&rows)
@@ -144,7 +144,7 @@ var errGitHubAppExclusive = errors.New("an agent can connect to only one of gith
 // validateEmployeeIntegrationsExclusivity checks the proposed integrations map
 // against mutually-exclusive provider rules. integrations is keyed by
 // connection UUID (matching the JSONB shape on employees.integrations); we
-// resolve those connections to providers via in_connections → in_integrations
+// resolve those connections to providers via connections → integrations
 // scoped to the org.
 func validateEmployeeIntegrationsExclusivity(db *gorm.DB, orgID uuid.UUID, integrations model.JSON) error {
 	if len(integrations) == 0 {
@@ -167,10 +167,10 @@ func validateEmployeeIntegrationsExclusivity(db *gorm.DB, orgID uuid.UUID, integ
 	}
 	var rows []row
 	err := db.
-		Table("in_connections").
-		Select("DISTINCT in_integrations.provider AS provider").
-		Joins("JOIN in_integrations ON in_integrations.id = in_connections.in_integration_id AND in_integrations.deleted_at IS NULL").
-		Where("in_connections.id IN ? AND in_connections.org_id = ? AND in_connections.revoked_at IS NULL", connectionIDs, orgID).
+		Table("connections").
+		Select("DISTINCT integrations.provider AS provider").
+		Joins("JOIN integrations ON integrations.id = connections.integration_id AND integrations.deleted_at IS NULL").
+		Where("connections.id IN ? AND connections.org_id = ? AND connections.revoked_at IS NULL", connectionIDs, orgID).
 		Scan(&rows).Error
 	if err != nil {
 		return fmt.Errorf("resolving integration providers: %w", err)

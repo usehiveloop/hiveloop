@@ -10,6 +10,7 @@ import (
 
 	"github.com/usehivy/hivy/internal/crypto"
 	"github.com/usehivy/hivy/internal/model"
+	"github.com/usehivy/hivy/internal/testdb"
 )
 
 const pusherTestDBURL = "postgres://hivy:localdev@localhost:15432/hivy_test?sslmode=disable" // #nosec G101 -- local test DB fixture
@@ -107,9 +108,7 @@ func setupPusherTestDB(t *testing.T) *gorm.DB {
 	if err := sqlDB.Ping(); err != nil {
 		t.Skipf("DB ping failed: %v", err)
 	}
-	if err := model.AutoMigrate(db); err != nil {
-		t.Fatalf("migrate: %v", err)
-	}
+	testdb.ApplyMigrations(t, db)
 	t.Cleanup(func() { sqlDB.Close() })
 	return db
 }

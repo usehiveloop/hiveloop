@@ -69,8 +69,8 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 	tokenHandler := handler.NewTokenHandler(database, signingKey, cacheManager, ctr, actionsCatalog, cfg.MCPBaseURL, mcpHandler.ServerCache)
 	providerHandler := handler.NewProviderHandler(reg, database)
 	customDomainHandler := handler.NewCustomDomainHandler(database, cfg)
-	inIntegrationHandler := handler.NewInIntegrationHandler(database, nangoClient, actionsCatalog)
-	inConnectionHandler := handler.NewInConnectionHandler(database, nangoClient, actionsCatalog)
+	integrationHandler := handler.NewIntegrationHandler(database, nangoClient, actionsCatalog)
+	connectionHandler := handler.NewConnectionHandler(database, nangoClient, actionsCatalog)
 	orgHandler := handler.NewOrgHandler(database)
 	plansHandler := handler.NewPlansHandler(database)
 	var emailSender email.Sender = &email.LogSender{}
@@ -197,7 +197,7 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 
 	rsaPub := rsaKey.Public().(*rsa.PublicKey)
 
-	setupPublicRoutes(r, cfg, database, redisClient, providerHandler, inIntegrationHandler, actionsCatalog, orgInviteHandler, plansHandler, bridgeWebhookHandler, employeeOutboundWebhookHandler, nangoWebhookHandler, incomingWebhookHandler, nangoClient, sandboxEncKey, uploadsHandler, sqliteBackupHandler, specialistTaskHandler)
+	setupPublicRoutes(r, cfg, database, redisClient, providerHandler, integrationHandler, actionsCatalog, orgInviteHandler, plansHandler, bridgeWebhookHandler, employeeOutboundWebhookHandler, nangoWebhookHandler, incomingWebhookHandler, nangoClient, sandboxEncKey, uploadsHandler, sqliteBackupHandler, specialistTaskHandler)
 
 	r.Post("/incoming/triggers/{triggerID}", httpTriggerHandler.Handle)
 	setupAuthRoutes(r, ctx, cfg, rsaPub, authHandler, oauthHandler)
@@ -212,7 +212,7 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 	if cfg.PlatformAdminEmails != "" {
 		platformAdminEmails = strings.Split(cfg.PlatformAdminEmails, ",")
 	}
-	setupConnectRoutes(r, cfg, rsaPub, database, platformAdminEmails, inIntegrationHandler, inConnectionHandler)
+	setupConnectRoutes(r, cfg, rsaPub, database, platformAdminEmails, integrationHandler, connectionHandler)
 	setupProxyAndAuxRoutes(r, cfg, deps, signingKey, database, proxyHandler, driveHandler, sandboxEncKey, auditWriter, generationWriter, ctr)
 
 	srv := &http.Server{

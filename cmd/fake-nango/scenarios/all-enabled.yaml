@@ -3,7 +3,7 @@ name: all-enabled
 #   curl -X POST http://localhost:13004/_admin/load -d '{"name":"all-enabled"}'
 #
 # Each integration's unique_key matches `in_<provider>-test`, which is what
-# `inNangoKey()` in internal/handler/in_integrations.go produces from the
+# `inNangoKey()` in internal/handler/integrations.go produces from the
 # unique_key seeded in the DB. fake-nango does not strictly require these
 # integrations to exist for /oauth/connect to work, but having them present
 # makes /integrations/{key} GETs resolve, /connection responses look right

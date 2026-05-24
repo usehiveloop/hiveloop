@@ -28,6 +28,7 @@ import (
 	"github.com/usehivy/hivy/internal/nango"
 	"github.com/usehivy/hivy/internal/proxy"
 	"github.com/usehivy/hivy/internal/registry"
+	"github.com/usehivy/hivy/internal/testdb"
 )
 
 const (
@@ -84,9 +85,7 @@ func newHarness(t *testing.T) *testHarness {
 	if err := sqlDB.Ping(); err != nil {
 		t.Fatalf("Postgres not reachable: %v", err)
 	}
-	if err := model.AutoMigrate(db); err != nil {
-		t.Fatalf("migration failed: %v", err)
-	}
+	testdb.ApplyMigrations(t, db)
 	t.Cleanup(func() { sqlDB.Close() })
 
 	rc := redis.NewClient(&redis.Options{Addr: envOr("HIVY_REDIS_ADDR", testRedisAddr)})

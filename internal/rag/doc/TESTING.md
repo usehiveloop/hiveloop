@@ -5,7 +5,7 @@ subsystem.
 
 Hivy already runs tests against real services (see
 `internal/middleware/integration_test.go`: real Postgres at
-`localhost:15432`, real `model.AutoMigrate`). This is the only pattern we
+`localhost:15432`, real `goose migrations`). This is the only pattern we
 use.
 
 ## Hard rules
@@ -51,12 +51,12 @@ Phase 0 delivers two files that every subsequent tranche uses:
 
 - `internal/rag/testhelpers/db.go` — `ConnectTestDB(t *testing.T) *gorm.DB`
   that opens the existing Hivy test Postgres, runs
-  `model.AutoMigrate` + `rag.AutoMigrate`, registers `t.Cleanup` to
+  `goose migrations` + `RAG goose migrations`, registers `t.Cleanup` to
   close. Parallels `internal/middleware/integration_test.go:31-60`.
 - `internal/rag/testhelpers/fixtures.go` — typed fixture constructors:
   `NewTestOrg(t, db)`, `NewTestUser(t, db, orgID)`,
-  `NewTestInIntegration(t, db)`,
-  `NewTestInConnection(t, db, orgID, userID, integID)`. Each registers
+  `NewTestIntegration(t, db)`,
+  `NewTestConnection(t, db, orgID, userID, integID)`. Each registers
   cleanup. Mirrors Onyx's
   `backend/tests/integration/common_utils/managers/` pattern.
 
@@ -70,7 +70,7 @@ Phase 0 delivers two files that every subsequent tranche uses:
 | `IndexingStatus.IsTerminal()` branch coverage | Scheduler decides whether to spawn a retry based on this; wrong answer = stuck queues |
 | Stale-sweep pattern on `RAGUserExternalUserGroup` | Security-critical: stale rows grant outdated permissions if sweep is wrong |
 | `ACL prefix` functions produce exact Onyx-compatible strings | Filter strings must byte-match what's stored at index time; off-by-one = 0 results |
-| `AutoMigrate` idempotence | CI deploys run it on every boot; non-idempotent = deploy failure |
+| `goose migrations` idempotence | CI deploys run it on every boot; non-idempotent = deploy failure |
 | Seed `RAGEmbeddingModel` idempotence | Same reason |
 | Schema matches Onyx columns we ported (via migration inspection, not field assertions) | Proves we actually ported the field with the right Postgres type |
 

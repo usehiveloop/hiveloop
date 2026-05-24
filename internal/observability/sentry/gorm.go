@@ -72,7 +72,7 @@ func beforeCallback(label string) func(*gorm.DB) {
 		if ctx == nil {
 			return
 		}
-		// Skip stand-alone spans so AutoMigrate doesn't flood Sentry on boot.
+		// Skip stand-alone spans so goose migrations doesn't flood Sentry on boot.
 		if sentrygo.TransactionFromContext(ctx) == nil {
 			return
 		}

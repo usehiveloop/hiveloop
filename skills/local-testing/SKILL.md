@@ -59,8 +59,8 @@ KEY="hvl_sk_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 curl -H "Authorization: Bearer $KEY" http://localhost:18080/v1/agents
 ```
 
-Works for: `/v1/agents`, `/v1/credentials`, `/v1/in/integrations` (admin POST/PATCH/DELETE), `/v1/skills`, etc.
-Does NOT work for: anything that needs `user_id` from session (the `/v1/in/connections` family, `/v1/me`, etc.) — those return `{"error":"invalid token"}` with bearer auth.
+Works for: `/v1/agents`, `/v1/credentials`, `/v1/integrations` (admin POST/PATCH/DELETE), `/v1/skills`, etc.
+Does NOT work for: anything that needs `user_id` from session (the `/v1/connections` family, `/v1/me`, etc.) — those return `{"error":"invalid token"}` with bearer auth.
 
 ### Session cookie — for user-scoped endpoints
 
@@ -97,13 +97,13 @@ PG_PORT=$(cat /tmp/agent-test/pg.port 2>/dev/null || echo 5432)
 PSQL="PGPASSWORD=localdev psql -h localhost -p $PG_PORT -U hivy -d hivy"
 
 # Inspect a connection by integration
-$PSQL -c "SELECT id, nango_connection_id, revoked_at FROM in_connections
-          WHERE in_integration_id IN (SELECT id FROM in_integrations WHERE provider='github')
+$PSQL -c "SELECT id, nango_connection_id, revoked_at FROM connections
+          WHERE integration_id IN (SELECT id FROM integrations WHERE provider='github')
           ORDER BY created_at DESC LIMIT 5;"
 
 # Revoke all connections for a provider (force the connect dialog button to re-enable)
-$PSQL -c "UPDATE in_connections SET revoked_at = NOW()
-          WHERE in_integration_id IN (SELECT id FROM in_integrations WHERE provider='github')
+$PSQL -c "UPDATE connections SET revoked_at = NOW()
+          WHERE integration_id IN (SELECT id FROM integrations WHERE provider='github')
           AND revoked_at IS NULL;"
 
 # Confirm an event was dispatched (asynq queues). Redis is native — no docker exec.
@@ -208,8 +208,8 @@ The chrome window is a real window — it's the easiest live view. For DevTools-
 # 1. Ensure no existing connection blocks the button
 PG_PORT=$(cat /tmp/agent-test/pg.port 2>/dev/null || echo 5432)
 PGPASSWORD=localdev psql -h localhost -p $PG_PORT -U hivy -d hivy -c \
-  "UPDATE in_connections SET revoked_at = NOW() WHERE in_integration_id IN
-   (SELECT id FROM in_integrations WHERE provider='github') AND revoked_at IS NULL;"
+  "UPDATE connections SET revoked_at = NOW() WHERE integration_id IN
+   (SELECT id FROM integrations WHERE provider='github') AND revoked_at IS NULL;"
 
 # 2. fake-nango will approve next callback by default
 curl -sX POST http://localhost:13004/_admin/reset
@@ -224,8 +224,8 @@ sleep 3   # popup → callback → ws notify → frontend POST → connection pe
 
 # 4. Assert
 PGPASSWORD=localdev psql -h localhost -p 5433 -U hivy -d hivy -tAc \
-  "SELECT count(*) FROM in_connections c
-   JOIN in_integrations i ON i.id = c.in_integration_id
+  "SELECT count(*) FROM connections c
+   JOIN integrations i ON i.id = c.integration_id
    WHERE i.provider='github' AND c.revoked_at IS NULL;"
 # Expect: 1
 ```
@@ -248,8 +248,8 @@ agent-browser eval "Array.from(document.querySelectorAll('li[role=\"listitem\"]'
 # Need a connection in place first (run the approve flow above), then:
 PG_PORT=$(cat /tmp/agent-test/pg.port 2>/dev/null || echo 5432)
 CONN_ID=$(PGPASSWORD=localdev psql -h localhost -p $PG_PORT -U hivy -d hivy -tAc \
-  "SELECT nango_connection_id FROM in_connections c
-   JOIN in_integrations i ON i.id = c.in_integration_id
+  "SELECT nango_connection_id FROM connections c
+   JOIN integrations i ON i.id = c.integration_id
    WHERE i.provider='github' AND c.revoked_at IS NULL LIMIT 1;")
 
 curl -sX POST http://localhost:13004/_admin/github-webhook -H 'Content-Type: application/json' -d "{
@@ -270,11 +270,11 @@ If the webhook lands but isn't dispatched, check `nango_webhooks_identify.go:106
 | Symptom | First check |
 |---|---|
 | `nango webhook: invalid signature` in backend log | `NANGO_SECRET_KEY` (backend) and `-secret` (fake-nango) must match |
-| `in-connection not found` on auth webhook | Frontend hasn't POSTed the connection row yet — race between fake-nango's auth webhook and the frontend's `/v1/in/integrations/{id}/connections`. Harmless for `type=auth`; only matters if a test depends on the auth event triggering something |
+| `connection not found` on auth webhook | Frontend hasn't POSTed the connection row yet — race between fake-nango's auth webhook and the frontend's `/v1/integrations/{id}/connections`. Harmless for `type=auth`; only matters if a test depends on the auth event triggering something |
 | Frontend popup hangs forever | WebSocket couldn't connect — check `NEXT_PUBLIC_CONNECTIONS_HOST` is `http://localhost:13004` (SDK rewrites to `ws://`) and that fake-nango is reachable |
-| `"platform admin access required"` from `POST /v1/in/integrations` | `PLATFORM_ADMIN_EMAILS` env not set on backend (admin check is dynamic per-request, no need to re-login after setting it) |
+| `"platform admin access required"` from `POST /v1/integrations` | `PLATFORM_ADMIN_EMAILS` env not set on backend (admin check is dynamic per-request, no need to re-login after setting it) |
 | `Element not found` from agent-browser | Stale ref. Re-run `snapshot -i` and use the new ref, or switch to `find role button click --name "..."` |
-| Connection toast says "successfully" but `/v1/in/connections` is empty | The frontend uses session cookie; bearer key won't see user-scoped data. Switch to driving via the UI (cookie auth) |
+| Connection toast says "successfully" but `/v1/connections` is empty | The frontend uses session cookie; bearer key won't see user-scoped data. Switch to driving via the UI (cookie auth) |
 | `pnpm dev` won't start: `Unable to acquire lock` | A previous `next dev` is still holding the lock. `make local-down` clears it (port-holder kill + `local-up.sh:free_next_lock` removes `apps/web/.next/dev/lock`); only fall back to `lsof` if you're not using the Makefile flow |
 | `make local-up` says "✗ frontend (timeout after 90s)" on first run | pnpm install over rosetta is slow. Look at `/tmp/agent-test/pnpm-install.log` — once it shows "Done in …" the supervisor will keep retrying and the next `make local-status` will show frontend up |
 | `make local-up` exits before seed runs | `seed-test` only chains after `local-up.sh` exits cleanly. Check `/tmp/agent-test/*.log` for whichever supervisor reported `✗`. After fixing, `make seed-test` is safe to run by itself |

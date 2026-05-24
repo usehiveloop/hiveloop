@@ -2,8 +2,7 @@
 //!
 //! The in-house conversation loop, LLM dispatch, tools, and tool-call
 //! enforcement have all been removed. The harness migration replaces them
-//! with an external coding-agent process (Claude Code via ACP, eventually
-//! OpenCode).
+//! with an external OpenCode process via ACP.
 //!
 //! What remains here is the supervisor surface that the HTTP API and the
 //! `bridge` binary still link against. Methods that used to drive the model

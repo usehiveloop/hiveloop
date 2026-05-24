@@ -2,7 +2,7 @@
 
 # Multi-stage build:
 #   stage 1: compile bridge inside a rust:bookworm image
-#   stage 2: runtime image with Node + claude-agent-acp + the bridge binary
+#   stage 2: runtime image with Node + OpenCode + the bridge binary
 
 # ─── stage 1: build ─────────────────────────────────────────────
 FROM rust:1.90-bookworm AS builder
@@ -31,17 +31,14 @@ RUN apt-get update \
         ca-certificates curl gh git python3 tini \
     && rm -rf /var/lib/apt/lists/*
 
-# Install both ACP agents globally. Each ships its own native binary as
-# a platform-specific optional npm dep; bridge dispatches to one based
-# on the agent definition's `harness` field.
+# Install the ACP agent globally. It ships its own native binary as a
+# platform-specific optional npm dependency.
 RUN npm install -g \
-        @agentclientprotocol/claude-agent-acp@0.31.4 \
         opencode-ai@1.14.32 \
     && npm cache clean --force
 
 # Sandbox-style isolation: every $HOME write stays under /work.
 ENV HOME=/work \
-    CLAUDE_CONFIG_DIR=/work/.claude \
     OPENCODE_CONFIG_DIR=/work/.opencode \
     TMPDIR=/work/tmp \
     NO_BROWSER=1 \
@@ -49,9 +46,9 @@ ENV HOME=/work \
     BRIDGE_STORAGE_PATH=/work/bridge.db \
     BRIDGE_LISTEN_ADDR=0.0.0.0:8080 \
     BRIDGE_CONTROL_PLANE_API_KEY=test-control-plane-key \
-    BRIDGE_LOG_LEVEL=info,claude_acp=info,opencode_acp=info,harness=debug,runtime=debug
+    BRIDGE_LOG_LEVEL=info,opencode_acp=info,harness=debug,runtime=debug
 
-RUN mkdir -p /work/.claude /work/.opencode /work/tmp /workspace
+RUN mkdir -p /work/.opencode /work/tmp /workspace
 
 WORKDIR /work
 

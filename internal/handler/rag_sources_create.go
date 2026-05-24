@@ -26,7 +26,7 @@ const defaultRefreshFreqSeconds = 600
 type createRAGSourceRequest struct {
 	Kind                string     `json:"kind"`
 	Name                string     `json:"name"`
-	InConnectionID      *string    `json:"in_connection_id,omitempty"`
+	ConnectionID        *string    `json:"connection_id,omitempty"`
 	AccessType          string     `json:"access_type"`
 	Config              model.JSON `json:"config,omitempty"`
 	RefreshFreqSeconds  *int       `json:"refresh_freq_seconds,omitempty"`
@@ -35,7 +35,7 @@ type createRAGSourceRequest struct {
 }
 
 // @Summary Create a RAG source
-// @Description Creates a new RAG source that the scheduler will pick up on the next tick. Kind=integration requires a valid in_connection_id pointing at an integration whose supports_rag_source flag is true. Refresh / prune / perm-sync frequencies are validated against per-org minimums.
+// @Description Creates a new RAG source that the scheduler will pick up on the next tick. Kind=integration requires a valid connection_id pointing at an integration whose supports_rag_source flag is true. Refresh / prune / perm-sync frequencies are validated against per-org minimums.
 // @Tags rag
 // @Accept json
 // @Produce json
@@ -110,7 +110,7 @@ func (h *RAGSourceHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if status, msg := h.attachInConnection(src, kind, req.InConnectionID, org.ID); status != 0 {
+	if status, msg := h.attachConnection(src, kind, req.ConnectionID, org.ID); status != 0 {
 		writeJSON(w, status, errorResponse{Error: msg})
 		return
 	}
@@ -177,7 +177,7 @@ func (h *RAGSourceHandler) precheckWebsiteCredits(ctx context.Context, src *ragm
 	return 0, ""
 }
 
-func (h *RAGSourceHandler) attachInConnection(
+func (h *RAGSourceHandler) attachConnection(
 	src *ragmodel.RAGSource,
 	kind ragmodel.RAGSourceKind,
 	rawID *string,
@@ -185,20 +185,20 @@ func (h *RAGSourceHandler) attachInConnection(
 ) (int, string) {
 	if kind != ragmodel.RAGSourceKindIntegration {
 		if rawID != nil {
-			return http.StatusBadRequest, "in_connection_id is only valid when kind=INTEGRATION"
+			return http.StatusBadRequest, "connection_id is only valid when kind=INTEGRATION"
 		}
 		return 0, ""
 	}
 	if rawID == nil || *rawID == "" {
-		return http.StatusBadRequest, "in_connection_id is required when kind=INTEGRATION"
+		return http.StatusBadRequest, "connection_id is required when kind=INTEGRATION"
 	}
 	connID, err := uuid.Parse(*rawID)
 	if err != nil {
-		return http.StatusBadRequest, "invalid in_connection_id"
+		return http.StatusBadRequest, "invalid connection_id"
 	}
 
-	var conn model.InConnection
-	if err := h.db.Preload("InIntegration").
+	var conn model.Connection
+	if err := h.db.Preload("Integration").
 		Where("id = ? AND org_id = ? AND revoked_at IS NULL", connID, orgID).
 		First(&conn).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -206,13 +206,13 @@ func (h *RAGSourceHandler) attachInConnection(
 		}
 		return http.StatusInternalServerError, "failed to load in_connection"
 	}
-	if conn.InIntegration.DeletedAt != nil {
+	if conn.Integration.DeletedAt != nil {
 		return http.StatusNotFound, "in_connection not found"
 	}
-	if !conn.InIntegration.SupportsRAGSource {
+	if !conn.Integration.SupportsRAGSource {
 		return http.StatusUnprocessableEntity, "this integration does not support being used as a RAG source"
 	}
 
-	src.InConnectionID = &conn.ID
+	src.ConnectionID = &conn.ID
 	return 0, ""
 }

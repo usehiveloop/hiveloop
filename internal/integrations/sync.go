@@ -98,7 +98,7 @@ func (s *Seeder) fetchConfig(ctx context.Context, m Manifest) (model.JSON, error
 }
 
 func (s *Seeder) upsertDB(ctx context.Context, m Manifest, cfg model.JSON, hash string) (string, error) {
-	var existing model.InIntegration
+	var existing model.Integration
 	err := s.db.WithContext(ctx).
 		Where("managed_by = ? AND managed_id = ?", managedBy, m.ID).
 		First(&existing).Error
@@ -123,7 +123,7 @@ func (s *Seeder) upsertDB(ctx context.Context, m Manifest, cfg model.JSON, hash 
 		}
 	}
 	if created {
-		integ := model.InIntegration{
+		integ := model.Integration{
 			UniqueKey:         m.UniqueKey,
 			Provider:          m.Provider,
 			DisplayName:       m.DisplayName,
@@ -162,7 +162,7 @@ func (s *Seeder) upsertDB(ctx context.Context, m Manifest, cfg model.JSON, hash 
 	return "updated", nil
 }
 
-func integrationMatches(existing model.InIntegration, m Manifest, cfg model.JSON) bool {
+func integrationMatches(existing model.Integration, m Manifest, cfg model.JSON) bool {
 	return existing.UniqueKey == m.UniqueKey &&
 		existing.Provider == m.Provider &&
 		existing.DisplayName == m.DisplayName &&

@@ -26,19 +26,19 @@ func BugsinkDashboardBaseURL(ctx context.Context, db *gorm.DB, orgID uuid.UUID, 
 		return ""
 	}
 
-	var conn model.InConnection
+	var conn model.Connection
 	if err := db.WithContext(ctx).
-		Preload("InIntegration").
-		Joins("JOIN in_integrations ON in_integrations.id = in_connections.in_integration_id AND in_integrations.deleted_at IS NULL").
-		Where("in_connections.id IN ? AND in_connections.org_id = ? AND in_connections.revoked_at IS NULL AND in_integrations.provider = ?", connectionIDs, orgID, bugsinkProvider).
-		Order("in_connections.created_at ASC").
+		Preload("Integration").
+		Joins("JOIN integrations ON integrations.id = connections.integration_id AND integrations.deleted_at IS NULL").
+		Where("connections.id IN ? AND connections.org_id = ? AND connections.revoked_at IS NULL AND integrations.provider = ?", connectionIDs, orgID, bugsinkProvider).
+		Order("connections.created_at ASC").
 		First(&conn).Error; err != nil {
 		return ""
 	}
 	return BugsinkDashboardBaseURLFromConnection(conn)
 }
 
-func BugsinkDashboardBaseURLFromConnection(conn model.InConnection) string {
+func BugsinkDashboardBaseURLFromConnection(conn model.Connection) string {
 	connectionConfig, ok := conn.Meta["connection_config"].(map[string]any)
 	if !ok {
 		if typed, ok := conn.Meta["connection_config"].(model.JSON); ok {

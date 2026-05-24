@@ -9,6 +9,7 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
+	"github.com/usehivy/hivy/internal/testdb"
 	"github.com/usehivy/hivy/internal/billing"
 	"github.com/usehivy/hivy/internal/model"
 )
@@ -30,9 +31,7 @@ func connectCreditsTestDB(t *testing.T) *gorm.DB {
 	if err := sqlDB.Ping(); err != nil {
 		t.Fatalf("Postgres not reachable: %v", err)
 	}
-	if err := model.AutoMigrate(db); err != nil {
-		t.Fatalf("AutoMigrate: %v", err)
-	}
+	testdb.ApplyMigrations(t, db)
 	t.Cleanup(func() { _ = sqlDB.Close() })
 	return db
 }

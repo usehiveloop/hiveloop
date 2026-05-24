@@ -61,7 +61,7 @@ tranche 1C.
 
 ## 3. Three-loop sync architecture: ingest, perm-sync, prune
 
-**Decision.** Every `InConnection` independently schedules three loops:
+**Decision.** Every `Connection` independently schedules three loops:
 
 | Loop | Cadence (default) | Onyx source |
 |---|---|---|

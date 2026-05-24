@@ -25,7 +25,7 @@ P0
 5. GitHub profiles can be bound to another user's org connection.
    - Problem: GitHub profile connection lookup is scoped to org, not current user, while org connection IDs are exposed in responses.
    - Fix: require conn.UserID == current user for profile binding, or add explicit admin/consent flow for assigning another user's connection.
-   - Key files: internal/handler/agent_profiles_github.go, internal/handler/in_connections.go
+   - Key files: internal/handler/agent_profiles_github.go, internal/handler/connections.go
 
 P1
 
@@ -35,14 +35,14 @@ P1
    - Key files: internal/handler/agent_profiles_github.go, internal/handler/agents_create.go, internal/handler/agents_update.go, internal/sandbox/orchestrator_helpers.go, internal/handler/git_credentials.go
 
 7. Reconnect sessions are not scoped to current org.
-   - Problem: reconnect endpoint loads InConnection by id + revoked_at only.
+   - Problem: reconnect endpoint loads Connection by id + revoked_at only.
    - Fix: load by id + org_id + revoked_at, and optionally ensure the caller owns the connection or is org admin.
-   - Key files: internal/handler/in_connections_session.go, cmd/server/serve_routes_v1.go
+   - Key files: internal/handler/connections_session.go, cmd/server/serve_routes_v1.go
 
 8. Nango webhook routing can be hijacked by duplicate nango_connection_id.
    - Problem: connection creation accepts client-supplied nango_connection_id, the model has no uniqueness constraint, and webhook lookup orders newest first by nango_connection_id.
    - Fix: add a uniqueness constraint over nango_connection_id/provider or nango_connection_id/integration. Verify Nango connection ownership before creating local records.
-   - Key files: internal/handler/in_connections_create.go, internal/model/in_connection.go, internal/handler/nango_webhooks_identify.go
+   - Key files: internal/handler/connections_create.go, internal/model/in_connection.go, internal/handler/nango_webhooks_identify.go
 
 9. Public /spider routes can spend platform capacity.
    - Problem: /spider routes are registered without auth when SpiderClient is configured; usage attribution is skipped without token claims.
@@ -109,7 +109,7 @@ P2
 21. Revoked Railway connections can continue from cache.
     - Problem: Railway token cache returns cached token before checking DB revocation state.
     - Fix: include revocation/version in cache key or check DB revocation before using cached token. Purge cache on revoke.
-    - Key files: internal/handler/railway_proxy.go, internal/handler/in_connections_revoke.go
+    - Key files: internal/handler/railway_proxy.go, internal/handler/connections_revoke.go
 
 22. Revoked agent profiles can still feed employee runtime state.
     - Problem: some profile/runtime queries filter status/deleted_at but not revoked_at.
@@ -155,7 +155,7 @@ P0
 --
 
 30. Add a real RAG schema migration path.
-    - Problem: current model.AutoMigrate does not include RAG tables, while RAG sources, attempts, and attempt errors are active code paths.
+    - Problem: current goose migrations does not include RAG tables, while RAG sources, attempts, and attempt errors are active code paths.
     - Fix: add an explicit RAG migration/boot path for active RAG tables and wire it in server and worker startup.
     - Key files: internal/model/org.go, internal/rag/model/rag_source.go, internal/rag/model/index_attempt.go, internal/rag/model/index_attempt_error.go, cmd/server/serve.go, cmd/server/worker.go
 

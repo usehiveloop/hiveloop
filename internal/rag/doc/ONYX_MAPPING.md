@@ -20,7 +20,7 @@ When reading Onyx source, assume the root is
 | `IndexAttempt` | `backend/onyx/db/models.py:2189-2343` | `internal/rag/model/index_attempt.go` `RAGIndexAttempt` | `SearchSettings` FK → `EmbeddingModel` FK |
 | `IndexAttemptError` | `backend/onyx/db/models.py:2399-2438` | `internal/rag/model/index_attempt_error.go` `RAGIndexAttemptError` | verbatim |
 | `SyncRecord` | `backend/onyx/db/models.py:2440-2478` | `internal/rag/model/sync_record.go` `RAGSyncRecord` | subset: drops `DOCUMENT_SET`, `USER_GROUP` sync types |
-| `ConnectorCredentialPair` | `backend/onyx/db/models.py:723-837` | split across three tables | `InConnection` (identity), `RAGSyncState` (runtime), `RAGConnectionConfig` (schedule) |
+| `ConnectorCredentialPair` | `backend/onyx/db/models.py:723-837` | split across three tables | `Connection` (identity), `RAGSyncState` (runtime), `RAGConnectionConfig` (schedule) |
 | `Connector.refresh_freq / prune_freq` | `backend/onyx/db/models.py:1886-1890` | `RAGConnectionConfig.RefreshFreqSeconds / PruneFreqSeconds` | + Hivy additions `PermSyncFreqSeconds`, `ExternalGroupSyncFreqSeconds` |
 | `SearchSettings` | `backend/onyx/db/models.py:2052-2187` | `internal/rag/model/search_settings.go` `RAGSearchSettings` | DEVIATION: per-org, drops live-switchover machinery |
 | `User__ExternalUserGroupId` | `backend/onyx/db/models.py:4320-4350` | `internal/rag/model/user_external_user_group.go` `RAGUserExternalUserGroup` | verbatim |

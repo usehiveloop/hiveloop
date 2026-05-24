@@ -198,8 +198,8 @@ func ListAttemptErrors(
 	return rows, total, nil
 }
 
-func ListSupportedIntegrations(db *gorm.DB) ([]model.InIntegration, error) {
-	var rows []model.InIntegration
+func ListSupportedIntegrations(db *gorm.DB) ([]model.Integration, error) {
+	var rows []model.Integration
 	if err := db.Where("supports_rag_source = ? AND deleted_at IS NULL", true).
 		Order("display_name ASC").
 		Find(&rows).Error; err != nil {

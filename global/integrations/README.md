@@ -1,7 +1,7 @@
 # Global Integrations
 
 Each `*.json` file in this directory defines one platform-managed integration.
-Startup syncs enabled manifests into Nango and `in_integrations`.
+Startup syncs enabled manifests into Nango and `integrations`.
 
 Secrets must be referenced through environment variable names only. Do not
 commit OAuth client secrets, app private keys, API keys, or webhook secrets.

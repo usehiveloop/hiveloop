@@ -12,7 +12,7 @@ import type { components } from "@/lib/api/schema"
 
 export type OnboardingStep = "slack" | "connections" | "business"
 export type Integration =
-  components["schemas"]["inIntegrationAvailableResponse"]
+  components["schemas"]["integrationAvailableResponse"]
 export type Channel = components["schemas"]["slackChannelResponse"]
 export type ConnectionConfigField =
   components["schemas"]["ConnectionConfigField"]
@@ -61,9 +61,9 @@ export function useOnboarding() {
   const currentOrgQuery = $api.useQuery("get", "/v1/orgs/current")
   const integrationsQuery = $api.useQuery(
     "get",
-    "/v1/in/integrations/available"
+    "/v1/integrations/available"
   )
-  const connectionsQuery = $api.useQuery("get", "/v1/in/connections")
+  const connectionsQuery = $api.useQuery("get", "/v1/connections")
   const joinChannelsMutation = $api.useMutation(
     "post",
     "/v1/slack/channels/join"
@@ -157,7 +157,7 @@ export function useOnboarding() {
     () =>
       new Set(
         connections
-          .map((connection) => connection.in_integration_id)
+          .map((connection) => connection.integration_id)
           .filter(Boolean)
       ),
     [connections]
@@ -181,7 +181,7 @@ export function useOnboarding() {
       queryClient.invalidateQueries({ queryKey: ["get", "/auth/me"] }),
       queryClient.invalidateQueries({ queryKey: ["get", "/v1/orgs/current"] }),
       queryClient.invalidateQueries({
-        queryKey: ["get", "/v1/in/connections"],
+        queryKey: ["get", "/v1/connections"],
       }),
       queryClient.invalidateQueries({ queryKey: ["get", "/v1/dashboard"] }),
       queryClient.invalidateQueries({

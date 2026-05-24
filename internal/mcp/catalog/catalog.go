@@ -172,7 +172,7 @@ type SubscribableResource struct {
 
 // ProviderSubscribableResources is the top-level shape of a *.resources.json
 // file. Provider identifies which integration this catalog file describes -
-// it must match the provider value stored on in_integrations.
+// it must match the provider value stored on integrations.
 type ProviderSubscribableResources struct {
 	Provider    string                          `json:"provider"`
 	DisplayName string                          `json:"display_name"`

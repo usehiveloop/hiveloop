@@ -16,7 +16,7 @@ import (
 
 // randSuffix returns a short hex identifier so concurrent tests do not
 // collide on the Hivy `unique` constraints (e.g. Org.Name,
-// User.Email, InIntegration.UniqueKey).
+// User.Email, Integration.UniqueKey).
 func randSuffix(t *testing.T) string {
 	t.Helper()
 	b := make([]byte, 6)
@@ -47,7 +47,7 @@ func NewTestOrg(t *testing.T, db *gorm.DB) *model.Org {
 		// a mix of ON DELETE CASCADE (modern models) and no FK action
 		// (older ones), so we belt-and-suspenders the common
 		// RAG-adjacent tables.
-		db.Where("org_id = ?", org.ID).Delete(&model.InConnection{})
+		db.Where("org_id = ?", org.ID).Delete(&model.Connection{})
 		db.Where("org_id = ?", org.ID).Delete(&model.OrgMembership{})
 		db.Where("org_id = ?", org.ID).Delete(&model.Credential{})
 		db.Where("org_id = ?", org.ID).Delete(&model.Token{})
@@ -92,60 +92,60 @@ func NewTestUser(t *testing.T, db *gorm.DB, orgID uuid.UUID) *model.User {
 	return user
 }
 
-// NewTestInIntegration inserts a real InIntegration row. Provider is a
+// NewTestIntegration inserts a real Integration row. Provider is a
 // free-form source key (e.g. "github", "notion"); UniqueKey is
 // auto-generated with a random suffix so repeated calls in a single test
 // binary don't collide.
-func NewTestInIntegration(t *testing.T, db *gorm.DB, provider string) *model.InIntegration {
+func NewTestIntegration(t *testing.T, db *gorm.DB, provider string) *model.Integration {
 	t.Helper()
 
 	if provider == "" {
 		provider = "test-provider"
 	}
 	suffix := randSuffix(t)
-	integ := &model.InIntegration{
+	integ := &model.Integration{
 		UniqueKey:   fmt.Sprintf("%s-%s", provider, suffix),
 		Provider:    fmt.Sprintf("%s-%s", provider, suffix),
 		DisplayName: fmt.Sprintf("Test %s Integration (%s)", provider, suffix),
 	}
 	if err := db.Create(integ).Error; err != nil {
-		t.Fatalf("NewTestInIntegration: %v", err)
+		t.Fatalf("NewTestIntegration: %v", err)
 	}
 
 	t.Cleanup(func() {
-		// InConnection rows referencing this integration are expected to
+		// Connection rows referencing this integration are expected to
 		// be cleaned up by their owning org's cleanup (and by CASCADE).
 		// We then drop the integration itself.
-		db.Where("id = ?", integ.ID).Delete(&model.InIntegration{})
+		db.Where("id = ?", integ.ID).Delete(&model.Integration{})
 	})
 
 	return integ
 }
 
-// NewTestInConnection inserts a real InConnection tying a user to an
+// NewTestConnection inserts a real Connection tying a user to an
 // integration inside an org, with a fake Nango connection ID.
-func NewTestInConnection(t *testing.T, db *gorm.DB, orgID, userID, integrationID uuid.UUID) *model.InConnection {
+func NewTestConnection(t *testing.T, db *gorm.DB, orgID, userID, integrationID uuid.UUID) *model.Connection {
 	t.Helper()
 
-	conn := &model.InConnection{
+	conn := &model.Connection{
 		OrgID:             orgID,
 		UserID:            userID,
-		InIntegrationID:   integrationID,
+		IntegrationID:     integrationID,
 		NangoConnectionID: fmt.Sprintf("nango-fake-%s", randSuffix(t)),
 	}
 	if err := db.Create(conn).Error; err != nil {
-		t.Fatalf("NewTestInConnection: %v", err)
+		t.Fatalf("NewTestConnection: %v", err)
 	}
 
 	t.Cleanup(func() {
-		db.Where("id = ?", conn.ID).Delete(&model.InConnection{})
+		db.Where("id = ?", conn.ID).Delete(&model.Connection{})
 	})
 
 	return conn
 }
 
 // NewTestRAGSource inserts a real RAGSource of kind INTEGRATION tying
-// an InConnection to the RAG source model. Tests that need to
+// an Connection to the RAG source model. Tests that need to
 // satisfy the rag_source_id FK on any child RAG table should call
 // this helper to set one up.
 //
@@ -155,19 +155,19 @@ func NewTestInConnection(t *testing.T, db *gorm.DB, orgID, userID, integrationID
 func NewTestRAGSource(
 	t *testing.T,
 	db *gorm.DB,
-	orgID, inConnectionID uuid.UUID,
+	orgID, connectionID uuid.UUID,
 ) *ragmodel.RAGSource {
 	t.Helper()
 
-	connID := inConnectionID
+	connID := connectionID
 	src := &ragmodel.RAGSource{
-		OrgIDValue:     orgID,
-		KindValue:      ragmodel.RAGSourceKindIntegration,
-		Name:           fmt.Sprintf("test-rag-source-%s", randSuffix(t)),
-		Status:         ragmodel.RAGSourceStatusActive,
-		Enabled:        true,
-		InConnectionID: &connID,
-		AccessType:     ragmodel.AccessTypePrivate,
+		OrgIDValue:   orgID,
+		KindValue:    ragmodel.RAGSourceKindIntegration,
+		Name:         fmt.Sprintf("test-rag-source-%s", randSuffix(t)),
+		Status:       ragmodel.RAGSourceStatusActive,
+		Enabled:      true,
+		ConnectionID: &connID,
+		AccessType:   ragmodel.AccessTypePrivate,
 	}
 	if err := db.Create(src).Error; err != nil {
 		t.Fatalf("NewTestRAGSource: %v", err)

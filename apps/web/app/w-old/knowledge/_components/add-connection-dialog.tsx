@@ -98,7 +98,7 @@ export function AddConnectionDialog({
   }, [open])
 
   const { data: connectionsData, isLoading: connectionsLoading } =
-    $api.useQuery("get", "/v1/in/connections")
+    $api.useQuery("get", "/v1/connections")
   const { data: supportedData, isLoading: supportedLoading } = $api.useQuery(
     "get",
     "/v1/rag/integrations"
@@ -186,7 +186,7 @@ export function AddConnectionDialog({
           body: {
             kind: "INTEGRATION",
             name: conn.display_name ?? provider ?? "Connection",
-            in_connection_id: id,
+            connection_id: id,
             access_type: "private",
             config: buildSourceConfig(provider, items),
           },
@@ -292,7 +292,7 @@ export function AddConnectionDialog({
               ) : (
                 filtered.map((connection) => {
                   const id = connection.id ?? ""
-                  const integrationId = connection.in_integration_id ?? ""
+                  const integrationId = connection.integration_id ?? ""
                   const isSupported = supportedIntegrationIds.has(integrationId)
                   const isSelected = selected.has(id)
                   const isDisabled = !isSupported
@@ -418,7 +418,7 @@ function ResourceStep({
 }: ResourceStepProps) {
   const { data, isLoading } = $api.useQuery(
     "get",
-    "/v1/in/connections/{id}/resources/{type}",
+    "/v1/connections/{id}/resources/{type}",
     {
       params: { path: { id: connection.id ?? "", type: resourceType } },
     }

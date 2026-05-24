@@ -32,8 +32,8 @@ func validateEmployeeTriggers(db *gorm.DB, orgID uuid.UUID, triggers []employeeT
 			if len(input.TriggerKeys) == 0 {
 				return fmt.Sprintf("triggers[%d]: trigger_keys is required", i)
 			}
-			var inConn model.InConnection
-			if err := db.Where("id = ? AND org_id = ?", input.ConnectionID, orgID).First(&inConn).Error; err != nil {
+			var conn model.Connection
+			if err := db.Where("id = ? AND org_id = ?", input.ConnectionID, orgID).First(&conn).Error; err != nil {
 				return fmt.Sprintf("triggers[%d]: connection not found", i)
 			}
 		case "http":
@@ -63,7 +63,7 @@ func replaceEmployeeTriggers(tx *gorm.DB, orgID, agentID uuid.UUID, triggers []e
 }
 
 // createEmployeeTriggers creates employee-owned EmployeeTrigger records inside an
-// existing transaction. Connection IDs are in_connections IDs from the frontend.
+// existing transaction. Connection IDs are connections IDs from the frontend.
 func createEmployeeTriggers(tx *gorm.DB, orgID, agentID uuid.UUID, triggers []employeeTriggerInput) error {
 	return createEmployeeTriggersWithExistingSecrets(tx, orgID, agentID, triggers, nil)
 }

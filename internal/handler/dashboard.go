@@ -163,11 +163,11 @@ func (h *DashboardHandler) connectionSummary(ctx context.Context, orgID uuid.UUI
 	}
 	var rows []row
 	if err := h.db.WithContext(ctx).
-		Model(&model.InConnection{}).
-		Select("in_integrations.provider AS provider, COUNT(*) AS count").
-		Joins("JOIN in_integrations ON in_integrations.id = in_connections.in_integration_id AND in_integrations.deleted_at IS NULL").
-		Where("in_connections.org_id = ? AND in_connections.revoked_at IS NULL", orgID).
-		Group("in_integrations.provider").
+		Model(&model.Connection{}).
+		Select("integrations.provider AS provider, COUNT(*) AS count").
+		Joins("JOIN integrations ON integrations.id = connections.integration_id AND integrations.deleted_at IS NULL").
+		Where("connections.org_id = ? AND connections.revoked_at IS NULL", orgID).
+		Group("integrations.provider").
 		Scan(&rows).Error; err != nil {
 		return dashboardConnectionsResponse{}, err
 	}

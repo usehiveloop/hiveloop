@@ -14,6 +14,7 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
+	"github.com/usehivy/hivy/internal/testdb"
 	"github.com/usehivy/hivy/internal/handler"
 	"github.com/usehivy/hivy/internal/middleware"
 	"github.com/usehivy/hivy/internal/model"
@@ -45,9 +46,7 @@ func newMessagesListHarness(t *testing.T) *messagesListHarness {
 	if err := sqlDB.Ping(); err != nil {
 		t.Fatalf("Postgres not reachable: %v", err)
 	}
-	if err := model.AutoMigrate(db); err != nil {
-		t.Fatalf("migrate: %v", err)
-	}
+	testdb.ApplyMigrations(t, db)
 	t.Cleanup(func() { sqlDB.Close() })
 
 	org := model.Org{

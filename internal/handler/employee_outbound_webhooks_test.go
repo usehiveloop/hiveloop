@@ -13,6 +13,7 @@ import (
 
 	"github.com/usehivy/hivy/internal/model"
 	skillpkg "github.com/usehivy/hivy/internal/skills"
+	"github.com/usehivy/hivy/internal/testdb"
 )
 
 func TestEmployeeOutboundMemoryCheckpoints(t *testing.T) {
@@ -225,10 +226,7 @@ func connectEmployeeSkillSyncTestDB(t *testing.T) *gorm.DB {
 		sqlDB.Close()
 		t.Skipf("postgres unavailable: %v", err)
 	}
-	if err := model.AutoMigrate(db); err != nil {
-		sqlDB.Close()
-		t.Fatalf("automigrate: %v", err)
-	}
+	testdb.ApplyMigrations(t, db)
 	t.Cleanup(func() { sqlDB.Close() })
 	return db
 }

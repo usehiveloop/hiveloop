@@ -32,8 +32,8 @@ import { extractErrorMessage } from "@/lib/api/error"
 import { cn } from "@/lib/utils"
 import type { components } from "@/lib/api/schema"
 
-type Integration = components["schemas"]["inIntegrationAvailableResponse"]
-type Connection = components["schemas"]["inConnectionResponse"]
+type Integration = components["schemas"]["integrationAvailableResponse"]
+type Connection = components["schemas"]["connectionResponse"]
 type ConnectionConfigField = components["schemas"]["ConnectionConfigField"]
 
 interface ConnectOptions {
@@ -72,10 +72,10 @@ export default function ConnectionsPage() {
 
   const integrationsQuery = $api.useQuery(
     "get",
-    "/v1/in/integrations/available"
+    "/v1/integrations/available"
   )
-  const connectionsQuery = $api.useQuery("get", "/v1/in/connections")
-  const deleteConnection = $api.useMutation("delete", "/v1/in/connections/{id}")
+  const connectionsQuery = $api.useQuery("get", "/v1/connections")
+  const deleteConnection = $api.useMutation("delete", "/v1/connections/{id}")
   const { connect, connectingId } = useConnectIntegration()
   const { reconnect, reconnectingId } = useReconnectIntegration()
 
@@ -85,8 +85,8 @@ export default function ConnectionsPage() {
   const connectionsByIntegrationId = useMemo(() => {
     const map = new Map<string, Connection>()
     for (const connection of connections) {
-      if (connection.in_integration_id) {
-        map.set(connection.in_integration_id, connection)
+      if (connection.integration_id) {
+        map.set(connection.integration_id, connection)
       }
     }
     return map
@@ -155,7 +155,7 @@ export default function ConnectionsPage() {
             `${disconnecting.display_name ?? "Connection"} disconnected`
           )
           queryClient.invalidateQueries({
-            queryKey: ["get", "/v1/in/connections"],
+            queryKey: ["get", "/v1/connections"],
           })
           setDisconnecting(null)
         },

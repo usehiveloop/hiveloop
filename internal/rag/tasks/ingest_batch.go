@@ -240,8 +240,8 @@ func sourcePayload(src *ragmodel.RAGSource) map[string]any {
 	if provider := strings.TrimSpace(src.SourceKind()); provider != "" {
 		source["provider"] = provider
 	}
-	if src.InConnectionID != nil {
-		source["connection_id"] = src.InConnectionID.String()
+	if src.ConnectionID != nil {
+		source["connection_id"] = src.ConnectionID.String()
 	}
 	return source
 }

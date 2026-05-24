@@ -8,7 +8,7 @@ import (
 
 // RAGIndexAttempt represents one attempted ingestion pass of documents
 // from a connected source (think: one Google Drive pull, one GitHub
-// crawl). Each attempt is scoped to a single (InConnection,
+// crawl). Each attempt is scoped to a single (Connection,
 // EmbeddingModel) pair because the one-model-per-org invariant means
 // switching the model = starting a new attempt against a new dataset.
 //
@@ -36,7 +36,7 @@ type RAGIndexAttempt struct {
 	// RAGSourceID — adapts Onyx `connector_credential_pair_id`
 	// (models.py:2200-2204). FK to rag_sources(id) with CASCADE so
 	// that tearing down a source wipes its index-attempt history.
-	// RAGSource carries the InConnection reference for
+	// RAGSource carries the Connection reference for
 	// INTEGRATION-kind sources.
 	RAGSourceID uuid.UUID `gorm:"type:uuid;not null;index"`
 

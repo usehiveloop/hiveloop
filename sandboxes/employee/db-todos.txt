@@ -3,9 +3,9 @@ Production database schema findings from usehivy.com comparison
 
 Context
 -------
-- Compared production Railway Postgres schema against current local main AutoMigrate output in /Users/bahdcoder/code/usehivy.com.
+- Compared production Railway Postgres schema against current local main schema migration output in /Users/bahdcoder/code/usehivy.com.
 - Production had 63 tables.
-- Local current-main AutoMigrate had 52 tables.
+- Local current-main schema migration had 52 tables.
 - No local-only tables, columns, or indexes were found.
 - Production has 11 extra tables, 5 extra columns, and 3 extra non-RAG indexes.
 
@@ -18,18 +18,18 @@ Active / should not drop:
 - rag_sources
   - Still used in local code.
   - Used by /v1/rag/sources, Knowledge UI, scheduler, ingest/prune/permission-sync tasks.
-  - Action: add proper local migration/AutoMigrate path instead of relying on historical prod schema.
+  - Action: add proper local migration/schema migration path instead of relying on historical prod schema.
 
 - rag_index_attempts
   - Still used in local code.
   - Used by RAG ingest lifecycle, watchdog, APIs, and Knowledge status surfaces.
-  - Action: add proper local migration/AutoMigrate path.
+  - Action: add proper local migration/schema migration path.
 
 - rag_index_attempt_errors
   - Still used in local code.
   - Written during ingest failures and read by attempt-detail APIs.
   - Prod has many rows, so preserve.
-  - Action: add proper local migration/AutoMigrate path.
+  - Action: add proper local migration/schema migration path.
 
 Possibly active / needs decision:
 
@@ -123,12 +123,12 @@ Production-only non-RAG indexes
   - Action: drop together with column after backup/migration.
 
 - idx_sub_change_quote_open
-  - Not produced by current AutoMigrate.
+  - Not produced by current schema migration.
   - Likely useful operational index for active SubscriptionChangeQuote flow.
   - Action: inspect exact definition in prod and add as manual migration/index if still beneficial.
 
 - idx_sub_org_plan_active
-  - Not produced by current AutoMigrate.
+  - Not produced by current schema migration.
   - Likely useful uniqueness/lookup index for active subscriptions.
   - Action: inspect exact definition in prod and add as manual migration/index if still beneficial.
 
@@ -138,12 +138,12 @@ Recommended implementation tasks
 
 1. Add a real RAG migration path in usehivy.com.
    - Create an internal RAG migration function, for example internal/rag/migrate.go.
-   - AutoMigrate at minimum:
+   - schema migration at minimum:
      - RAGSource
      - RAGIndexAttempt
      - RAGIndexAttemptError
    - Decide whether to also migrate all currently model-only RAG tables or prune those models/tables.
-   - Call the RAG migration from server and worker boot paths after core model.AutoMigrate.
+   - Call the RAG migration from server and worker boot paths after core goose migrations.
 
 2. Wire or remove rag_embedding_models.
    - If the table is intended, call embedder.SeedRegistry(db) during boot/migration.

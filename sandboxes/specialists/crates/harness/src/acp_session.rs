@@ -1,11 +1,9 @@
 //! Shared ACP-protocol driver used by every per-harness adapter.
 //!
 //! Holds a single long-running connection to the spawned ACP-agent
-//! subprocess (claude-agent-acp, opencode acp, ...) and serializes
-//! commands from the supervisor onto it. The protocol layer is fully
-//! harness-agnostic; per-harness behaviour is supplied via the
-//! [`HarnessAdapter`] trait — the builder for the `_meta` block on
-//! `NewSessionRequest` and any human-readable harness name used in logs.
+//! subprocess and serializes commands from the supervisor onto it. The
+//! protocol layer is fully harness-agnostic; per-harness behaviour is supplied
+//! via the [`HarnessAdapter`] trait.
 
 use crate::events;
 use agent_client_protocol::schema::{
@@ -41,12 +39,11 @@ pub struct ConversationContext {
 
 /// Per-harness behaviour the shared driver delegates to.
 pub trait HarnessAdapter: Send + Sync + 'static {
-    /// Short name shown in logs (`"claude"`, `"opencode"`).
+    /// Short name shown in logs.
     fn name(&self) -> &'static str;
 
-    /// Build the `_meta` block to attach to `NewSessionRequest`. Each
-    /// harness uses its own key under `_meta` (e.g. claude-agent-acp
-    /// reads `_meta.claudeCode.options`). Return `None` to skip meta.
+    /// Build the `_meta` block to attach to `NewSessionRequest`. Return
+    /// `None` to skip meta.
     fn build_session_meta(
         &self,
         agent: &AgentDefinition,

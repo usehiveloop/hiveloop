@@ -18,6 +18,7 @@ import (
 	"github.com/usehivy/hivy/internal/enqueue"
 	"github.com/usehivy/hivy/internal/model"
 	"github.com/usehivy/hivy/internal/tasks"
+	"github.com/usehivy/hivy/internal/testdb"
 )
 
 func connectHTTPTriggerTestDB(t *testing.T) *gorm.DB {
@@ -30,12 +31,7 @@ func connectHTTPTriggerTestDB(t *testing.T) *gorm.DB {
 		t.Skipf("skipping: test database not available: %v", err)
 	}
 
-	if err := database.AutoMigrate(&model.Org{}); err != nil {
-		t.Fatalf("auto-migrate orgs: %v", err)
-	}
-	if err := database.AutoMigrate(&model.Employee{}, &model.EmployeeTrigger{}); err != nil {
-		t.Fatalf("auto-migrate agent triggers: %v", err)
-	}
+	testdb.ApplyMigrations(t, database)
 	return database
 }
 

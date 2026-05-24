@@ -7,8 +7,7 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
-	"github.com/usehivy/hivy/internal/model"
-	ragmodel "github.com/usehivy/hivy/internal/rag/model"
+	"github.com/usehivy/hivy/internal/testdb"
 )
 
 // testDBURL mirrors internal/middleware/integration_test.go:26 — the
@@ -16,7 +15,7 @@ import (
 const testDBURL = "postgres://hivy:localdev@localhost:15432/hivy_test?sslmode=disable" // #nosec G101 -- local test DB fixture
 
 // ConnectTestDB opens a real Postgres connection, runs the core and
-// RAG AutoMigrate steps, and registers `t.Cleanup` to close the
+// RAG goose migrations steps, and registers `t.Cleanup` to close the
 // underlying *sql.DB.
 //
 // A test that needs a test DB but the service isn't running should see
@@ -44,24 +43,7 @@ func ConnectTestDB(t *testing.T) *gorm.DB {
 		t.Fatalf("Postgres not reachable at %s (run `make test-services-up` first): %v", dsn, err)
 	}
 
-	if err := model.AutoMigrate(db); err != nil {
-		t.Fatalf("model.AutoMigrate failed: %v", err)
-	}
-	if err := db.AutoMigrate(
-		&ragmodel.RAGEmbeddingModel{},
-		&ragmodel.RAGSource{},
-		&ragmodel.RAGSearchSettings{},
-		&ragmodel.RAGSyncState{},
-		&ragmodel.RAGSyncRecord{},
-		&ragmodel.RAGExternalUserGroup{},
-		&ragmodel.RAGExternalIdentity{},
-		&ragmodel.RAGPublicExternalUserGroup{},
-		&ragmodel.RAGUserExternalUserGroup{},
-		&ragmodel.RAGIndexAttempt{},
-		&ragmodel.RAGIndexAttemptError{},
-	); err != nil {
-		t.Fatalf("rag AutoMigrate failed: %v", err)
-	}
+	testdb.ApplyMigrations(t, db)
 
 	t.Cleanup(func() { _ = sqlDB.Close() })
 	return db

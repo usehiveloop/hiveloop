@@ -114,7 +114,7 @@ func (h *BugsinkProxyHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	}
 	eventCtx.ConnectionID = conn.ID
 
-	resp, err := h.nango.RawProxyRequest(ctx, r.Method, nangoProviderConfigKey(conn.InIntegration.UniqueKey), conn.NangoConnectionID, forwardPath, r.URL.RawQuery, proxyRequestBody(r), r.Header.Get("Content-Type"))
+	resp, err := h.nango.RawProxyRequest(ctx, r.Method, nangoProviderConfigKey(conn.Integration.UniqueKey), conn.NangoConnectionID, forwardPath, r.URL.RawQuery, proxyRequestBody(r), r.Header.Get("Content-Type"))
 	if err != nil {
 		logging.FromContext(ctx).ErrorContext(ctx, "bugsink-proxy: nango proxy failed",
 			"employee_id", agentID,
@@ -185,18 +185,18 @@ func (h *BugsinkProxyHandler) resolveOwningEmployee(ctx context.Context, orgID u
 	return employee, nil
 }
 
-func (h *BugsinkProxyHandler) resolveAttachedBugsinkConnection(ctx context.Context, employee model.Employee) (model.InConnection, error) {
+func (h *BugsinkProxyHandler) resolveAttachedBugsinkConnection(ctx context.Context, employee model.Employee) (model.Connection, error) {
 	if employee.OrgID == nil {
-		return model.InConnection{}, gorm.ErrRecordNotFound
+		return model.Connection{}, gorm.ErrRecordNotFound
 	}
-	var conn model.InConnection
+	var conn model.Connection
 	if err := h.db.WithContext(ctx).
-		Preload("InIntegration").
-		Joins("JOIN in_integrations ON in_integrations.id = in_connections.in_integration_id AND in_integrations.deleted_at IS NULL").
-		Where("in_connections.org_id = ? AND in_connections.revoked_at IS NULL AND in_integrations.provider = ?", *employee.OrgID, bugsinkProvider).
-		Order("in_connections.created_at ASC").
+		Preload("Integration").
+		Joins("JOIN integrations ON integrations.id = connections.integration_id AND integrations.deleted_at IS NULL").
+		Where("connections.org_id = ? AND connections.revoked_at IS NULL AND integrations.provider = ?", *employee.OrgID, bugsinkProvider).
+		Order("connections.created_at ASC").
 		First(&conn).Error; err != nil {
-		return model.InConnection{}, err
+		return model.Connection{}, err
 	}
 	return conn, nil
 }

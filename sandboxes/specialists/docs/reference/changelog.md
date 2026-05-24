@@ -6,17 +6,17 @@ Changes to Bridge.
 
 ## v1.0.0 (2026-05-02)
 
-**Breaking.** Bridge no longer hosts an in-house LLM harness. It is now a thin translation shell between bridge's HTTP/SSE/webhook API and an external coding-agent CLI subprocess (Claude Code or OpenCode) over the Agent Client Protocol (ACP). All upstream behaviour — model calls, tool execution, conversation transcripts, MCP handling, skills discovery — moves into the harness binary that bridge spawns.
+**Breaking.** Bridge no longer hosts an in-house LLM harness. It is now a thin translation shell between bridge's HTTP/SSE/webhook API and an external OpenCode subprocess over the Agent Client Protocol (ACP). All upstream behaviour — model calls, tool execution, conversation transcripts, MCP handling, skills discovery — moves into the harness binary that bridge spawns.
 
 ### Removed (breaking)
 
 - **In-house harness.** The `rig-core`-based provider stack, conversation loop, verifier agent, immortal handoff, custom tools (`Read`, `Edit`, `Bash`, etc.), and LSP integration are all gone. Bridge no longer ships a model client; it spawns and forwards to an ACP-speaking subprocess.
 - **`POST /push/agents/{id}/conversations` (hydrate).** SQLite + boot-time `restore_conversation` (ACP `session/load`) is now the source of truth for conversation persistence.
-- **`AgentDefinition` v2.** Added required `harness: "claude" | "open_code"` discriminator. Slimmed `provider` (model id, api key, base url, type) and `config` (permission_mode, disabled_tools, small_fast_model). Dropped legacy fields tied to the old loop (`prompt_caching_enabled`, `cache_ttl`, verifier config, custom tool catalogues, etc.). Existing v1 agents will not deserialize.
+- **`AgentDefinition` v2.** Added required `harness: "open_code"` discriminator. Slimmed `provider` (model id, api key, base url, type) and `config` (permission_mode, disabled_tools, small_fast_model). Dropped legacy fields tied to the old loop (`prompt_caching_enabled`, `cache_ttl`, verifier config, custom tool catalogues, etc.). Existing v1 agents will not deserialize.
 
 ### Added
 
-- **Per-harness adapters.** `crates/harness` wraps `agent-client-protocol = 0.11` with a `HarnessAdapter` trait. Two adapters ship: `claude` (wraps `@agentclientprotocol/claude-agent-acp`, configures via `_meta.claudeCode.options`), `open_code` (wraps `opencode-ai`, configures via on-disk `opencode.json`).
+- **OpenCode adapter.** `crates/harness` wraps `agent-client-protocol = 0.11` with a `HarnessAdapter` trait. The `open_code` adapter wraps `opencode-ai` and configures it via on-disk `opencode.json`.
 - **One agent per bridge instance.** Pushing a different `agent_id` while one is loaded returns 409 Conflict.
 - **Conversation persistence + restore across `docker stop` / `docker start`.** SQLite stores agent + conversation rows; on boot, each conversation is re-attached via ACP `session/load`, which rebuilds model context from the harness's on-disk transcript.
 - **SSE multi-attach.** Per-conversation channel switched from single-take `mpsc` to `broadcast` — multiple clients can subscribe to the same conversation.
@@ -27,7 +27,7 @@ Changes to Bridge.
 
 ### Verified
 
-- 9-phase E2E suite green on both harnesses (`make test-e2e`, `make test-e2e-opencode`): simple Q&A, tool call, approval-allow, custom MCP retain/recall, docker stop/start restore, webhook delivery with monotonic sequences, skills loading + execution, cancel mid-stream, deny-blocks-side-effect.
+- 9-phase OpenCode E2E suite green (`make test-e2e`): simple Q&A, tool call, approval-allow, custom MCP retain/recall, docker stop/start restore, webhook delivery with monotonic sequences, skills loading + execution, cancel mid-stream, deny-blocks-side-effect.
 - Sentry SDK envelope shape verified locally against a Python sink (Spotlight rejects sentry-rust 0.48 envelopes due to a missing `Content-Type` header — works fine with real Sentry/Relay/self-hosted which route by URL path).
 
 ---
@@ -214,7 +214,7 @@ No breaking changes. To use new features:
 
 ### v0.19.x to Unreleased — BREAKING: subagent orchestration simplified
 
-Bridge now mirrors Claude Code's subagent model: one tool, one flag.
+Bridge now uses one tool and one flag for subagent orchestration.
 
 1. The `parallel_agent` and `join` tools have been removed.
 2. The `background` parameter on `sub_agent` and `agent` has been renamed to `runInBackground`.

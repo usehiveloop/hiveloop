@@ -13,7 +13,7 @@ export function useReconnectIntegration() {
 
   const mutation = useMutation({
     mutationFn: async ({ connectionId }: { connectionId: string }) => {
-      const session = await api.POST("/v1/in/connections/{id}/reconnect-session", {
+      const session = await api.POST("/v1/connections/{id}/reconnect-session", {
         params: { path: { id: connectionId } },
       })
 
@@ -33,7 +33,7 @@ export function useReconnectIntegration() {
       setReconnectingId(connectionId)
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["get", "/v1/in/connections"] })
+      queryClient.invalidateQueries({ queryKey: ["get", "/v1/connections"] })
       toast.success("Connection refreshed successfully")
     },
     onError: (error) => {

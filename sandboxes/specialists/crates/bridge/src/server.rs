@@ -155,10 +155,8 @@ async fn restore_from_storage(
     }
 
     // Resume any conversations that survived the previous shutdown.
-    // Each is restored via ACP `session/load` which pulls from
-    // claude-agent-acp's own on-disk transcript under
-    // `$CLAUDE_CONFIG_DIR/projects/...`. We then re-attach the SSE stream
-    // so subscribers can resume.
+    // Each is restored via ACP `session/load`. We then re-attach the SSE
+    // stream so subscribers can resume.
     for agent in &stored_agents {
         let convs = backend
             .load_conversations(&agent.id)

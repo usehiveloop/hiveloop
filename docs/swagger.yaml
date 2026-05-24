@@ -248,19 +248,6 @@ definitions:
       response_schema:
         type: string
     type: object
-  agentSkillResponse:
-    properties:
-      created_at:
-        type: string
-      locked:
-        type: boolean
-      required:
-        type: boolean
-      skill:
-        $ref: '#/definitions/skillResponse'
-      skill_id:
-        type: string
-    type: object
   apiKeyResponse:
     properties:
       created_at:
@@ -410,6 +397,46 @@ definitions:
         type: string
       email:
         type: string
+    type: object
+  connectSessionResponse:
+    properties:
+      provider_config_key:
+        type: string
+      token:
+        type: string
+    type: object
+  connectionResponse:
+    properties:
+      actions_count:
+        type: integer
+      configurable_resources:
+        items:
+          $ref: '#/definitions/ConfigurableResourceSummary'
+        type: array
+      created_at:
+        type: string
+      display_name:
+        type: string
+      id:
+        type: string
+      integration_id:
+        type: string
+      meta:
+        $ref: '#/definitions/JSON'
+      nango_connection_id:
+        type: string
+      org_id:
+        type: string
+      provider:
+        type: string
+      provider_config:
+        $ref: '#/definitions/JSON'
+      revoked_at:
+        type: string
+      updated_at:
+        type: string
+      webhook_configured:
+        type: boolean
     type: object
   conversationEventResponse:
     properties:
@@ -582,6 +609,13 @@ definitions:
       reference:
         type: string
     type: object
+  createConnectionRequest:
+    properties:
+      meta:
+        $ref: '#/definitions/JSON'
+      nango_connection_id:
+        type: string
+    type: object
   createCredentialRequest:
     properties:
       api_key:
@@ -635,13 +669,6 @@ definitions:
       verified_at:
         type: string
     type: object
-  createInConnectionRequest:
-    properties:
-      meta:
-        $ref: '#/definitions/JSON'
-      nango_connection_id:
-        type: string
-    type: object
   createOrgInviteRequest:
     properties:
       email:
@@ -660,7 +687,7 @@ definitions:
         type: string
       config:
         $ref: '#/definitions/JSON'
-      in_connection_id:
+      connection_id:
         type: string
       kind:
         type: string
@@ -930,6 +957,19 @@ definitions:
       trigger_delivery:
         $ref: '#/definitions/triggerDeliveryResponse'
     type: object
+  employeeSkillResponse:
+    properties:
+      created_at:
+        type: string
+      locked:
+        type: boolean
+      required:
+        type: boolean
+      skill:
+        $ref: '#/definitions/skillResponse'
+      skill_id:
+        type: string
+    type: object
   employeeSkillSummary:
     properties:
       description:
@@ -1092,61 +1132,6 @@ definitions:
       user_id:
         type: string
     type: object
-  inConnectSessionResponse:
-    properties:
-      provider_config_key:
-        type: string
-      token:
-        type: string
-    type: object
-  inConnectionResponse:
-    properties:
-      actions_count:
-        type: integer
-      configurable_resources:
-        items:
-          $ref: '#/definitions/ConfigurableResourceSummary'
-        type: array
-      created_at:
-        type: string
-      display_name:
-        type: string
-      id:
-        type: string
-      in_integration_id:
-        type: string
-      meta:
-        $ref: '#/definitions/JSON'
-      nango_connection_id:
-        type: string
-      org_id:
-        type: string
-      provider:
-        type: string
-      provider_config:
-        $ref: '#/definitions/JSON'
-      revoked_at:
-        type: string
-      updated_at:
-        type: string
-      webhook_configured:
-        type: boolean
-    type: object
-  inIntegrationAvailableResponse:
-    properties:
-      created_at:
-        type: string
-      display_name:
-        type: string
-      id:
-        type: string
-      meta:
-        $ref: '#/definitions/JSON'
-      nango_config:
-        $ref: '#/definitions/NangoConfig'
-      provider:
-        type: string
-    type: object
   initUpgradeRequest:
     properties:
       quote_id:
@@ -1161,6 +1146,21 @@ definitions:
       currency:
         type: string
       reference:
+        type: string
+    type: object
+  integrationAvailableResponse:
+    properties:
+      created_at:
+        type: string
+      display_name:
+        type: string
+      id:
+        type: string
+      meta:
+        $ref: '#/definitions/JSON'
+      nango_config:
+        $ref: '#/definitions/NangoConfig'
+      provider:
         type: string
     type: object
   integrationDetail:
@@ -1459,6 +1459,17 @@ definitions:
       email:
         type: string
     type: object
+  paginatedResponse-connectionResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/connectionResponse'
+        type: array
+      has_more:
+        type: boolean
+      next_cursor:
+        type: string
+    type: object
   paginatedResponse-conversationResponse:
     properties:
       data:
@@ -1574,17 +1585,6 @@ definitions:
       data:
         items:
           $ref: '#/definitions/tokenListItem'
-        type: array
-      has_more:
-        type: boolean
-      next_cursor:
-        type: string
-    type: object
-  paginatedResponse-inConnectionResponse:
-    properties:
-      data:
-        items:
-          $ref: '#/definitions/inConnectionResponse'
         type: array
       has_more:
         type: boolean
@@ -1902,13 +1902,13 @@ definitions:
         items:
           type: integer
         type: array
+      connection_id:
+        type: string
       created_at:
         type: string
       enabled:
         type: boolean
       id:
-        type: string
-      in_connection_id:
         type: string
       in_repeated_error_state:
         type: boolean
@@ -1953,13 +1953,13 @@ definitions:
         items:
           type: integer
         type: array
+      connection_id:
+        type: string
       created_at:
         type: string
       enabled:
         type: boolean
       id:
-        type: string
-      in_connection_id:
         type: string
       in_repeated_error_state:
         type: boolean
@@ -3863,6 +3863,158 @@ paths:
       summary: List triggers for an integration
       tags:
       - integrations
+  /v1/connections:
+    get:
+      description: Returns the authenticated user's non-revoked platform integration
+        connections.
+      parameters:
+      - description: Filter by provider
+        in: query
+        name: provider
+        type: string
+      - description: Page size
+        in: query
+        name: limit
+        type: integer
+      - description: Pagination cursor
+        in: query
+        name: cursor
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/paginatedResponse-connectionResponse'
+      security:
+      - BearerAuth: []
+      summary: List user's connections
+      tags:
+      - connections
+  /v1/connections/{id}:
+    delete:
+      description: Revokes a user's platform integration connection and removes it
+        from Nango.
+      parameters:
+      - description: Connection ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Disconnect an connection
+      tags:
+      - connections
+  /v1/connections/{id}/reconnect-session:
+    post:
+      description: Creates a Nango connect session scoped to an existing connection,
+        allowing OAuth re-authorization without creating a duplicate.
+      parameters:
+      - description: Connection ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/connectSessionResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create a reconnect session for an existing connection
+      tags:
+      - connections
+  /v1/connections/{id}/resources/{type}:
+    get:
+      description: Fetches available resources of a specific type from the provider
+        API. For example, list all repositories for a GitHub connection.
+      parameters:
+      - description: In-Connection ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Resource type (e.g., repository, project)
+        in: path
+        name: type
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/DiscoveryResult'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/errorResponse'
+      security:
+      - BearerAuth: []
+      summary: List available resources for a connection
+      tags:
+      - connections
+  /v1/connections/{id}/webhook-configured:
+    patch:
+      description: Sets the webhook_configured flag to true on a connection, indicating
+        the user has manually configured the webhook URL in the provider's dashboard.
+      parameters:
+      - description: Connection ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/connectionResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Mark webhook as configured
+      tags:
+      - connections
   /v1/conversations/{convID}:
     delete:
       description: Permanently ends a conversation. Subsequent operations return 410.
@@ -4783,7 +4935,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/agentSkillResponse'
+              $ref: '#/definitions/employeeSkillResponse'
             type: array
         "404":
           description: Not Found
@@ -4816,7 +4968,7 @@ paths:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/agentSkillResponse'
+            $ref: '#/definitions/employeeSkillResponse'
         "400":
           description: Bad Request
           schema:
@@ -4996,7 +5148,7 @@ paths:
         Compiles the employee config, provisions an employee sandbox if
         needed, pushes it to the runtime, and verifies readiness.
       parameters:
-      - description: Agent UUID
+      - description: Employee UUID
         in: path
         name: id
         required: true
@@ -5131,159 +5283,7 @@ paths:
       summary: Get a generation
       tags:
       - generations
-  /v1/in/connections:
-    get:
-      description: Returns the authenticated user's non-revoked platform integration
-        connections.
-      parameters:
-      - description: Filter by provider
-        in: query
-        name: provider
-        type: string
-      - description: Page size
-        in: query
-        name: limit
-        type: integer
-      - description: Pagination cursor
-        in: query
-        name: cursor
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/paginatedResponse-inConnectionResponse'
-      security:
-      - BearerAuth: []
-      summary: List user's in-connections
-      tags:
-      - in-connections
-  /v1/in/connections/{id}:
-    delete:
-      description: Revokes a user's platform integration connection and removes it
-        from Nango.
-      parameters:
-      - description: Connection ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/errorResponse'
-      security:
-      - BearerAuth: []
-      summary: Disconnect an in-connection
-      tags:
-      - in-connections
-  /v1/in/connections/{id}/reconnect-session:
-    post:
-      description: Creates a Nango connect session scoped to an existing connection,
-        allowing OAuth re-authorization without creating a duplicate.
-      parameters:
-      - description: Connection ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            $ref: '#/definitions/inConnectSessionResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/errorResponse'
-      security:
-      - BearerAuth: []
-      summary: Create a reconnect session for an existing connection
-      tags:
-      - in-connections
-  /v1/in/connections/{id}/resources/{type}:
-    get:
-      description: Fetches available resources of a specific type from the provider
-        API. For example, list all repositories for a GitHub connection.
-      parameters:
-      - description: In-Connection ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: Resource type (e.g., repository, project)
-        in: path
-        name: type
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/DiscoveryResult'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/errorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/errorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/errorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/errorResponse'
-      security:
-      - BearerAuth: []
-      summary: List available resources for a connection
-      tags:
-      - in-connections
-  /v1/in/connections/{id}/webhook-configured:
-    patch:
-      description: Sets the webhook_configured flag to true on a connection, indicating
-        the user has manually configured the webhook URL in the provider's dashboard.
-      parameters:
-      - description: Connection ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/inConnectionResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/errorResponse'
-      security:
-      - BearerAuth: []
-      summary: Mark webhook as configured
-      tags:
-      - in-connections
-  /v1/in/integrations/{id}/connect-session:
+  /v1/integrations/{id}/connect-session:
     post:
       description: Creates a Nango connect session for the authenticated user to initiate
         OAuth.
@@ -5299,7 +5299,7 @@ paths:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/inConnectSessionResponse'
+            $ref: '#/definitions/connectSessionResponse'
         "400":
           description: Bad Request
           schema:
@@ -5312,8 +5312,8 @@ paths:
       - BearerAuth: []
       summary: Create a connect session
       tags:
-      - in-connections
-  /v1/in/integrations/{id}/connections:
+      - connections
+  /v1/integrations/{id}/connections:
     post:
       consumes:
       - application/json
@@ -5329,14 +5329,14 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/createInConnectionRequest'
+          $ref: '#/definitions/createConnectionRequest'
       produces:
       - application/json
       responses:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/inConnectionResponse'
+            $ref: '#/definitions/connectionResponse'
         "400":
           description: Bad Request
           schema:
@@ -5347,10 +5347,10 @@ paths:
             $ref: '#/definitions/errorResponse'
       security:
       - BearerAuth: []
-      summary: Create an in-connection
+      summary: Create an connection
       tags:
-      - in-connections
-  /v1/in/integrations/available:
+      - connections
+  /v1/integrations/available:
     get:
       description: Returns non-deleted platform integrations with safe fields for
         end users.
@@ -5361,13 +5361,13 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/inIntegrationAvailableResponse'
+              $ref: '#/definitions/integrationAvailableResponse'
             type: array
       security:
       - BearerAuth: []
       summary: List available platform integrations
       tags:
-      - in-integrations
+      - integrations
   /v1/invites/{token}:
     get:
       description: Returns basic invite details by plaintext token. Returns 404 for
@@ -5852,8 +5852,8 @@ paths:
       consumes:
       - application/json
       description: Creates a new RAG source that the scheduler will pick up on the
-        next tick. Kind=integration requires a valid in_connection_id pointing at
-        an integration whose supports_rag_source flag is true. Refresh / prune / perm-sync
+        next tick. Kind=integration requires a valid connection_id pointing at an
+        integration whose supports_rag_source flag is true. Refresh / prune / perm-sync
         frequencies are validated against per-org minimums.
       parameters:
       - description: Source definition

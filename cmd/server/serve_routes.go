@@ -23,7 +23,7 @@ func setupPublicRoutes(
 	database *gorm.DB,
 	redisClient *redis.Client,
 	providerHandler *handler.ProviderHandler,
-	inIntegrationHandler *handler.InIntegrationHandler,
+	integrationHandler *handler.IntegrationHandler,
 	actionsCatalog *catalog.Catalog,
 	orgInviteHandler *handler.OrgInviteHandler,
 	plansHandler *handler.PlansHandler,
@@ -46,8 +46,8 @@ func setupPublicRoutes(
 	r.Get("/v1/providers/{id}/models", providerHandler.Models)
 	r.Get("/v1/models", providerHandler.AllModels)
 
-	// In-integration discovery (no auth)
-	r.Get("/v1/in/integrations/available", inIntegrationHandler.ListAvailable)
+	// Integration discovery (no auth)
+	r.Get("/v1/integrations/available", integrationHandler.ListAvailable)
 
 	// Integration catalog discovery (no auth)
 	actionsHandler := handler.NewActionsHandler(actionsCatalog)

@@ -90,11 +90,11 @@ type RAGSource struct {
 
 	ConfigValue model.JSON `gorm:"column:config;type:jsonb;not null;default:'{}'"`
 
-	// InConnectionID is non-null iff Kind=INTEGRATION (CHECK-enforced).
-	InConnectionID *uuid.UUID `gorm:"type:uuid"`
+	// ConnectionID is non-null iff Kind=INTEGRATION (CHECK-enforced).
+	ConnectionID *uuid.UUID `gorm:"type:uuid"`
 
 	// Preload required for SourceKind()/Nango* methods to work.
-	InConnection *model.InConnection `gorm:"foreignKey:InConnectionID;references:ID"`
+	Connection *model.Connection `gorm:"foreignKey:ConnectionID;references:ID"`
 
 	AccessType AccessType `gorm:"type:varchar(16);not null"`
 
@@ -143,27 +143,27 @@ func (s *RAGSource) OrgID() string { return s.OrgIDValue.String() }
 // that's the upstream provider; otherwise the kind itself.
 func (s *RAGSource) SourceKind() string {
 	if s.KindValue == RAGSourceKindIntegration &&
-		s.InConnection != nil &&
-		s.InConnection.InIntegration.Provider != "" {
-		return s.InConnection.InIntegration.Provider
+		s.Connection != nil &&
+		s.Connection.Integration.Provider != "" {
+		return s.Connection.Integration.Provider
 	}
 	return string(s.KindValue)
 }
 
 func (s *RAGSource) NangoConnectionID() string {
-	if s.InConnection == nil {
+	if s.Connection == nil {
 		return ""
 	}
-	return s.InConnection.NangoConnectionID
+	return s.Connection.NangoConnectionID
 }
 
-// NangoProviderConfigKey mirrors handler/in_connections_resources.go —
+// NangoProviderConfigKey mirrors handler/connections_resources.go —
 // keep in sync if either side changes.
 func (s *RAGSource) NangoProviderConfigKey() string {
-	if s.InConnection == nil || s.InConnection.InIntegration.UniqueKey == "" {
+	if s.Connection == nil || s.Connection.Integration.UniqueKey == "" {
 		return ""
 	}
-	return s.InConnection.InIntegration.UniqueKey
+	return s.Connection.Integration.UniqueKey
 }
 
 // Config returns `{}` when the map is nil/empty so the column's
