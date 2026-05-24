@@ -18,6 +18,27 @@ var curatedProviders = []Provider{
 		Name: "Anthropic",
 		Doc:  "https://docs.anthropic.com/en/docs/about-claude/models",
 		Models: map[string]Model{
+			"claude-opus-4-7": {
+				ID:          "claude-opus-4-7",
+				Name:        "Claude Opus 4.7",
+				Family:      "claude-opus",
+				Reasoning:   true,
+				ToolCall:    true,
+				Knowledge:   "2026-01-31",
+				ReleaseDate: "2026-04-16",
+				Modalities: &Modalities{
+					Input:  []string{"text", "image", "pdf"},
+					Output: []string{"text"},
+				},
+				Cost: &Cost{
+					Input:  5,
+					Output: 25,
+				},
+				Limit: &Limit{
+					Context: 200000,
+					Output:  64000,
+				},
+			},
 			"claude-sonnet-4-6": {
 				ID:          "claude-sonnet-4-6",
 				Name:        "Claude Sonnet 4.6",
@@ -58,6 +79,27 @@ var curatedProviders = []Provider{
 				Limit: &Limit{
 					Context: 200000,
 					Output:  64000,
+				},
+			},
+			"claude-sonnet-4-0": {
+				ID:          "claude-sonnet-4-0",
+				Name:        "Claude Sonnet 4",
+				Family:      "claude-sonnet",
+				Reasoning:   true,
+				ToolCall:    true,
+				Knowledge:   "2025-03-31",
+				ReleaseDate: "2025-05-22",
+				Modalities: &Modalities{
+					Input:  []string{"text", "image", "pdf"},
+					Output: []string{"text"},
+				},
+				Cost: &Cost{
+					Input:  3,
+					Output: 15,
+				},
+				Limit: &Limit{
+					Context: 200000,
+					Output:  16000,
 				},
 			},
 			"claude-3-5-haiku-latest": {
@@ -346,26 +388,6 @@ var curatedProviders = []Provider{
 				Limit: &Limit{
 					Context: 202752,
 					Output:  131072,
-				},
-			},
-			"gemma-4-31b-it": {
-				ID:          "gemma-4-31b-it",
-				Name:        "Gemma 4 31B",
-				Family:      "gemma",
-				ToolCall:    true,
-				OpenWeights: true,
-				Description: "Tiny and cheap for simple tasks.",
-				Modalities: &Modalities{
-					Input:  []string{"text"},
-					Output: []string{"text"},
-				},
-				Cost: &Cost{
-					Input:  0.1,
-					Output: 0.3,
-				},
-				Limit: &Limit{
-					Context: 262144,
-					Output:  262144,
 				},
 			},
 			"minimax-m2.5": {
@@ -691,6 +713,48 @@ var curatedProviders = []Provider{
 		Name: "Google",
 		Doc:  "https://ai.google.dev/gemini-api/docs/pricing",
 		Models: map[string]Model{
+			"gemini-3.5-flash": {
+				ID:          "gemini-3.5-flash",
+				Name:        "Gemini 3.5 Flash",
+				Family:      "gemini-flash",
+				Reasoning:   true,
+				ToolCall:    true,
+				Knowledge:   "2025-01",
+				ReleaseDate: "2026-05-19",
+				Modalities: &Modalities{
+					Input:  []string{"text", "image", "video", "audio", "pdf"},
+					Output: []string{"text"},
+				},
+				Cost: &Cost{
+					Input:  1.5,
+					Output: 9,
+				},
+				Limit: &Limit{
+					Context: 1048576,
+					Output:  65536,
+				},
+			},
+			"gemini-3.1-flash-lite": {
+				ID:          "gemini-3.1-flash-lite",
+				Name:        "Gemini 3.1 Flash Lite",
+				Family:      "gemini-flash-lite",
+				Reasoning:   true,
+				ToolCall:    true,
+				Knowledge:   "2025-01",
+				ReleaseDate: "2026-05-07",
+				Modalities: &Modalities{
+					Input:  []string{"text", "image", "video", "audio", "pdf"},
+					Output: []string{"text"},
+				},
+				Cost: &Cost{
+					Input:  0.25,
+					Output: 1.5,
+				},
+				Limit: &Limit{
+					Context: 1048576,
+					Output:  65536,
+				},
+			},
 			"gemini-3.1-flash-lite-preview": {
 				ID:          "gemini-3.1-flash-lite-preview",
 				Name:        "Gemini 3.1 Flash Lite Preview",
@@ -939,6 +1003,28 @@ var curatedProviders = []Provider{
 		API:  "https://api.moonshot.ai/v1",
 		Doc:  "https://platform.moonshot.ai/docs/api/chat",
 		Models: map[string]Model{
+			"kimi-k2.6": {
+				ID:          "kimi-k2.6",
+				Name:        "Kimi K2.6",
+				Family:      "kimi",
+				Reasoning:   true,
+				ToolCall:    true,
+				OpenWeights: true,
+				Knowledge:   "2025-01",
+				ReleaseDate: "2026-04-21",
+				Modalities: &Modalities{
+					Input:  []string{"text", "image", "video"},
+					Output: []string{"text"},
+				},
+				Cost: &Cost{
+					Input:  0.95,
+					Output: 4,
+				},
+				Limit: &Limit{
+					Context: 262144,
+					Output:  131000,
+				},
+			},
 			"kimi-k2.5": {
 				ID:          "kimi-k2.5",
 				Name:        "Kimi K2.5",
@@ -1012,6 +1098,48 @@ var curatedProviders = []Provider{
 		Name: "OpenAI",
 		Doc:  "https://platform.openai.com/docs/models",
 		Models: map[string]Model{
+			"gpt-5.5-pro": {
+				ID:          "gpt-5.5-pro",
+				Name:        "GPT-5.5 Pro",
+				Family:      "gpt-pro",
+				Reasoning:   true,
+				ToolCall:    true,
+				Knowledge:   "2025-08-31",
+				ReleaseDate: "2026-04-23",
+				Modalities: &Modalities{
+					Input:  []string{"text", "image"},
+					Output: []string{"text"},
+				},
+				Cost: &Cost{
+					Input:  30,
+					Output: 180,
+				},
+				Limit: &Limit{
+					Context: 400000,
+					Output:  128000,
+				},
+			},
+			"gpt-5.5": {
+				ID:          "gpt-5.5",
+				Name:        "GPT-5.5",
+				Family:      "gpt",
+				Reasoning:   true,
+				ToolCall:    true,
+				Knowledge:   "2025-08-31",
+				ReleaseDate: "2026-04-23",
+				Modalities: &Modalities{
+					Input:  []string{"text", "image"},
+					Output: []string{"text"},
+				},
+				Cost: &Cost{
+					Input:  5,
+					Output: 30,
+				},
+				Limit: &Limit{
+					Context: 400000,
+					Output:  128000,
+				},
+			},
 			"gpt-5.4-pro": {
 				ID:          "gpt-5.4-pro",
 				Name:        "GPT-5.4 Pro",
@@ -1051,6 +1179,48 @@ var curatedProviders = []Provider{
 				},
 				Limit: &Limit{
 					Context: 1050000,
+					Output:  128000,
+				},
+			},
+			"gpt-5.4-mini": {
+				ID:          "gpt-5.4-mini",
+				Name:        "GPT-5.4 Mini",
+				Family:      "gpt-mini",
+				Reasoning:   true,
+				ToolCall:    true,
+				Knowledge:   "2025-08-31",
+				ReleaseDate: "2026-03-17",
+				Modalities: &Modalities{
+					Input:  []string{"text", "image"},
+					Output: []string{"text"},
+				},
+				Cost: &Cost{
+					Input:  0.75,
+					Output: 4.5,
+				},
+				Limit: &Limit{
+					Context: 400000,
+					Output:  128000,
+				},
+			},
+			"gpt-5.4-nano": {
+				ID:          "gpt-5.4-nano",
+				Name:        "GPT-5.4 Nano",
+				Family:      "gpt-nano",
+				Reasoning:   true,
+				ToolCall:    true,
+				Knowledge:   "2025-08-31",
+				ReleaseDate: "2026-03-17",
+				Modalities: &Modalities{
+					Input:  []string{"text", "image"},
+					Output: []string{"text"},
+				},
+				Cost: &Cost{
+					Input:  0.2,
+					Output: 1.25,
+				},
+				Limit: &Limit{
+					Context: 400000,
 					Output:  128000,
 				},
 			},
@@ -1287,12 +1457,485 @@ var curatedProviders = []Provider{
 			},
 		},
 	},
-	{ // openrouter — OpenRouter (open-weight models only; gemini-2.5-flash kept for routing but hidden from frontend)
+	{ // openrouter — OpenRouter
 		ID:   "openrouter",
 		Name: "OpenRouter",
 		API:  "https://openrouter.ai/api/v1",
 		Doc:  "https://openrouter.ai/models",
 		Models: map[string]Model{
+			"qwen/qwen3.7-max": {
+				ID:          "qwen/qwen3.7-max",
+				Name:        "Qwen3.7 Max",
+				Family:      "qwen",
+				Reasoning:   true,
+				ToolCall:    true,
+				ReleaseDate: "2026-05-21",
+				Modalities: &Modalities{
+					Input:  []string{"text"},
+					Output: []string{"text"},
+				},
+				Cost: &Cost{
+					Input:  2.5,
+					Output: 7.5,
+				},
+				Limit: &Limit{
+					Context: 1000000,
+					Output:  500000,
+				},
+			},
+			"google/gemini-3.5-flash": {
+				ID:               "google/gemini-3.5-flash",
+				Name:             "Gemini 3.5 Flash",
+				Family:           "gemini-flash",
+				Reasoning:        true,
+				ToolCall:         true,
+				StructuredOutput: true,
+				ReleaseDate:      "2026-05-19",
+				Modalities: &Modalities{
+					Input:  []string{"text", "image", "audio", "video"},
+					Output: []string{"text"},
+				},
+				Cost: &Cost{
+					Input:  1.5,
+					Output: 9,
+				},
+				Limit: &Limit{
+					Context: 128000,
+					Output:  64000,
+				},
+			},
+			"anthropic/claude-opus-4.7-fast": {
+				ID:          "anthropic/claude-opus-4.7-fast",
+				Name:        "Claude Opus 4.7 Fast",
+				Family:      "claude-opus",
+				Reasoning:   true,
+				ToolCall:    true,
+				ReleaseDate: "2026-05-12",
+				Modalities: &Modalities{
+					Input:  []string{"text", "image"},
+					Output: []string{"text"},
+				},
+				Cost: &Cost{
+					Input:  30,
+					Output: 150,
+				},
+				Limit: &Limit{
+					Context: 200000,
+					Output:  64000,
+				},
+			},
+			"google/gemini-3.1-flash-lite": {
+				ID:               "google/gemini-3.1-flash-lite",
+				Name:             "Gemini 3.1 Flash Lite",
+				Family:           "gemini-flash-lite",
+				Reasoning:        true,
+				ToolCall:         true,
+				StructuredOutput: true,
+				ReleaseDate:      "2026-05-07",
+				Modalities: &Modalities{
+					Input:  []string{"text", "image", "audio", "video"},
+					Output: []string{"text"},
+				},
+				Cost: &Cost{
+					Input:  0.25,
+					Output: 1.5,
+				},
+				Limit: &Limit{
+					Context: 128000,
+					Output:  64000,
+				},
+			},
+			"qwen/qwen3.6-27b": {
+				ID:               "qwen/qwen3.6-27b",
+				Name:             "Qwen3.6 27B",
+				Family:           "qwen",
+				Reasoning:        true,
+				ToolCall:         true,
+				StructuredOutput: true,
+				OpenWeights:      true,
+				ReleaseDate:      "2026-04-27",
+				Modalities: &Modalities{
+					Input:  []string{"text"},
+					Output: []string{"text"},
+				},
+				Cost: &Cost{
+					Input:  0.3,
+					Output: 3.2,
+				},
+				Limit: &Limit{
+					Context: 262144,
+					Output:  262144,
+				},
+			},
+			"qwen/qwen3.6-35b-a3b": {
+				ID:               "qwen/qwen3.6-35b-a3b",
+				Name:             "Qwen3.6 35B A3B",
+				Family:           "qwen",
+				Reasoning:        true,
+				ToolCall:         true,
+				StructuredOutput: true,
+				OpenWeights:      true,
+				ReleaseDate:      "2026-04-27",
+				Modalities: &Modalities{
+					Input:  []string{"text"},
+					Output: []string{"text"},
+				},
+				Cost: &Cost{
+					Input:  0.15,
+					Output: 1,
+				},
+				Limit: &Limit{
+					Context: 262140,
+					Output:  262140,
+				},
+			},
+			"qwen/qwen3.6-max-preview": {
+				ID:          "qwen/qwen3.6-max-preview",
+				Name:        "Qwen3.6 Max Preview",
+				Family:      "qwen",
+				Reasoning:   true,
+				ToolCall:    true,
+				ReleaseDate: "2026-04-27",
+				Modalities: &Modalities{
+					Input:  []string{"text"},
+					Output: []string{"text"},
+				},
+				Cost: &Cost{
+					Input:  1.04,
+					Output: 6.24,
+				},
+				Limit: &Limit{
+					Context: 1000000,
+					Output:  500000,
+				},
+			},
+			"qwen/qwen3.6-flash": {
+				ID:          "qwen/qwen3.6-flash",
+				Name:        "Qwen3.6 Flash",
+				Family:      "qwen",
+				Reasoning:   true,
+				ToolCall:    true,
+				ReleaseDate: "2026-04-27",
+				Modalities: &Modalities{
+					Input:  []string{"text"},
+					Output: []string{"text"},
+				},
+				Cost: &Cost{
+					Input:  0.1875,
+					Output: 1.125,
+				},
+				Limit: &Limit{
+					Context: 1000000,
+					Output:  500000,
+				},
+			},
+			"openai/gpt-5.5-pro": {
+				ID:          "openai/gpt-5.5-pro",
+				Name:        "GPT-5.5 Pro",
+				Family:      "gpt-pro",
+				Reasoning:   true,
+				ToolCall:    true,
+				ReleaseDate: "2026-04-23",
+				Modalities: &Modalities{
+					Input:  []string{"text", "image"},
+					Output: []string{"text"},
+				},
+				Cost: &Cost{
+					Input:  30,
+					Output: 180,
+				},
+				Limit: &Limit{
+					Context: 400000,
+					Output:  128000,
+				},
+			},
+			"openai/gpt-5.5": {
+				ID:          "openai/gpt-5.5",
+				Name:        "GPT-5.5",
+				Family:      "gpt",
+				Reasoning:   true,
+				ToolCall:    true,
+				ReleaseDate: "2026-04-23",
+				Modalities: &Modalities{
+					Input:  []string{"text", "image"},
+					Output: []string{"text"},
+				},
+				Cost: &Cost{
+					Input:  5,
+					Output: 30,
+				},
+				Limit: &Limit{
+					Context: 400000,
+					Output:  128000,
+				},
+			},
+			"xiaomi/mimo-v2.5": {
+				ID:          "xiaomi/mimo-v2.5",
+				Name:        "MiMo-V2.5",
+				Family:      "mimo",
+				Reasoning:   true,
+				ToolCall:    true,
+				OpenWeights: true,
+				ReleaseDate: "2026-04-22",
+				Modalities: &Modalities{
+					Input:  []string{"text", "image", "audio", "video", "pdf"},
+					Output: []string{"text"},
+				},
+				Cost: &Cost{
+					Input:  0.4,
+					Output: 2,
+				},
+				Limit: &Limit{
+					Context: 1048576,
+					Output:  131072,
+				},
+			},
+			"moonshotai/kimi-k2.6": {
+				ID:               "moonshotai/kimi-k2.6",
+				Name:             "Kimi K2.6",
+				Family:           "kimi",
+				Reasoning:        true,
+				ToolCall:         true,
+				StructuredOutput: true,
+				OpenWeights:      true,
+				ReleaseDate:      "2026-04-21",
+				Modalities: &Modalities{
+					Input:  []string{"text", "image", "video"},
+					Output: []string{"text"},
+				},
+				Cost: &Cost{
+					Input:  0.73,
+					Output: 3.49,
+				},
+				Limit: &Limit{
+					Context: 262142,
+					Output:  262142,
+				},
+			},
+			"anthropic/claude-opus-4.7": {
+				ID:          "anthropic/claude-opus-4.7",
+				Name:        "Claude Opus 4.7",
+				Family:      "claude-opus",
+				Reasoning:   true,
+				ToolCall:    true,
+				ReleaseDate: "2026-04-16",
+				Modalities: &Modalities{
+					Input:  []string{"text", "image"},
+					Output: []string{"text"},
+				},
+				Cost: &Cost{
+					Input:  5,
+					Output: 25,
+				},
+				Limit: &Limit{
+					Context: 200000,
+					Output:  64000,
+				},
+			},
+			"minimax/minimax-m2.7": {
+				ID:               "minimax/minimax-m2.7",
+				Name:             "MiniMax M2.7",
+				Family:           "minimax",
+				Reasoning:        true,
+				ToolCall:         true,
+				StructuredOutput: true,
+				OpenWeights:      true,
+				ReleaseDate:      "2026-03-18",
+				Modalities: &Modalities{
+					Input:  []string{"text"},
+					Output: []string{"text"},
+				},
+				Cost: &Cost{
+					Input:  0.279,
+					Output: 1.2,
+				},
+				Limit: &Limit{
+					Context: 196608,
+					Output:  131072,
+				},
+			},
+			"z-ai/glm-5-turbo": {
+				ID:          "z-ai/glm-5-turbo",
+				Name:        "GLM-5 Turbo",
+				Family:      "glm",
+				Reasoning:   true,
+				ToolCall:    true,
+				ReleaseDate: "2026-03-16",
+				Modalities: &Modalities{
+					Input:  []string{"text"},
+					Output: []string{"text"},
+				},
+				Cost: &Cost{
+					Input:  1.2,
+					Output: 4,
+				},
+				Limit: &Limit{
+					Context: 202752,
+					Output:  131000,
+				},
+			},
+			"mistralai/mistral-small-2603": {
+				ID:          "mistralai/mistral-small-2603",
+				Name:        "Mistral Small 4",
+				Family:      "mistral-small",
+				ToolCall:    true,
+				OpenWeights: true,
+				ReleaseDate: "2026-03-16",
+				Modalities: &Modalities{
+					Input:  []string{"text", "image"},
+					Output: []string{"text"},
+				},
+				Cost: &Cost{
+					Input:  0.15,
+					Output: 0.6,
+				},
+				Limit: &Limit{
+					Context: 128000,
+					Output:  32000,
+				},
+			},
+			"stepfun/step-3.5-flash": {
+				ID:          "stepfun/step-3.5-flash",
+				Name:        "Step 3.5 Flash",
+				Family:      "step",
+				Reasoning:   true,
+				ToolCall:    true,
+				OpenWeights: true,
+				ReleaseDate: "2026-01-29",
+				Modalities: &Modalities{
+					Input:  []string{"text"},
+					Output: []string{"text"},
+				},
+				Cost: &Cost{
+					Input:  0.09,
+					Output: 0.3,
+				},
+				Limit: &Limit{
+					Context: 262144,
+					Output:  16384,
+				},
+			},
+			"openai/gpt-5.4-nano": {
+				ID:          "openai/gpt-5.4-nano",
+				Name:        "GPT-5.4 Nano",
+				Family:      "gpt-nano",
+				Reasoning:   true,
+				ToolCall:    true,
+				ReleaseDate: "2026-03-17",
+				Modalities: &Modalities{
+					Input:  []string{"text", "image"},
+					Output: []string{"text"},
+				},
+				Cost: &Cost{
+					Input:  0.2,
+					Output: 1.25,
+				},
+				Limit: &Limit{
+					Context: 400000,
+					Output:  128000,
+				},
+			},
+			"openai/gpt-5.4-mini": {
+				ID:          "openai/gpt-5.4-mini",
+				Name:        "GPT-5.4 Mini",
+				Family:      "gpt-mini",
+				Reasoning:   true,
+				ToolCall:    true,
+				ReleaseDate: "2026-03-17",
+				Modalities: &Modalities{
+					Input:  []string{"text", "image"},
+					Output: []string{"text"},
+				},
+				Cost: &Cost{
+					Input:  0.75,
+					Output: 4.5,
+				},
+				Limit: &Limit{
+					Context: 400000,
+					Output:  128000,
+				},
+			},
+			"openai/gpt-5.4": {
+				ID:          "openai/gpt-5.4",
+				Name:        "GPT-5.4",
+				Family:      "gpt",
+				Reasoning:   true,
+				ToolCall:    true,
+				ReleaseDate: "2026-03-05",
+				Modalities: &Modalities{
+					Input:  []string{"text", "image"},
+					Output: []string{"text"},
+				},
+				Cost: &Cost{
+					Input:  2.5,
+					Output: 15,
+				},
+				Limit: &Limit{
+					Context: 400000,
+					Output:  128000,
+				},
+			},
+			"openai/gpt-5.4-pro": {
+				ID:          "openai/gpt-5.4-pro",
+				Name:        "GPT-5.4 Pro",
+				Family:      "gpt-pro",
+				Reasoning:   true,
+				ToolCall:    true,
+				ReleaseDate: "2026-03-05",
+				Modalities: &Modalities{
+					Input:  []string{"text", "image"},
+					Output: []string{"text"},
+				},
+				Cost: &Cost{
+					Input:  30,
+					Output: 180,
+				},
+				Limit: &Limit{
+					Context: 400000,
+					Output:  128000,
+				},
+			},
+			"openai/gpt-5.3-codex": {
+				ID:          "openai/gpt-5.3-codex",
+				Name:        "GPT-5.3 Codex",
+				Family:      "gpt-codex",
+				Reasoning:   true,
+				ToolCall:    true,
+				ReleaseDate: "2026-02-05",
+				Modalities: &Modalities{
+					Input:  []string{"text", "image"},
+					Output: []string{"text"},
+				},
+				Cost: &Cost{
+					Input:  1.75,
+					Output: 14,
+				},
+				Limit: &Limit{
+					Context: 400000,
+					Output:  128000,
+				},
+			},
+			"google/gemini-3.1-pro-preview": {
+				ID:               "google/gemini-3.1-pro-preview",
+				Name:             "Gemini 3.1 Pro Preview",
+				Family:           "gemini-pro",
+				Reasoning:        true,
+				ToolCall:         true,
+				StructuredOutput: true,
+				ReleaseDate:      "2026-02-19",
+				Modalities: &Modalities{
+					Input:  []string{"text", "image", "audio", "video"},
+					Output: []string{"text"},
+				},
+				Cost: &Cost{
+					Input:  2,
+					Output: 12,
+				},
+				Limit: &Limit{
+					Context: 128000,
+					Output:  64000,
+				},
+			},
 			"z-ai/glm-5.1": {
 				ID:          "z-ai/glm-5.1",
 				Name:        "GLM-5.1",
@@ -1300,16 +1943,15 @@ var curatedProviders = []Provider{
 				Speed:       "balanced",
 				Reasoning:   true,
 				ToolCall:    true,
-				OpenWeights: true,
-				ReleaseDate: "2026-04-16",
+				ReleaseDate: "2026-03-27",
 				Description: "Great for complex workflows and coding tasks.",
 				Modalities: &Modalities{
 					Input:  []string{"text"},
 					Output: []string{"text"},
 				},
 				Cost: &Cost{
-					Input:  1,
-					Output: 3.2,
+					Input:  0.98,
+					Output: 3.08,
 				},
 				Limit: &Limit{
 					Context: 202752,
@@ -1331,8 +1973,8 @@ var curatedProviders = []Provider{
 					Output: []string{"text"},
 				},
 				Cost: &Cost{
-					Input:  1,
-					Output: 3.2,
+					Input:  0.6,
+					Output: 1.92,
 				},
 				Limit: &Limit{
 					Context: 202752,
@@ -1496,8 +2138,8 @@ var curatedProviders = []Provider{
 					Output: []string{"text"},
 				},
 				Cost: &Cost{
-					Input:  0.14,
-					Output: 0.28,
+					Input:  0.1,
+					Output: 0.2,
 				},
 				Limit: &Limit{
 					Context: 1048576,
@@ -1520,8 +2162,8 @@ var curatedProviders = []Provider{
 					Output: []string{"text"},
 				},
 				Cost: &Cost{
-					Input:  1.74,
-					Output: 3.48,
+					Input:  0.435,
+					Output: 0.87,
 				},
 				Limit: &Limit{
 					Context: 1048576,
@@ -1534,6 +2176,7 @@ var curatedProviders = []Provider{
 				Family:      "mimo",
 				Reasoning:   true,
 				ToolCall:    true,
+				OpenWeights: true,
 				Knowledge:   "2024-12",
 				ReleaseDate: "2026-04-22",
 				Description: "Understands audio, video, and images. Great for basic coding tasks.",
@@ -1571,6 +2214,86 @@ var curatedProviders = []Provider{
 				Limit: &Limit{
 					Context: 1000000,
 					Output:  128000,
+				},
+			},
+			"anthropic/claude-opus-4.6": {
+				ID:          "anthropic/claude-opus-4.6",
+				Name:        "Claude Opus 4.6",
+				Family:      "claude-opus",
+				Reasoning:   true,
+				ToolCall:    true,
+				ReleaseDate: "2026-02-05",
+				Modalities: &Modalities{
+					Input:  []string{"text", "image"},
+					Output: []string{"text"},
+				},
+				Cost: &Cost{
+					Input:  5,
+					Output: 25,
+				},
+				Limit: &Limit{
+					Context: 200000,
+					Output:  64000,
+				},
+			},
+			"anthropic/claude-opus-4.5": {
+				ID:          "anthropic/claude-opus-4.5",
+				Name:        "Claude Opus 4.5",
+				Family:      "claude-opus",
+				Reasoning:   true,
+				ToolCall:    true,
+				ReleaseDate: "2025-11-24",
+				Modalities: &Modalities{
+					Input:  []string{"text", "image"},
+					Output: []string{"text"},
+				},
+				Cost: &Cost{
+					Input:  5,
+					Output: 25,
+				},
+				Limit: &Limit{
+					Context: 200000,
+					Output:  64000,
+				},
+			},
+			"anthropic/claude-sonnet-4.5": {
+				ID:          "anthropic/claude-sonnet-4.5",
+				Name:        "Claude Sonnet 4.5",
+				Family:      "claude-sonnet",
+				Reasoning:   true,
+				ToolCall:    true,
+				ReleaseDate: "2025-09-29",
+				Modalities: &Modalities{
+					Input:  []string{"text", "image"},
+					Output: []string{"text"},
+				},
+				Cost: &Cost{
+					Input:  3,
+					Output: 15,
+				},
+				Limit: &Limit{
+					Context: 200000,
+					Output:  64000,
+				},
+			},
+			"anthropic/claude-sonnet-4": {
+				ID:          "anthropic/claude-sonnet-4",
+				Name:        "Claude Sonnet 4",
+				Family:      "claude-sonnet",
+				Reasoning:   true,
+				ToolCall:    true,
+				ReleaseDate: "2025-05-22",
+				Modalities: &Modalities{
+					Input:  []string{"text", "image"},
+					Output: []string{"text"},
+				},
+				Cost: &Cost{
+					Input:  3,
+					Output: 15,
+				},
+				Limit: &Limit{
+					Context: 200000,
+					Output:  16000,
 				},
 			},
 			"openai/gpt-5-nano": {

@@ -25,6 +25,17 @@ func TestResolveModel_ExplicitProviderRoutes(t *testing.T) {
 	}
 }
 
+func TestSupportedHivyModelRoutesResolve(t *testing.T) {
+	reg := Global()
+	for _, hivyModel := range supportedHivyModels {
+		for _, route := range hivyModel.Routes {
+			if _, ok := reg.ResolveModel(route.ProviderID, hivyModel.ID); !ok {
+				t.Fatalf("route %s via %s/%s did not resolve", hivyModel.ID, route.ProviderID, route.ModelID)
+			}
+		}
+	}
+}
+
 func TestResolveModel_ExplicitSameProviderRoute(t *testing.T) {
 	route, ok := Global().ResolveModel("openai", "gpt-5.4")
 	if !ok {
