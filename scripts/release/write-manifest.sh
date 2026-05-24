@@ -25,8 +25,8 @@ cat >"${out}" <<EOF
     "apiSemver": "ghcr.io/usehivy/hivy:${RELEASE_VERSION}",
     "sandboxBridge": "ghcr.io/usehivy/sandbox-bridge:${RELEASE_TAG}",
     "sandboxBridgeSemver": "ghcr.io/usehivy/sandbox-bridge:${RELEASE_VERSION}",
-    "employeeSandbox": "ghcr.io/usehivy/employee-sandbox:${RELEASE_TAG}",
-    "employeeSandboxSemver": "ghcr.io/usehivy/employee-sandbox:${RELEASE_VERSION}"
+    "sandboxesRuntime": "ghcr.io/usehivy/hivy-sandboxes-runtime:${RELEASE_TAG}",
+    "sandboxesRuntimeSemver": "ghcr.io/usehivy/hivy-sandboxes-runtime:${RELEASE_VERSION}"
   },
   "bridgeAssets": {
     "linuxAmd64": "bridge-${RELEASE_TAG}-x86_64-unknown-linux-gnu.tar.gz",
@@ -37,7 +37,7 @@ cat >"${out}" <<EOF
   "runtimeConfig": {
     "HIVY_SPECIALIST_SANDBOX_RUNTIME_VERSION": "${RELEASE_TAG}",
     "HIVY_SPECIALIST_SANDBOX_BASE_IMAGE_PREFIX": "hivy-bridge-${RELEASE_DASHED}-small-v1",
-    "HIVY_EMPLOYEE_SANDBOX_BASE_IMAGE_PREFIX": "hivy-employee-sandbox-${RELEASE_DASHED}-small-v1"
+    "HIVY_SANDBOXES_RUNTIME_BASE_IMAGE_PREFIX": "hivy-sandboxes-runtime-${RELEASE_DASHED}-small-v1"
   },
   "snapshots": {
     "runtime": {
@@ -46,11 +46,11 @@ cat >"${out}" <<EOF
       "large": "hivy-bridge-${RELEASE_DASHED}-large-v1",
       "xlarge": "hivy-bridge-${RELEASE_DASHED}-xlarge-v1"
     },
-    "employee": {
-      "small": "hivy-employee-sandbox-${RELEASE_DASHED}-small-v1",
-      "medium": "hivy-employee-sandbox-${RELEASE_DASHED}-medium-v1",
-      "large": "hivy-employee-sandbox-${RELEASE_DASHED}-large-v1",
-      "xlarge": "hivy-employee-sandbox-${RELEASE_DASHED}-xlarge-v1"
+    "sandboxesRuntime": {
+      "small": "hivy-sandboxes-runtime-${RELEASE_DASHED}-small-v1",
+      "medium": "hivy-sandboxes-runtime-${RELEASE_DASHED}-medium-v1",
+      "large": "hivy-sandboxes-runtime-${RELEASE_DASHED}-large-v1",
+      "xlarge": "hivy-sandboxes-runtime-${RELEASE_DASHED}-xlarge-v1"
     }
   }
 }

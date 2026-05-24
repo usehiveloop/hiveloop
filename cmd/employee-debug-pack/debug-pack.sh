@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set +e
 
-debug_dir="${HIVY_DEBUG_OUT:-/tmp/employee-sandbox-debug-$(date -u +%Y%m%dT%H%M%SZ)}"
+debug_dir="${HIVY_DEBUG_OUT:-/tmp/sandbox-runtime-debug-$(date -u +%Y%m%dT%H%M%SZ)}"
 archive="${debug_dir}.tar.gz"
 sandbox_id="${HIVY_DEBUG_SANDBOX_ID:-${DAYTONA_SANDBOX_ID:-unknown}}"
 sensitive="${HIVY_DEBUG_SENSITIVE:-0}"
@@ -104,7 +104,7 @@ fi
   done
   echo
   echo "Check health/healthz.txt and health/readyz.txt for bridge health."
-  echo "Check data/sqlite-* files and data/employee-bridge.db if DB_PATH exists."
+  echo "Check data/sqlite-* files and data/hivy-sandboxes-runtime.db if DB_PATH exists."
   if [ "$sensitive" != "1" ]; then
     echo "Sensitive env values are redacted. Re-run with sensitive mode only when needed."
   fi
@@ -180,7 +180,7 @@ else
 fi
 
 if [ -n "${DB_PATH:-}" ] && [ -f "$DB_PATH" ]; then
-  cp -a "$DB_PATH" "$debug_dir/data/employee-bridge.db" 2>/dev/null || true
+  cp -a "$DB_PATH" "$debug_dir/data/hivy-sandboxes-runtime.db" 2>/dev/null || true
   if command -v sqlite3 >/dev/null 2>&1; then
     sqlite3 "$DB_PATH" '.tables' > "$debug_dir/data/sqlite-tables.txt" 2>&1
     sqlite3 "$DB_PATH" '.schema' > "$debug_dir/data/sqlite-schema.sql" 2>&1

@@ -461,7 +461,7 @@ DESCRIPTION=$(cat <<'MD'
 The deploy job fails while building the employee sandbox image.
 
 ```bash
-docker build -f sandboxes/employee/Dockerfile.runtime .
+docker build -f sandboxes/runtime/Dockerfile.runtime .
 ```
 
 ## Expected result

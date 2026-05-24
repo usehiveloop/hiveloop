@@ -1,0 +1,56 @@
+[package]
+name = "hivy-sandboxes-runtime"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+rust-version.workspace = true
+
+[[bin]]
+name = "hivy-sandboxes-runtime"
+path = "src/main.rs"
+
+[[bin]]
+name = "gen-openapi"
+path = "src/bin/gen_openapi.rs"
+required-features = ["openapi"]
+
+[features]
+openapi = ["api/openapi", "dep:utoipa"]
+
+[dependencies]
+domain.workspace = true
+gateway.workspace = true
+agent.workspace = true
+storage.workspace = true
+tools.workspace = true
+mcp.workspace = true
+skills.workspace = true
+outbound.workspace = true
+api.workspace = true
+
+tokio.workspace = true
+async-trait.workspace = true
+anyhow.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+sentry.workspace = true
+dotenvy.workspace = true
+futures.workspace = true
+chrono.workspace = true
+serde_json.workspace = true
+sqlx.workspace = true
+utoipa = { workspace = true, optional = true }
+dashmap = "6"
+rustls = "0.23"
+url = "2"
+flate2 = "1"
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json"] }
+tempfile = "3"
+serde = { workspace = true, features = ["derive"] }
+sha2 = "0.10"
+hex = "0.4"
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["full"] }
+axum = "0.7"

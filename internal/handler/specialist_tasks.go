@@ -34,7 +34,6 @@ type SpecialistTaskHandlerHooks struct {
 	StopSandbox             func(ctx context.Context, sb *model.Sandbox) error
 	DeleteSandbox           func(ctx context.Context, sb *model.Sandbox) error
 	TaskDriveUploadURL      func(employeeID uuid.UUID, taskID uuid.UUID) string
-	EmployeeCallbackRuntime employeeCallbackSandboxSpecialists
 }
 
 type SpecialistTaskHandler struct {
@@ -54,7 +53,6 @@ func NewSpecialistTaskHandler(db *gorm.DB, encKey *crypto.SymmetricKey, orchestr
 		hooks.StopSandbox = orchestrator.StopSandbox
 		hooks.DeleteSandbox = orchestrator.DeleteSandboxResource
 		hooks.TaskDriveUploadURL = orchestrator.EmployeeTaskDriveUploadURL
-		hooks.EmployeeCallbackRuntime = orchestrator
 	}
 	if pusher != nil {
 		hooks.PushSpecialistToSandbox = pusher.PushSpecialistToSandbox

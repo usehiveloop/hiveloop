@@ -44,7 +44,7 @@ func (o *Orchestrator) CreateEmployeeSandbox(ctx context.Context, agent *model.E
 		return nil, fmt.Errorf("encrypting runtime secret: %w", err)
 	}
 
-	snapshotID := o.cfg.EmployeeSandboxBaseImagePrefix
+	snapshotID := o.cfg.SandboxesRuntimeBaseImagePrefix
 	sb := model.Sandbox{
 		OrgID:                 &orgID,
 		EmployeeID:            &agent.ID,
@@ -155,7 +155,7 @@ func employeeSandboxEnvVars(cfg *config.Config, runtimeSecret string, sb *model.
 		employeeruntime.EmployeeEnvBridgeAPIKey:             runtimeSecret,
 		employeeruntime.EmployeeEnvUploadBearer:             runtimeSecret,
 		employeeruntime.EmployeeEnvWorkspaceRoot:            "/workspace",
-		employeeruntime.EmployeeEnvDBPath:                   "/app/data/employee-bridge.db",
+		employeeruntime.EmployeeEnvDBPath:                   "/app/data/hivy-sandboxes-runtime.db",
 		employeeruntime.EmployeeEnvRuntimeBindAddr:          fmt.Sprintf("0.0.0.0:%d", EmployeeSandboxPort),
 		employeeruntime.EmployeeEnvSandboxID:                sb.ID.String(),
 		employeeruntime.EmployeeEnvOrgID:                    orgID.String(),
@@ -175,7 +175,7 @@ func employeeSandboxEnvVars(cfg *config.Config, runtimeSecret string, sb *model.
 	setEmployeeDriveUploadURL(envVars, cfg, agent.ID, "employee")
 	employeeSentryDSN := ""
 	if cfg != nil {
-		employeeSentryDSN = cfg.EmployeeSandboxSentryDSN
+		employeeSentryDSN = cfg.SandboxesRuntimeSentryDSN
 	}
 	setSandboxSentryEnvVars(envVars, cfg, employeeSentryDSN)
 	return envVars

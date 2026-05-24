@@ -27,11 +27,10 @@ import (
 
 // BridgeWebhookHandler receives webhook events from Bridge instances.
 type BridgeWebhookHandler struct {
-	db                      *gorm.DB
-	encKey                  *crypto.SymmetricKey
-	eventBus                EventPublisher       // nil-safe: if nil, events go directly to Postgres
-	enqueuer                enqueue.TaskEnqueuer // nil-safe: if nil, conversation naming is skipped
-	employeeCallbackRuntime employeeCallbackSandboxSpecialists
+	db       *gorm.DB
+	encKey   *crypto.SymmetricKey
+	eventBus EventPublisher       // nil-safe: if nil, events go directly to Postgres
+	enqueuer enqueue.TaskEnqueuer // nil-safe: if nil, conversation naming is skipped
 }
 
 // EventPublisher is the interface for publishing events to the streaming bus.
@@ -42,14 +41,6 @@ type EventPublisher interface {
 // NewBridgeWebhookHandler creates a webhook handler.
 func NewBridgeWebhookHandler(db *gorm.DB, encKey *crypto.SymmetricKey, eventBus EventPublisher, enqueuer enqueue.TaskEnqueuer) *BridgeWebhookHandler {
 	return &BridgeWebhookHandler{db: db, encKey: encKey, eventBus: eventBus, enqueuer: enqueuer}
-}
-
-// NewBridgeWebhookHandlerWithEmployeeRuntime creates a webhook handler that can
-// refresh and wake employee runtimes before forwarding specialist callbacks.
-func NewBridgeWebhookHandlerWithEmployeeRuntime(db *gorm.DB, encKey *crypto.SymmetricKey, eventBus EventPublisher, enqueuer enqueue.TaskEnqueuer, runtime employeeCallbackSandboxSpecialists) *BridgeWebhookHandler {
-	h := NewBridgeWebhookHandler(db, encKey, eventBus, enqueuer)
-	h.employeeCallbackRuntime = runtime
-	return h
 }
 
 // webhookEvent is a single event in a Bridge webhook batch.
@@ -218,7 +209,7 @@ func (h *BridgeWebhookHandler) processEvent(ctx context.Context, sb *model.Sandb
 	}
 
 	if specialistTask != nil && shouldForwardSpecialistEvent(event.EventType) {
-		h.forwardSpecialistEvent(ctx, *specialistTask, &conv, event)
+		h.forwardSpecialistEvent(ctx, *specialistTask, event)
 	}
 }
 

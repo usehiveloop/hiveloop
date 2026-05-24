@@ -89,11 +89,11 @@ func employeeSandboxUpgradeBackupKey(orgID, agentID, upgradeID uuid.UUID) string
 func buildEmployeeSandboxBackupCommand(uploadURL string) string {
 	return strings.Join([]string{
 		"set -eu",
-		`DB="${DB_PATH:-/app/data/employee-bridge.db}"`,
+		`DB="${DB_PATH:-/app/data/hivy-sandboxes-runtime.db}"`,
 		`TMP_DIR="$(mktemp -d)"`,
 		`trap 'rm -rf "$TMP_DIR"' EXIT`,
-		`SNAP="$TMP_DIR/employee-bridge.db"`,
-		`GZ="$TMP_DIR/employee-bridge.db.gz"`,
+		`SNAP="$TMP_DIR/hivy-sandboxes-runtime.db"`,
+		`GZ="$TMP_DIR/hivy-sandboxes-runtime.db.gz"`,
 		`sqlite3 "$DB" "PRAGMA wal_checkpoint(FULL);" >/dev/null`,
 		`sqlite3 "$DB" "VACUUM main INTO '$SNAP';"`,
 		`CHECK="$(sqlite3 "$SNAP" "PRAGMA integrity_check;")"`,
@@ -110,11 +110,11 @@ func buildEmployeeSandboxBackupCommand(uploadURL string) string {
 func buildEmployeeSandboxRestoreCommand(presignedURL, sha256Hex string) string {
 	return strings.Join([]string{
 		"set -eu",
-		`DB="${DB_PATH:-/app/data/employee-bridge.db}"`,
+		`DB="${DB_PATH:-/app/data/hivy-sandboxes-runtime.db}"`,
 		`TMP_DIR="$(mktemp -d)"`,
 		`trap 'rm -rf "$TMP_DIR"' EXIT`,
-		`GZ="$TMP_DIR/employee-bridge.db.gz"`,
-		`RESTORE="$TMP_DIR/employee-bridge.db"`,
+		`GZ="$TMP_DIR/hivy-sandboxes-runtime.db.gz"`,
+		`RESTORE="$TMP_DIR/hivy-sandboxes-runtime.db"`,
 		fmt.Sprintf("curl -fsSL %s -o \"$GZ\"", shellQuote(presignedURL)),
 		fmt.Sprintf("printf '%%s  %%s\\n' %s \"$GZ\" | sha256sum -c -", shellQuote(sha256Hex)),
 		`gzip -dc "$GZ" > "$RESTORE"`,

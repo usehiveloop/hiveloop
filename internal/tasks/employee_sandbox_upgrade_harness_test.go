@@ -39,9 +39,9 @@ func newEmployeeUpgradeFixture(t *testing.T) *employeeUpgradeFixture {
 	encKey := testTasksEncKey(t)
 	kms := testTasksKMS(t)
 	cfg := &config.Config{
-		EmployeeSandboxBaseImagePrefix: "employee-runtime-test-v2",
-		SpecialistSandboxHost:          "cp.hivy.test",
-		ProxyHost:                      "proxy.hivy.test",
+		SandboxesRuntimeBaseImagePrefix: "employee-runtime-test-v2",
+		SpecialistSandboxHost:           "cp.hivy.test",
+		ProxyHost:                       "proxy.hivy.test",
 	}
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
@@ -127,7 +127,7 @@ func newEmployeeUpgradeFixture(t *testing.T) *employeeUpgradeFixture {
 	old := model.Sandbox{
 		OrgID:                 &org.ID,
 		EmployeeID:            &agent.ID,
-		SnapshotID:            &cfg.EmployeeSandboxBaseImagePrefix,
+		SnapshotID:            &cfg.SandboxesRuntimeBaseImagePrefix,
 		ExternalID:            "old-external",
 		BridgeURL:             server.URL,
 		EncryptedBridgeAPIKey: encryptedKey,

@@ -36,7 +36,7 @@ func defaultLimits() map[string]any {
 		"input_token_budget":        180000,
 		"output_token_budget":       8000,
 		"tool_call_timeout_seconds": 60,
-		"specialist_max_depth":      2,
+		"subagent_max_depth":        2,
 	}
 }
 
@@ -48,8 +48,6 @@ func defaultTools() []map[string]any {
 		{"type": "builtin.cron"}, {"type": "builtin.delegate"}, {"type": "builtin.check_delegated_status"},
 		{"type": "builtin.check_bash_status"}, {"type": "builtin.wake"}, {"type": "builtin.load_tools"},
 		{"type": "builtin.skills_list"}, {"type": "builtin.skill_view"}, {"type": "builtin.skill_manage"},
-		{"type": "builtin.specialist_launch_task"}, {"type": "builtin.specialist_task_status"}, {"type": "builtin.specialist_list_tasks"},
-		{"type": "builtin.specialist_task_send_message"}, {"type": "builtin.specialist_task_terminate"},
 	}
 }
 

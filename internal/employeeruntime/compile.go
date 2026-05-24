@@ -53,17 +53,18 @@ type ProxyTokenResult struct {
 }
 
 type EmployeeDefinition struct {
-	Employee         AgentMeta        `json:"employee"`
-	PromptFragments  PromptFragments  `json:"prompt_fragments,omitempty"`
-	Model            ModelConfig      `json:"model"`
-	MultimodalModel  *ModelConfig     `json:"multimodal_model,omitempty"`
-	Limits           map[string]any   `json:"limits,omitempty"`
-	Context          map[string]any   `json:"context,omitempty"`
-	Tools            []map[string]any `json:"tools"`
-	McpServers       []any            `json:"mcp_servers"`
-	Skills           []SkillSpec      `json:"skills"`
-	Specialists      []any            `json:"specialists"`
-	OutboundChannels []any            `json:"outbound_channels"`
+	Agent             AgentMeta          `json:"agent"`
+	Mode              string             `json:"mode,omitempty"`
+	SpecialistProfile *SpecialistProfile `json:"specialist_profile,omitempty"`
+	PromptFragments   PromptFragments    `json:"prompt_fragments,omitempty"`
+	Model             ModelConfig        `json:"model"`
+	MultimodalModel   *ModelConfig       `json:"multimodal_model,omitempty"`
+	Limits            map[string]any     `json:"limits,omitempty"`
+	Context           map[string]any     `json:"context,omitempty"`
+	Tools             []map[string]any   `json:"tools"`
+	McpServers        []any              `json:"mcp_servers"`
+	Skills            []SkillSpec        `json:"skills"`
+	OutboundChannels  []any              `json:"outbound_channels"`
 }
 
 type AgentDefinition = EmployeeDefinition
@@ -71,6 +72,11 @@ type AgentDefinition = EmployeeDefinition
 type AgentMeta struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
+}
+
+type SpecialistProfile struct {
+	Name        string `json:"name"`
+	Description string `json:"description,omitempty"`
 }
 
 type PromptFragments struct {
@@ -225,20 +231,21 @@ func Compile(ctx context.Context, deps CompileDeps, agent *model.Employee) (*Emp
 		modelID = DefaultEmployeeModel
 	}
 	return &EmployeeDefinition{
-		Employee: AgentMeta{
+		Agent: AgentMeta{
 			Name:        managedEmployeeName,
 			Description: description,
 		},
-		PromptFragments:  fragments,
-		Model:            proxyModel(deps.Cfg, modelID),
-		MultimodalModel:  ptrModel(proxyModel(deps.Cfg, DefaultEmployeeMultimodalModel)),
-		Limits:           defaultLimits(),
-		Context:          contextMap,
-		Tools:            defaultTools(),
-		McpServers:       mcpServers,
-		Skills:           skills,
-		Specialists:      []any{},
-		OutboundChannels: []any{},
+		Mode:              "employee",
+		SpecialistProfile: nil,
+		PromptFragments:   fragments,
+		Model:             proxyModel(deps.Cfg, modelID),
+		MultimodalModel:   ptrModel(proxyModel(deps.Cfg, DefaultEmployeeMultimodalModel)),
+		Limits:            defaultLimits(),
+		Context:           contextMap,
+		Tools:             defaultTools(),
+		McpServers:        mcpServers,
+		Skills:            skills,
+		OutboundChannels:  []any{},
 	}, nil
 }
 

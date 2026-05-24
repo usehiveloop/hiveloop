@@ -91,20 +91,4 @@ func (h *SpecialistTaskHandler) ensureConversationEndedEvent(ctx context.Context
 		return
 	}
 
-	if err := dispatchSpecialistCallback(ctx, h.db, h.encKey, h.hooks.EmployeeCallbackRuntime, task, event); err != nil {
-		logging.FromContext(ctx).WarnContext(ctx, "failed to forward specialist termination to employee bridge",
-			"task_id", task.ID,
-			"conversation_id", conv.ID,
-			"error", err,
-		)
-		captureSpecialistWarning(ctx, "terminate_task", err, specialistSentryContext{
-			Operation:      "dispatch_termination_callback",
-			OrgID:          task.OrgID,
-			EmployeeID:     task.EmployeeID,
-			SpecialistID:   task.SpecialistID,
-			TaskID:         task.ID,
-			SandboxID:      task.SandboxID,
-			ConversationID: conv.ID,
-		})
-	}
 }

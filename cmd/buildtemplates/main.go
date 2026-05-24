@@ -4,7 +4,7 @@
 // Usage:
 //
 //	buildtemplates bridge -version=1.0.0 -bridge-version=v1.0.0 [-size=...] [-bridge-binary=...] [-build-image=false]
-//	buildtemplates employee-sandbox -version=v0.0.1             [-size=...]
+//	buildtemplates sandbox-runtime -version=v0.0.1              [-size=...]
 package main
 
 import (
@@ -28,8 +28,8 @@ func main() {
 	switch target {
 	case "bridge":
 		runBridge(ctx, args)
-	case "employee-sandbox":
-		runEmployeeSandbox(ctx, args)
+	case "sandbox-runtime":
+		runSandboxRuntime(ctx, args)
 	case "-h", "--help", "help":
 		usage()
 	default:
@@ -42,5 +42,5 @@ func main() {
 func usage() {
 	fmt.Fprintln(os.Stderr, `usage:
   buildtemplates bridge -version=1.0.0 -bridge-version=v1.0.0 [-size=all|small,medium,large,xlarge] [-bridge-binary=...] [-build-image=false] [-register-snapshots=false]
-  buildtemplates employee-sandbox -version=v0.0.1             [-size=all|small,medium,large,xlarge]`)
+  buildtemplates sandbox-runtime -version=v0.0.1              [-size=all|small,medium,large,xlarge]`)
 }

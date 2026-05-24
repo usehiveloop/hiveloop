@@ -41,7 +41,7 @@ RELEASE_COMMIT=${commit}
 RELEASE_SHORT_COMMIT=${short_commit}
 API_IMAGE=ghcr.io/usehivy/hivy:${tag}
 SANDBOX_BRIDGE_IMAGE=ghcr.io/usehivy/sandbox-bridge:${tag}
-EMPLOYEE_SANDBOX_IMAGE=ghcr.io/usehivy/employee-sandbox:${tag}
+SANDBOXES_RUNTIME_IMAGE=ghcr.io/usehivy/hivy-sandboxes-runtime:${tag}
 BRIDGE_SNAPSHOT_SMALL=hivy-bridge-${dashed}-small-v1
-EMPLOYEE_SANDBOX_SNAPSHOT_SMALL=hivy-employee-sandbox-${dashed}-small-v1
+SANDBOXES_RUNTIME_SNAPSHOT_SMALL=hivy-sandboxes-runtime-${dashed}-small-v1
 EOF

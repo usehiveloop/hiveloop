@@ -63,7 +63,7 @@ func main() {
 
 	stamp := time.Now().UTC().Format("20060102T150405Z")
 	remoteScript := fmt.Sprintf("/tmp/hivy-employee-debug-pack-%s.sh", stamp)
-	remoteBase := fmt.Sprintf("/tmp/employee-sandbox-debug-%s-%s", *sandboxID, stamp)
+	remoteBase := fmt.Sprintf("/tmp/sandbox-runtime-debug-%s-%s", *sandboxID, stamp)
 	remoteArchive := remoteBase + ".tar.gz"
 
 	fmt.Printf("upload_script=%s\n", remoteScript)

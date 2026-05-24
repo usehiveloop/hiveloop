@@ -113,8 +113,8 @@ type Config struct {
 	APIWebhookBaseURL                string `env:"HIVY_API_WEBHOOK_BASE_URL" envDefault:"https://api.usehivy.com"`                    // public API base URL for provider webhook callbacks
 	ProxyHost                        string `env:"HIVY_PROXY_HOST" envDefault:"proxy.usehivy.com"`                                    // LLM proxy hostname (proxy.usehivy.com)
 
-	// Employee sandbox runtime — ghcr.io/usehivy/employee-sandbox image.
-	EmployeeSandboxBaseImagePrefix string `env:"HIVY_EMPLOYEE_SANDBOX_BASE_IMAGE_PREFIX" envDefault:"hivy-employee-sandbox-0-0-3-small-v1"`
+	// Employee sandbox runtime — ghcr.io/usehivy/hivy-sandboxes-runtime image.
+	SandboxesRuntimeBaseImagePrefix string `env:"HIVY_SANDBOXES_RUNTIME_BASE_IMAGE_PREFIX" envDefault:"hivy-sandboxes-runtime-0-0-3-small-v1"`
 
 	// Hindsight (agent memory)
 	HindsightAPIURL string `env:"HIVY_HINDSIGHT_API_URL"` // e.g. http://hindsight.railway.internal:8888 — empty = memory disabled
@@ -165,13 +165,13 @@ type Config struct {
 	// asynq (per-task transactions), GORM (db.sql spans), go-redis (db.redis
 	// spans), outbound HTTP transports, and slog (Error+ records become
 	// Sentry events). See internal/observability/sentry.
-	SentryDSN                string  `env:"HIVY_SENTRY_DSN"`
-	SentryEnabled            bool    `env:"HIVY_SENTRY_ENABLED" envDefault:"false"`
-	SentryRelease            string  `env:"HIVY_SENTRY_RELEASE"`
-	SentryTracesSampleRate   float64 `env:"HIVY_SENTRY_TRACES_SAMPLE_RATE" envDefault:"0.1"`
-	SentryProfilesSampleRate float64 `env:"HIVY_SENTRY_PROFILES_SAMPLE_RATE" envDefault:"0.0"`
-	EmployeeSandboxSentryDSN string  `env:"HIVY_EMPLOYEE_SANDBOX_SENTRY_DSN"`
-	AgentSandboxSentryDSN    string  `env:"HIVY_AGENT_SANDBOX_SENTRY_DSN"`
+	SentryDSN                 string  `env:"HIVY_SENTRY_DSN"`
+	SentryEnabled             bool    `env:"HIVY_SENTRY_ENABLED" envDefault:"false"`
+	SentryRelease             string  `env:"HIVY_SENTRY_RELEASE"`
+	SentryTracesSampleRate    float64 `env:"HIVY_SENTRY_TRACES_SAMPLE_RATE" envDefault:"0.1"`
+	SentryProfilesSampleRate  float64 `env:"HIVY_SENTRY_PROFILES_SAMPLE_RATE" envDefault:"0.0"`
+	SandboxesRuntimeSentryDSN string  `env:"HIVY_SANDBOXES_RUNTIME_SENTRY_DSN"`
+	AgentSandboxSentryDSN     string  `env:"HIVY_AGENT_SANDBOX_SENTRY_DSN"`
 
 	// Qdrant (vector store, gRPC). Empty QdrantHost disables RAG.
 	QdrantHost       string `env:"HIVY_QDRANT_HOST"`

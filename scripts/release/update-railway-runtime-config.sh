@@ -27,12 +27,12 @@ fi
 
 specialist_sandbox_runtime_version="$(jq -r '.runtimeConfig.HIVY_SPECIALIST_SANDBOX_RUNTIME_VERSION' "${manifest}")"
 specialist_sandbox_base_image_prefix="$(jq -r '.runtimeConfig.HIVY_SPECIALIST_SANDBOX_BASE_IMAGE_PREFIX' "${manifest}")"
-employee_sandbox_base_image_prefix="$(jq -r '.runtimeConfig.HIVY_EMPLOYEE_SANDBOX_BASE_IMAGE_PREFIX' "${manifest}")"
+sandboxes_runtime_base_image_prefix="$(jq -r '.runtimeConfig.HIVY_SANDBOXES_RUNTIME_BASE_IMAGE_PREFIX' "${manifest}")"
 
 for value in \
   "${specialist_sandbox_runtime_version}" \
   "${specialist_sandbox_base_image_prefix}" \
-  "${employee_sandbox_base_image_prefix}"
+  "${sandboxes_runtime_base_image_prefix}"
 do
   if [[ -z "${value}" || "${value}" == "null" ]]; then
     echo "release manifest is missing a runtimeConfig value" >&2
@@ -51,7 +51,7 @@ for service in "${service_list[@]}"; do
   railway variable set \
     "HIVY_SPECIALIST_SANDBOX_RUNTIME_VERSION=${specialist_sandbox_runtime_version}" \
     "HIVY_SPECIALIST_SANDBOX_BASE_IMAGE_PREFIX=${specialist_sandbox_base_image_prefix}" \
-    "HIVY_EMPLOYEE_SANDBOX_BASE_IMAGE_PREFIX=${employee_sandbox_base_image_prefix}" \
+    "HIVY_SANDBOXES_RUNTIME_BASE_IMAGE_PREFIX=${sandboxes_runtime_base_image_prefix}" \
     --environment "${environment}" \
     --service "${service}"
 done

@@ -1,7 +1,0 @@
-package: employeebridge
-generate:
-  models: true
-  client: true
-output: internal/employeebridge/client_gen.go
-output-options:
-  response-type-suffix: Resp

@@ -193,9 +193,9 @@ P1
     - Fix: keep Slack-only as explicit v1 contract, or add provider-specific startup profile support for future gateways.
     - Key files: internal/employeeruntime/compile.go, internal/handler/employees_sync.go, internal/handler/onboarding_complete.go
 
-37. Add employee-sandbox E2E coverage.
-    - Problem: employee-sandbox startup and config sync need end-to-end coverage against the current runtime.
-    - Fix: add or verify an employee-sandbox E2E that creates an employee, connects Slack/GitHub profiles, provisions the sandbox, pushes /config, checks /healthz and /readyz, and verifies model/proxy/env behavior.
+37. Add sandbox-runtime E2E coverage.
+    - Problem: sandbox-runtime startup and config sync need end-to-end coverage against the current runtime.
+    - Fix: add or verify an sandbox-runtime E2E that creates an employee, connects Slack/GitHub profiles, provisions the sandbox, pushes /config, checks /healthz and /readyz, and verifies model/proxy/env behavior.
     - Key files: internal/handler/employees_create_test.go, internal/handler/employees_sync_test.go, internal/sandbox/orchestrator_create_employee.go, e2e
 
 

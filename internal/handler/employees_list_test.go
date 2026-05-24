@@ -106,7 +106,7 @@ func TestIntegration_EmployeesList_ReportsSandboxUpgradeAvailability(t *testing.
 
 	matching := h.seedEmployeeAgent(t, m)
 	matchingSandbox := h.seedSandbox(t, m, matching.ID)
-	h.setSandboxSnapshot(t, matchingSandbox.ID, &h.cfg.EmployeeSandboxBaseImagePrefix)
+	h.setSandboxSnapshot(t, matchingSandbox.ID, &h.cfg.SandboxesRuntimeBaseImagePrefix)
 
 	outdated := h.seedEmployeeAgent(t, m)
 	outdatedSandbox := h.seedSandbox(t, m, outdated.ID)
