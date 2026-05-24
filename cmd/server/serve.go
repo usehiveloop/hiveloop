@@ -142,6 +142,7 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 		if deps.S3Client != nil {
 			employeeHandler.SetEnqueuer(enqueuer)
 		}
+		orgHandler.SetEmployeeSyncer(employeeHandler)
 	}
 	var driveHandler *handler.DriveHandler
 	if deps.S3Client != nil {

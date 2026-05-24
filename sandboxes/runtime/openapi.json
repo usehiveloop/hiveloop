@@ -63,6 +63,9 @@
               }
             }
           },
+          "400": {
+            "description": "Invalid configuration"
+          },
           "500": {
             "description": "Failed to persist or apply configuration"
           }
@@ -505,9 +508,6 @@
               "$ref": "#/components/schemas/OutboundChannelSpec"
             }
           },
-          "prompt_fragments": {
-            "$ref": "#/components/schemas/PromptFragments"
-          },
           "skills": {
             "type": "array",
             "items": {
@@ -530,6 +530,9 @@
               "$ref": "#/components/schemas/SubagentSpec"
             }
           },
+          "system_prompt": {
+            "$ref": "#/components/schemas/SystemPromptConfig"
+          },
           "tools": {
             "type": "array",
             "items": {
@@ -548,9 +551,6 @@
             "type": "string"
           },
           "name": {
-            "type": "string"
-          },
-          "system_prompt": {
             "type": "string"
           }
         }
@@ -812,6 +812,20 @@
           "completed"
         ]
       },
+      "DynamicContextPromptSegment": {
+        "type": "object",
+        "properties": {
+          "item_template": {
+            "type": "string"
+          },
+          "preamble": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          }
+        }
+      },
       "EventKind": {
         "type": "string",
         "enum": [
@@ -1037,6 +1051,20 @@
             ]
           },
           "url": {
+            "type": "string"
+          }
+        }
+      },
+      "ListPromptSegment": {
+        "type": "object",
+        "properties": {
+          "item_template": {
+            "type": "string"
+          },
+          "preamble": {
+            "type": "string"
+          },
+          "title": {
             "type": "string"
           }
         }
@@ -1320,6 +1348,26 @@
             "type": "string"
           },
           "source": {
+            "type": "string"
+          }
+        }
+      },
+      "MemoryPromptSegment": {
+        "type": "object",
+        "properties": {
+          "close_wrapper": {
+            "type": "string"
+          },
+          "item_template": {
+            "type": "string"
+          },
+          "open_wrapper": {
+            "type": "string"
+          },
+          "preamble": {
+            "type": "string"
+          },
+          "title": {
             "type": "string"
           }
         }
@@ -1625,31 +1673,6 @@
           "payload": {}
         }
       },
-      "PromptFragment": {
-        "type": "object",
-        "properties": {
-          "content": {
-            "type": "string"
-          },
-          "title": {
-            "type": "string"
-          }
-        }
-      },
-      "PromptFragments": {
-        "type": "object",
-        "properties": {
-          "company": {
-            "$ref": "#/components/schemas/PromptFragment"
-          },
-          "identity": {
-            "$ref": "#/components/schemas/PromptFragment"
-          },
-          "operating_principles": {
-            "$ref": "#/components/schemas/PromptFragment"
-          }
-        }
-      },
       "ReadFileConfig": {
         "type": "object",
         "required": [
@@ -1931,6 +1954,17 @@
           }
         }
       },
+      "StaticPromptSegment": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          }
+        }
+      },
       "SubagentDefinition": {
         "type": "object",
         "required": [
@@ -1990,6 +2024,135 @@
             "type": "string"
           }
         }
+      },
+      "SystemPromptConfig": {
+        "type": "object",
+        "properties": {
+          "cacheable_segments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SystemPromptSegment"
+            }
+          },
+          "dynamic_segments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SystemPromptSegment"
+            }
+          }
+        }
+      },
+      "SystemPromptSegment": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "config",
+              "type"
+            ],
+            "properties": {
+              "config": {
+                "$ref": "#/components/schemas/StaticPromptSegment"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "static_text"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "config",
+              "type"
+            ],
+            "properties": {
+              "config": {
+                "$ref": "#/components/schemas/DynamicContextPromptSegment"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "dynamic_context"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "config",
+              "type"
+            ],
+            "properties": {
+              "config": {
+                "$ref": "#/components/schemas/MemoryPromptSegment"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "memory_context"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "config",
+              "type"
+            ],
+            "properties": {
+              "config": {
+                "$ref": "#/components/schemas/ListPromptSegment"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "skill_catalog"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "config",
+              "type"
+            ],
+            "properties": {
+              "config": {
+                "$ref": "#/components/schemas/ListPromptSegment"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "loaded_mcp_tools"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "config",
+              "type"
+            ],
+            "properties": {
+              "config": {
+                "$ref": "#/components/schemas/ListPromptSegment"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "unloaded_mcp_tools"
+                ]
+              }
+            }
+          }
+        ]
       },
       "ToolFilter": {
         "type": "object",

@@ -11,7 +11,7 @@ import (
 	"github.com/usehivy/hivy/internal/model"
 )
 
-func TestBuildPromptFragments_UsesTypedFields(t *testing.T) {
+func TestBuildPromptSections_UsesTypedFields(t *testing.T) {
 	orgID := uuid.New()
 	description := managedEmployeeDescription
 	agent := &model.Employee{
@@ -23,7 +23,7 @@ func TestBuildPromptFragments_UsesTypedFields(t *testing.T) {
 		IdentityPrompt: "Own engineering outcomes with evidence.",
 	}
 
-	fragments := buildPromptFragments(context.Background(), nil, agent, description)
+	fragments := buildPromptSections(context.Background(), nil, agent, description)
 
 	if !strings.Contains(fragments.Identity.Content, managedEmployeeName) {
 		t.Fatalf("identity fragment should include employee name: %#v", fragments.Identity)
@@ -39,7 +39,7 @@ func TestBuildPromptFragments_UsesTypedFields(t *testing.T) {
 	}
 }
 
-func TestBuildPromptFragments_UpgradesDefaultManagedIdentityPrompt(t *testing.T) {
+func TestBuildPromptSections_UpgradesDefaultManagedIdentityPrompt(t *testing.T) {
 	orgID := uuid.New()
 	description := "Coordinates engineering work."
 	category := "engineering"
@@ -61,7 +61,7 @@ func TestBuildPromptFragments_UpgradesDefaultManagedIdentityPrompt(t *testing.T)
 				IdentityPrompt: tc.identityPrompt,
 			}
 
-			fragments := buildPromptFragments(context.Background(), nil, agent, description)
+			fragments := buildPromptSections(context.Background(), nil, agent, description)
 
 			if !strings.Contains(fragments.Identity.Content, "Communication contract") {
 				t.Fatalf("identity fragment missing current communication contract: %#v", fragments.Identity)
@@ -73,7 +73,7 @@ func TestBuildPromptFragments_UpgradesDefaultManagedIdentityPrompt(t *testing.T)
 	}
 }
 
-func TestBuildPromptFragments_PreservesCustomIdentityPrompt(t *testing.T) {
+func TestBuildPromptSections_PreservesCustomIdentityPrompt(t *testing.T) {
 	orgID := uuid.New()
 	description := "Coordinates engineering work."
 	custom := "Use the team's incident voice."
@@ -85,7 +85,7 @@ func TestBuildPromptFragments_PreservesCustomIdentityPrompt(t *testing.T) {
 		IdentityPrompt: custom,
 	}
 
-	fragments := buildPromptFragments(context.Background(), nil, agent, description)
+	fragments := buildPromptSections(context.Background(), nil, agent, description)
 
 	if strings.Contains(fragments.Identity.Content, custom) {
 		t.Fatalf("identity fragment should ignore custom identity prompt: %#v", fragments.Identity)
@@ -93,6 +93,106 @@ func TestBuildPromptFragments_PreservesCustomIdentityPrompt(t *testing.T) {
 	if !strings.Contains(fragments.Identity.Content, "Communication contract") {
 		t.Fatalf("identity fragment should use backend-owned default: %#v", fragments.Identity)
 	}
+}
+
+func TestBuildEmployeeSystemPrompt_CompilesAllRuntimePromptSegments(t *testing.T) {
+	fragments := PromptSections{
+		Identity: PromptSection{
+			Title:   "Your identity",
+			Content: "You are the managed employee.",
+		},
+		Company: PromptSection{
+			Title:   "About the company",
+			Content: "Company name: ExampleCo",
+		},
+	}
+
+	prompt := buildEmployeeSystemPrompt(fragments)
+	cacheable := requireCacheableSegments(t, prompt)
+	dynamic := requireDynamicSegments(t, prompt)
+
+	if len(cacheable) != 3 {
+		t.Fatalf("cacheable segment count = %d", len(cacheable))
+	}
+	base := requireStaticPromptSegment(t, cacheable[0])
+	if !strings.Contains(requirePromptString(t, base.Content), "Your job is to drive real team work forward.") {
+		t.Fatalf("base prompt missing employee contract: %#v", base)
+	}
+	if got := requireDynamicContextSegmentType(t, dynamic[0]); got != "dynamic_context" {
+		t.Fatalf("first dynamic segment = %q", got)
+	}
+	if got := requireMemorySegmentType(t, dynamic[1]); got != "memory_context" {
+		t.Fatalf("second dynamic segment = %q", got)
+	}
+	if got := requireListSegment3Type(t, dynamic[2]); got != "skill_catalog" {
+		t.Fatalf("third dynamic segment = %q", got)
+	}
+	if len(dynamic) != 5 {
+		t.Fatalf("dynamic segment count = %d", len(dynamic))
+	}
+}
+
+func requireCacheableSegments(t *testing.T, prompt SystemPromptConfig) []SystemPromptSegment {
+	t.Helper()
+	if prompt.CacheableSegments == nil {
+		t.Fatal("cacheable segments is nil")
+	}
+	return *prompt.CacheableSegments
+}
+
+func requireDynamicSegments(t *testing.T, prompt SystemPromptConfig) []SystemPromptSegment {
+	t.Helper()
+	if prompt.DynamicSegments == nil {
+		t.Fatal("dynamic segments is nil")
+	}
+	return *prompt.DynamicSegments
+}
+
+func requireStaticPromptSegment(t *testing.T, segment SystemPromptSegment) StaticPromptSegment {
+	t.Helper()
+	staticSegment, err := segment.AsSystemPromptSegment0()
+	if err != nil {
+		t.Fatalf("decode static prompt segment: %v", err)
+	}
+	if staticSegment.Type != "static_text" {
+		t.Fatalf("static segment type = %q", staticSegment.Type)
+	}
+	return staticSegment.Config
+}
+
+func requireDynamicContextSegmentType(t *testing.T, segment SystemPromptSegment) string {
+	t.Helper()
+	dynamicSegment, err := segment.AsSystemPromptSegment1()
+	if err != nil {
+		t.Fatalf("decode dynamic context segment: %v", err)
+	}
+	return string(dynamicSegment.Type)
+}
+
+func requireMemorySegmentType(t *testing.T, segment SystemPromptSegment) string {
+	t.Helper()
+	memorySegment, err := segment.AsSystemPromptSegment2()
+	if err != nil {
+		t.Fatalf("decode memory segment: %v", err)
+	}
+	return string(memorySegment.Type)
+}
+
+func requireListSegment3Type(t *testing.T, segment SystemPromptSegment) string {
+	t.Helper()
+	listSegment, err := segment.AsSystemPromptSegment3()
+	if err != nil {
+		t.Fatalf("decode list segment: %v", err)
+	}
+	return string(listSegment.Type)
+}
+
+func requirePromptString(t *testing.T, value *string) string {
+	t.Helper()
+	if value == nil {
+		t.Fatal("prompt string is nil")
+	}
+	return *value
 }
 
 func TestBuildEmployeeMCPServer_DisabledWithoutRuntimeToken(t *testing.T) {

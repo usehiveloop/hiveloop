@@ -318,7 +318,7 @@ export function useOnboarding() {
   const finishBusinessProfile = useCallback(
     (body: OrgUpdateRequest) => {
       updateOrgMutation.mutate(
-        { body },
+        { body: { ...body, sync: true } },
         {
           onSuccess: async () => {
             await refreshOnboardingData()

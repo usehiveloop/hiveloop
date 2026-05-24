@@ -114,6 +114,7 @@ fn redacted_env_keys(entries: &HashMap<String, String>) -> Vec<&str> {
     request_body = AgentDefinition,
     responses(
         (status = 200, description = "Configuration applied", body = ConfigResponse),
+        (status = 400, description = "Invalid configuration"),
         (status = 500, description = "Failed to persist or apply configuration")
     ),
     security(("bearer" = []))
@@ -122,6 +123,16 @@ pub async fn put_config(
     State(state): State<ApiState>,
     Json(definition): Json<AgentDefinition>,
 ) -> Result<Json<ConfigResponse>, (StatusCode, String)> {
+    if let Err(error) = definition.system_prompt.validate() {
+        return Err((StatusCode::BAD_REQUEST, error));
+    }
+    if definition.system_prompt.cacheable_segments.is_empty() {
+        return Err((
+            StatusCode::BAD_REQUEST,
+            "system_prompt.cacheable_segments must not be empty".to_string(),
+        ));
+    }
+
     state
         .config_repo
         .upsert(&definition)

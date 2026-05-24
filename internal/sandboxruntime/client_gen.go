@@ -273,6 +273,96 @@ func (e SkillTrigger1Type) Valid() bool {
 	}
 }
 
+// Defines values for SystemPromptSegment0Type.
+const (
+	StaticText SystemPromptSegment0Type = "static_text"
+)
+
+// Valid indicates whether the value is a known member of the SystemPromptSegment0Type enum.
+func (e SystemPromptSegment0Type) Valid() bool {
+	switch e {
+	case StaticText:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SystemPromptSegment1Type.
+const (
+	DynamicContext SystemPromptSegment1Type = "dynamic_context"
+)
+
+// Valid indicates whether the value is a known member of the SystemPromptSegment1Type enum.
+func (e SystemPromptSegment1Type) Valid() bool {
+	switch e {
+	case DynamicContext:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SystemPromptSegment2Type.
+const (
+	MemoryContext SystemPromptSegment2Type = "memory_context"
+)
+
+// Valid indicates whether the value is a known member of the SystemPromptSegment2Type enum.
+func (e SystemPromptSegment2Type) Valid() bool {
+	switch e {
+	case MemoryContext:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SystemPromptSegment3Type.
+const (
+	SkillCatalog SystemPromptSegment3Type = "skill_catalog"
+)
+
+// Valid indicates whether the value is a known member of the SystemPromptSegment3Type enum.
+func (e SystemPromptSegment3Type) Valid() bool {
+	switch e {
+	case SkillCatalog:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SystemPromptSegment4Type.
+const (
+	LoadedMcpTools SystemPromptSegment4Type = "loaded_mcp_tools"
+)
+
+// Valid indicates whether the value is a known member of the SystemPromptSegment4Type enum.
+func (e SystemPromptSegment4Type) Valid() bool {
+	switch e {
+	case LoadedMcpTools:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SystemPromptSegment5Type.
+const (
+	UnloadedMcpTools SystemPromptSegment5Type = "unloaded_mcp_tools"
+)
+
+// Valid indicates whether the value is a known member of the SystemPromptSegment5Type enum.
+func (e SystemPromptSegment5Type) Valid() bool {
+	switch e {
+	case UnloadedMcpTools:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for ToolSpec0Type.
 const (
 	BuiltinBash ToolSpec0Type = "builtin.bash"
@@ -463,18 +553,17 @@ type AgentDefinition struct {
 	Model             ModelConfig            `json:"model"`
 	MultimodalModel   *ModelConfig           `json:"multimodal_model,omitempty"`
 	OutboundChannels  *[]OutboundChannelSpec `json:"outbound_channels,omitempty"`
-	PromptFragments   *PromptFragments       `json:"prompt_fragments,omitempty"`
 	Skills            *[]SkillSpec           `json:"skills,omitempty"`
 	SpecialistProfile *SpecialistProfile     `json:"specialist_profile,omitempty"`
 	Subagents         *[]SubagentSpec        `json:"subagents,omitempty"`
+	SystemPrompt      *SystemPromptConfig    `json:"system_prompt,omitempty"`
 	Tools             *[]ToolSpec            `json:"tools,omitempty"`
 }
 
 // AgentMeta defines model for AgentMeta.
 type AgentMeta struct {
-	Description  *string `json:"description,omitempty"`
-	Name         string  `json:"name"`
-	SystemPrompt *string `json:"system_prompt,omitempty"`
+	Description *string `json:"description,omitempty"`
+	Name        string  `json:"name"`
 }
 
 // Attachment defines model for Attachment.
@@ -517,6 +606,13 @@ type ContextConfig struct {
 	Memory           *MemoryContextConfig `json:"memory,omitempty"`
 }
 
+// DynamicContextPromptSegment defines model for DynamicContextPromptSegment.
+type DynamicContextPromptSegment struct {
+	ItemTemplate *string `json:"item_template,omitempty"`
+	Preamble     *string `json:"preamble,omitempty"`
+	Title        *string `json:"title,omitempty"`
+}
+
 // EventKind defines model for EventKind.
 type EventKind string
 
@@ -556,6 +652,13 @@ type Limits struct {
 	OutputTokenBudget      int32 `json:"output_token_budget"`
 	SubagentMaxDepth       int32 `json:"subagent_max_depth"`
 	ToolCallTimeoutSeconds int32 `json:"tool_call_timeout_seconds"`
+}
+
+// ListPromptSegment defines model for ListPromptSegment.
+type ListPromptSegment struct {
+	ItemTemplate *string `json:"item_template,omitempty"`
+	Preamble     *string `json:"preamble,omitempty"`
+	Title        *string `json:"title,omitempty"`
 }
 
 // ListSessionsResponse defines model for ListSessionsResponse.
@@ -625,6 +728,15 @@ type MemoryContextEntry struct {
 	Content    string   `json:"content"`
 	MemoryType *string  `json:"memory_type,omitempty"`
 	Source     *string  `json:"source,omitempty"`
+}
+
+// MemoryPromptSegment defines model for MemoryPromptSegment.
+type MemoryPromptSegment struct {
+	CloseWrapper *string `json:"close_wrapper,omitempty"`
+	ItemTemplate *string `json:"item_template,omitempty"`
+	OpenWrapper  *string `json:"open_wrapper,omitempty"`
+	Preamble     *string `json:"preamble,omitempty"`
+	Title        *string `json:"title,omitempty"`
 }
 
 // ModelConfig defines model for ModelConfig.
@@ -712,19 +824,6 @@ type OutboundChannelSpec0 struct {
 
 // OutboundChannelSpec0Type defines model for OutboundChannelSpec.0.Type.
 type OutboundChannelSpec0Type string
-
-// PromptFragment defines model for PromptFragment.
-type PromptFragment struct {
-	Content *string `json:"content,omitempty"`
-	Title   *string `json:"title,omitempty"`
-}
-
-// PromptFragments defines model for PromptFragments.
-type PromptFragments struct {
-	Company             *PromptFragment `json:"company,omitempty"`
-	Identity            *PromptFragment `json:"identity,omitempty"`
-	OperatingPrinciples *PromptFragment `json:"operating_principles,omitempty"`
-}
 
 // ReadFileConfig defines model for ReadFileConfig.
 type ReadFileConfig struct {
@@ -828,6 +927,12 @@ type SpecialistProfile struct {
 	Name        string  `json:"name"`
 }
 
+// StaticPromptSegment defines model for StaticPromptSegment.
+type StaticPromptSegment struct {
+	Content *string `json:"content,omitempty"`
+	Title   *string `json:"title,omitempty"`
+}
+
 // SubagentDefinition defines model for SubagentDefinition.
 type SubagentDefinition struct {
 	Limits       *Limits     `json:"limits,omitempty"`
@@ -846,6 +951,71 @@ type SubagentSpec struct {
 	ToolDescription string             `json:"tool_description"`
 	ToolName        string             `json:"tool_name"`
 }
+
+// SystemPromptConfig defines model for SystemPromptConfig.
+type SystemPromptConfig struct {
+	CacheableSegments *[]SystemPromptSegment `json:"cacheable_segments,omitempty"`
+	DynamicSegments   *[]SystemPromptSegment `json:"dynamic_segments,omitempty"`
+}
+
+// SystemPromptSegment defines model for SystemPromptSegment.
+type SystemPromptSegment struct {
+	union json.RawMessage
+}
+
+// SystemPromptSegment0 defines model for .
+type SystemPromptSegment0 struct {
+	Config StaticPromptSegment      `json:"config"`
+	Type   SystemPromptSegment0Type `json:"type"`
+}
+
+// SystemPromptSegment0Type defines model for SystemPromptSegment.0.Type.
+type SystemPromptSegment0Type string
+
+// SystemPromptSegment1 defines model for .
+type SystemPromptSegment1 struct {
+	Config DynamicContextPromptSegment `json:"config"`
+	Type   SystemPromptSegment1Type    `json:"type"`
+}
+
+// SystemPromptSegment1Type defines model for SystemPromptSegment.1.Type.
+type SystemPromptSegment1Type string
+
+// SystemPromptSegment2 defines model for .
+type SystemPromptSegment2 struct {
+	Config MemoryPromptSegment      `json:"config"`
+	Type   SystemPromptSegment2Type `json:"type"`
+}
+
+// SystemPromptSegment2Type defines model for SystemPromptSegment.2.Type.
+type SystemPromptSegment2Type string
+
+// SystemPromptSegment3 defines model for .
+type SystemPromptSegment3 struct {
+	Config ListPromptSegment        `json:"config"`
+	Type   SystemPromptSegment3Type `json:"type"`
+}
+
+// SystemPromptSegment3Type defines model for SystemPromptSegment.3.Type.
+type SystemPromptSegment3Type string
+
+// SystemPromptSegment4 defines model for .
+type SystemPromptSegment4 struct {
+	Config ListPromptSegment        `json:"config"`
+	Type   SystemPromptSegment4Type `json:"type"`
+}
+
+// SystemPromptSegment4Type defines model for SystemPromptSegment.4.Type.
+type SystemPromptSegment4Type string
+
+// SystemPromptSegment5 defines model for .
+type SystemPromptSegment5 struct {
+	Config ListPromptSegment        `json:"config"`
+	Type   SystemPromptSegment5Type `json:"type"`
+}
+
+// SystemPromptSegment5Type defines model for SystemPromptSegment.5.Type.
+type SystemPromptSegment5Type string
 
 // ToolFilter defines model for ToolFilter.
 type ToolFilter struct {
@@ -1326,6 +1496,172 @@ func (t SkillTrigger) MarshalJSON() ([]byte, error) {
 }
 
 func (t *SkillTrigger) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsSystemPromptSegment0 returns the union data inside the SystemPromptSegment as a SystemPromptSegment0
+func (t SystemPromptSegment) AsSystemPromptSegment0() (SystemPromptSegment0, error) {
+	var body SystemPromptSegment0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromSystemPromptSegment0 overwrites any union data inside the SystemPromptSegment as the provided SystemPromptSegment0
+func (t *SystemPromptSegment) FromSystemPromptSegment0(v SystemPromptSegment0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeSystemPromptSegment0 performs a merge with any union data inside the SystemPromptSegment, using the provided SystemPromptSegment0
+func (t *SystemPromptSegment) MergeSystemPromptSegment0(v SystemPromptSegment0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsSystemPromptSegment1 returns the union data inside the SystemPromptSegment as a SystemPromptSegment1
+func (t SystemPromptSegment) AsSystemPromptSegment1() (SystemPromptSegment1, error) {
+	var body SystemPromptSegment1
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromSystemPromptSegment1 overwrites any union data inside the SystemPromptSegment as the provided SystemPromptSegment1
+func (t *SystemPromptSegment) FromSystemPromptSegment1(v SystemPromptSegment1) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeSystemPromptSegment1 performs a merge with any union data inside the SystemPromptSegment, using the provided SystemPromptSegment1
+func (t *SystemPromptSegment) MergeSystemPromptSegment1(v SystemPromptSegment1) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsSystemPromptSegment2 returns the union data inside the SystemPromptSegment as a SystemPromptSegment2
+func (t SystemPromptSegment) AsSystemPromptSegment2() (SystemPromptSegment2, error) {
+	var body SystemPromptSegment2
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromSystemPromptSegment2 overwrites any union data inside the SystemPromptSegment as the provided SystemPromptSegment2
+func (t *SystemPromptSegment) FromSystemPromptSegment2(v SystemPromptSegment2) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeSystemPromptSegment2 performs a merge with any union data inside the SystemPromptSegment, using the provided SystemPromptSegment2
+func (t *SystemPromptSegment) MergeSystemPromptSegment2(v SystemPromptSegment2) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsSystemPromptSegment3 returns the union data inside the SystemPromptSegment as a SystemPromptSegment3
+func (t SystemPromptSegment) AsSystemPromptSegment3() (SystemPromptSegment3, error) {
+	var body SystemPromptSegment3
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromSystemPromptSegment3 overwrites any union data inside the SystemPromptSegment as the provided SystemPromptSegment3
+func (t *SystemPromptSegment) FromSystemPromptSegment3(v SystemPromptSegment3) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeSystemPromptSegment3 performs a merge with any union data inside the SystemPromptSegment, using the provided SystemPromptSegment3
+func (t *SystemPromptSegment) MergeSystemPromptSegment3(v SystemPromptSegment3) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsSystemPromptSegment4 returns the union data inside the SystemPromptSegment as a SystemPromptSegment4
+func (t SystemPromptSegment) AsSystemPromptSegment4() (SystemPromptSegment4, error) {
+	var body SystemPromptSegment4
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromSystemPromptSegment4 overwrites any union data inside the SystemPromptSegment as the provided SystemPromptSegment4
+func (t *SystemPromptSegment) FromSystemPromptSegment4(v SystemPromptSegment4) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeSystemPromptSegment4 performs a merge with any union data inside the SystemPromptSegment, using the provided SystemPromptSegment4
+func (t *SystemPromptSegment) MergeSystemPromptSegment4(v SystemPromptSegment4) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsSystemPromptSegment5 returns the union data inside the SystemPromptSegment as a SystemPromptSegment5
+func (t SystemPromptSegment) AsSystemPromptSegment5() (SystemPromptSegment5, error) {
+	var body SystemPromptSegment5
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromSystemPromptSegment5 overwrites any union data inside the SystemPromptSegment as the provided SystemPromptSegment5
+func (t *SystemPromptSegment) FromSystemPromptSegment5(v SystemPromptSegment5) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeSystemPromptSegment5 performs a merge with any union data inside the SystemPromptSegment, using the provided SystemPromptSegment5
+func (t *SystemPromptSegment) MergeSystemPromptSegment5(v SystemPromptSegment5) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t SystemPromptSegment) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *SystemPromptSegment) UnmarshalJSON(b []byte) error {
 	err := t.union.UnmarshalJSON(b)
 	return err
 }

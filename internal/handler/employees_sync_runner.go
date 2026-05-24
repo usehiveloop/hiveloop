@@ -50,6 +50,27 @@ func (h *EmployeeHandler) ensureEmployeeSandbox(ctx context.Context, agent *mode
 	return created, nil
 }
 
+func (h *EmployeeHandler) SyncOrgHivyEmployee(ctx context.Context, orgID uuid.UUID) error {
+	if h == nil || h.db == nil || h.orchestrator == nil || h.compileDeps.EncKey == nil {
+		return fmt.Errorf("employee sandbox sync not configured")
+	}
+	agent, err := ensureHivyEmployee(ctx, h.db, orgID)
+	if err != nil {
+		return fmt.Errorf("ensure Hivy employee: %w", err)
+	}
+	if err := attachEmployeeRequiredSkillsForAgent(ctx, h.db, orgID, agent); err != nil {
+		return fmt.Errorf("attach employee required skills: %w", err)
+	}
+	sb, err := h.ensureEmployeeSandbox(ctx, agent)
+	if err != nil {
+		return fmt.Errorf("ensure employee sandbox: %w", err)
+	}
+	if _, err := h.runEmployeeSync(ctx, agent, sb); err != nil {
+		return fmt.Errorf("sync employee sandbox: %w", err)
+	}
+	return nil
+}
+
 func (h *EmployeeHandler) runEmployeeSync(ctx context.Context, agent *model.Employee, sb *model.Sandbox) (*employeeruntime.SyncResponse, error) {
 	apiKey, err := h.compileDeps.EncKey.DecryptString(sb.EncryptedBridgeAPIKey)
 	if err != nil {

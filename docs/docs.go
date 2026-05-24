@@ -10624,6 +10624,9 @@ const docTemplate = `{
                 "prompt_company": {
                     "type": "string"
                 },
+                "sync": {
+                    "type": "boolean"
+                },
                 "website": {
                     "type": "string"
                 }

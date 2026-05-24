@@ -13,7 +13,7 @@ import (
 	"github.com/usehivy/hivy/internal/model"
 )
 
-func TestCompile_EmitsTypedPromptFragmentsWithoutRawSystemPrompt(t *testing.T) {
+func TestCompile_EmitsControlPlaneSystemPromptWithoutRawAgentPrompt(t *testing.T) {
 	db := connectCompileTestDB(t)
 	orgName := "Acme-" + uuid.NewString()
 	org := model.Org{
@@ -56,20 +56,73 @@ func TestCompile_EmitsTypedPromptFragmentsWithoutRawSystemPrompt(t *testing.T) {
 	if err != nil {
 		t.Fatalf("marshal definition: %v", err)
 	}
-	if strings.Contains(string(body), "system_prompt") {
-		t.Fatalf("employee config must not include system_prompt: %s", string(body))
+	if !strings.Contains(string(body), `"system_prompt"`) {
+		t.Fatalf("employee config must include system_prompt: %s", string(body))
 	}
-	if def.PromptFragments.Identity.Title != "Your identity" {
-		t.Fatalf("identity title = %q", def.PromptFragments.Identity.Title)
+	if strings.Contains(string(body), "raw system prompt must not be forwarded") {
+		t.Fatalf("employee config forwarded raw agent system prompt: %s", string(body))
 	}
-	if !strings.Contains(def.PromptFragments.Identity.Content, "You are a "+orgName+" employee.") {
-		t.Fatalf("identity content missing company sentence: %q", def.PromptFragments.Identity.Content)
+	if strings.Contains(string(body), `"prompt_fragments"`) {
+		t.Fatalf("employee config must not include legacy prompt_fragments: %s", string(body))
 	}
-	if def.PromptFragments.Company.Title != "About the company" {
-		t.Fatalf("company title = %q", def.PromptFragments.Company.Title)
+	assertRuntimeSystemPromptPayloadShape(t, body)
+	cacheable := requireCacheableSegments(t, def.SystemPrompt)
+	dynamic := requireDynamicSegments(t, def.SystemPrompt)
+	if len(cacheable) < 3 {
+		t.Fatalf("expected base, identity, and company prompt segments: %#v", cacheable)
 	}
-	if def.PromptFragments.OperatingPrinciples.Title != "" || def.PromptFragments.OperatingPrinciples.Content != "" {
-		t.Fatalf("operating principles should be backend-owned inside identity prompt: %#v", def.PromptFragments.OperatingPrinciples)
+	base := requireStaticPromptSegment(t, cacheable[0])
+	if !strings.Contains(requirePromptString(t, base.Content), "Your job is to drive real team work forward.") {
+		t.Fatalf("base system prompt missing from first cacheable segment: %#v", cacheable[0])
+	}
+	identity := requireStaticPromptSegment(t, cacheable[1])
+	if requirePromptString(t, identity.Title) != "Your identity" {
+		t.Fatalf("identity title = %q", requirePromptString(t, identity.Title))
+	}
+	if !strings.Contains(requirePromptString(t, identity.Content), "You are a "+orgName+" employee.") {
+		t.Fatalf("identity content missing company sentence: %q", requirePromptString(t, identity.Content))
+	}
+	company := requireStaticPromptSegment(t, cacheable[2])
+	if requirePromptString(t, company.Title) != "About the company" {
+		t.Fatalf("company title = %q", requirePromptString(t, company.Title))
+	}
+	if len(dynamic) != 5 {
+		t.Fatalf("dynamic segment count = %d", len(dynamic))
+	}
+	if got := requireDynamicContextSegmentType(t, dynamic[0]); got != "dynamic_context" {
+		t.Fatalf("first dynamic segment type = %q", got)
+	}
+}
+
+func assertRuntimeSystemPromptPayloadShape(t *testing.T, body []byte) {
+	t.Helper()
+	var doc map[string]any
+	if err := json.Unmarshal(body, &doc); err != nil {
+		t.Fatalf("decode compiled config JSON: %v", err)
+	}
+	agent, _ := doc["agent"].(map[string]any)
+	if _, ok := agent["system_prompt"]; ok {
+		t.Fatalf("agent metadata must not contain raw system_prompt: %s", string(body))
+	}
+	systemPrompt, ok := doc["system_prompt"].(map[string]any)
+	if !ok {
+		t.Fatalf("system_prompt missing or wrong shape: %s", string(body))
+	}
+	cacheable, _ := systemPrompt["cacheable_segments"].([]any)
+	if len(cacheable) == 0 {
+		t.Fatalf("cacheable_segments missing: %s", string(body))
+	}
+	firstCacheable, _ := cacheable[0].(map[string]any)
+	if firstCacheable["type"] != "static_text" {
+		t.Fatalf("first cacheable segment type = %#v", firstCacheable["type"])
+	}
+	dynamic, _ := systemPrompt["dynamic_segments"].([]any)
+	if len(dynamic) != 5 {
+		t.Fatalf("dynamic_segments count = %d", len(dynamic))
+	}
+	firstDynamic, _ := dynamic[0].(map[string]any)
+	if firstDynamic["type"] != "dynamic_context" {
+		t.Fatalf("first dynamic segment type = %#v", firstDynamic["type"])
 	}
 }
 

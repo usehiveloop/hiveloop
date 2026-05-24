@@ -18,8 +18,9 @@ import (
 )
 
 type orgUpdateHarness struct {
-	db     *gorm.DB
-	router *chi.Mux
+	db         *gorm.DB
+	orgHandler *handler.OrgHandler
+	router     *chi.Mux
 }
 
 func newOrgUpdateHarness(t *testing.T) *orgUpdateHarness {
@@ -37,7 +38,7 @@ func newOrgUpdateHarness(t *testing.T) *orgUpdateHarness {
 		})
 	})
 
-	return &orgUpdateHarness{db: db, router: r}
+	return &orgUpdateHarness{db: db, orgHandler: orgHandler, router: r}
 }
 
 func (h *orgUpdateHarness) createOrg(t *testing.T, role string) (model.Org, model.User) {
@@ -275,5 +276,18 @@ func TestOrgUpdate_NoFieldsReturns400(t *testing.T) {
 
 	if rr.Code != http.StatusBadRequest {
 		t.Errorf("status: got %d, want 400 for empty body", rr.Code)
+	}
+}
+
+func TestOrgUpdate_SyncOnlyReturns400(t *testing.T) {
+	h := newOrgUpdateHarness(t)
+	org, user := h.createOrg(t, "admin")
+
+	rr := h.doPatch(t, user.ID, org.ID, "admin", map[string]any{
+		"sync": true,
+	})
+
+	if rr.Code != http.StatusBadRequest {
+		t.Errorf("status: got %d, want 400 for sync-only body", rr.Code)
 	}
 }

@@ -106,6 +106,7 @@ func (s *stubEmployeeProvider) GetResourceUsage(context.Context, string) (*sandb
 
 type employeeHarness struct {
 	db         *gorm.DB
+	handler    *handler.EmployeeHandler
 	router     *chi.Mux
 	provider   *stubEmployeeProvider
 	enqueuer   *enqueue.MockClient
@@ -253,7 +254,7 @@ func newEmployeeHarness(t *testing.T) *employeeHarness {
 	})
 
 	return &employeeHarness{
-		db: db, router: r, provider: provider, enqueuer: enq,
+		db: db, handler: h, router: r, provider: provider, enqueuer: enq,
 		encKey: encKey, kms: kms, cfg: cfg,
 		sidecar: stub, sidecarSrv: sidecarSrv,
 	}

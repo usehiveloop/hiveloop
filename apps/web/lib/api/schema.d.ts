@@ -9375,6 +9375,7 @@ export interface components {
             logo_url?: string;
             name?: string;
             prompt_company?: string;
+            sync?: boolean;
             website?: string;
         };
         updateRAGSourceRequest: {

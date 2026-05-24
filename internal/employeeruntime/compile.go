@@ -56,7 +56,7 @@ type EmployeeDefinition struct {
 	Agent             AgentMeta          `json:"agent"`
 	Mode              string             `json:"mode,omitempty"`
 	SpecialistProfile *SpecialistProfile `json:"specialist_profile,omitempty"`
-	PromptFragments   PromptFragments    `json:"prompt_fragments,omitempty"`
+	SystemPrompt      SystemPromptConfig `json:"system_prompt"`
 	Model             ModelConfig        `json:"model"`
 	MultimodalModel   *ModelConfig       `json:"multimodal_model,omitempty"`
 	Limits            map[string]any     `json:"limits,omitempty"`
@@ -77,17 +77,6 @@ type AgentMeta struct {
 type SpecialistProfile struct {
 	Name        string `json:"name"`
 	Description string `json:"description,omitempty"`
-}
-
-type PromptFragments struct {
-	Identity            PromptFragment `json:"identity,omitempty"`
-	Company             PromptFragment `json:"company,omitempty"`
-	OperatingPrinciples PromptFragment `json:"operating_principles,omitempty"`
-}
-
-type PromptFragment struct {
-	Title   string `json:"title,omitempty"`
-	Content string `json:"content,omitempty"`
 }
 
 type ModelConfig struct {
@@ -222,7 +211,7 @@ func Compile(ctx context.Context, deps CompileDeps, agent *model.Employee) (*Emp
 		mcpServers = upsertHivyMCPServer(mcpServers, ourMCP)
 	}
 	description := managedEmployeeDescription
-	fragments := buildPromptFragments(ctx, deps.DB, agent, description)
+	fragments := buildPromptSections(ctx, deps.DB, agent, description)
 	contextMap := map[string]any{
 		"memory": buildMemoryContext(ctx, deps, agent),
 	}
@@ -237,7 +226,7 @@ func Compile(ctx context.Context, deps CompileDeps, agent *model.Employee) (*Emp
 		},
 		Mode:              "employee",
 		SpecialistProfile: nil,
-		PromptFragments:   fragments,
+		SystemPrompt:      buildEmployeeSystemPrompt(fragments),
 		Model:             proxyModel(deps.Cfg, modelID),
 		MultimodalModel:   ptrModel(proxyModel(deps.Cfg, DefaultEmployeeMultimodalModel)),
 		Limits:            defaultLimits(),

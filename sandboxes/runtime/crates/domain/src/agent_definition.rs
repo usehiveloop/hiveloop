@@ -14,7 +14,7 @@ pub struct AgentDefinition {
     #[serde(default)]
     pub specialist_profile: Option<SpecialistProfile>,
     #[serde(default)]
-    pub prompt_fragments: PromptFragments,
+    pub system_prompt: SystemPromptConfig,
     pub model: ModelConfig,
     #[serde(default)]
     pub multimodal_model: Option<ModelConfig>,
@@ -57,28 +57,189 @@ pub struct AgentMeta {
     pub name: String,
     #[serde(default)]
     pub description: String,
-    #[serde(default)]
-    pub system_prompt: String,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
-pub struct PromptFragments {
+pub struct SystemPromptConfig {
     #[serde(default)]
-    pub identity: PromptFragment,
+    pub cacheable_segments: Vec<SystemPromptSegment>,
     #[serde(default)]
-    pub company: PromptFragment,
-    #[serde(default)]
-    pub operating_principles: PromptFragment,
+    pub dynamic_segments: Vec<SystemPromptSegment>,
+}
+
+impl SystemPromptConfig {
+    pub fn validate(&self) -> Result<(), String> {
+        const MAX_SEGMENTS: usize = 64;
+        const MAX_TEXT_CHARS: usize = 64 * 1024;
+        if self.cacheable_segments.len() > MAX_SEGMENTS {
+            return Err("too many cacheable prompt segments".to_string());
+        }
+        if self.dynamic_segments.len() > MAX_SEGMENTS {
+            return Err("too many dynamic prompt segments".to_string());
+        }
+        for segment in self
+            .cacheable_segments
+            .iter()
+            .chain(self.dynamic_segments.iter())
+        {
+            segment.validate(MAX_TEXT_CHARS)?;
+        }
+        for segment in &self.cacheable_segments {
+            if !matches!(segment, SystemPromptSegment::StaticText(_)) {
+                return Err("cacheable prompt segments must be static_text".to_string());
+            }
+        }
+        Ok(())
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+#[serde(tag = "type", content = "config", rename_all = "snake_case")]
+pub enum SystemPromptSegment {
+    StaticText(StaticPromptSegment),
+    DynamicContext(DynamicContextPromptSegment),
+    MemoryContext(MemoryPromptSegment),
+    SkillCatalog(ListPromptSegment),
+    LoadedMcpTools(ListPromptSegment),
+    UnloadedMcpTools(ListPromptSegment),
+}
+
+impl SystemPromptSegment {
+    fn validate(&self, max_text_chars: usize) -> Result<(), String> {
+        match self {
+            SystemPromptSegment::StaticText(segment) => {
+                validate_prompt_text("static_text.title", &segment.title, max_text_chars)?;
+                validate_prompt_text("static_text.content", &segment.content, max_text_chars)?;
+            }
+            SystemPromptSegment::DynamicContext(segment) => {
+                validate_prompt_text("dynamic_context.title", &segment.title, max_text_chars)?;
+                validate_prompt_text(
+                    "dynamic_context.preamble",
+                    &segment.preamble,
+                    max_text_chars,
+                )?;
+                validate_prompt_text(
+                    "dynamic_context.item_template",
+                    &segment.item_template,
+                    max_text_chars,
+                )?;
+            }
+            SystemPromptSegment::MemoryContext(segment) => {
+                validate_prompt_text("memory_context.title", &segment.title, max_text_chars)?;
+                validate_prompt_text("memory_context.preamble", &segment.preamble, max_text_chars)?;
+                validate_prompt_text(
+                    "memory_context.open_wrapper",
+                    &segment.open_wrapper,
+                    max_text_chars,
+                )?;
+                validate_prompt_text(
+                    "memory_context.close_wrapper",
+                    &segment.close_wrapper,
+                    max_text_chars,
+                )?;
+                validate_prompt_text(
+                    "memory_context.item_template",
+                    &segment.item_template,
+                    max_text_chars,
+                )?;
+            }
+            SystemPromptSegment::SkillCatalog(segment)
+            | SystemPromptSegment::LoadedMcpTools(segment)
+            | SystemPromptSegment::UnloadedMcpTools(segment) => {
+                validate_prompt_text("list.title", &segment.title, max_text_chars)?;
+                validate_prompt_text("list.preamble", &segment.preamble, max_text_chars)?;
+                validate_prompt_text("list.item_template", &segment.item_template, max_text_chars)?;
+            }
+        }
+        Ok(())
+    }
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
-pub struct PromptFragment {
+pub struct StaticPromptSegment {
     #[serde(default)]
     pub title: String,
     #[serde(default)]
     pub content: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct DynamicContextPromptSegment {
+    #[serde(default)]
+    pub title: String,
+    #[serde(default)]
+    pub preamble: String,
+    #[serde(default = "default_context_item_template")]
+    pub item_template: String,
+}
+
+impl Default for DynamicContextPromptSegment {
+    fn default() -> Self {
+        Self {
+            title: String::new(),
+            preamble: String::new(),
+            item_template: default_context_item_template(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct MemoryPromptSegment {
+    #[serde(default)]
+    pub title: String,
+    #[serde(default)]
+    pub preamble: String,
+    #[serde(default)]
+    pub open_wrapper: String,
+    #[serde(default)]
+    pub close_wrapper: String,
+    #[serde(default = "default_memory_item_template")]
+    pub item_template: String,
+}
+
+impl Default for MemoryPromptSegment {
+    fn default() -> Self {
+        Self {
+            title: String::new(),
+            preamble: String::new(),
+            open_wrapper: String::new(),
+            close_wrapper: String::new(),
+            item_template: default_memory_item_template(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct ListPromptSegment {
+    #[serde(default)]
+    pub title: String,
+    #[serde(default)]
+    pub preamble: String,
+    #[serde(default = "default_list_item_template")]
+    pub item_template: String,
+}
+
+impl Default for ListPromptSegment {
+    fn default() -> Self {
+        Self {
+            title: String::new(),
+            preamble: String::new(),
+            item_template: default_list_item_template(),
+        }
+    }
+}
+
+fn validate_prompt_text(label: &str, value: &str, max_text_chars: usize) -> Result<(), String> {
+    if value.len() > max_text_chars {
+        return Err(format!("{label} is too large"));
+    }
+    Ok(())
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -164,4 +325,13 @@ fn default_chars_per_token() -> u32 {
 }
 fn default_memory_token_budget() -> u32 {
     1000
+}
+fn default_context_item_template() -> String {
+    "{content}".to_string()
+}
+fn default_memory_item_template() -> String {
+    "- {line}".to_string()
+}
+fn default_list_item_template() -> String {
+    "- {name}: {description}".to_string()
 }

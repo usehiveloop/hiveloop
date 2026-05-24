@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -16,11 +17,20 @@ import (
 )
 
 type OrgHandler struct {
-	db *gorm.DB
+	db             *gorm.DB
+	employeeSyncer OrgEmployeeSyncer
 }
 
 func NewOrgHandler(db *gorm.DB) *OrgHandler {
 	return &OrgHandler{db: db}
+}
+
+type OrgEmployeeSyncer interface {
+	SyncOrgHivyEmployee(ctx context.Context, orgID uuid.UUID) error
+}
+
+func (h *OrgHandler) SetEmployeeSyncer(syncer OrgEmployeeSyncer) {
+	h.employeeSyncer = syncer
 }
 
 // planFor looks up the full plan by slug. Returns nil if the slug has no
@@ -59,6 +69,7 @@ type updateOrgRequest struct {
 	LogoURL       *string `json:"logo_url,omitempty"`
 	Website       *string `json:"website,omitempty"`
 	PromptCompany *string `json:"prompt_company,omitempty"`
+	Sync          bool    `json:"sync,omitempty"`
 }
 
 type orgResponse struct {
@@ -206,12 +217,33 @@ func (h *OrgHandler) Update(w http.ResponseWriter, r *http.Request) {
 	if req.PromptCompany != nil {
 		updates["prompt_company"] = strings.TrimSpace(*req.PromptCompany)
 	}
-	updates["onboarded"] = true
+	if !req.Sync {
+		updates["onboarded"] = true
+	}
 
 	if err := h.db.Model(&model.Org{}).Where("id = ?", ctxOrg.ID).Updates(updates).Error; err != nil {
 		logging.FromContext(r.Context()).ErrorContext(r.Context(), "failed to update org", "org_id", ctxOrg.ID, "error", err)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to update organization"})
 		return
+	}
+
+	if req.Sync {
+		if h.employeeSyncer == nil {
+			logging.FromContext(r.Context()).ErrorContext(r.Context(), "employee sandbox sync not configured", "org_id", ctxOrg.ID)
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "failed to start Hivy employee sandbox; please retry onboarding"})
+			return
+		}
+		if err := h.employeeSyncer.SyncOrgHivyEmployee(r.Context(), ctxOrg.ID); err != nil {
+			logging.FromContext(r.Context()).ErrorContext(r.Context(), "failed to sync Hivy employee sandbox during org update", "org_id", ctxOrg.ID, "error", err)
+			logging.Capture(r.Context(), fmt.Errorf("sync Hivy employee sandbox during org update: %w", err))
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "failed to start Hivy employee sandbox; please retry onboarding"})
+			return
+		}
+		if err := h.db.Model(&model.Org{}).Where("id = ?", ctxOrg.ID).Update("onboarded", true).Error; err != nil {
+			logging.FromContext(r.Context()).ErrorContext(r.Context(), "failed to mark org onboarded after employee sync", "org_id", ctxOrg.ID, "error", err)
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to update organization"})
+			return
+		}
 	}
 
 	var org model.Org

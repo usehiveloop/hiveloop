@@ -6,7 +6,7 @@ use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use domain::{
     AgentDefinition, AgentMeta, ConfigStore, EventKind, ModelConfig, Session, SessionEvent,
-    SessionId, SessionStatus,
+    SessionId, SessionStatus, StaticPromptSegment, SystemPromptConfig, SystemPromptSegment,
 };
 use observability::{ModelUsage, ObservabilityEvent, TraceSummary};
 use serde::{Deserialize, Serialize};
@@ -410,11 +410,16 @@ fn fake_agent_definition() -> AgentDefinition {
         agent: AgentMeta {
             name: "Eval Fake".to_string(),
             description: "Deterministic eval fake".to_string(),
-            system_prompt: "Return deterministic fake responses.".to_string(),
         },
         mode: Default::default(),
         specialist_profile: None,
-        prompt_fragments: Default::default(),
+        system_prompt: SystemPromptConfig {
+            cacheable_segments: vec![SystemPromptSegment::StaticText(StaticPromptSegment {
+                title: String::new(),
+                content: "Return deterministic fake responses.".to_string(),
+            })],
+            dynamic_segments: Vec::new(),
+        },
         model: ModelConfig::OpenaiCompatible {
             base_url: "http://127.0.0.1/fake".to_string(),
             model_id: "fake-model".to_string(),
