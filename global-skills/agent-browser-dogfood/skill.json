@@ -2,6 +2,7 @@
   "name": "agent-browser-dogfood",
   "description": "Exploratory testing and QA for web applications using agent-browser.",
   "category": "Browser",
+  "hidden": true,
   "root": "./SKILL.md",
   "tags": ["browser", "qa", "testing", "debugging"],
   "files": [
