@@ -21,6 +21,10 @@ func (o *Orchestrator) RunHealthCheck(ctx context.Context) {
 }
 
 func (o *Orchestrator) checkSandboxHealth(ctx context.Context, sb *model.Sandbox) {
+	if err := o.ensureSandboxProvider(sb); err != nil {
+		logging.Capture(ctx, err)
+		return
+	}
 	status, err := o.provider.GetStatus(ctx, sb.ExternalID)
 	if err != nil {
 		return

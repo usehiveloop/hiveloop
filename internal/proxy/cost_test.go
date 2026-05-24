@@ -36,7 +36,7 @@ func TestCalculateCost_WithCachedTokens_Anthropic(t *testing.T) {
 		InputTokens:  1000,
 		OutputTokens: 500,
 	}
-	costNoCached := CalculateCost(reg, "anthropic", "claude-sonnet-4-6", usageNoCached)
+	costNoCached := CalculateCost(reg, "anthropic", "claude-sonnet-4.6", usageNoCached)
 
 	// With cache (same total input but some cached)
 	usageCached := UsageData{
@@ -44,7 +44,7 @@ func TestCalculateCost_WithCachedTokens_Anthropic(t *testing.T) {
 		OutputTokens: 500,
 		CachedTokens: 800,
 	}
-	costCached := CalculateCost(reg, "anthropic", "claude-sonnet-4-6", usageCached)
+	costCached := CalculateCost(reg, "anthropic", "claude-sonnet-4.6", usageCached)
 
 	// Cached should be cheaper (Anthropic gives 90% discount on cached tokens)
 	if costCached >= costNoCached {
@@ -145,38 +145,26 @@ func TestCalculateCost_NilRegistry(t *testing.T) {
 }
 
 func TestCalculateCost_KnownPricing(t *testing.T) {
-	// Build a test registry with known pricing
 	reg := registry.Global()
-
-	// Find a model that we know has pricing
-	provider, ok := reg.GetProvider("openai")
+	route, ok := reg.ResolveModel("openai", "gpt-5.4")
 	if !ok {
-		t.Skip("openai provider not found in registry")
+		t.Fatal("openai gpt-5.4 route not found")
+	}
+	if route.Model.Cost == nil {
+		t.Fatal("gpt-5.4 route missing pricing")
 	}
 
-	// Find a model with known cost
-	for modelID, model := range provider.Models {
-		if model.Cost == nil || model.Cost.Input == 0 {
-			continue
-		}
-
-		usage := UsageData{
-			InputTokens:  1_000_000, // exactly 1M tokens
-			OutputTokens: 1_000_000,
-		}
-
-		cost := CalculateCost(reg, "openai", modelID, usage)
-
-		// For exactly 1M tokens, cost should equal input_price + output_price
-		expected := model.Cost.Input + model.Cost.Output
-		if math.Abs(cost-expected) > 0.0001 {
-			t.Errorf("model %s: cost = %f, expected %f (input=%f, output=%f)",
-				modelID, cost, expected, model.Cost.Input, model.Cost.Output)
-		}
-		return // test one model is sufficient
+	usage := UsageData{
+		InputTokens:  1_000_000,
+		OutputTokens: 1_000_000,
 	}
 
-	t.Skip("no openai model with known pricing found")
+	cost := CalculateCost(reg, "openai", "gpt-5.4", usage)
+	expected := route.Model.Cost.Input + route.Model.Cost.Output
+	if math.Abs(cost-expected) > 0.0001 {
+		t.Errorf("cost = %f, expected %f (input=%f, output=%f)",
+			cost, expected, route.Model.Cost.Input, route.Model.Cost.Output)
+	}
 }
 
 func TestCalculateCost_CachedMoreThanInput(t *testing.T) {

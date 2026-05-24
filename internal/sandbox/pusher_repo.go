@@ -7,9 +7,12 @@ import (
 	"github.com/usehivy/hivy/internal/model"
 )
 
-func buildRepoContext(resources model.JSON) string {
+func buildRepoContext(resources model.JSON, baseDir string) string {
 	if len(resources) == 0 {
 		return ""
+	}
+	if baseDir == "" {
+		baseDir = "/work/repos"
 	}
 
 	type repo struct {
@@ -52,22 +55,25 @@ func buildRepoContext(resources model.JSON) string {
 	builder.WriteString("── CLONED REPOSITORIES ──\n\n")
 	builder.WriteString("The following GitHub repositories have been cloned into your workspace:\n\n")
 	for _, repo := range repos {
-		builder.WriteString(fmt.Sprintf("  - %s → /home/daytona/repos/%s\n", repo.id, repo.name))
+		builder.WriteString(fmt.Sprintf("  - %s → %s/%s\n", repo.id, baseDir, repo.name))
 	}
 	builder.WriteString("\nYou can read, search, and modify files in these directories directly.")
 	return builder.String()
 }
 
-func buildSelectedGitHubRepoContext(repos []repoResource) string {
+func buildSelectedGitHubRepoContext(repos []repoResource, baseDir string) string {
 	if len(repos) == 0 {
 		return ""
+	}
+	if baseDir == "" {
+		baseDir = "/workspace/repos"
 	}
 
 	var builder strings.Builder
 	builder.WriteString("── EMPLOYEE GITHUB PROFILE REPOSITORIES ──\n\n")
 	builder.WriteString("The employee's selected GitHub connection repositories have been cloned into your workspace:\n\n")
 	for _, repo := range repos {
-		builder.WriteString(fmt.Sprintf("  - %s → /workspace/repos/%s\n", repo.ID, repo.Name))
+		builder.WriteString(fmt.Sprintf("  - %s → %s/%s\n", repo.ID, baseDir, repo.Name))
 	}
 	builder.WriteString("\nUse these paths for codebase work that depends on the employee's GitHub connection access.")
 	return builder.String()

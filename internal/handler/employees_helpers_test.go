@@ -37,6 +37,17 @@ type stubEmployeeProvider struct {
 	lastCreateOpts sandbox.CreateSandboxOpts
 }
 
+func (s *stubEmployeeProvider) ID() string { return sandbox.ProviderDaytona }
+
+func (s *stubEmployeeProvider) Validate(context.Context) error { return nil }
+
+func (s *stubEmployeeProvider) RuntimeLayout() sandbox.RuntimeLayout {
+	return sandbox.RuntimeLayout{
+		AgentRepoDir:    "/home/daytona/repos",
+		EmployeeRepoDir: "/workspace/repos",
+	}
+}
+
 func (s *stubEmployeeProvider) CreateSandbox(_ context.Context, opts sandbox.CreateSandboxOpts) (*sandbox.SandboxInfo, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -68,19 +79,19 @@ func (s *stubEmployeeProvider) ArchiveSandbox(context.Context, string) error { r
 func (s *stubEmployeeProvider) GetStatus(context.Context, string) (sandbox.SandboxStatus, error) {
 	return sandbox.StatusRunning, nil
 }
-func (s *stubEmployeeProvider) BuildSnapshot(context.Context, sandbox.BuildSnapshotOpts) (string, error) {
+func (s *stubEmployeeProvider) BuildTemplate(context.Context, sandbox.TemplateBuildRequest) (string, error) {
 	return "", nil
 }
-func (s *stubEmployeeProvider) BuildSnapshotWithLogs(context.Context, sandbox.BuildSnapshotOpts, func(string)) (string, error) {
+func (s *stubEmployeeProvider) BuildTemplateWithLogs(context.Context, sandbox.TemplateBuildRequest, func(string)) (string, error) {
 	return "", nil
 }
-func (s *stubEmployeeProvider) GetSnapshotStatus(context.Context, string) (*sandbox.SnapshotStatusResult, error) {
-	return &sandbox.SnapshotStatusResult{State: "ready"}, nil
+func (s *stubEmployeeProvider) GetTemplateStatus(context.Context, string) (*sandbox.TemplateBuildStatus, error) {
+	return &sandbox.TemplateBuildStatus{State: "ready"}, nil
 }
-func (s *stubEmployeeProvider) GetSnapshotLogs(context.Context, string) (string, error) {
+func (s *stubEmployeeProvider) GetTemplateLogs(context.Context, string) (string, error) {
 	return "", nil
 }
-func (s *stubEmployeeProvider) DeleteSnapshot(context.Context, string) error      { return nil }
+func (s *stubEmployeeProvider) DeleteTemplate(context.Context, string) error      { return nil }
 func (s *stubEmployeeProvider) SetAutoStop(context.Context, string, int) error    { return nil }
 func (s *stubEmployeeProvider) SetAutoArchive(context.Context, string, int) error { return nil }
 func (s *stubEmployeeProvider) ExecuteCommand(context.Context, string, string) (string, error) {
@@ -88,6 +99,9 @@ func (s *stubEmployeeProvider) ExecuteCommand(context.Context, string, string) (
 }
 func (s *stubEmployeeProvider) ExecuteCommandWithTimeout(ctx context.Context, externalID string, command string, _ time.Duration) (string, error) {
 	return s.ExecuteCommand(ctx, externalID, command)
+}
+func (s *stubEmployeeProvider) GetResourceUsage(context.Context, string) (*sandbox.ResourceUsage, error) {
+	return &sandbox.ResourceUsage{}, nil
 }
 
 type employeeHarness struct {

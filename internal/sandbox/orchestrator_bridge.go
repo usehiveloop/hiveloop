@@ -33,6 +33,9 @@ func (o *Orchestrator) needsURLRefresh(sb *model.Sandbox) bool {
 }
 
 func (o *Orchestrator) refreshBridgeURL(ctx context.Context, sb *model.Sandbox) error {
+	if err := o.ensureSandboxProvider(sb); err != nil {
+		return err
+	}
 	url, err := o.provider.GetEndpoint(ctx, sb.ExternalID, BridgePort)
 	if err != nil {
 		return err
@@ -85,9 +88,15 @@ func (o *Orchestrator) waitForBridgeHealthy(ctx context.Context, sb *model.Sandb
 }
 
 func (o *Orchestrator) ExecuteCommand(ctx context.Context, sb *model.Sandbox, command string) (string, error) {
+	if err := o.ensureSandboxProvider(sb); err != nil {
+		return "", err
+	}
 	return o.provider.ExecuteCommand(ctx, sb.ExternalID, command)
 }
 
 func (o *Orchestrator) ExecuteCommandWithTimeout(ctx context.Context, sb *model.Sandbox, command string, timeout time.Duration) (string, error) {
+	if err := o.ensureSandboxProvider(sb); err != nil {
+		return "", err
+	}
 	return o.provider.ExecuteCommandWithTimeout(ctx, sb.ExternalID, command, timeout)
 }

@@ -10,6 +10,9 @@ import (
 )
 
 func (o *Orchestrator) WakeSandbox(ctx context.Context, sb *model.Sandbox) (*model.Sandbox, error) {
+	if err := o.ensureSandboxProvider(sb); err != nil {
+		return nil, err
+	}
 	if err := o.provider.StartSandbox(ctx, sb.ExternalID); err != nil {
 		return nil, fmt.Errorf("starting sandbox %s: %w", sb.ID, err)
 	}

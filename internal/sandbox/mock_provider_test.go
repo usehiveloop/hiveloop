@@ -15,9 +15,11 @@ type mockProvider struct {
 	endpointOverride    string            // if set, all GetEndpoint calls return this URL
 	nextID              int
 	executeCommandFn    func(ctx context.Context, externalID, command string) (string, error)
+	resourceUsageFn     func(ctx context.Context, externalID string) (*ResourceUsage, error)
 	setAutoStopCalls    []autoPolicyCall
 	setAutoArchiveCalls []autoPolicyCall
 	archivedIDs         []string
+	stoppedIDs          []string
 	createCalls         []CreateSandboxOpts // captured for integration assertions
 	endpointPorts       []int               // captured port arg of every GetEndpoint call
 }
@@ -39,6 +41,17 @@ func newMockProvider() *mockProvider {
 	return &mockProvider{
 		sandboxes: make(map[string]*mockSandbox),
 		endpoints: make(map[string]string),
+	}
+}
+
+func (m *mockProvider) ID() string { return ProviderDaytona }
+
+func (m *mockProvider) Validate(context.Context) error { return nil }
+
+func (m *mockProvider) RuntimeLayout() RuntimeLayout {
+	return RuntimeLayout{
+		AgentRepoDir:    "/home/daytona/repos",
+		EmployeeRepoDir: "/workspace/repos",
 	}
 }
 
@@ -76,6 +89,7 @@ func (m *mockProvider) StopSandbox(_ context.Context, externalID string) error {
 		return fmt.Errorf("sandbox not found: %s", externalID)
 	}
 	sb.status = StatusStopped
+	m.stoppedIDs = append(m.stoppedIDs, externalID)
 	return nil
 }
 
@@ -120,23 +134,23 @@ func (m *mockProvider) GetEndpoint(_ context.Context, externalID string, port in
 	return url, nil
 }
 
-func (m *mockProvider) BuildSnapshot(_ context.Context, _ BuildSnapshotOpts) (string, error) {
+func (m *mockProvider) BuildTemplate(_ context.Context, _ TemplateBuildRequest) (string, error) {
 	return "mock-snapshot-id", nil
 }
 
-func (m *mockProvider) BuildSnapshotWithLogs(_ context.Context, _ BuildSnapshotOpts, _ func(string)) (string, error) {
+func (m *mockProvider) BuildTemplateWithLogs(_ context.Context, _ TemplateBuildRequest, _ func(string)) (string, error) {
 	return "mock-snapshot-id", nil
 }
 
-func (m *mockProvider) GetSnapshotStatus(_ context.Context, _ string) (*SnapshotStatusResult, error) {
-	return &SnapshotStatusResult{State: "ready"}, nil
+func (m *mockProvider) GetTemplateStatus(_ context.Context, _ string) (*TemplateBuildStatus, error) {
+	return &TemplateBuildStatus{State: "ready"}, nil
 }
 
-func (m *mockProvider) GetSnapshotLogs(_ context.Context, _ string) (string, error) {
+func (m *mockProvider) GetTemplateLogs(_ context.Context, _ string) (string, error) {
 	return "", nil
 }
 
-func (m *mockProvider) DeleteSnapshot(_ context.Context, _ string) error {
+func (m *mockProvider) DeleteTemplate(_ context.Context, _ string) error {
 	return nil
 }
 
@@ -181,6 +195,28 @@ func (m *mockProvider) ExecuteCommand(ctx context.Context, externalID string, co
 
 func (m *mockProvider) ExecuteCommandWithTimeout(ctx context.Context, externalID string, command string, _ time.Duration) (string, error) {
 	return m.ExecuteCommand(ctx, externalID, command)
+}
+
+func (m *mockProvider) GetResourceUsage(ctx context.Context, externalID string) (*ResourceUsage, error) {
+	if m.resourceUsageFn != nil {
+		return m.resourceUsageFn(ctx, externalID)
+	}
+	if m.executeCommandFn != nil {
+		output, err := m.executeCommandFn(ctx, externalID, "")
+		if err != nil {
+			return nil, err
+		}
+		return parseCgroupOutput(output)
+	}
+	return &ResourceUsage{
+		MemoryLimitBytes:  1000,
+		MemoryUsedBytes:   200,
+		MemoryPeakBytes:   300,
+		CPUQuota:          "100000 100000",
+		CPUUsageUsec:      400,
+		CPUThrottledCount: 5,
+		PIDCount:          6,
+	}, nil
 }
 
 func (m *mockProvider) count() int {

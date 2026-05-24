@@ -3,39 +3,14 @@ package sandbox
 import (
 	"context"
 	"fmt"
-	"strconv"
-	"strings"
 	"time"
 
 	"github.com/usehivy/hivy/internal/logging"
 	"github.com/usehivy/hivy/internal/model"
 )
 
-// cgroupCommand is the shell command executed inside each sandbox to collect
-// cgroup v2 resource stats. Output is 7 lines in a fixed order:
-//
-//  1. memory.max        (bytes)
-//  2. memory.current    (bytes)
-//  3. memory.peak       (bytes)
-//  4. cpu.max           (e.g. "100000 100000")
-//  5. usage_usec <val>
-//  6. nr_throttled <val>
-//  7. pids.current
-const cgroupCommand = `cat /sys/fs/cgroup/memory.max /sys/fs/cgroup/memory.current /sys/fs/cgroup/memory.peak && cat /sys/fs/cgroup/cpu.max && grep -E "usage_usec|nr_throttled" /sys/fs/cgroup/cpu.stat && cat /sys/fs/cgroup/pids.current`
-
-// resourceStats holds parsed cgroup resource data from a sandbox.
-type resourceStats struct {
-	MemoryLimitBytes  int64
-	MemoryUsedBytes   int64
-	MemoryPeakBytes   int64
-	CPUQuota          string
-	CPUUsageUsec      int64
-	CPUThrottledCount int64
-	PIDCount          int64
-}
-
 // StartResourceChecker runs a background loop that periodically collects
-// resource usage from all running sandboxes via cgroup v2 stats.
+// resource usage from all running sandboxes via the configured provider.
 func (o *Orchestrator) StartResourceChecker(ctx context.Context) {
 	interval := o.cfg.SandboxResourceCheckInterval
 	if interval <= 0 {
@@ -75,18 +50,15 @@ func (o *Orchestrator) RunResourceCheck(ctx context.Context) {
 	}
 }
 
-// collectSandboxResources executes the cgroup command inside a single sandbox,
-// parses the output, and updates both the sandbox record and any associated pool record.
+// collectSandboxResources fetches provider resource stats and updates the sandbox record.
 func (o *Orchestrator) collectSandboxResources(ctx context.Context, sb *model.Sandbox) {
-	output, err := o.provider.ExecuteCommand(ctx, sb.ExternalID, cgroupCommand)
-	if err != nil {
-		logging.Capture(ctx, fmt.Errorf("resource check execute sandbox %s: %w", sb.ID, err))
+	if err := o.ensureSandboxProvider(sb); err != nil {
+		logging.Capture(ctx, err)
 		return
 	}
-
-	stats, err := parseCgroupOutput(output)
+	stats, err := o.provider.GetResourceUsage(ctx, sb.ExternalID)
 	if err != nil {
-		logging.Capture(ctx, fmt.Errorf("resource check parse sandbox %s: %w", sb.ID, err))
+		logging.Capture(ctx, fmt.Errorf("resource check sandbox %s: %w", sb.ID, err))
 		return
 	}
 
@@ -106,59 +78,4 @@ func (o *Orchestrator) collectSandboxResources(ctx context.Context, sb *model.Sa
 		logging.Capture(ctx, fmt.Errorf("resource check db update sandbox %s: %w", sb.ID, err))
 		return
 	}
-}
-
-// parseCgroupOutput parses the 7-line output from cgroupCommand.
-func parseCgroupOutput(output string) (*resourceStats, error) {
-	lines := strings.Split(strings.TrimSpace(output), "\n")
-	if len(lines) < 7 {
-		return nil, fmt.Errorf("expected 7 lines, got %d", len(lines))
-	}
-
-	stats := &resourceStats{}
-	var err error
-
-	if lines[0] == "max" {
-		stats.MemoryLimitBytes = 0
-	} else {
-		stats.MemoryLimitBytes, err = strconv.ParseInt(lines[0], 10, 64)
-		if err != nil {
-			return nil, fmt.Errorf("parsing memory.max %q: %w", lines[0], err)
-		}
-	}
-
-	stats.MemoryUsedBytes, err = strconv.ParseInt(lines[1], 10, 64)
-	if err != nil {
-		return nil, fmt.Errorf("parsing memory.current %q: %w", lines[1], err)
-	}
-
-	stats.MemoryPeakBytes, err = strconv.ParseInt(lines[2], 10, 64)
-	if err != nil {
-		return nil, fmt.Errorf("parsing memory.peak %q: %w", lines[2], err)
-	}
-
-	stats.CPUQuota = lines[3]
-
-	usageParts := strings.Fields(lines[4])
-	if len(usageParts) == 2 && usageParts[0] == "usage_usec" {
-		stats.CPUUsageUsec, err = strconv.ParseInt(usageParts[1], 10, 64)
-		if err != nil {
-			return nil, fmt.Errorf("parsing usage_usec %q: %w", lines[4], err)
-		}
-	}
-
-	throttledParts := strings.Fields(lines[5])
-	if len(throttledParts) == 2 && throttledParts[0] == "nr_throttled" {
-		stats.CPUThrottledCount, err = strconv.ParseInt(throttledParts[1], 10, 64)
-		if err != nil {
-			return nil, fmt.Errorf("parsing nr_throttled %q: %w", lines[5], err)
-		}
-	}
-
-	stats.PIDCount, err = strconv.ParseInt(strings.TrimSpace(lines[6]), 10, 64)
-	if err != nil {
-		return nil, fmt.Errorf("parsing pids.current %q: %w", lines[6], err)
-	}
-
-	return stats, nil
 }

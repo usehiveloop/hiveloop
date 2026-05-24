@@ -8,6 +8,8 @@ import (
 
 var ErrSandboxNotFound = errors.New("sandbox not found upstream")
 
+const ProviderDaytona = "daytona"
+
 // SandboxStatus represents the state of a sandbox.
 type SandboxStatus string
 
@@ -23,10 +25,10 @@ const (
 
 // CreateSandboxOpts configures a new sandbox.
 type CreateSandboxOpts struct {
-	Name       string            // human-readable name
-	SnapshotID string            // provider's snapshot/template ID (empty = base image)
-	EnvVars    map[string]string // environment variables (e.g. BRIDGE_* config)
-	Labels     map[string]string // metadata labels (org_id, sandbox_id, agent_id)
+	Name        string            // human-readable name
+	TemplateRef string            // provider template/image reference
+	EnvVars     map[string]string // environment variables (e.g. BRIDGE_* config)
+	Labels      map[string]string // metadata labels (org_id, sandbox_id, agent_id)
 }
 
 // SandboxInfo is returned after creating a sandbox.
@@ -35,9 +37,9 @@ type SandboxInfo struct {
 	Status     SandboxStatus
 }
 
-// BuildSnapshotOpts configures a snapshot (template) build.
-type BuildSnapshotOpts struct {
-	Name          string   // snapshot name
+// TemplateBuildRequest configures a provider template/image build.
+type TemplateBuildRequest struct {
+	Name          string   // provider template name
 	BuildCommands []string // commands to run on the base image
 	BaseImage     string   // base image to build on top of
 	CPU           int      // CPU cores (0 = provider default)
@@ -45,24 +47,42 @@ type BuildSnapshotOpts struct {
 	Disk          int      // disk in GB (0 = provider default)
 }
 
-// SnapshotBuildStatus tracks snapshot build progress.
-type SnapshotBuildStatus struct {
+// TemplateBuildResult tracks template build progress.
+type TemplateBuildResult struct {
 	ExternalID string
 	Ready      bool
 	Error      string
 }
 
-// SnapshotStatusResult holds the status check result.
-type SnapshotStatusResult struct {
+// TemplateBuildStatus holds the status check result.
+type TemplateBuildStatus struct {
 	State       string // "building", "ready", "error", "deleting"
 	ErrorMsg    string
-	ErrorReason string // detailed error reason from Daytona
+	ErrorReason string // provider-specific detailed error reason
 }
 
-// Provider is the interface that all sandbox providers must implement.
-// This allows swapping Daytona for another provider (E2B, Fly.io, etc.)
-// by implementing this interface.
+// ResourceUsage is the provider-normalized runtime resource usage for a sandbox.
+type ResourceUsage struct {
+	MemoryLimitBytes  int64
+	MemoryUsedBytes   int64
+	MemoryPeakBytes   int64
+	CPUQuota          string
+	CPUUsageUsec      int64
+	CPUThrottledCount int64
+	PIDCount          int64
+}
+
+type RuntimeLayout struct {
+	AgentRepoDir    string
+	EmployeeRepoDir string
+}
+
+// Provider is the complete startup-time contract a sandbox backend must satisfy.
 type Provider interface {
+	ID() string
+	Validate(ctx context.Context) error
+	RuntimeLayout() RuntimeLayout
+
 	// Lifecycle
 	CreateSandbox(ctx context.Context, opts CreateSandboxOpts) (*SandboxInfo, error)
 	StartSandbox(ctx context.Context, externalID string) error
@@ -76,12 +96,12 @@ type Provider interface {
 	// Networking — returns the URL to reach a port inside the sandbox.
 	GetEndpoint(ctx context.Context, externalID string, port int) (string, error)
 
-	// Snapshots (templates)
-	BuildSnapshot(ctx context.Context, opts BuildSnapshotOpts) (externalID string, err error)
-	BuildSnapshotWithLogs(ctx context.Context, opts BuildSnapshotOpts, onLog func(string)) (externalID string, err error)
-	GetSnapshotStatus(ctx context.Context, externalID string) (*SnapshotStatusResult, error)
-	GetSnapshotLogs(ctx context.Context, externalID string) (string, error)
-	DeleteSnapshot(ctx context.Context, externalID string) error
+	// Templates
+	BuildTemplate(ctx context.Context, opts TemplateBuildRequest) (externalID string, err error)
+	BuildTemplateWithLogs(ctx context.Context, opts TemplateBuildRequest, onLog func(string)) (externalID string, err error)
+	GetTemplateStatus(ctx context.Context, externalID string) (*TemplateBuildStatus, error)
+	GetTemplateLogs(ctx context.Context, externalID string) (string, error)
+	DeleteTemplate(ctx context.Context, externalID string) error
 
 	// Auto-management. intervalMinutes=0 disables the policy.
 	SetAutoStop(ctx context.Context, externalID string, intervalMinutes int) error
@@ -90,4 +110,6 @@ type Provider interface {
 	// Execution — run a command inside the sandbox.
 	ExecuteCommand(ctx context.Context, externalID string, command string) (string, error)
 	ExecuteCommandWithTimeout(ctx context.Context, externalID string, command string, timeout time.Duration) (string, error)
+
+	GetResourceUsage(ctx context.Context, externalID string) (*ResourceUsage, error)
 }

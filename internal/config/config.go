@@ -101,15 +101,15 @@ type Config struct {
 
 	// Sandbox provider (global — one provider for the whole platform)
 	SandboxEncryptionKey string `env:"SANDBOX_ENCRYPTION_KEY"`                   // base64-encoded 32-byte key for encrypting sandbox secrets (Bridge API keys)
-	SandboxProviderID    string `env:"SANDBOX_PROVIDER_ID" envDefault:"daytona"` // "daytona"
-	SandboxProviderURL   string `env:"SANDBOX_PROVIDER_URL"`                     // e.g. https://app.daytona.io/api
+	SandboxProviderID    string `env:"SANDBOX_PROVIDER_ID" envDefault:"daytona"` // startup-time sandbox provider adapter
+	SandboxProviderURL   string `env:"SANDBOX_PROVIDER_URL"`                     // provider API URL
 	SandboxProviderKey   string `env:"SANDBOX_PROVIDER_KEY"`                     // API key for the sandbox provider
 	SandboxTarget        string `env:"SANDBOX_TARGET"`                           // provider-specific target/region
 
 	// Bridge (agent runtime in sandboxes)
-	BridgeBaseImagePrefix          string `env:"BRIDGE_BASE_IMAGE_PREFIX" envDefault:"hivy-bridge-1-0-0-small-v1"`           // snapshot for shared/pool sandboxes (ACP-harness runtime)
-	BridgeBaseDedicatedImagePrefix string `env:"BRIDGE_BASE_DEDICATED_IMAGE_PREFIX" envDefault:"hivy-bridge-1-0-0-small-v1"` // snapshot for dedicated agent sandboxes (ACP-harness runtime)
-	BridgeBinaryVersion            string `env:"BRIDGE_BINARY_VERSION,required"`                                             // usehivy/hivy release tag installed into user-template snapshots (e.g. v1.0.0)
+	BridgeBaseImagePrefix          string `env:"BRIDGE_BASE_IMAGE_PREFIX" envDefault:"hivy-bridge-1-0-0-small-v1"`           // provider template for shared/pool sandboxes
+	BridgeBaseDedicatedImagePrefix string `env:"BRIDGE_BASE_DEDICATED_IMAGE_PREFIX" envDefault:"hivy-bridge-1-0-0-small-v1"` // provider template for dedicated agent sandboxes
+	BridgeBinaryVersion            string `env:"BRIDGE_BINARY_VERSION,required"`                                             // usehivy/hivy release tag installed into user templates (e.g. v1.0.0)
 
 	BridgeHost        string `env:"BRIDGE_HOST"`                                               // legacy runtime host setting
 	APIWebhookBaseURL string `env:"API_WEBHOOK_BASE_URL" envDefault:"https://api.usehivy.com"` // public API base URL for provider webhook callbacks

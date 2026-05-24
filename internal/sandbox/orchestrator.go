@@ -36,6 +36,10 @@ func NewOrchestrator(db *gorm.DB, provider Provider, turso *turso.Provisioner, e
 	}
 }
 
+func (o *Orchestrator) ProviderID() string {
+	return o.providerID()
+}
+
 func (o *Orchestrator) CreateDedicatedSandbox(ctx context.Context, agent *model.Agent) (*model.Sandbox, error) {
 	return o.CreateDedicatedSandboxWithEnv(ctx, agent, nil)
 }
@@ -62,6 +66,9 @@ func (o *Orchestrator) EmployeeTaskDriveUploadURL(employeeID, taskID uuid.UUID) 
 // sandboxes) before returning a client, and refreshes the pre-auth URL if
 // it's about to expire.
 func (o *Orchestrator) GetBridgeClient(ctx context.Context, sb *model.Sandbox) (*bridge.BridgeClient, error) {
+	if err := o.ensureSandboxProvider(sb); err != nil {
+		return nil, err
+	}
 	apiKey, err := o.encKey.DecryptString(sb.EncryptedBridgeAPIKey)
 	if err != nil {
 		return nil, fmt.Errorf("decrypting bridge api key: %w", err)

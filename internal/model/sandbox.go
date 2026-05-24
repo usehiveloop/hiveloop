@@ -15,7 +15,8 @@ type Sandbox struct {
 	SandboxTemplateID     *uuid.UUID       `gorm:"type:uuid"`
 	SandboxTemplate       *SandboxTemplate `gorm:"foreignKey:SandboxTemplateID;constraint:OnDelete:SET NULL"`
 	SnapshotID            *string          `gorm:"column:snapshot_id"`
-	ExternalID            string           `gorm:"not null"` // Daytona workspace ID
+	ProviderID            string           `gorm:"not null;default:'daytona'"`
+	ExternalID            string           `gorm:"not null"` // provider sandbox ID
 	BridgeURL             string           `gorm:"not null"` // pre-authenticated URL to reach Bridge
 	BridgeURLExpiresAt    *time.Time       // when BridgeURL expires (nil = never)
 	EncryptedBridgeAPIKey []byte           `gorm:"type:bytea;not null"`         // AES-256-GCM encrypted Bridge API key

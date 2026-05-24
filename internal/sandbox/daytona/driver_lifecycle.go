@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
@@ -13,6 +14,8 @@ import (
 )
 
 const executeCommandTimeout = 120 * time.Second
+
+const cgroupResourceCommand = `cat /sys/fs/cgroup/memory.max /sys/fs/cgroup/memory.current /sys/fs/cgroup/memory.peak && cat /sys/fs/cgroup/cpu.max && grep -E "usage_usec|nr_throttled" /sys/fs/cgroup/cpu.stat && cat /sys/fs/cgroup/pids.current`
 
 // SetAutoStop disables or sets the platform's auto-stop interval. The
 // high-level pkg/daytona SDK only exposes auto-stop at create-time, so we
@@ -72,6 +75,50 @@ func (d *Driver) ExecuteCommandWithTimeout(ctx context.Context, externalID strin
 		return result, fmt.Errorf("command exited with code %d on sandbox %s: %s", exitCode, externalID, result)
 	}
 	return result, nil
+}
+
+func (d *Driver) GetResourceUsage(ctx context.Context, externalID string) (*sandbox.ResourceUsage, error) {
+	output, err := d.ExecuteCommand(ctx, externalID, cgroupResourceCommand)
+	if err != nil {
+		return nil, err
+	}
+	return parseCgroupResourceUsage(output)
+}
+
+func parseCgroupResourceUsage(output string) (*sandbox.ResourceUsage, error) {
+	lines := strings.Split(strings.TrimSpace(output), "\n")
+	if len(lines) < 7 {
+		return nil, fmt.Errorf("expected 7 lines, got %d", len(lines))
+	}
+
+	stats := &sandbox.ResourceUsage{CPUQuota: lines[3]}
+	var err error
+	if lines[0] != "max" {
+		stats.MemoryLimitBytes, err = strconv.ParseInt(lines[0], 10, 64)
+		if err != nil {
+			return nil, fmt.Errorf("parsing memory.max %q: %w", lines[0], err)
+		}
+	}
+	if stats.MemoryUsedBytes, err = strconv.ParseInt(lines[1], 10, 64); err != nil {
+		return nil, fmt.Errorf("parsing memory.current %q: %w", lines[1], err)
+	}
+	if stats.MemoryPeakBytes, err = strconv.ParseInt(lines[2], 10, 64); err != nil {
+		return nil, fmt.Errorf("parsing memory.peak %q: %w", lines[2], err)
+	}
+	if parts := strings.Fields(lines[4]); len(parts) == 2 && parts[0] == "usage_usec" {
+		if stats.CPUUsageUsec, err = strconv.ParseInt(parts[1], 10, 64); err != nil {
+			return nil, fmt.Errorf("parsing usage_usec %q: %w", lines[4], err)
+		}
+	}
+	if parts := strings.Fields(lines[5]); len(parts) == 2 && parts[0] == "nr_throttled" {
+		if stats.CPUThrottledCount, err = strconv.ParseInt(parts[1], 10, 64); err != nil {
+			return nil, fmt.Errorf("parsing nr_throttled %q: %w", lines[5], err)
+		}
+	}
+	if stats.PIDCount, err = strconv.ParseInt(strings.TrimSpace(lines[6]), 10, 64); err != nil {
+		return nil, fmt.Errorf("parsing pids.current %q: %w", lines[6], err)
+	}
+	return stats, nil
 }
 
 // SDK default reads sandbox.toolboxProxyUrl (preview.<host>, not in our DNS).

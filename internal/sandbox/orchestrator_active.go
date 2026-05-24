@@ -9,6 +9,9 @@ import (
 )
 
 func (o *Orchestrator) EnsureSandboxActive(ctx context.Context, sb *model.Sandbox) (*model.Sandbox, error) {
+	if err := o.ensureSandboxProvider(sb); err != nil {
+		return nil, err
+	}
 	switch sb.Status {
 	case string(StatusRunning):
 		return sb, nil

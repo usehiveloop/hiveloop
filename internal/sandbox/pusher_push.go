@@ -84,14 +84,15 @@ func (p *Pusher) buildAgentDefinition(ctx context.Context, agent *model.Agent, o
 		modelName = route.UpstreamID
 	}
 
-	if repoContext := buildRepoContext(mergeAgentResourcesForContext(agent, owningEmployee)); repoContext != "" {
+	layout := p.orchestrator.runtimeLayout()
+	if repoContext := buildRepoContext(mergeAgentResourcesForContext(agent, owningEmployee), layout.AgentRepoDir); repoContext != "" {
 		systemPrompt += "\n\n" + repoContext
 	}
 	if owningEmployee != nil {
 		selectedRepos, err := loadSelectedGitHubRepositoriesForAgent(ctx, p.db, owningEmployee.ID)
 		if err != nil {
 			logging.Capture(ctx, fmt.Errorf("load employee selected GitHub repositories for agent definition: %w", err))
-		} else if selectedRepoContext := buildSelectedGitHubRepoContext(selectedRepos); selectedRepoContext != "" {
+		} else if selectedRepoContext := buildSelectedGitHubRepoContext(selectedRepos, layout.EmployeeRepoDir); selectedRepoContext != "" {
 			systemPrompt += "\n\n" + selectedRepoContext
 		}
 	}

@@ -27,8 +27,6 @@ import (
 	"github.com/usehivy/hivy/internal/nango"
 	"github.com/usehivy/hivy/internal/registry"
 	"github.com/usehivy/hivy/internal/sandbox"
-	"github.com/usehivy/hivy/internal/sandbox/daytona"
-	"github.com/usehivy/hivy/internal/skills"
 	"github.com/usehivy/hivy/internal/spider"
 	"github.com/usehivy/hivy/internal/storage"
 	"github.com/usehivy/hivy/internal/streaming"
@@ -98,14 +96,8 @@ func New(ctx context.Context) (*Deps, error) {
 	if err := credentials.SeedPlatformOrg(database); err != nil {
 		return nil, fmt.Errorf("seeding platform org: %w", err)
 	}
-	if result, err := skills.SeedGlobalSkills(ctx, database, "global/skills"); err != nil {
-		return nil, fmt.Errorf("seeding global skills: %w", err)
-	} else {
-		logging.FromContext(ctx).InfoContext(ctx, "global skills seeded",
-			"created", result.Created,
-			"updated", result.Updated,
-			"unchanged", result.Unchanged,
-		)
+	if err := seedGlobalSkills(ctx, database); err != nil {
+		return nil, err
 	}
 
 	credentialPicker := credentials.NewPicker(database)
@@ -173,16 +165,8 @@ func New(ctx context.Context) (*Deps, error) {
 	ctr := counter.New(redisClient, database)
 	logging.FromContext(ctx).InfoContext(ctx, "request counter ready")
 
-	if result, err := credentials.SeedGlobalLLMCredentials(ctx, database, kms, cacheManager, ctr, "global/credentials/llm.json"); err != nil {
-		return nil, fmt.Errorf("seeding global LLM credentials: %w", err)
-	} else {
-		logging.FromContext(ctx).InfoContext(ctx, "global LLM credentials seeded",
-			"created", result.Created,
-			"updated", result.Updated,
-			"unchanged", result.Unchanged,
-			"revoked", result.Revoked,
-			"skipped", result.Skipped,
-		)
+	if err := seedGlobalLLMCredentials(ctx, database, kms, cacheManager, ctr); err != nil {
+		return nil, err
 	}
 
 	signingKey := []byte(cfg.JWTSigningKey)
@@ -227,14 +211,12 @@ func New(ctx context.Context) (*Deps, error) {
 	var orchestrator *sandbox.Orchestrator
 	var agentPusher *sandbox.Pusher
 	if cfg.SandboxProviderKey != "" && sandboxEncKey != nil {
-		sandboxProvider, err := daytona.NewDriver(daytona.Config{
-			APIURL:              cfg.SandboxProviderURL,
-			APIKey:              cfg.SandboxProviderKey,
-			Target:              cfg.SandboxTarget,
-			BridgeBinaryVersion: cfg.BridgeBinaryVersion,
-		})
+		sandboxProvider, err := newSandboxProvider(cfg)
 		if err != nil {
 			return nil, fmt.Errorf("creating sandbox provider: %w", err)
+		}
+		if err := sandboxProvider.Validate(ctx); err != nil {
+			return nil, fmt.Errorf("validating sandbox provider %q: %w", sandboxProvider.ID(), err)
 		}
 
 		var tursoProvisioner *turso.Provisioner

@@ -44,6 +44,25 @@ type Driver struct {
 	bridgeBinaryVersion string
 }
 
+func (d *Driver) ID() string { return sandbox.ProviderDaytona }
+
+func (d *Driver) RuntimeLayout() sandbox.RuntimeLayout {
+	return sandbox.RuntimeLayout{
+		AgentRepoDir:    "/home/daytona/repos",
+		EmployeeRepoDir: "/workspace/repos",
+	}
+}
+
+func (d *Driver) Validate(context.Context) error {
+	if strings.TrimSpace(d.apiKey) == "" {
+		return fmt.Errorf("daytona: APIKey is required")
+	}
+	if strings.TrimSpace(d.bridgeBinaryVersion) == "" {
+		return fmt.Errorf("daytona: BridgeBinaryVersion is required")
+	}
+	return nil
+}
+
 func NewDriver(cfg Config) (*Driver, error) {
 	apiKey := strings.TrimSpace(cfg.APIKey)
 	apiURL := strings.TrimSpace(cfg.APIURL)
@@ -108,8 +127,8 @@ func (d *Driver) authCtx(ctx context.Context) context.Context {
 }
 
 func (d *Driver) CreateSandbox(ctx context.Context, opts sandbox.CreateSandboxOpts) (*sandbox.SandboxInfo, error) {
-	if opts.SnapshotID == "" {
-		return nil, fmt.Errorf("daytona: CreateSandbox requires a SnapshotID")
+	if opts.TemplateRef == "" {
+		return nil, fmt.Errorf("daytona: CreateSandbox requires a TemplateRef")
 	}
 
 	sb, err := d.sdk.Create(ctx, snapshotParamsFromCreateOpts(opts))
@@ -139,7 +158,7 @@ func snapshotParamsFromCreateOpts(opts sandbox.CreateSandboxOpts) sdktypes.Snaps
 			Labels:  opts.Labels,
 			Public:  false,
 		},
-		Snapshot: opts.SnapshotID,
+		Snapshot: opts.TemplateRef,
 	}
 }
 

@@ -10,118 +10,19 @@ import (
 	"github.com/usehivy/hivy/internal/model"
 )
 
-// --- parseCgroupOutput unit tests ---
-
-func TestParseCgroupOutput_Valid(t *testing.T) {
-	output := "2147483648\n24600576\n24739840\n100000 100000\nusage_usec 1607312\nnr_throttled 0\n18\n"
-
-	stats, err := parseCgroupOutput(output)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	if stats.MemoryLimitBytes != 2147483648 {
-		t.Errorf("MemoryLimitBytes: got %d, want 2147483648", stats.MemoryLimitBytes)
-	}
-	if stats.MemoryUsedBytes != 24600576 {
-		t.Errorf("MemoryUsedBytes: got %d, want 24600576", stats.MemoryUsedBytes)
-	}
-	if stats.MemoryPeakBytes != 24739840 {
-		t.Errorf("MemoryPeakBytes: got %d, want 24739840", stats.MemoryPeakBytes)
-	}
-	if stats.CPUQuota != "100000 100000" {
-		t.Errorf("CPUQuota: got %q, want %q", stats.CPUQuota, "100000 100000")
-	}
-	if stats.CPUUsageUsec != 1607312 {
-		t.Errorf("CPUUsageUsec: got %d, want 1607312", stats.CPUUsageUsec)
-	}
-	if stats.CPUThrottledCount != 0 {
-		t.Errorf("CPUThrottledCount: got %d, want 0", stats.CPUThrottledCount)
-	}
-	if stats.PIDCount != 18 {
-		t.Errorf("PIDCount: got %d, want 18", stats.PIDCount)
-	}
-}
-
-func TestParseCgroupOutput_HighUsage(t *testing.T) {
-	output := "4294967296\n3221225472\n3758096384\n200000 100000\nusage_usec 9999999999\nnr_throttled 12345\n150"
-
-	stats, err := parseCgroupOutput(output)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	if stats.MemoryLimitBytes != 4294967296 {
-		t.Errorf("MemoryLimitBytes: got %d, want 4294967296", stats.MemoryLimitBytes)
-	}
-	if stats.MemoryUsedBytes != 3221225472 {
-		t.Errorf("MemoryUsedBytes: got %d, want 3221225472", stats.MemoryUsedBytes)
-	}
-	if stats.MemoryPeakBytes != 3758096384 {
-		t.Errorf("MemoryPeakBytes: got %d, want 3758096384", stats.MemoryPeakBytes)
-	}
-	if stats.CPUQuota != "200000 100000" {
-		t.Errorf("CPUQuota: got %q, want %q", stats.CPUQuota, "200000 100000")
-	}
-	if stats.CPUUsageUsec != 9999999999 {
-		t.Errorf("CPUUsageUsec: got %d, want 9999999999", stats.CPUUsageUsec)
-	}
-	if stats.CPUThrottledCount != 12345 {
-		t.Errorf("CPUThrottledCount: got %d, want 12345", stats.CPUThrottledCount)
-	}
-	if stats.PIDCount != 150 {
-		t.Errorf("PIDCount: got %d, want 150", stats.PIDCount)
-	}
-}
-
-func TestParseCgroupOutput_UnlimitedMemory(t *testing.T) {
-	output := "max\n24600576\n24739840\n100000 100000\nusage_usec 100\nnr_throttled 0\n5"
-
-	stats, err := parseCgroupOutput(output)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	if stats.MemoryLimitBytes != 0 {
-		t.Errorf("MemoryLimitBytes: got %d, want 0 for unlimited", stats.MemoryLimitBytes)
-	}
-}
-
-func TestParseCgroupOutput_TooFewLines(t *testing.T) {
-	output := "2147483648\n24600576\n24739840"
-
-	_, err := parseCgroupOutput(output)
-	if err == nil {
-		t.Fatal("expected error for too few lines")
-	}
-}
-
-func TestParseCgroupOutput_InvalidMemoryValue(t *testing.T) {
-	output := "not-a-number\n24600576\n24739840\n100000 100000\nusage_usec 100\nnr_throttled 0\n5"
-
-	_, err := parseCgroupOutput(output)
-	if err == nil {
-		t.Fatal("expected error for invalid memory.max")
-	}
-}
-
-func TestParseCgroupOutput_InvalidPIDValue(t *testing.T) {
-	output := "2147483648\n24600576\n24739840\n100000 100000\nusage_usec 100\nnr_throttled 0\nabc"
-
-	_, err := parseCgroupOutput(output)
-	if err == nil {
-		t.Fatal("expected error for invalid pids.current")
-	}
-}
-
-// --- Integration tests (require Postgres) ---
-
 func TestRunResourceCheck_UpdatesSandboxFields(t *testing.T) {
 	orch, provider, db := setupOrchestrator(t)
 
-	cgroupOutput := "2147483648\n734003200\n1048576000\n100000 100000\nusage_usec 5000000\nnr_throttled 42\n25"
-	provider.executeCommandFn = func(_ context.Context, _ string, _ string) (string, error) {
-		return cgroupOutput, nil
+	provider.resourceUsageFn = func(_ context.Context, _ string) (*ResourceUsage, error) {
+		return &ResourceUsage{
+			MemoryLimitBytes:  2147483648,
+			MemoryUsedBytes:   734003200,
+			MemoryPeakBytes:   1048576000,
+			CPUQuota:          "100000 100000",
+			CPUUsageUsec:      5000000,
+			CPUThrottledCount: 42,
+			PIDCount:          25,
+		}, nil
 	}
 
 	// Seed a running sandbox directly in DB
@@ -178,11 +79,11 @@ func TestRunResourceCheck_SkipsStoppedSandboxes(t *testing.T) {
 
 	targetExternalID := "mock-rc-stopped-" + uuid.New().String()[:8]
 	called := false
-	provider.executeCommandFn = func(_ context.Context, externalID string, _ string) (string, error) {
+	provider.resourceUsageFn = func(_ context.Context, externalID string) (*ResourceUsage, error) {
 		if externalID == targetExternalID {
 			called = true
 		}
-		return "", nil
+		return &ResourceUsage{}, nil
 	}
 
 	sb := model.Sandbox{
@@ -197,15 +98,15 @@ func TestRunResourceCheck_SkipsStoppedSandboxes(t *testing.T) {
 	orch.RunResourceCheck(context.Background())
 
 	if called {
-		t.Error("ExecuteCommand should not be called for stopped sandboxes")
+		t.Error("GetResourceUsage should not be called for stopped sandboxes")
 	}
 }
 
 func TestRunResourceCheck_HandlesExecuteError(t *testing.T) {
 	orch, provider, db := setupOrchestrator(t)
 
-	provider.executeCommandFn = func(_ context.Context, _ string, _ string) (string, error) {
-		return "", fmt.Errorf("connection refused")
+	provider.resourceUsageFn = func(_ context.Context, _ string) (*ResourceUsage, error) {
+		return nil, fmt.Errorf("connection refused")
 	}
 
 	sb := model.Sandbox{
@@ -233,11 +134,18 @@ func TestRunResourceCheck_MultipleSandboxes(t *testing.T) {
 
 	targetExternalIDs := map[string]bool{}
 	callCount := 0
-	provider.executeCommandFn = func(_ context.Context, externalID string, _ string) (string, error) {
+	provider.resourceUsageFn = func(_ context.Context, externalID string) (*ResourceUsage, error) {
 		if targetExternalIDs[externalID] {
 			callCount++
 		}
-		return "2147483648\n10000000\n10000000\n100000 100000\nusage_usec 100\nnr_throttled 0\n5", nil
+		return &ResourceUsage{
+			MemoryLimitBytes: 2147483648,
+			MemoryUsedBytes:  10000000,
+			MemoryPeakBytes:  10000000,
+			CPUQuota:         "100000 100000",
+			CPUUsageUsec:     100,
+			PIDCount:         5,
+		}, nil
 	}
 
 	var sandboxIDs []uuid.UUID
@@ -262,7 +170,7 @@ func TestRunResourceCheck_MultipleSandboxes(t *testing.T) {
 	orch.RunResourceCheck(context.Background())
 
 	if callCount != 3 {
-		t.Errorf("ExecuteCommand should be called 3 times, got %d", callCount)
+		t.Errorf("GetResourceUsage should be called 3 times, got %d", callCount)
 	}
 
 	for _, id := range sandboxIDs {

@@ -22,6 +22,64 @@ func disableProviderLifecycle(ctx context.Context, provider Provider, sb *model.
 	}
 }
 
+func (o *Orchestrator) providerID() string {
+	if o == nil || o.provider == nil {
+		return ""
+	}
+	return o.provider.ID()
+}
+
+func (o *Orchestrator) runtimeLayout() RuntimeLayout {
+	layout := RuntimeLayout{
+		AgentRepoDir:    "/work/repos",
+		EmployeeRepoDir: "/workspace/repos",
+	}
+	if o != nil && o.provider != nil {
+		providerLayout := o.provider.RuntimeLayout()
+		if providerLayout.AgentRepoDir != "" {
+			layout.AgentRepoDir = providerLayout.AgentRepoDir
+		}
+		if providerLayout.EmployeeRepoDir != "" {
+			layout.EmployeeRepoDir = providerLayout.EmployeeRepoDir
+		}
+	}
+	return layout
+}
+
+func (o *Orchestrator) ensureSandboxProvider(sb *model.Sandbox) error {
+	if sb == nil {
+		return fmt.Errorf("sandbox is nil")
+	}
+	expected := o.providerID()
+	if expected == "" {
+		return fmt.Errorf("sandbox provider not configured")
+	}
+	if sb.ProviderID == "" {
+		sb.ProviderID = ProviderDaytona
+	}
+	if sb.ProviderID != expected {
+		return fmt.Errorf("sandbox %s was created by provider %q; active provider is %q", sb.ID, sb.ProviderID, expected)
+	}
+	return nil
+}
+
+func (o *Orchestrator) ensureTemplateProvider(tmpl *model.SandboxTemplate) error {
+	if tmpl == nil {
+		return fmt.Errorf("sandbox template is nil")
+	}
+	expected := o.providerID()
+	if expected == "" {
+		return fmt.Errorf("sandbox provider not configured")
+	}
+	if tmpl.ProviderID == "" {
+		tmpl.ProviderID = ProviderDaytona
+	}
+	if tmpl.ProviderID != expected {
+		return fmt.Errorf("sandbox template %s was created by provider %q; active provider is %q", tmpl.ID, tmpl.ProviderID, expected)
+	}
+	return nil
+}
+
 func (o *Orchestrator) mergeUserEnvVars(ctx context.Context, envVars map[string]string, encrypted []byte) {
 	if o.encKey == nil || len(encrypted) == 0 {
 		return
@@ -132,7 +190,7 @@ func (o *Orchestrator) cloneAgentRepositories(ctx context.Context, sb *model.San
 		return nil
 	}
 
-	return o.cloneRepositories(ctx, sb, repos, "/home/daytona/repos")
+	return o.cloneRepositories(ctx, sb, repos, o.runtimeLayout().AgentRepoDir)
 }
 
 func (o *Orchestrator) cloneEmployeeSelectedRepositories(ctx context.Context, sb *model.Sandbox, agent *model.Agent) error {
@@ -143,7 +201,7 @@ func (o *Orchestrator) cloneEmployeeSelectedRepositories(ctx context.Context, sb
 	if len(repos) == 0 {
 		return nil
 	}
-	return o.cloneRepositories(ctx, sb, repos, "/workspace/repos")
+	return o.cloneRepositories(ctx, sb, repos, o.runtimeLayout().EmployeeRepoDir)
 }
 
 func (o *Orchestrator) loadEmployeeSelectedGitHubRepositories(ctx context.Context, agent *model.Agent) ([]repoResource, error) {

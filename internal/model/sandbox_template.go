@@ -12,13 +12,14 @@ type SandboxTemplate struct {
 	Org            *Org             `gorm:"foreignKey:OrgID;constraint:OnDelete:CASCADE"`
 	Name           string           `gorm:"not null"` // display name for users
 	Description    string           `gorm:"type:text;not null;default:''"`
-	Slug           string           `gorm:"not null;uniqueIndex"`             // Daytona snapshot name
+	Slug           string           `gorm:"not null;uniqueIndex"`             // provider template name
 	Tags           JSON             `gorm:"type:jsonb;not null;default:'[]'"` // user-facing tags, e.g. ["python","ml"]
 	Size           string           `gorm:"not null;default:'medium'"`        // small, medium, large, xlarge
 	BaseTemplateID *uuid.UUID       `gorm:"type:uuid;index"`                  // optional FK to public template used as base
 	BaseTemplate   *SandboxTemplate `gorm:"foreignKey:BaseTemplateID"`
 	BuildCommands  string           `gorm:"type:text;not null;default:''"` // user's commands to run on base image
-	ExternalID     *string          // provider's template/snapshot ID once built
+	ProviderID     string           `gorm:"not null;default:'daytona'"`
+	ExternalID     *string          // provider template artifact ID once built
 	BaseImageRef   *string          // OCI image ref used as FROM when a child template builds on top of this row
 	BuildStatus    string           `gorm:"not null;default:'pending'"` // pending, building, ready, failed
 	BuildError     *string

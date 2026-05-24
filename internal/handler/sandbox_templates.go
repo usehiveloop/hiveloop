@@ -24,7 +24,8 @@ func commandsToString(cmds []string) string {
 // TemplateBuildable is the interface for building sandbox templates.
 type TemplateBuildable interface {
 	BuildTemplate(ctx context.Context, tmpl *model.SandboxTemplate)
-	DeleteTemplate(ctx context.Context, externalID string) error
+	DeleteTemplate(ctx context.Context, tmpl *model.SandboxTemplate) error
+	ProviderID() string
 }
 
 var _ TemplateBuildable = (*sandbox.Orchestrator)(nil)
@@ -140,6 +141,7 @@ func (h *SandboxTemplateHandler) Create(w http.ResponseWriter, r *http.Request) 
 	tmpl := model.SandboxTemplate{
 		OrgID:         &org.ID,
 		Name:          req.Name,
+		ProviderID:    sandbox.ProviderDaytona,
 		BuildCommands: commandsToString(req.BuildCommands),
 		BuildStatus:   "pending",
 		Config:        req.Config,
@@ -166,6 +168,9 @@ func (h *SandboxTemplateHandler) Create(w http.ResponseWriter, r *http.Request) 
 	}
 	if tmpl.Config == nil {
 		tmpl.Config = model.JSON{}
+	}
+	if h.builder != nil {
+		tmpl.ProviderID = h.builder.ProviderID()
 	}
 
 	tmpl.Slug = fmt.Sprintf("hivy-tmpl-%s", uuid.New().String()[:8])

@@ -84,9 +84,9 @@ func TestImageRuntimeContract(t *testing.T) {
 			orch.cfg.BridgeBaseDedicatedImagePrefix, want)
 	}
 
-	got2 := orch.resolveSnapshot(&agent)
+	got2 := orch.resolveTemplateRef(&agent)
 	if got2 != want {
-		t.Errorf("resolveSnapshot(agent without template) = %q, want %q", got2, want)
+		t.Errorf("resolveTemplateRef(agent without template) = %q, want %q", got2, want)
 	}
 }
 

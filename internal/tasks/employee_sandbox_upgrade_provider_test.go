@@ -25,6 +25,17 @@ type employeeUpgradeProvider struct {
 	nextExternal int
 }
 
+func (p *employeeUpgradeProvider) ID() string { return sandbox.ProviderDaytona }
+
+func (p *employeeUpgradeProvider) Validate(context.Context) error { return nil }
+
+func (p *employeeUpgradeProvider) RuntimeLayout() sandbox.RuntimeLayout {
+	return sandbox.RuntimeLayout{
+		AgentRepoDir:    "/home/daytona/repos",
+		EmployeeRepoDir: "/workspace/repos",
+	}
+}
+
 func (p *employeeUpgradeProvider) CreateSandbox(_ context.Context, opts sandbox.CreateSandboxOpts) (*sandbox.SandboxInfo, error) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
@@ -64,23 +75,23 @@ func (p *employeeUpgradeProvider) GetEndpoint(context.Context, string, int) (str
 	return p.endpoint, nil
 }
 
-func (p *employeeUpgradeProvider) BuildSnapshot(context.Context, sandbox.BuildSnapshotOpts) (string, error) {
+func (p *employeeUpgradeProvider) BuildTemplate(context.Context, sandbox.TemplateBuildRequest) (string, error) {
 	return "", nil
 }
 
-func (p *employeeUpgradeProvider) BuildSnapshotWithLogs(context.Context, sandbox.BuildSnapshotOpts, func(string)) (string, error) {
+func (p *employeeUpgradeProvider) BuildTemplateWithLogs(context.Context, sandbox.TemplateBuildRequest, func(string)) (string, error) {
 	return "", nil
 }
 
-func (p *employeeUpgradeProvider) GetSnapshotStatus(context.Context, string) (*sandbox.SnapshotStatusResult, error) {
-	return &sandbox.SnapshotStatusResult{State: "ready"}, nil
+func (p *employeeUpgradeProvider) GetTemplateStatus(context.Context, string) (*sandbox.TemplateBuildStatus, error) {
+	return &sandbox.TemplateBuildStatus{State: "ready"}, nil
 }
 
-func (p *employeeUpgradeProvider) GetSnapshotLogs(context.Context, string) (string, error) {
+func (p *employeeUpgradeProvider) GetTemplateLogs(context.Context, string) (string, error) {
 	return "", nil
 }
 
-func (p *employeeUpgradeProvider) DeleteSnapshot(context.Context, string) error { return nil }
+func (p *employeeUpgradeProvider) DeleteTemplate(context.Context, string) error { return nil }
 
 func (p *employeeUpgradeProvider) SetAutoStop(context.Context, string, int) error {
 	return nil
@@ -112,6 +123,10 @@ func (p *employeeUpgradeProvider) ExecuteCommandWithTimeout(_ context.Context, _
 	default:
 		return "", nil
 	}
+}
+
+func (p *employeeUpgradeProvider) GetResourceUsage(context.Context, string) (*sandbox.ResourceUsage, error) {
+	return &sandbox.ResourceUsage{}, nil
 }
 
 type fakeEmployeeUpgradeStore struct {

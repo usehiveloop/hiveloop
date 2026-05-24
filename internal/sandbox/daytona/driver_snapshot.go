@@ -12,15 +12,15 @@ import (
 	"github.com/usehivy/hivy/internal/sandbox"
 )
 
-func (d *Driver) BuildSnapshot(ctx context.Context, opts sandbox.BuildSnapshotOpts) (string, error) {
+func (d *Driver) BuildTemplate(ctx context.Context, opts sandbox.TemplateBuildRequest) (string, error) {
 	return d.buildImage(ctx, opts, nil)
 }
 
-func (d *Driver) BuildSnapshotWithLogs(ctx context.Context, opts sandbox.BuildSnapshotOpts, onLog func(string)) (string, error) {
+func (d *Driver) BuildTemplateWithLogs(ctx context.Context, opts sandbox.TemplateBuildRequest, onLog func(string)) (string, error) {
 	return d.buildImage(ctx, opts, onLog)
 }
 
-func (d *Driver) buildImage(ctx context.Context, opts sandbox.BuildSnapshotOpts, onLog func(string)) (string, error) {
+func (d *Driver) buildImage(ctx context.Context, opts sandbox.TemplateBuildRequest, onLog func(string)) (string, error) {
 	baseImage := opts.BaseImage
 	if baseImage == "" {
 		baseImage = "node:22-bookworm-slim"
@@ -108,7 +108,7 @@ func (d *Driver) buildImage(ctx context.Context, opts sandbox.BuildSnapshotOpts,
 	return snapshot.Name, nil
 }
 
-func (d *Driver) DeleteSnapshot(ctx context.Context, externalID string) error {
+func (d *Driver) DeleteTemplate(ctx context.Context, externalID string) error {
 	snapshot, err := d.sdk.Snapshot.Get(ctx, externalID)
 	if err != nil {
 		// Treat "not found" as success — delete is idempotent.
@@ -123,12 +123,12 @@ func (d *Driver) DeleteSnapshot(ctx context.Context, externalID string) error {
 	return nil
 }
 
-func (d *Driver) GetSnapshotStatus(ctx context.Context, externalID string) (*sandbox.SnapshotStatusResult, error) {
+func (d *Driver) GetTemplateStatus(ctx context.Context, externalID string) (*sandbox.TemplateBuildStatus, error) {
 	snapshot, err := d.sdk.Snapshot.Get(ctx, externalID)
 	if err != nil {
 		return nil, fmt.Errorf("getting snapshot %s: %w", externalID, err)
 	}
-	result := &sandbox.SnapshotStatusResult{State: snapshot.State}
+	result := &sandbox.TemplateBuildStatus{State: snapshot.State}
 	if snapshot.ErrorReason != nil {
 		result.ErrorReason = *snapshot.ErrorReason
 		result.ErrorMsg = *snapshot.ErrorReason
@@ -140,7 +140,7 @@ func (d *Driver) GetSnapshotStatus(ctx context.Context, externalID string) (*san
 // diagnostic when a snapshot build fails. The high-level pkg/daytona SDK
 // only streams build logs as part of Snapshot.Create, so we drop down to
 // api-client-go's GetSnapshotBuildLogs (raw response body) here.
-func (d *Driver) GetSnapshotLogs(ctx context.Context, externalID string) (string, error) {
+func (d *Driver) GetTemplateLogs(ctx context.Context, externalID string) (string, error) {
 	resp, err := d.apiClient.SnapshotsAPI.
 		GetSnapshotBuildLogs(d.authCtx(ctx), externalID).
 		Execute()

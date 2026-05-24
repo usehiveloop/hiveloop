@@ -25,13 +25,19 @@ func TestResolveModel_ExplicitProviderRoutes(t *testing.T) {
 	}
 }
 
-func TestResolveModel_SameProviderFallback(t *testing.T) {
+func TestResolveModel_ExplicitSameProviderRoute(t *testing.T) {
 	route, ok := Global().ResolveModel("openai", "gpt-5.4")
 	if !ok {
-		t.Fatal("openai fallback route not found")
+		t.Fatal("openai route not found")
 	}
 	if route.UpstreamID != "gpt-5.4" {
 		t.Fatalf("upstream = %q, want gpt-5.4", route.UpstreamID)
+	}
+}
+
+func TestResolveModel_RejectsProviderModelNotInHivyCatalog(t *testing.T) {
+	if _, ok := Global().ResolveModel("openai", "gpt-5-thinking"); ok {
+		t.Fatal("provider model resolved without explicit Hivy catalog entry")
 	}
 }
 

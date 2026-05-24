@@ -62,8 +62,8 @@ func (h *SandboxTemplateBuildHandler) HandleRetry(ctx context.Context, t *asynq.
 	}
 
 	if tmpl.ExternalID != nil && *tmpl.ExternalID != "" {
-		if err := h.orchestrator.DeleteTemplate(ctx, *tmpl.ExternalID); err != nil {
-			logging.Capture(ctx, fmt.Errorf("delete existing snapshot %s: %w", *tmpl.ExternalID, err))
+		if err := h.orchestrator.DeleteTemplate(ctx, &tmpl); err != nil {
+			logging.Capture(ctx, fmt.Errorf("delete existing template artifact %s: %w", *tmpl.ExternalID, err))
 		}
 	}
 

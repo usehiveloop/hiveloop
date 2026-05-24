@@ -49,6 +49,7 @@ func (o *Orchestrator) CreateEmployeeSandbox(ctx context.Context, agent *model.A
 		OrgID:                 &orgID,
 		AgentID:               &agent.ID,
 		SnapshotID:            &snapshotID,
+		ProviderID:            o.provider.ID(),
 		EncryptedBridgeAPIKey: encryptedSecret,
 		Status:                "creating",
 	}
@@ -66,10 +67,10 @@ func (o *Orchestrator) CreateEmployeeSandbox(ctx context.Context, agent *model.A
 	}
 
 	info, err := o.provider.CreateSandbox(ctx, CreateSandboxOpts{
-		Name:       buildEmployeeSandboxName(agent),
-		SnapshotID: snapshotID,
-		EnvVars:    envVars,
-		Labels:     labels,
+		Name:        buildEmployeeSandboxName(agent),
+		TemplateRef: snapshotID,
+		EnvVars:     envVars,
+		Labels:      labels,
 	})
 	if err != nil {
 		if delErr := o.db.Where("id = ?", sb.ID).Delete(&model.Sandbox{}).Error; delErr != nil {
@@ -222,6 +223,9 @@ func (o *Orchestrator) waitForEmployeeRuntimeLive(ctx context.Context, sb *model
 }
 
 func (o *Orchestrator) RefreshEmployeeSandboxURL(ctx context.Context, sb *model.Sandbox) error {
+	if err := o.ensureSandboxProvider(sb); err != nil {
+		return err
+	}
 	url, err := o.provider.GetEndpoint(ctx, sb.ExternalID, EmployeeSandboxPort)
 	if err != nil {
 		return fmt.Errorf("get employee sandbox endpoint: %w", err)
@@ -239,6 +243,9 @@ func (o *Orchestrator) RefreshEmployeeSandboxURL(ctx context.Context, sb *model.
 }
 
 func (o *Orchestrator) StartEmployeeSandbox(ctx context.Context, sb *model.Sandbox) error {
+	if err := o.ensureSandboxProvider(sb); err != nil {
+		return err
+	}
 	if err := o.provider.StartSandbox(ctx, sb.ExternalID); err != nil {
 		return fmt.Errorf("starting employee sandbox %s: %w", sb.ID, err)
 	}

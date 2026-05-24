@@ -35,6 +35,7 @@ func (o *Orchestrator) createSandbox(ctx context.Context, org *model.Org, agent 
 
 	sb := model.Sandbox{
 		OrgID:                 &org.ID,
+		ProviderID:            o.provider.ID(),
 		EncryptedBridgeAPIKey: encryptedKey,
 		Status:                "creating",
 	}
@@ -76,7 +77,7 @@ func (o *Orchestrator) createSandbox(ctx context.Context, org *model.Org, agent 
 	setGitIdentityEnvVars(envVars, agent, gitIdentity)
 	setUploadBearer(envVars, bridgeAPIKey)
 
-	snapshotID := o.resolveSnapshot(agent)
+	templateRef := o.resolveTemplateRef(agent)
 	name := o.buildSandboxName(agent)
 
 	labels := map[string]string{
@@ -88,10 +89,10 @@ func (o *Orchestrator) createSandbox(ctx context.Context, org *model.Org, agent 
 	}
 
 	info, err := o.provider.CreateSandbox(ctx, CreateSandboxOpts{
-		Name:       name,
-		SnapshotID: snapshotID,
-		EnvVars:    envVars,
-		Labels:     labels,
+		Name:        name,
+		TemplateRef: templateRef,
+		EnvVars:     envVars,
+		Labels:      labels,
 	})
 	if err != nil {
 		o.db.Where("id = ?", sb.ID).Delete(&model.Sandbox{})
@@ -126,7 +127,7 @@ func (o *Orchestrator) createSandbox(ctx context.Context, org *model.Org, agent 
 	sb.Status = "running"
 	sb.LastActiveAt = &now
 
-	// Older snapshots may not have the harness config dirs; create them so
+	// Older templates may not have the harness config dirs; create them so
 	// the harnesses don't crash on first read.
 	if _, execErr := o.provider.ExecuteCommand(ctx, info.ExternalID, "mkdir -p /work/.claude /work/.opencode"); execErr != nil {
 		logging.Capture(ctx, fmt.Errorf("create bridge config dirs sandbox %s: %w", sb.ID, execErr))
@@ -180,7 +181,7 @@ func (o *Orchestrator) createSandbox(ctx context.Context, org *model.Org, agent 
 	return &sb, nil
 }
 
-func (o *Orchestrator) resolveSnapshot(agent *model.Agent) string {
+func (o *Orchestrator) resolveTemplateRef(agent *model.Agent) string {
 	if agent != nil && agent.SandboxTemplateID != nil {
 		var tmpl model.SandboxTemplate
 		if err := o.db.Where("id = ?", *agent.SandboxTemplateID).First(&tmpl).Error; err == nil {

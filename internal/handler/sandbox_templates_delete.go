@@ -39,7 +39,7 @@ func (h *SandboxTemplateHandler) Delete(w http.ResponseWriter, r *http.Request) 
 	var tmpl model.SandboxTemplate
 	if err := h.db.Where("id = ? AND org_id = ?", id, org.ID).First(&tmpl).Error; err == nil {
 		if tmpl.ExternalID != nil && h.builder != nil {
-			_ = h.builder.DeleteTemplate(r.Context(), *tmpl.ExternalID)
+			_ = h.builder.DeleteTemplate(r.Context(), &tmpl)
 		}
 	}
 

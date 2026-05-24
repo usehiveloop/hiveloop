@@ -11,6 +11,9 @@ import (
 )
 
 func (o *Orchestrator) StopSandbox(ctx context.Context, sb *model.Sandbox) error {
+	if err := o.ensureSandboxProvider(sb); err != nil {
+		return err
+	}
 	if err := o.provider.StopSandbox(ctx, sb.ExternalID); err != nil {
 		if errors.Is(err, ErrSandboxNotFound) {
 			return o.purgeMissingSandbox(sb)
@@ -32,6 +35,9 @@ func (o *Orchestrator) StopSandbox(ctx context.Context, sb *model.Sandbox) error
 }
 
 func (o *Orchestrator) DeleteSandbox(ctx context.Context, sb *model.Sandbox) error {
+	if err := o.ensureSandboxProvider(sb); err != nil {
+		return err
+	}
 	if err := o.provider.DeleteSandbox(ctx, sb.ExternalID); err != nil && !errors.Is(err, ErrSandboxNotFound) {
 		logging.Capture(ctx, fmt.Errorf("delete sandbox %s from provider: %w", sb.ID, err))
 	}
@@ -41,6 +47,9 @@ func (o *Orchestrator) DeleteSandbox(ctx context.Context, sb *model.Sandbox) err
 // DeleteSandboxResource deletes the provider resource but keeps the control
 // plane sandbox row for task/session history that points at the sandbox.
 func (o *Orchestrator) DeleteSandboxResource(ctx context.Context, sb *model.Sandbox) error {
+	if err := o.ensureSandboxProvider(sb); err != nil {
+		return err
+	}
 	if err := o.provider.DeleteSandbox(ctx, sb.ExternalID); err != nil && !errors.Is(err, ErrSandboxNotFound) {
 		logging.Capture(ctx, fmt.Errorf("delete sandbox %s from provider: %w", sb.ID, err))
 		return fmt.Errorf("delete sandbox resource %s: %w", sb.ID, err)
@@ -67,6 +76,9 @@ func (o *Orchestrator) DeleteSandboxExternal(ctx context.Context, externalID str
 }
 
 func (o *Orchestrator) ArchiveSandbox(ctx context.Context, sb *model.Sandbox) error {
+	if err := o.ensureSandboxProvider(sb); err != nil {
+		return err
+	}
 	if sb.Status != string(StatusStopped) {
 		if err := o.StopSandbox(ctx, sb); err != nil {
 			if errors.Is(err, ErrSandboxNotFound) {
@@ -104,6 +116,9 @@ func (o *Orchestrator) purgeMissingSandbox(sb *model.Sandbox) error {
 }
 
 func (o *Orchestrator) UnarchiveSandbox(ctx context.Context, sb *model.Sandbox) (*model.Sandbox, error) {
+	if err := o.ensureSandboxProvider(sb); err != nil {
+		return nil, err
+	}
 	o.db.Model(sb).Update("status", string(StatusStarting))
 	sb.Status = string(StatusStarting)
 

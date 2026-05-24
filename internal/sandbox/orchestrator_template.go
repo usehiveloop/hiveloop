@@ -10,14 +10,14 @@ import (
 	"github.com/usehivy/hivy/internal/model"
 )
 
-func (o *Orchestrator) resolveBuildOpts(tmpl *model.SandboxTemplate, snapshotName string) BuildSnapshotOpts {
+func (o *Orchestrator) resolveBuildOpts(tmpl *model.SandboxTemplate, templateName string) TemplateBuildRequest {
 	cmds := []string{}
 	if tmpl.BuildCommands != "" {
 		cmds = strings.Split(tmpl.BuildCommands, "\n")
 	}
 
-	opts := BuildSnapshotOpts{
-		Name:          snapshotName,
+	opts := TemplateBuildRequest{
+		Name:          templateName,
 		BuildCommands: cmds,
 		BaseImage:     fmt.Sprintf("ghcr.io/usehivy/sandbox-bridge:%s", o.cfg.BridgeBinaryVersion),
 	}
@@ -32,10 +32,18 @@ func (o *Orchestrator) resolveBuildOpts(tmpl *model.SandboxTemplate, snapshotNam
 }
 
 func (o *Orchestrator) BuildTemplate(ctx context.Context, tmpl *model.SandboxTemplate) {
+	if err := o.ensureTemplateProvider(tmpl); err != nil {
+		errMsg := err.Error()
+		o.db.Model(tmpl).Updates(map[string]any{
+			"build_status": "failed",
+			"build_error":  errMsg,
+		})
+		return
+	}
 	o.db.Model(tmpl).Update("build_status", "building")
 
 	opts := o.resolveBuildOpts(tmpl, tmpl.Slug)
-	externalID, err := o.provider.BuildSnapshot(ctx, opts)
+	externalID, err := o.provider.BuildTemplate(ctx, opts)
 
 	if err != nil {
 		errMsg := err.Error()
@@ -56,16 +64,22 @@ func (o *Orchestrator) BuildTemplate(ctx context.Context, tmpl *model.SandboxTem
 }
 
 func (o *Orchestrator) BuildTemplateWithLogs(ctx context.Context, tmpl *model.SandboxTemplate, onLog func(string)) (string, error) {
+	if err := o.ensureTemplateProvider(tmpl); err != nil {
+		return "", err
+	}
 	opts := o.resolveBuildOpts(tmpl, tmpl.Slug)
-	return o.provider.BuildSnapshotWithLogs(ctx, opts, onLog)
+	return o.provider.BuildTemplateWithLogs(ctx, opts, onLog)
 }
 
 func (o *Orchestrator) BuildTemplateWithPolling(ctx context.Context, tmpl *model.SandboxTemplate, onLog func(string), onStatus func(status, message string)) (externalID string, buildErr error) {
+	if err := o.ensureTemplateProvider(tmpl); err != nil {
+		return "", err
+	}
 	opts := o.resolveBuildOpts(tmpl, tmpl.Slug)
 
-	externalID, err := o.provider.BuildSnapshotWithLogs(ctx, opts, onLog)
+	externalID, err := o.provider.BuildTemplateWithLogs(ctx, opts, onLog)
 	if err != nil {
-		return "", fmt.Errorf("starting snapshot build: %w", err)
+		return "", fmt.Errorf("starting template build: %w", err)
 	}
 
 	const pollInterval = 5 * time.Second
@@ -79,15 +93,15 @@ func (o *Orchestrator) BuildTemplateWithPolling(ctx context.Context, tmpl *model
 		case <-time.After(pollInterval):
 		}
 
-		status, err := o.provider.GetSnapshotStatus(ctx, externalID)
+		status, err := o.provider.GetTemplateStatus(ctx, externalID)
 		if err != nil {
-			logging.Capture(ctx, fmt.Errorf("get snapshot status %s: %w", externalID, err))
+			logging.Capture(ctx, fmt.Errorf("get template status %s: %w", externalID, err))
 			continue
 		}
 
 		switch status.State {
 		case "active", "ready":
-			logging.FromContext(ctx).InfoContext(ctx, "snapshot build completed", "external_id", externalID, "state", status.State)
+			logging.FromContext(ctx).InfoContext(ctx, "template build completed", "external_id", externalID, "state", status.State)
 			if onStatus != nil {
 				onStatus("ready", "")
 			}
@@ -95,9 +109,9 @@ func (o *Orchestrator) BuildTemplateWithPolling(ctx context.Context, tmpl *model
 		case "error":
 			errMsg := status.ErrorMsg
 			if errMsg == "" {
-				errMsg = "snapshot build failed with unknown error"
+				errMsg = "template build failed with unknown error"
 			}
-			if logs, logErr := o.provider.GetSnapshotLogs(ctx, externalID); logErr == nil && logs != "" {
+			if logs, logErr := o.provider.GetTemplateLogs(ctx, externalID); logErr == nil && logs != "" {
 				if onLog != nil {
 					onLog(logs)
 				}
@@ -109,7 +123,7 @@ func (o *Orchestrator) BuildTemplateWithPolling(ctx context.Context, tmpl *model
 				}
 				errMsg = fmt.Sprintf("%s\n%s", errMsg, status.ErrorReason)
 			}
-			logging.FromContext(ctx).ErrorContext(ctx, "snapshot build failed", "external_id", externalID, "error", errMsg)
+			logging.FromContext(ctx).ErrorContext(ctx, "template build failed", "external_id", externalID, "error", errMsg)
 			if onStatus != nil {
 				onStatus("failed", errMsg)
 			}
@@ -117,21 +131,30 @@ func (o *Orchestrator) BuildTemplateWithPolling(ctx context.Context, tmpl *model
 		case "building", "pending", "":
 
 		default:
-			logging.FromContext(ctx).WarnContext(ctx, "unknown snapshot state", "external_id", externalID, "state", status.State)
+			logging.FromContext(ctx).WarnContext(ctx, "unknown template state", "external_id", externalID, "state", status.State)
 		}
 	}
 
-	return externalID, fmt.Errorf("snapshot build timed out after %s", maxWait)
+	return externalID, fmt.Errorf("template build timed out after %s", maxWait)
 }
 
-func (o *Orchestrator) DeleteTemplate(ctx context.Context, externalID string) error {
-	return o.provider.DeleteSnapshot(ctx, externalID)
+func (o *Orchestrator) DeleteTemplate(ctx context.Context, tmpl *model.SandboxTemplate) error {
+	if err := o.ensureTemplateProvider(tmpl); err != nil {
+		return err
+	}
+	if tmpl.ExternalID == nil || *tmpl.ExternalID == "" {
+		return nil
+	}
+	return o.provider.DeleteTemplate(ctx, *tmpl.ExternalID)
 }
 
 func (o *Orchestrator) RetryTemplateBuild(ctx context.Context, tmpl *model.SandboxTemplate, newCommands []string, onLog func(string), onStatus func(status, message string)) (externalID string, buildErr error) {
 	if tmpl.ExternalID != nil && *tmpl.ExternalID != "" {
-		if err := o.provider.DeleteSnapshot(ctx, *tmpl.ExternalID); err != nil {
-			logging.Capture(ctx, fmt.Errorf("delete existing snapshot %s: %w", *tmpl.ExternalID, err))
+		if err := o.ensureTemplateProvider(tmpl); err != nil {
+			return "", err
+		}
+		if err := o.provider.DeleteTemplate(ctx, *tmpl.ExternalID); err != nil {
+			logging.Capture(ctx, fmt.Errorf("delete existing template artifact %s: %w", *tmpl.ExternalID, err))
 		}
 	}
 
