@@ -30,7 +30,7 @@ func (h *SandboxTemplateHandler) Delete(w http.ResponseWriter, r *http.Request) 
 	id := chi.URLParam(r, "id")
 
 	var agentCount int64
-	h.db.Model(&model.Agent{}).Where("sandbox_template_id = ? AND org_id = ?", id, org.ID).Count(&agentCount)
+	h.db.Model(&model.Employee{}).Where("sandbox_template_id = ? AND org_id = ?", id, org.ID).Count(&agentCount)
 	if agentCount > 0 {
 		writeJSON(w, http.StatusConflict, map[string]string{"error": "cannot delete template: agents still reference it"})
 		return

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/lib/pq"
 	"gorm.io/gorm"
 
 	"github.com/usehivy/hivy/internal/cache"
@@ -13,8 +14,10 @@ import (
 	"github.com/usehivy/hivy/internal/integrations"
 	"github.com/usehivy/hivy/internal/logging"
 	"github.com/usehivy/hivy/internal/mcp/catalog"
+	"github.com/usehivy/hivy/internal/model"
 	"github.com/usehivy/hivy/internal/nango"
 	"github.com/usehivy/hivy/internal/skills"
+	"github.com/usehivy/hivy/internal/specialists"
 )
 
 func seedGlobalSkills(ctx context.Context, database *gorm.DB) error {
@@ -58,4 +61,67 @@ func seedGlobalIntegrations(ctx context.Context, database *gorm.DB, nangoClient 
 		"skipped", result.Skipped,
 	)
 	return nil
+}
+
+func loadGlobalSpecialists(ctx context.Context, database *gorm.DB) (*specialists.Catalog, error) {
+	cat, err := specialists.Load("global/specialists")
+	if err != nil {
+		return nil, fmt.Errorf("loading global specialists: %w", err)
+	}
+	if err := cat.ValidateSkillNames(ctx, database); err != nil {
+		return nil, fmt.Errorf("validating global specialists: %w", err)
+	}
+	if err := autoAttachGlobalSpecialists(ctx, database, cat.AutoAttachSlugs()); err != nil {
+		return nil, err
+	}
+	logging.FromContext(ctx).InfoContext(ctx, "global specialists loaded",
+		"count", len(cat.List()),
+		"auto_attach", len(cat.AutoAttachSlugs()),
+	)
+	return cat, nil
+}
+
+func autoAttachGlobalSpecialists(ctx context.Context, database *gorm.DB, slugs []string) error {
+	if len(slugs) == 0 {
+		return nil
+	}
+	var employees []model.Employee
+	if err := database.WithContext(ctx).
+		Where("status <> ?", "archived").
+		Find(&employees).Error; err != nil {
+		return fmt.Errorf("load employees for specialist auto-attach: %w", err)
+	}
+	for i := range employees {
+		next := mergeSpecialistSlugs(employees[i].AttachedSpecialists, slugs)
+		if len(next) == len(employees[i].AttachedSpecialists) {
+			continue
+		}
+		if err := database.WithContext(ctx).
+			Model(&model.Employee{}).
+			Where("id = ?", employees[i].ID).
+			Update("attached_specialists", pq.StringArray(next)).Error; err != nil {
+			return fmt.Errorf("auto-attach specialists for employee %s: %w", employees[i].ID, err)
+		}
+	}
+	return nil
+}
+
+func mergeSpecialistSlugs(existing []string, required []string) []string {
+	seen := make(map[string]bool, len(existing)+len(required))
+	out := make([]string, 0, len(existing)+len(required))
+	for _, slug := range existing {
+		if seen[slug] {
+			continue
+		}
+		seen[slug] = true
+		out = append(out, slug)
+	}
+	for _, slug := range required {
+		if seen[slug] {
+			continue
+		}
+		seen[slug] = true
+		out = append(out, slug)
+	}
+	return out
 }

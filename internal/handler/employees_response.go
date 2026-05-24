@@ -63,7 +63,7 @@ type employeeResponse struct {
 	UpdatedAt             string                    `json:"updated_at"`
 }
 
-func toEmployeeResponse(a model.Agent) employeeResponse {
+func toEmployeeResponse(a model.Employee) employeeResponse {
 	description := hivyEmployeeDescription
 	avatarURL := hivyEmployeeAvatarURL
 	resp := employeeResponse{

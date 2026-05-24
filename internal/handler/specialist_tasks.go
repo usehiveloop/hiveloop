@@ -15,10 +15,11 @@ import (
 	"github.com/usehivy/hivy/internal/logging"
 	"github.com/usehivy/hivy/internal/model"
 	"github.com/usehivy/hivy/internal/sandbox"
+	"github.com/usehivy/hivy/internal/specialists"
 )
 
 // SpecialistBridgeClient is the subset of bridge runtime operations used by
-// cloud-agent coordination. Keeping this seam small makes the bridge contract
+// specialist coordination. Keeping this seam small makes the bridge contract
 // testable without provisioning a real sandbox.
 type SpecialistBridgeClient interface {
 	CreateConversation(ctx context.Context, agentID string) (*bridge.CreateConversationResponse, error)
@@ -27,25 +28,26 @@ type SpecialistBridgeClient interface {
 }
 
 type SpecialistTaskHandlerHooks struct {
-	CreateCloudAgentSandbox func(ctx context.Context, agent *model.Agent, extraEnv map[string]string) (*model.Sandbox, error)
-	PushAgentToSandbox      func(ctx context.Context, agent *model.Agent, sb *model.Sandbox) error
+	CreateSpecialistSandbox func(ctx context.Context, agent *model.Employee, extraEnv map[string]string) (*model.Sandbox, error)
+	PushSpecialistToSandbox func(ctx context.Context, agent *model.Employee, sb *model.Sandbox) error
 	GetBridgeClient         func(ctx context.Context, sb *model.Sandbox) (SpecialistBridgeClient, error)
 	StopSandbox             func(ctx context.Context, sb *model.Sandbox) error
 	DeleteSandbox           func(ctx context.Context, sb *model.Sandbox) error
 	TaskDriveUploadURL      func(employeeID uuid.UUID, taskID uuid.UUID) string
-	EmployeeCallbackRuntime employeeCallbackSandboxCloudAgents
+	EmployeeCallbackRuntime employeeCallbackSandboxSpecialists
 }
 
 type SpecialistTaskHandler struct {
-	db     *gorm.DB
-	encKey *crypto.SymmetricKey
-	hooks  SpecialistTaskHandlerHooks
+	db      *gorm.DB
+	encKey  *crypto.SymmetricKey
+	hooks   SpecialistTaskHandlerHooks
+	catalog *specialists.Catalog
 }
 
-func NewSpecialistTaskHandler(db *gorm.DB, encKey *crypto.SymmetricKey, orchestrator *sandbox.Orchestrator, pusher *sandbox.Pusher) *SpecialistTaskHandler {
+func NewSpecialistTaskHandler(db *gorm.DB, encKey *crypto.SymmetricKey, orchestrator *sandbox.Orchestrator, pusher *sandbox.Pusher, catalog ...*specialists.Catalog) *SpecialistTaskHandler {
 	hooks := SpecialistTaskHandlerHooks{}
 	if orchestrator != nil {
-		hooks.CreateCloudAgentSandbox = orchestrator.CreateCloudAgentSandboxWithEnv
+		hooks.CreateSpecialistSandbox = orchestrator.CreateSpecialistSandboxWithEnv
 		hooks.GetBridgeClient = func(ctx context.Context, sb *model.Sandbox) (SpecialistBridgeClient, error) {
 			return orchestrator.GetBridgeClient(ctx, sb)
 		}
@@ -55,20 +57,20 @@ func NewSpecialistTaskHandler(db *gorm.DB, encKey *crypto.SymmetricKey, orchestr
 		hooks.EmployeeCallbackRuntime = orchestrator
 	}
 	if pusher != nil {
-		hooks.PushAgentToSandbox = pusher.PushAgentToSandbox
+		hooks.PushSpecialistToSandbox = pusher.PushSpecialistToSandbox
 	}
-	return NewSpecialistTaskHandlerWithHooks(db, encKey, hooks)
+	return NewSpecialistTaskHandlerWithHooks(db, encKey, hooks, catalog...)
 }
 
-func NewSpecialistTaskHandlerWithHooks(db *gorm.DB, encKey *crypto.SymmetricKey, hooks SpecialistTaskHandlerHooks) *SpecialistTaskHandler {
-	return &SpecialistTaskHandler{db: db, encKey: encKey, hooks: hooks}
+func NewSpecialistTaskHandlerWithHooks(db *gorm.DB, encKey *crypto.SymmetricKey, hooks SpecialistTaskHandlerHooks, catalog ...*specialists.Catalog) *SpecialistTaskHandler {
+	return &SpecialistTaskHandler{db: db, encKey: encKey, hooks: hooks, catalog: specialistCatalogFromArgs(catalog...)}
 }
 
 // authEmployee verifies the bridge bearer token for the employee in the URL.
 // On failure it writes the error response and returns nil — callers must return.
-func (h *SpecialistTaskHandler) authEmployee(w http.ResponseWriter, r *http.Request) *model.Agent {
+func (h *SpecialistTaskHandler) authEmployee(w http.ResponseWriter, r *http.Request) *model.Employee {
 	if h.encKey == nil {
-		captureCloudAgentFailure(r.Context(), "auth", errors.New("encryption key is not configured"), cloudAgentSentryContext{
+		captureSpecialistFailure(r.Context(), "auth", errors.New("encryption key is not configured"), specialistSentryContext{
 			Operation: "configuration",
 		})
 		writeJSON(w, http.StatusServiceUnavailable, map[string]string{"error": "specialist endpoints not configured"})
@@ -87,13 +89,13 @@ func (h *SpecialistTaskHandler) authEmployee(w http.ResponseWriter, r *http.Requ
 		return nil
 	}
 
-	var agent model.Agent
+	var agent model.Employee
 	if err := h.db.Where("id = ? AND is_employee = true", agentID).First(&agent).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			writeJSON(w, http.StatusNotFound, map[string]string{"error": "employee not found"})
 			return nil
 		}
-		captureCloudAgentFailure(r.Context(), "auth", err, cloudAgentSentryContext{
+		captureSpecialistFailure(r.Context(), "auth", err, specialistSentryContext{
 			Operation:  "load_employee",
 			EmployeeID: agentID,
 		})
@@ -103,14 +105,14 @@ func (h *SpecialistTaskHandler) authEmployee(w http.ResponseWriter, r *http.Requ
 
 	var sb model.Sandbox
 	if err := h.db.
-		Where("agent_id = ? AND status NOT IN (?, ?)", agentID, "archived", "error").
+		Where("employee_id = ? AND status NOT IN (?, ?)", agentID, "archived", "error").
 		Order("created_at DESC").
 		First(&sb).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			writeJSON(w, http.StatusNotFound, map[string]string{"error": "sandbox not found for employee"})
 			return nil
 		}
-		captureCloudAgentFailure(r.Context(), "auth", err, cloudAgentSentryContext{
+		captureSpecialistFailure(r.Context(), "auth", err, specialistSentryContext{
 			Operation:  "load_employee_sandbox",
 			EmployeeID: agentID,
 			OrgID:      uuidValue(agent.OrgID),
@@ -121,8 +123,8 @@ func (h *SpecialistTaskHandler) authEmployee(w http.ResponseWriter, r *http.Requ
 
 	wantKey, err := h.encKey.DecryptString(sb.EncryptedBridgeAPIKey)
 	if err != nil {
-		logging.FromContext(r.Context()).ErrorContext(r.Context(), "decrypt bridge api key", "agent_id", agentID, "error", err)
-		captureCloudAgentFailure(r.Context(), "auth", err, cloudAgentSentryContext{
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "decrypt bridge api key", "employee_id", agentID, "error", err)
+		captureSpecialistFailure(r.Context(), "auth", err, specialistSentryContext{
 			Operation:  "decrypt_bridge_key",
 			EmployeeID: agentID,
 			OrgID:      uuidValue(agent.OrgID),
@@ -132,7 +134,7 @@ func (h *SpecialistTaskHandler) authEmployee(w http.ResponseWriter, r *http.Requ
 		return nil
 	}
 	if subtle.ConstantTimeCompare([]byte(bearer), []byte(wantKey)) != 1 {
-		captureCloudAgentWarning(r.Context(), "auth", errors.New("invalid bridge api key"), cloudAgentSentryContext{
+		captureSpecialistWarning(r.Context(), "auth", errors.New("invalid bridge api key"), specialistSentryContext{
 			Operation:  "invalid_bridge_key",
 			EmployeeID: agentID,
 			OrgID:      uuidValue(agent.OrgID),
@@ -149,36 +151,37 @@ func specialistID(slug string) uuid.UUID {
 	return uuid.NewSHA1(uuid.NameSpaceOID, []byte("hivy-specialist:"+slug))
 }
 
-func specialistAgentFromTemplate(employee *model.Agent, template *specialistTemplate) model.Agent {
-	description := template.Description
+func specialistAgentFromDefinition(employee *model.Employee, def specialists.Definition) model.Employee {
+	description := def.Description
 	orgID := uuidValue(employee.OrgID)
-	return model.Agent{
-		ID:          specialistID(template.Slug),
-		OrgID:       &orgID,
-		Name:        template.Name,
-		Description: &description,
-		Model:       employee.Model,
-		Tools:       employee.Tools,
-		McpServers:  employee.McpServers,
-		Skills:      employee.Skills,
-		AgentConfig: employee.AgentConfig,
-		Permissions: employee.Permissions,
-		Resources:   employee.Resources,
-		Harness:     employeeCloudAgentHarness,
-		Status:      "active",
+	return model.Employee{
+		ID:            specialistID(def.Slug),
+		OrgID:         &orgID,
+		Name:          def.Name,
+		Description:   &description,
+		SystemPrompt:  def.SystemPrompt,
+		Model:         employee.Model,
+		Tools:         employee.Tools,
+		McpServers:    employee.McpServers,
+		Skills:        employee.Skills,
+		RuntimeConfig: employee.RuntimeConfig,
+		Permissions:   employee.Permissions,
+		Resources:     employee.Resources,
+		Harness:       employeeSpecialistHarness,
+		Status:        "active",
 	}
 }
 
-// validateSpecialist checks that slug refers to an enabled code-catalog specialist.
-func (h *SpecialistTaskHandler) validateSpecialist(ctx context.Context, w http.ResponseWriter, employee *model.Agent, slug string) (*specialistTemplate, uuid.UUID, bool) {
-	template := specialistTemplateBySlug(slug)
-	if template == nil {
+// validateSpecialist checks that slug refers to an attached global specialist.
+func (h *SpecialistTaskHandler) validateSpecialist(ctx context.Context, w http.ResponseWriter, employee *model.Employee, slug string) (*specialists.Definition, uuid.UUID, bool) {
+	def, exists := h.catalog.BySlug(slug)
+	if !exists {
 		writeJSON(w, http.StatusNotFound, map[string]string{"error": "specialist not found for this employee"})
 		return nil, uuid.Nil, false
 	}
-	if disabledSpecialistSet(employee.DisabledSpecialists)[slug] {
-		writeJSON(w, http.StatusNotFound, map[string]string{"error": "specialist disabled for this employee"})
+	if !attachedSpecialistSet(employee.AttachedSpecialists)[slug] {
+		writeJSON(w, http.StatusNotFound, map[string]string{"error": "specialist not attached for this employee"})
 		return nil, uuid.Nil, false
 	}
-	return template, specialistID(slug), true
+	return def, specialistID(slug), true
 }

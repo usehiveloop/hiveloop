@@ -1,9 +1,9 @@
 mod auth;
-mod cloud_agent_callback_payload;
-mod cloud_agent_callbacks;
 mod handlers;
 mod http_gateway;
 mod observability_handlers;
+mod specialist_callback_payload;
+mod specialist_callbacks;
 mod state;
 
 use std::net::SocketAddr;
@@ -35,7 +35,7 @@ mod openapi {
             crate::handlers::readyz,
             crate::handlers::post_http_message,
             crate::handlers::get_http_stream,
-            crate::cloud_agent_callbacks::post_cloud_agent_callback,
+            crate::specialist_callbacks::post_specialist_callback,
             crate::observability_handlers::get_trace_events,
             crate::observability_handlers::get_trace_summary,
         ),
@@ -86,8 +86,8 @@ mod openapi {
             crate::handlers::ListSessionsParams,
             crate::handlers::ListSessionsResponse,
             crate::handlers::SessionDetailResponse,
-            crate::cloud_agent_callbacks::CloudAgentCallbackRequest,
-            crate::cloud_agent_callbacks::CloudAgentCallbackResponse,
+            crate::specialist_callbacks::SpecialistCallbackRequest,
+            crate::specialist_callbacks::SpecialistCallbackResponse,
             crate::http_gateway::HttpStreamEvent,
             crate::http_gateway::HttpMessageRequest,
             crate::http_gateway::HttpMessageResponse,
@@ -134,8 +134,8 @@ pub fn build_router(state: ApiState) -> Router {
         .route("/readyz", get(handlers::readyz))
         .route("/gateway/http/messages", post(handlers::post_http_message))
         .route(
-            "/gateway/cloud-agents/callback",
-            post(cloud_agent_callbacks::post_cloud_agent_callback),
+            "/gateway/specialists/callback",
+            post(specialist_callbacks::post_specialist_callback),
         )
         .route(
             "/gateway/http/streams/:stream_id",
@@ -196,7 +196,7 @@ mod openapi_tests {
         let expected = BTreeSet::from([
             "/config".to_string(),
             "/config/env".to_string(),
-            "/gateway/cloud-agents/callback".to_string(),
+            "/gateway/specialists/callback".to_string(),
             "/gateway/http/messages".to_string(),
             "/gateway/http/streams/{stream_id}".to_string(),
             "/healthz".to_string(),

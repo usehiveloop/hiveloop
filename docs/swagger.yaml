@@ -947,10 +947,10 @@ definitions:
     type: object
   employeeSpecialistResponse:
     properties:
+      attached:
+        type: boolean
       description:
         type: string
-      enabled:
-        type: boolean
       name:
         type: string
       slug:
@@ -4864,8 +4864,8 @@ paths:
       - skills
   /v1/employees/{id}/specialists:
     get:
-      description: Returns all code-defined specialists and whether Hivy currently
-        has each enabled.
+      description: Returns all global specialists and whether Hivy currently has each
+        attached.
       parameters:
       - description: Employee ID
         in: path
@@ -4904,7 +4904,8 @@ paths:
       - employees
   /v1/employees/{id}/specialists/{slug}:
     delete:
-      description: Adds a specialist slug to Hivy's disabled specialist list.
+      description: Removes a global specialist slug from Hivy's attached specialist
+        list.
       parameters:
       - description: Employee ID
         in: path
@@ -4943,11 +4944,11 @@ paths:
             $ref: '#/definitions/errorResponse'
       security:
       - BearerAuth: []
-      summary: Disable an employee specialist
+      summary: Detach an employee specialist
       tags:
       - employees
     post:
-      description: Removes a specialist slug from Hivy's disabled specialist list.
+      description: Adds a global specialist slug to Hivy's attached specialist list.
       parameters:
       - description: Employee ID
         in: path
@@ -4986,7 +4987,7 @@ paths:
             $ref: '#/definitions/errorResponse'
       security:
       - BearerAuth: []
-      summary: Enable an employee specialist
+      summary: Attach an employee specialist
       tags:
       - employees
   /v1/employees/{id}/sync:
@@ -5978,7 +5979,7 @@ paths:
   /v1/rag/sources/{id}/attempts/{attempt_id}:
     get:
       description: Returns the attempt's status / counts / window plus the first page
-        of per-doc failure rows. The cloud agent errors page can be used to walk later
+        of per-doc failure rows. The specialist errors page can be used to walk later
         pages if needed.
       parameters:
       - description: Source ID

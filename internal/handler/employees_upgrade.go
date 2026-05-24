@@ -84,7 +84,7 @@ func (h *EmployeeHandler) StartSandboxUpgrade(w http.ResponseWriter, r *http.Req
 	}
 
 	if existing, ok, err := activeEmployeeSandboxUpgrade(ctx, h.db, org.ID, agentID); err != nil {
-		log.ErrorContext(ctx, "load active employee sandbox upgrade", "error", err, "agent_id", agentID)
+		log.ErrorContext(ctx, "load active employee sandbox upgrade", "error", err, "employee_id", agentID)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to load active upgrade"})
 		return
 	} else if ok {
@@ -92,7 +92,7 @@ func (h *EmployeeHandler) StartSandboxUpgrade(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	var agent model.Agent
+	var agent model.Employee
 	if err := h.db.WithContext(ctx).
 		Where("id = ? AND org_id = ? AND status <> ?", agentID, org.ID, "archived").
 		First(&agent).Error; err != nil {
@@ -100,12 +100,12 @@ func (h *EmployeeHandler) StartSandboxUpgrade(w http.ResponseWriter, r *http.Req
 			writeJSON(w, http.StatusNotFound, map[string]string{"error": "employee not found"})
 			return
 		}
-		log.ErrorContext(ctx, "load employee for sandbox upgrade", "error", err, "agent_id", agentID)
+		log.ErrorContext(ctx, "load employee for sandbox upgrade", "error", err, "employee_id", agentID)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to load employee"})
 		return
 	}
 	if err := h.deleteStaleEmployeeSandboxUpgradeTask(agentID); err != nil {
-		log.ErrorContext(ctx, "delete stale employee sandbox upgrade task", "error", err, "agent_id", agentID)
+		log.ErrorContext(ctx, "delete stale employee sandbox upgrade task", "error", err, "employee_id", agentID)
 		if strings.Contains(err.Error(), "active state") {
 			writeJSON(w, http.StatusConflict, map[string]string{"error": "employee sandbox upgrade task is already running"})
 			return
@@ -116,26 +116,26 @@ func (h *EmployeeHandler) StartSandboxUpgrade(w http.ResponseWriter, r *http.Req
 
 	var oldSandbox model.Sandbox
 	if err := h.db.WithContext(ctx).
-		Where("agent_id = ? AND org_id = ? AND status <> ?", agentID, org.ID, "error").
+		Where("employee_id = ? AND org_id = ? AND status <> ?", agentID, org.ID, "error").
 		Order("created_at DESC").Limit(1).First(&oldSandbox).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			writeJSON(w, http.StatusConflict, map[string]string{"error": "sandbox not found for employee"})
 			return
 		}
-		log.ErrorContext(ctx, "load employee sandbox for upgrade", "error", err, "agent_id", agentID)
+		log.ErrorContext(ctx, "load employee sandbox for upgrade", "error", err, "employee_id", agentID)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to load employee sandbox"})
 		return
 	}
 
 	upgrade := model.EmployeeSandboxUpgrade{
 		OrgID:        org.ID,
-		AgentID:      agent.ID,
+		EmployeeID:   agent.ID,
 		OldSandboxID: &oldSandbox.ID,
 		Status:       model.EmployeeSandboxUpgradeStatusQueued,
 		Phase:        model.EmployeeSandboxUpgradePhaseQueued,
 	}
 	if err := h.db.WithContext(ctx).Create(&upgrade).Error; err != nil {
-		log.ErrorContext(ctx, "create employee sandbox upgrade", "error", err, "agent_id", agentID)
+		log.ErrorContext(ctx, "create employee sandbox upgrade", "error", err, "employee_id", agentID)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to create upgrade"})
 		return
 	}
@@ -154,7 +154,7 @@ func (h *EmployeeHandler) StartSandboxUpgrade(w http.ResponseWriter, r *http.Req
 				return
 			}
 		}
-		log.ErrorContext(ctx, "enqueue employee sandbox upgrade", "error", err, "upgrade_id", upgrade.ID, "agent_id", agentID)
+		log.ErrorContext(ctx, "enqueue employee sandbox upgrade", "error", err, "upgrade_id", upgrade.ID, "employee_id", agentID)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to enqueue upgrade"})
 		return
 	}
@@ -194,7 +194,7 @@ func (h *EmployeeHandler) GetSandboxUpgrade(w http.ResponseWriter, r *http.Reque
 	}
 	var upgrade model.EmployeeSandboxUpgrade
 	if err := h.db.WithContext(ctx).
-		Where("id = ? AND org_id = ? AND agent_id = ?", upgradeID, org.ID, agentID).
+		Where("id = ? AND org_id = ? AND employee_id = ?", upgradeID, org.ID, agentID).
 		First(&upgrade).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			writeJSON(w, http.StatusNotFound, map[string]string{"error": "upgrade not found"})
@@ -223,7 +223,7 @@ func (h *EmployeeHandler) markUpgradeFailed(ctx context.Context, upgrade *model.
 func activeEmployeeSandboxUpgrade(ctx context.Context, db *gorm.DB, orgID, agentID uuid.UUID) (*model.EmployeeSandboxUpgrade, bool, error) {
 	var upgrade model.EmployeeSandboxUpgrade
 	err := db.WithContext(ctx).
-		Where("org_id = ? AND agent_id = ? AND status IN ?", orgID, agentID, []string{
+		Where("org_id = ? AND employee_id = ? AND status IN ?", orgID, agentID, []string{
 			model.EmployeeSandboxUpgradeStatusQueued,
 			model.EmployeeSandboxUpgradeStatusRunning,
 		}).

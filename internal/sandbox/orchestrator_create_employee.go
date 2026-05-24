@@ -21,7 +21,7 @@ const (
 	employeeHealthInterval = 2 * time.Second
 )
 
-func (o *Orchestrator) CreateEmployeeSandbox(ctx context.Context, agent *model.Agent, secrets *employeeruntime.StartupSecrets) (*model.Sandbox, error) {
+func (o *Orchestrator) CreateEmployeeSandbox(ctx context.Context, agent *model.Employee, secrets *employeeruntime.StartupSecrets) (*model.Sandbox, error) {
 	if agent == nil || agent.OrgID == nil {
 		return nil, fmt.Errorf("CreateEmployeeSandbox: agent must have org_id")
 	}
@@ -47,7 +47,7 @@ func (o *Orchestrator) CreateEmployeeSandbox(ctx context.Context, agent *model.A
 	snapshotID := o.cfg.EmployeeSandboxBaseImagePrefix
 	sb := model.Sandbox{
 		OrgID:                 &orgID,
-		AgentID:               &agent.ID,
+		EmployeeID:            &agent.ID,
 		SnapshotID:            &snapshotID,
 		ProviderID:            o.provider.ID(),
 		EncryptedBridgeAPIKey: encryptedSecret,
@@ -60,10 +60,10 @@ func (o *Orchestrator) CreateEmployeeSandbox(ctx context.Context, agent *model.A
 	bugsinkDashboardURL := employeeruntime.BugsinkDashboardBaseURL(ctx, o.db, orgID, *agent)
 	envVars := employeeSandboxEnvVars(o.cfg, runtimeSecret, &sb, orgID, agent, secrets, gitIdentity, bugsinkDashboardURL)
 	labels := map[string]string{
-		"org_id":     orgID.String(),
-		"sandbox_id": sb.ID.String(),
-		"agent_id":   agent.ID.String(),
-		"harness":    "employee-sandbox",
+		"org_id":      orgID.String(),
+		"sandbox_id":  sb.ID.String(),
+		"employee_id": agent.ID.String(),
+		"harness":     "employee-sandbox",
 	}
 
 	info, err := o.provider.CreateSandbox(ctx, CreateSandboxOpts{
@@ -125,16 +125,16 @@ func (o *Orchestrator) CreateEmployeeSandbox(ctx context.Context, agent *model.A
 
 	disableProviderLifecycle(ctx, o.provider, &sb, info.ExternalID)
 	logging.FromContext(ctx).InfoContext(ctx, "employee sandbox created",
-		"sandbox_id", sb.ID, "external_id", info.ExternalID, "agent_id", agent.ID)
+		"sandbox_id", sb.ID, "external_id", info.ExternalID, "employee_id", agent.ID)
 	return &sb, nil
 }
 
-func employeeSandboxEnvVars(cfg *config.Config, runtimeSecret string, sb *model.Sandbox, orgID uuid.UUID, agent *model.Agent, secrets *employeeruntime.StartupSecrets, gitIdentity *employeeGitIdentity, bugsinkDashboardURL string) map[string]string {
+func employeeSandboxEnvVars(cfg *config.Config, runtimeSecret string, sb *model.Sandbox, orgID uuid.UUID, agent *model.Employee, secrets *employeeruntime.StartupSecrets, gitIdentity *employeeGitIdentity, bugsinkDashboardURL string) map[string]string {
 	bridgeHost := "api.usehivy.com"
 	proxyHost := "proxy.usehivy.com"
 	if cfg != nil {
-		if cfg.CloudAgentsSandboxHost != "" {
-			bridgeHost = cfg.CloudAgentsSandboxHost
+		if cfg.SpecialistSandboxHost != "" {
+			bridgeHost = cfg.SpecialistSandboxHost
 		}
 		if cfg.ProxyHost != "" {
 			proxyHost = cfg.ProxyHost
@@ -181,7 +181,7 @@ func employeeSandboxEnvVars(cfg *config.Config, runtimeSecret string, sb *model.
 	return envVars
 }
 
-func buildEmployeeSandboxName(agent *model.Agent) string {
+func buildEmployeeSandboxName(agent *model.Employee) string {
 	return fmt.Sprintf("hivy-employee-%s-%s-%d", sanitizeName(agent.Name), shortID(agent.ID), time.Now().Unix())
 }
 

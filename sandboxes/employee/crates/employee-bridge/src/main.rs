@@ -14,7 +14,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 use agent::{
-    cloud_agents::{CloudAgentConfig, CloudAgentService},
+    specialists::{SpecialistConfig, SpecialistService},
     AgentRunner, RigAgentRunner,
 };
 use anyhow::{Context, Result};
@@ -142,25 +142,25 @@ async fn main() -> Result<()> {
         }
     };
 
-    let cloud_agent_service = match CloudAgentConfig::from_env() {
+    let specialist_service = match SpecialistConfig::from_env() {
         Some(config) => {
-            let service = Arc::new(CloudAgentService::new(config));
+            let service = Arc::new(SpecialistService::new(config));
             match service.discover().await {
                 Ok(agents) => {
                     info!(
-                        cloud_agent_count = agents.len(),
-                        "cloud-agent discovery succeeded"
+                        specialist_count = agents.len(),
+                        "specialist discovery succeeded"
                     );
                     Some(service)
                 }
                 Err(error) => {
-                    warn!(%error, "cloud-agent discovery failed; cloud-agent tools remain enabled but prompt context was not injected");
+                    warn!(%error, "specialist discovery failed; specialist tools remain enabled but prompt context was not injected");
                     Some(service)
                 }
             }
         }
         None => {
-            info!("cloud-agent env vars missing; cloud-agent tools and prompt injection disabled");
+            info!("specialist env vars missing; specialist tools and prompt injection disabled");
             None
         }
     };
@@ -215,7 +215,7 @@ async fn main() -> Result<()> {
         }),
         Some(mcp_registry.clone()),
         Some(outbound_reloader),
-        cloud_agent_service.as_ref().map(|service| service.index()),
+        specialist_service.as_ref().map(|service| service.index()),
     );
     let (api_handle, api_cancel) = api::serve(bind_addr, api_state.clone()).await;
     api_state.mark_gateway_ready();
@@ -235,8 +235,8 @@ async fn main() -> Result<()> {
         .with_cron_repo(cron_repo.clone())
         .with_event_repo(event_repo.clone())
         .with_mcp_registry(mcp_registry.clone());
-    if let Some(service) = cloud_agent_service.as_ref() {
-        rig_runner = rig_runner.with_cloud_agents(service.clone());
+    if let Some(service) = specialist_service.as_ref() {
+        rig_runner = rig_runner.with_specialists(service.clone());
     }
     let agent_runner: Arc<dyn AgentRunner> = Arc::new(rig_runner);
 
@@ -401,11 +401,11 @@ fn default_builtin_tool_specs() -> Vec<ToolSpec> {
         ToolSpec::SkillsList,
         ToolSpec::SkillView,
         ToolSpec::SkillManage,
-        ToolSpec::CloudAgentLaunchTask,
-        ToolSpec::CloudAgentTaskStatus,
-        ToolSpec::CloudAgentListTasks,
-        ToolSpec::CloudAgentTaskSendMessage,
-        ToolSpec::CloudAgentTaskTerminate,
+        ToolSpec::SpecialistLaunchTask,
+        ToolSpec::SpecialistTaskStatus,
+        ToolSpec::SpecialistListTasks,
+        ToolSpec::SpecialistTaskSendMessage,
+        ToolSpec::SpecialistTaskTerminate,
     ]
 }
 

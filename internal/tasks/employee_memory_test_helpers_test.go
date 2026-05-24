@@ -23,15 +23,15 @@ func memoryEvent(t *testing.T, orgID, agentID, sandboxID uuid.UUID, sessionID, e
 		t.Fatalf("marshal payload: %v", err)
 	}
 	return model.EmployeeMemoryEvent{
-		ID:        uuid.New(),
-		OrgID:     orgID,
-		AgentID:   agentID,
-		SandboxID: sandboxID,
-		SessionID: sessionID,
-		EventType: eventType,
-		Source:    "slack",
-		Payload:   model.RawJSON(raw),
-		EventAt:   time.Now().UTC(),
+		ID:         uuid.New(),
+		OrgID:      orgID,
+		EmployeeID: agentID,
+		SandboxID:  sandboxID,
+		SessionID:  sessionID,
+		EventType:  eventType,
+		Source:     "slack",
+		Payload:    model.RawJSON(raw),
+		EventAt:    time.Now().UTC(),
 	}
 }
 

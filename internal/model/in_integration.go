@@ -13,8 +13,8 @@ type InIntegration struct {
 	DisplayName string     `gorm:"not null"`
 	OrgID       *uuid.UUID `gorm:"type:uuid;index"`
 	Org         *Org       `gorm:"foreignKey:OrgID;constraint:OnDelete:CASCADE"`
-	AgentID     *uuid.UUID `gorm:"type:uuid;index"`
-	Agent       *Agent     `gorm:"foreignKey:AgentID;constraint:OnDelete:CASCADE"`
+	EmployeeID  *uuid.UUID `gorm:"type:uuid;index"`
+	Employee    *Employee  `gorm:"foreignKey:EmployeeID;constraint:OnDelete:CASCADE"`
 	CustomApp   bool       `gorm:"not null;default:false;index"`
 	Meta        JSON       `gorm:"type:jsonb;default:'{}'"`
 	NangoConfig JSON       `gorm:"type:jsonb;default:'{}'" json:"nango_config"`

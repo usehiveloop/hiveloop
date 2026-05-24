@@ -12,30 +12,30 @@ import (
 	"github.com/usehivy/hivy/internal/model"
 )
 
-func terminateTaskSentryContext(operation string, employee *model.Agent, agentID uuid.UUID, task model.CloudAgentTask, conv model.AgentConversation, sandboxID uuid.UUID) cloudAgentSentryContext {
-	return cloudAgentSentryContext{
+func terminateTaskSentryContext(operation string, employee *model.Employee, agentID uuid.UUID, task model.SpecialistTask, conv model.EmployeeConversation, sandboxID uuid.UUID) specialistSentryContext {
+	return specialistSentryContext{
 		Operation:      operation,
 		OrgID:          uuidValue(employee.OrgID),
 		EmployeeID:     employee.ID,
-		CloudAgentID:   agentID,
+		SpecialistID:   agentID,
 		TaskID:         task.ID,
 		SandboxID:      sandboxID,
 		ConversationID: conv.ID,
 	}
 }
 
-func (h *SpecialistTaskHandler) ensureConversationEndedEvent(ctx context.Context, task model.CloudAgentTask, conv model.AgentConversation, reason string, now time.Time) {
+func (h *SpecialistTaskHandler) ensureConversationEndedEvent(ctx context.Context, task model.SpecialistTask, conv model.EmployeeConversation, reason string, now time.Time) {
 	var count int64
 	if err := h.db.Model(&model.ConversationEvent{}).
 		Where("conversation_id = ? AND event_type = ?", conv.ID, bridgeevents.EventConversationEnded).
 		Count(&count).Error; err != nil || count > 0 {
 		if err != nil {
 			logging.FromContext(ctx).ErrorContext(ctx, "failed to check existing conversation ended event", "conversation_id", conv.ID, "error", err)
-			captureCloudAgentFailure(ctx, "terminate_task", err, cloudAgentSentryContext{
+			captureSpecialistFailure(ctx, "terminate_task", err, specialistSentryContext{
 				Operation:      "check_existing_ended_event",
 				OrgID:          task.OrgID,
-				EmployeeID:     task.EmployeeAgentID,
-				CloudAgentID:   task.CloudAgentID,
+				EmployeeID:     task.EmployeeID,
+				SpecialistID:   task.SpecialistID,
 				TaskID:         task.ID,
 				SandboxID:      task.SandboxID,
 				ConversationID: conv.ID,
@@ -50,11 +50,11 @@ func (h *SpecialistTaskHandler) ensureConversationEndedEvent(ctx context.Context
 		Where("conversation_id = ?", conv.ID).
 		Scan(&maxSequence).Error; err != nil {
 		logging.FromContext(ctx).ErrorContext(ctx, "failed to load conversation event sequence", "conversation_id", conv.ID, "error", err)
-		captureCloudAgentFailure(ctx, "terminate_task", err, cloudAgentSentryContext{
+		captureSpecialistFailure(ctx, "terminate_task", err, specialistSentryContext{
 			Operation:      "load_event_sequence",
 			OrgID:          task.OrgID,
-			EmployeeID:     task.EmployeeAgentID,
-			CloudAgentID:   task.CloudAgentID,
+			EmployeeID:     task.EmployeeID,
+			SpecialistID:   task.SpecialistID,
 			TaskID:         task.ID,
 			SandboxID:      task.SandboxID,
 			ConversationID: conv.ID,
@@ -64,14 +64,14 @@ func (h *SpecialistTaskHandler) ensureConversationEndedEvent(ctx context.Context
 
 	data, _ := json.Marshal(map[string]any{
 		"reason": reason,
-		"source": "cloud_agent_terminate",
+		"source": "specialist_terminate",
 	})
 	event := model.ConversationEvent{
 		OrgID:                 conv.OrgID,
 		ConversationID:        conv.ID,
 		EventID:               uuid.New().String(),
 		EventType:             bridgeevents.EventConversationEnded,
-		AgentID:               conv.AgentID.String(),
+		EmployeeID:            conv.EmployeeID.String(),
 		RuntimeConversationID: conv.RuntimeConversationID,
 		Timestamp:             now,
 		SequenceNumber:        maxSequence + 1,
@@ -79,11 +79,11 @@ func (h *SpecialistTaskHandler) ensureConversationEndedEvent(ctx context.Context
 	}
 	if err := h.db.Create(&event).Error; err != nil {
 		logging.FromContext(ctx).ErrorContext(ctx, "failed to append conversation ended event", "conversation_id", conv.ID, "error", err)
-		captureCloudAgentFailure(ctx, "terminate_task", err, cloudAgentSentryContext{
+		captureSpecialistFailure(ctx, "terminate_task", err, specialistSentryContext{
 			Operation:      "append_ended_event",
 			OrgID:          task.OrgID,
-			EmployeeID:     task.EmployeeAgentID,
-			CloudAgentID:   task.CloudAgentID,
+			EmployeeID:     task.EmployeeID,
+			SpecialistID:   task.SpecialistID,
 			TaskID:         task.ID,
 			SandboxID:      task.SandboxID,
 			ConversationID: conv.ID,
@@ -91,17 +91,17 @@ func (h *SpecialistTaskHandler) ensureConversationEndedEvent(ctx context.Context
 		return
 	}
 
-	if err := dispatchCloudAgentCallback(ctx, h.db, h.encKey, h.hooks.EmployeeCallbackRuntime, task, event); err != nil {
+	if err := dispatchSpecialistCallback(ctx, h.db, h.encKey, h.hooks.EmployeeCallbackRuntime, task, event); err != nil {
 		logging.FromContext(ctx).WarnContext(ctx, "failed to forward specialist termination to employee bridge",
 			"task_id", task.ID,
 			"conversation_id", conv.ID,
 			"error", err,
 		)
-		captureCloudAgentWarning(ctx, "terminate_task", err, cloudAgentSentryContext{
+		captureSpecialistWarning(ctx, "terminate_task", err, specialistSentryContext{
 			Operation:      "dispatch_termination_callback",
 			OrgID:          task.OrgID,
-			EmployeeID:     task.EmployeeAgentID,
-			CloudAgentID:   task.CloudAgentID,
+			EmployeeID:     task.EmployeeID,
+			SpecialistID:   task.SpecialistID,
 			TaskID:         task.ID,
 			SandboxID:      task.SandboxID,
 			ConversationID: conv.ID,

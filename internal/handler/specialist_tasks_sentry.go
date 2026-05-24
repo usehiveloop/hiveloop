@@ -8,10 +8,10 @@ import (
 	"github.com/google/uuid"
 )
 
-type cloudAgentSentryContext struct {
+type specialistSentryContext struct {
 	OrgID          uuid.UUID
 	EmployeeID     uuid.UUID
-	CloudAgentID   uuid.UUID
+	SpecialistID   uuid.UUID
 	TaskID         uuid.UUID
 	SandboxID      uuid.UUID
 	ConversationID uuid.UUID
@@ -20,15 +20,15 @@ type cloudAgentSentryContext struct {
 	Reason         string
 }
 
-func captureCloudAgentFailure(ctx context.Context, operation string, err error, eventCtx cloudAgentSentryContext) {
-	captureCloudAgentFailureWithLevel(ctx, sentrygo.LevelError, operation, err, eventCtx)
+func captureSpecialistFailure(ctx context.Context, operation string, err error, eventCtx specialistSentryContext) {
+	captureSpecialistFailureWithLevel(ctx, sentrygo.LevelError, operation, err, eventCtx)
 }
 
-func captureCloudAgentWarning(ctx context.Context, operation string, err error, eventCtx cloudAgentSentryContext) {
-	captureCloudAgentFailureWithLevel(ctx, sentrygo.LevelWarning, operation, err, eventCtx)
+func captureSpecialistWarning(ctx context.Context, operation string, err error, eventCtx specialistSentryContext) {
+	captureSpecialistFailureWithLevel(ctx, sentrygo.LevelWarning, operation, err, eventCtx)
 }
 
-func captureCloudAgentFailureWithLevel(ctx context.Context, level sentrygo.Level, operation string, err error, eventCtx cloudAgentSentryContext) {
+func captureSpecialistFailureWithLevel(ctx context.Context, level sentrygo.Level, operation string, err error, eventCtx specialistSentryContext) {
 	if err == nil {
 		return
 	}
@@ -38,13 +38,13 @@ func captureCloudAgentFailureWithLevel(ctx context.Context, level sentrygo.Level
 	}
 	hub.WithScope(func(scope *sentrygo.Scope) {
 		scope.SetLevel(level)
-		scope.SetTag("feature", "cloud_agents")
-		scope.SetTag("cloud_agent.operation", operation)
+		scope.SetTag("feature", "specialists")
+		scope.SetTag("specialist.operation", operation)
 		if eventCtx.Operation != "" {
-			scope.SetTag("cloud_agent.phase", eventCtx.Operation)
+			scope.SetTag("specialist.phase", eventCtx.Operation)
 		}
 		if eventCtx.Status != "" {
-			scope.SetTag("cloud_agent.status", eventCtx.Status)
+			scope.SetTag("specialist.status", eventCtx.Status)
 		}
 		if eventCtx.OrgID != uuid.Nil {
 			scope.SetTag("org_id", eventCtx.OrgID.String())
@@ -52,11 +52,11 @@ func captureCloudAgentFailureWithLevel(ctx context.Context, level sentrygo.Level
 		if eventCtx.EmployeeID != uuid.Nil {
 			scope.SetTag("employee_id", eventCtx.EmployeeID.String())
 		}
-		if eventCtx.CloudAgentID != uuid.Nil {
-			scope.SetTag("cloud_agent_id", eventCtx.CloudAgentID.String())
+		if eventCtx.SpecialistID != uuid.Nil {
+			scope.SetTag("specialist_id", eventCtx.SpecialistID.String())
 		}
 		if eventCtx.TaskID != uuid.Nil {
-			scope.SetTag("cloud_agent.task_id", eventCtx.TaskID.String())
+			scope.SetTag("specialist.task_id", eventCtx.TaskID.String())
 		}
 		if eventCtx.SandboxID != uuid.Nil {
 			scope.SetTag("sandbox_id", eventCtx.SandboxID.String())
@@ -64,19 +64,19 @@ func captureCloudAgentFailureWithLevel(ctx context.Context, level sentrygo.Level
 		if eventCtx.ConversationID != uuid.Nil {
 			scope.SetTag("conversation_id", eventCtx.ConversationID.String())
 		}
-		scope.SetContext("cloud_agent", sentrygo.Context{
+		scope.SetContext("specialist", sentrygo.Context{
 			"operation":       operation,
 			"phase":           eventCtx.Operation,
 			"org_id":          uuidStringOrEmpty(eventCtx.OrgID),
 			"employee_id":     uuidStringOrEmpty(eventCtx.EmployeeID),
-			"cloud_agent_id":  uuidStringOrEmpty(eventCtx.CloudAgentID),
+			"specialist_id":   uuidStringOrEmpty(eventCtx.SpecialistID),
 			"task_id":         uuidStringOrEmpty(eventCtx.TaskID),
 			"sandbox_id":      uuidStringOrEmpty(eventCtx.SandboxID),
 			"conversation_id": uuidStringOrEmpty(eventCtx.ConversationID),
 			"status":          eventCtx.Status,
 			"reason":          eventCtx.Reason,
 		})
-		hub.CaptureException(fmt.Errorf("cloud agent %s: %w", operation, err))
+		hub.CaptureException(fmt.Errorf("specialist %s: %w", operation, err))
 	})
 }
 

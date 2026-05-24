@@ -40,8 +40,8 @@ func toSandboxResponse(s model.Sandbox) sandboxResponse {
 		ErrorMessage: s.ErrorMessage,
 		CreatedAt:    s.CreatedAt.Format(time.RFC3339),
 	}
-	if s.AgentID != nil {
-		id := s.AgentID.String()
+	if s.EmployeeID != nil {
+		id := s.EmployeeID.String()
 		resp.EmployeeID = &id
 	}
 	if s.LastActiveAt != nil {

@@ -58,7 +58,7 @@ func (h *EmployeeSandboxUpgradeHandler) Handle(ctx context.Context, task *asynq.
 	if err := json.Unmarshal(task.Payload(), &payload); err != nil {
 		return fmt.Errorf("unmarshal employee sandbox upgrade payload: %w", err)
 	}
-	if payload.UpgradeID == uuid.Nil || payload.AgentID == uuid.Nil {
+	if payload.UpgradeID == uuid.Nil || payload.EmployeeID == uuid.Nil {
 		return fmt.Errorf("employee sandbox upgrade payload missing ids")
 	}
 	return h.run(ctx, payload)
@@ -83,7 +83,7 @@ func (h *EmployeeSandboxUpgradeHandler) run(ctx context.Context, payload Employe
 		recordEmployeeSandboxUpgradeFailure(ctx, upgrade, phase, msg)
 		log.ErrorContext(ctx, "employee sandbox upgrade failed",
 			"upgrade_id", upgrade.ID,
-			"agent_id", upgrade.AgentID,
+			"employee_id", upgrade.EmployeeID,
 			"phase", phase,
 			"error", msg,
 		)
@@ -205,7 +205,7 @@ func (h *EmployeeSandboxUpgradeHandler) run(ctx context.Context, payload Employe
 	recordEmployeeSandboxUpgradeSuccess(ctx, upgrade)
 	log.InfoContext(ctx, "employee sandbox upgrade succeeded",
 		"upgrade_id", upgrade.ID,
-		"agent_id", upgrade.AgentID,
+		"employee_id", upgrade.EmployeeID,
 		"old_sandbox_id", upgrade.OldSandboxID,
 		"new_sandbox_id", upgrade.NewSandboxID,
 	)

@@ -63,7 +63,7 @@ func (p *Pusher) markPushed(sandboxID, agentID string) {
 	p.pushed.Store(sandboxID+":"+agentID, true)
 }
 
-func (p *Pusher) PushAgentToSandbox(ctx context.Context, agent *model.Agent, sb *model.Sandbox) error {
+func (p *Pusher) PushSpecialistToSandbox(ctx context.Context, agent *model.Employee, sb *model.Sandbox) error {
 	sandboxID := sb.ID.String()
 	agentID := agent.ID.String()
 
@@ -79,7 +79,7 @@ func (p *Pusher) PushAgentToSandbox(ctx context.Context, agent *model.Agent, sb 
 		}
 	}
 
-	if err := p.pushAgentToSandbox(ctx, agent, sb); err != nil {
+	if err := p.pushSpecialistToSandbox(ctx, agent, sb); err != nil {
 		return err
 	}
 	p.markPushed(sandboxID, agentID)

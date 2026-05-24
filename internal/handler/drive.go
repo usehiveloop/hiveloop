@@ -48,7 +48,7 @@ func isAllowedContentType(contentType string) bool {
 
 type driveAssetResponse struct {
 	ID          string  `json:"id"`
-	AgentID     string  `json:"agent_id"`
+	EmployeeID  string  `json:"employee_id"`
 	Filename    string  `json:"filename"`
 	ContentType string  `json:"content_type"`
 	Size        int64   `json:"size"`
@@ -60,7 +60,7 @@ type driveAssetResponse struct {
 func toDriveAssetResponse(asset model.DriveAsset) driveAssetResponse {
 	return driveAssetResponse{
 		ID:          asset.ID.String(),
-		AgentID:     asset.AgentID.String(),
+		EmployeeID:  asset.EmployeeID.String(),
 		Filename:    asset.Filename,
 		ContentType: asset.ContentType,
 		Size:        asset.Size,
@@ -69,7 +69,7 @@ func toDriveAssetResponse(asset model.DriveAsset) driveAssetResponse {
 	}
 }
 
-func (handler *DriveHandler) resolveAgentFromToken(writer http.ResponseWriter, request *http.Request) (uuid.UUID, *model.Agent, bool) {
+func (handler *DriveHandler) resolveEmployeeFromToken(writer http.ResponseWriter, request *http.Request) (uuid.UUID, *model.Employee, bool) {
 	claims, ok := middleware.ClaimsFromContext(request.Context())
 	if !ok {
 		writeJSON(writer, http.StatusUnauthorized, map[string]string{"error": "missing token claims"})
@@ -88,13 +88,13 @@ func (handler *DriveHandler) resolveAgentFromToken(writer http.ResponseWriter, r
 		return uuid.Nil, nil, false
 	}
 
-	agentIDStr, ok := tokenRecord.Meta["agent_id"].(string)
+	agentIDStr, ok := tokenRecord.Meta["employee_id"].(string)
 	if !ok || agentIDStr == "" {
 		writeJSON(writer, http.StatusForbidden, map[string]string{"error": "token is not scoped to an agent"})
 		return uuid.Nil, nil, false
 	}
 
-	var agent model.Agent
+	var agent model.Employee
 	if err := handler.db.Where("id = ? AND org_id = ?", agentIDStr, orgID).First(&agent).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			writeJSON(writer, http.StatusNotFound, map[string]string{"error": "agent not found"})
@@ -109,7 +109,7 @@ func (handler *DriveHandler) resolveAgentFromToken(writer http.ResponseWriter, r
 
 // Upload handles POST /v1/drive/assets.
 func (handler *DriveHandler) Upload(writer http.ResponseWriter, request *http.Request) {
-	orgID, agent, ok := handler.resolveAgentFromToken(writer, request)
+	orgID, agent, ok := handler.resolveEmployeeFromToken(writer, request)
 	if !ok {
 		return
 	}
@@ -154,7 +154,7 @@ func (handler *DriveHandler) Upload(writer http.ResponseWriter, request *http.Re
 
 		if err := handler.storage.Upload(request.Context(), s3Key, file, contentType, fileHeader.Size); err != nil {
 			file.Close()
-			logging.FromContext(request.Context()).ErrorContext(request.Context(), "drive upload failed", "agent_id", agent.ID, "filename", fileHeader.Filename, "error", err)
+			logging.FromContext(request.Context()).ErrorContext(request.Context(), "drive upload failed", "employee_id", agent.ID, "filename", fileHeader.Filename, "error", err)
 			writeJSON(writer, http.StatusInternalServerError, map[string]string{"error": "failed to upload file to storage"})
 			return
 		}
@@ -163,7 +163,7 @@ func (handler *DriveHandler) Upload(writer http.ResponseWriter, request *http.Re
 		asset := model.DriveAsset{
 			ID:          assetID,
 			OrgID:       orgID,
-			AgentID:     agent.ID,
+			EmployeeID:  agent.ID,
 			Filename:    fileHeader.Filename,
 			ContentType: contentType,
 			Size:        fileHeader.Size,
@@ -171,7 +171,7 @@ func (handler *DriveHandler) Upload(writer http.ResponseWriter, request *http.Re
 		}
 		if err := handler.db.Create(&asset).Error; err != nil {
 			_ = handler.storage.Delete(request.Context(), s3Key)
-			logging.FromContext(request.Context()).ErrorContext(request.Context(), "drive asset db insert failed", "agent_id", agent.ID, "error", err)
+			logging.FromContext(request.Context()).ErrorContext(request.Context(), "drive asset db insert failed", "employee_id", agent.ID, "error", err)
 			writeJSON(writer, http.StatusInternalServerError, map[string]string{"error": "failed to save asset record"})
 			return
 		}

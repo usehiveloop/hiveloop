@@ -11,7 +11,7 @@ import (
 	"github.com/usehivy/hivy/internal/model"
 )
 
-func buildPromptFragments(ctx context.Context, db *gorm.DB, agent *model.Agent, description string) PromptFragments {
+func buildPromptFragments(ctx context.Context, db *gorm.DB, agent *model.Employee, description string) PromptFragments {
 	var org model.Org
 	var hasOrg bool
 	if agent.OrgID != nil && db != nil {
@@ -51,7 +51,7 @@ func identityOpening(org model.Org, hasOrg bool) string {
 	return fmt.Sprintf("You are a %s employee.", companyName)
 }
 
-func employeeIdentityPrompt(agent *model.Agent) string {
+func employeeIdentityPrompt(agent *model.Employee) string {
 	return employeeprompts.EngineeringIdentityPrompt
 }
 

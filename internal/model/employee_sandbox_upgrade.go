@@ -30,8 +30,8 @@ type EmployeeSandboxUpgrade struct {
 	OrgID uuid.UUID `gorm:"type:uuid;not null;index"`
 	Org   Org       `gorm:"foreignKey:OrgID;constraint:OnDelete:CASCADE"`
 
-	AgentID uuid.UUID `gorm:"type:uuid;not null;index"`
-	Agent   Agent     `gorm:"foreignKey:AgentID;constraint:OnDelete:CASCADE"`
+	EmployeeID uuid.UUID `gorm:"type:uuid;not null;index"`
+	Employee   Employee  `gorm:"foreignKey:EmployeeID;constraint:OnDelete:CASCADE"`
 
 	OldSandboxID *uuid.UUID `gorm:"type:uuid;index"`
 	OldSandbox   *Sandbox   `gorm:"foreignKey:OldSandboxID;constraint:OnDelete:SET NULL"`

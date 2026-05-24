@@ -139,7 +139,7 @@ func (h *MCPHandler) ValidateHasScopes(next http.Handler) http.Handler {
 			return
 		}
 		if token.Meta != nil {
-			if tokenType, _ := token.Meta["type"].(string); tokenType == "agent_proxy" {
+			if tokenType, _ := token.Meta["type"].(string); tokenType == "employee_proxy" {
 				next.ServeHTTP(w, r)
 				return
 			}

@@ -79,7 +79,7 @@ func TestFlusher_RecoversBridgeNativeChunksOnTurnCompleted(t *testing.T) {
 	})
 	terminal, _ := json.Marshal(map[string]any{
 		"event_id":        uuid.New().String(),
-		"agent_id":        "agent-1",
+		"employee_id":     "agent-1",
 		"conversation_id": "bridge-" + convID.String(),
 		"timestamp":       "2026-05-13T12:00:00Z",
 		"sequence_number": 4,
@@ -126,7 +126,7 @@ func TestFlusher_SeparatesBridgeNativeChunksAcrossTurns(t *testing.T) {
 	})
 	firstDone, _ := json.Marshal(map[string]any{
 		"event_id":        uuid.New().String(),
-		"agent_id":        "agent-1",
+		"employee_id":     "agent-1",
 		"conversation_id": "bridge-" + convID.String(),
 		"timestamp":       "2026-05-13T12:00:00Z",
 		"sequence_number": 2,
@@ -140,7 +140,7 @@ func TestFlusher_SeparatesBridgeNativeChunksAcrossTurns(t *testing.T) {
 	})
 	secondDone, _ := json.Marshal(map[string]any{
 		"event_id":        uuid.New().String(),
-		"agent_id":        "agent-1",
+		"employee_id":     "agent-1",
 		"conversation_id": "bridge-" + convID.String(),
 		"timestamp":       "2026-05-13T12:00:01Z",
 		"sequence_number": 4,
@@ -229,7 +229,7 @@ func TestFlusher_RecoversReasoningDeltasOnTerminalEvent(t *testing.T) {
 	})
 	terminal, _ := json.Marshal(map[string]any{
 		"event_id":        uuid.New().String(),
-		"agent_id":        "agent-1",
+		"employee_id":     "agent-1",
 		"conversation_id": "bridge-" + convID.String(),
 		"timestamp":       "2026-05-13T12:00:00Z",
 		"sequence_number": 4,

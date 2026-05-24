@@ -28,7 +28,7 @@ type employeeUpgradeFixture struct {
 	enqueuer *enqueue.MockClient
 	handler  *EmployeeSandboxUpgradeHandler
 	org      model.Org
-	agent    model.Agent
+	agent    model.Employee
 	old      model.Sandbox
 	upgrade  model.EmployeeSandboxUpgrade
 }
@@ -40,7 +40,7 @@ func newEmployeeUpgradeFixture(t *testing.T) *employeeUpgradeFixture {
 	kms := testTasksKMS(t)
 	cfg := &config.Config{
 		EmployeeSandboxBaseImagePrefix: "employee-runtime-test-v2",
-		CloudAgentsSandboxHost:         "cp.hivy.test",
+		SpecialistSandboxHost:          "cp.hivy.test",
 		ProxyHost:                      "proxy.hivy.test",
 	}
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -99,22 +99,22 @@ func newEmployeeUpgradeFixture(t *testing.T) *employeeUpgradeFixture {
 	if err := db.Create(&cred).Error; err != nil {
 		t.Fatalf("create credential: %v", err)
 	}
-	agent := model.Agent{
-		OrgID:        &org.ID,
-		Name:         "employee-" + uuid.NewString()[:8],
-		IsEmployee:   true,
-		Harness:      "employee-sandbox",
-		Model:        "deepseek-v4-flash",
-		CredentialID: &cred.ID,
-		Status:       "active",
-		SystemPrompt: "test employee",
-		Tools:        model.JSON{},
-		McpServers:   model.JSON{},
-		Skills:       model.JSON{},
-		Integrations: model.JSON{},
-		Resources:    model.JSON{},
-		AgentConfig:  model.JSON{},
-		Permissions:  model.JSON{},
+	agent := model.Employee{
+		OrgID:         &org.ID,
+		Name:          "employee-" + uuid.NewString()[:8],
+		IsEmployee:    true,
+		Harness:       "employee-sandbox",
+		Model:         "deepseek-v4-flash",
+		CredentialID:  &cred.ID,
+		Status:        "active",
+		SystemPrompt:  "test employee",
+		Tools:         model.JSON{},
+		McpServers:    model.JSON{},
+		Skills:        model.JSON{},
+		Integrations:  model.JSON{},
+		Resources:     model.JSON{},
+		RuntimeConfig: model.JSON{},
+		Permissions:   model.JSON{},
 	}
 	if err := db.Create(&agent).Error; err != nil {
 		t.Fatalf("create agent: %v", err)
@@ -126,7 +126,7 @@ func newEmployeeUpgradeFixture(t *testing.T) *employeeUpgradeFixture {
 	}
 	old := model.Sandbox{
 		OrgID:                 &org.ID,
-		AgentID:               &agent.ID,
+		EmployeeID:            &agent.ID,
 		SnapshotID:            &cfg.EmployeeSandboxBaseImagePrefix,
 		ExternalID:            "old-external",
 		BridgeURL:             server.URL,
@@ -138,7 +138,7 @@ func newEmployeeUpgradeFixture(t *testing.T) *employeeUpgradeFixture {
 	}
 	upgrade := model.EmployeeSandboxUpgrade{
 		OrgID:        org.ID,
-		AgentID:      agent.ID,
+		EmployeeID:   agent.ID,
 		OldSandboxID: &old.ID,
 		Status:       model.EmployeeSandboxUpgradeStatusQueued,
 		Phase:        model.EmployeeSandboxUpgradePhaseQueued,
@@ -158,7 +158,7 @@ func newEmployeeUpgradeFixture(t *testing.T) *employeeUpgradeFixture {
 		db.Where("org_id = ?", org.ID).Delete(&model.EmployeeSandboxUpgrade{})
 		db.Where("org_id = ?", org.ID).Delete(&model.Sandbox{})
 		db.Where("org_id = ?", org.ID).Delete(&model.InConnection{})
-		db.Where("org_id = ?", org.ID).Delete(&model.Agent{})
+		db.Where("org_id = ?", org.ID).Delete(&model.Employee{})
 		db.Where("org_id = ?", org.ID).Delete(&model.Credential{})
 		db.Where("id = ?", org.ID).Delete(&model.Org{})
 		db.Where("id = ?", user.ID).Delete(&model.User{})

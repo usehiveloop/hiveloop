@@ -22,7 +22,7 @@ func (o *Orchestrator) RunSandboxLifecycle(ctx context.Context) {
 	var idleRunning []model.Sandbox
 	if err := o.db.Where(
 		`status = ? AND last_active_at IS NOT NULL AND last_active_at < ?
-		 AND NOT EXISTS (SELECT 1 FROM employees a WHERE a.id = sandboxes.agent_id AND a.harness = 'employee-sandbox')`,
+		 AND NOT EXISTS (SELECT 1 FROM employees a WHERE a.id = sandboxes.employee_id AND a.harness = 'employee-sandbox')`,
 		string(StatusRunning),
 		idleCutoff,
 	).Find(&idleRunning).Error; err != nil {
@@ -41,7 +41,7 @@ func (o *Orchestrator) RunSandboxLifecycle(ctx context.Context) {
 	var staleStopped []model.Sandbox
 	if err := o.db.Where(
 		`status = ? AND stopped_at IS NOT NULL AND stopped_at < ?
-		 AND NOT EXISTS (SELECT 1 FROM employees a WHERE a.id = sandboxes.agent_id AND a.harness = 'employee-sandbox')`,
+		 AND NOT EXISTS (SELECT 1 FROM employees a WHERE a.id = sandboxes.employee_id AND a.harness = 'employee-sandbox')`,
 		string(StatusStopped),
 		archiveCutoff,
 	).Find(&staleStopped).Error; err != nil {

@@ -32,7 +32,7 @@ func (h *EmployeeSandboxRetireHandler) Handle(ctx context.Context, task *asynq.T
 	if err := json.Unmarshal(task.Payload(), &payload); err != nil {
 		return fmt.Errorf("unmarshal employee sandbox retire payload: %w", err)
 	}
-	if payload.UpgradeID == uuid.Nil || payload.AgentID == uuid.Nil || payload.SandboxID == uuid.Nil {
+	if payload.UpgradeID == uuid.Nil || payload.EmployeeID == uuid.Nil || payload.SandboxID == uuid.Nil {
 		return fmt.Errorf("employee sandbox retire payload missing ids")
 	}
 	return h.retire(ctx, payload)
@@ -40,7 +40,7 @@ func (h *EmployeeSandboxRetireHandler) Handle(ctx context.Context, task *asynq.T
 
 func (h *EmployeeSandboxRetireHandler) retire(ctx context.Context, payload EmployeeSandboxRetirePayload) error {
 	var upgrade model.EmployeeSandboxUpgrade
-	if err := h.db.WithContext(ctx).First(&upgrade, "id = ? AND agent_id = ?", payload.UpgradeID, payload.AgentID).Error; err != nil {
+	if err := h.db.WithContext(ctx).First(&upgrade, "id = ? AND employee_id = ?", payload.UpgradeID, payload.EmployeeID).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil
 		}
@@ -60,7 +60,7 @@ func (h *EmployeeSandboxRetireHandler) retire(ctx context.Context, payload Emplo
 		}
 		return fmt.Errorf("load old employee sandbox: %w", err)
 	}
-	if sb.AgentID == nil || *sb.AgentID != payload.AgentID || sb.Status != string(sandbox.StatusStopped) {
+	if sb.EmployeeID == nil || *sb.EmployeeID != payload.EmployeeID || sb.Status != string(sandbox.StatusStopped) {
 		return nil
 	}
 	if upgrade.NewSandboxID != nil && *upgrade.NewSandboxID == sb.ID {
@@ -69,7 +69,7 @@ func (h *EmployeeSandboxRetireHandler) retire(ctx context.Context, payload Emplo
 	recordEmployeeSandboxRetire(ctx, &upgrade, &sb)
 	logging.FromContext(ctx).InfoContext(ctx, "retiring old employee sandbox",
 		"upgrade_id", upgrade.ID,
-		"agent_id", payload.AgentID,
+		"employee_id", payload.EmployeeID,
 		"sandbox_id", sb.ID,
 		"external_id", sb.ExternalID,
 	)

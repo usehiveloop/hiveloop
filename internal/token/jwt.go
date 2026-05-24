@@ -21,7 +21,7 @@ type ProxyToken struct {
 // the prefixed token string. This is the canonical way to create proxy tokens.
 //
 // The meta parameter is stored in the token's JSONB meta field and should
-// contain at minimum a "type" key (e.g. "agent_proxy", "embedding_proxy").
+// contain at minimum a "type" key (e.g. "employee_proxy", "embedding_proxy").
 func MintAndPersist(db *gorm.DB, signingKey []byte, orgID, credentialID uuid.UUID, ttl time.Duration, meta map[string]any) (*ProxyToken, error) {
 	tokenStr, jti, err := Mint(signingKey, orgID.String(), credentialID.String(), ttl)
 	if err != nil {

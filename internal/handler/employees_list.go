@@ -77,7 +77,7 @@ func (h *EmployeeHandler) List(w http.ResponseWriter, r *http.Request) {
 
 	q = applyPagination(q, cursor, limit)
 
-	var agents []model.Agent
+	var agents []model.Employee
 	if err := q.Find(&agents).Error; err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to list employees"})
 		return
@@ -103,7 +103,7 @@ func (h *EmployeeHandler) List(w http.ResponseWriter, r *http.Request) {
 		base := toEmployeeResponse(a)
 		base.Triggers = triggers[a.ID]
 		base.AttachedSkills = h.markEmployeeSkillLocks(r.Context(), org.ID, &a, skills[a.ID])
-		subs := employeeEnabledSpecialistSummaries(a)
+		subs := h.employeeAttachedSpecialistSummaries(a)
 		base.SpecialistIDs = make([]string, len(subs))
 		for j, s := range subs {
 			base.SpecialistIDs[j] = s.ID
@@ -153,7 +153,7 @@ func (h *EmployeeHandler) Get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var agent model.Agent
+	var agent model.Employee
 	if err := h.db.WithContext(r.Context()).
 		Preload("Credential").
 		Where("employees.id = ? AND employees.org_id = ? AND employees.status <> ?", agentID, org.ID, "archived").
@@ -169,7 +169,7 @@ func (h *EmployeeHandler) Get(w http.ResponseWriter, r *http.Request) {
 	base := toEmployeeResponse(agent)
 	base.Triggers = h.loadEmployeeTriggers(agent.ID)[agent.ID]
 	base.AttachedSkills = h.markEmployeeSkillLocks(r.Context(), org.ID, &agent, h.loadEmployeeSkills(agent.ID)[agent.ID])
-	specialists := employeeEnabledSpecialistSummaries(agent)
+	specialists := h.employeeAttachedSpecialistSummaries(agent)
 	base.SpecialistIDs = make([]string, len(specialists))
 	for i, specialist := range specialists {
 		base.SpecialistIDs[i] = specialist.ID
@@ -192,11 +192,11 @@ func (h *EmployeeHandler) currentEmployeeSandboxSnapshotID() string {
 	return h.compileDeps.Cfg.EmployeeSandboxBaseImagePrefix
 }
 
-func (h *EmployeeHandler) employeeListItem(ctx context.Context, orgID uuid.UUID, agent model.Agent) employeeListItem {
+func (h *EmployeeHandler) employeeListItem(ctx context.Context, orgID uuid.UUID, agent model.Employee) employeeListItem {
 	base := toEmployeeResponse(agent)
 	base.Triggers = h.loadEmployeeTriggers(agent.ID)[agent.ID]
 	base.AttachedSkills = h.markEmployeeSkillLocks(ctx, orgID, &agent, h.loadEmployeeSkills(agent.ID)[agent.ID])
-	specialists := employeeEnabledSpecialistSummaries(agent)
+	specialists := h.employeeAttachedSpecialistSummaries(agent)
 	base.SpecialistIDs = make([]string, len(specialists))
 	for i, specialist := range specialists {
 		base.SpecialistIDs[i] = specialist.ID
@@ -210,20 +210,20 @@ func (h *EmployeeHandler) employeeListItem(ctx context.Context, orgID uuid.UUID,
 	}
 }
 
-func employeeEnabledSpecialistSummaries(employee model.Agent) []employeeSpecialistSummary {
-	disabled := disabledSpecialistSet(employee.DisabledSpecialists)
-	out := make([]employeeSpecialistSummary, 0, len(specialistTemplates))
-	for i := range specialistTemplates {
-		t := specialistTemplates[i]
-		if disabled[t.Slug] {
+func (h *EmployeeHandler) employeeAttachedSpecialistSummaries(employee model.Employee) []employeeSpecialistSummary {
+	attached := attachedSpecialistSet(employee.AttachedSpecialists)
+	defs := h.specialists.List()
+	out := make([]employeeSpecialistSummary, 0, len(defs))
+	for _, def := range defs {
+		if !attached[def.Slug] {
 			continue
 		}
-		slug := t.Slug
-		specialistType := t.SpecialistType
-		desc := t.Description
+		slug := def.Slug
+		specialistType := def.SpecialistType
+		desc := def.Description
 		out = append(out, employeeSpecialistSummary{
-			ID:                     t.Slug,
-			Name:                   t.Name,
+			ID:                     def.Slug,
+			Name:                   def.Name,
 			Description:            &desc,
 			Status:                 "active",
 			TemplateSlug:           &slug,

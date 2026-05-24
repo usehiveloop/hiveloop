@@ -31,7 +31,7 @@ func (h *EmployeeHandler) loadEmployeeTriggers(agentIDs ...uuid.UUID) map[uuid.U
 	}
 
 	type triggerRow struct {
-		AgentID      uuid.UUID      `gorm:"column:agent_id"`
+		EmployeeID   uuid.UUID      `gorm:"column:employee_id"`
 		TriggerID    uuid.UUID      `gorm:"column:trigger_id"`
 		TriggerType  string         `gorm:"column:trigger_type"`
 		ConnID       *uuid.UUID     `gorm:"column:conn_id"`
@@ -46,7 +46,7 @@ func (h *EmployeeHandler) loadEmployeeTriggers(agentIDs ...uuid.UUID) map[uuid.U
 	var rows []triggerRow
 	h.db.Raw(`
 		SELECT
-			at.agent_id,
+			at.employee_id,
 			at.id AS trigger_id,
 			at.trigger_type,
 			at.connection_id AS conn_id,
@@ -59,7 +59,7 @@ func (h *EmployeeHandler) loadEmployeeTriggers(agentIDs ...uuid.UUID) map[uuid.U
 		FROM employee_triggers at
 		LEFT JOIN in_connections ic ON ic.id = at.connection_id
 		LEFT JOIN in_integrations ii ON ii.id = ic.in_integration_id
-		WHERE at.agent_id IN ?
+		WHERE at.employee_id IN ?
 		ORDER BY at.id ASC
 	`, agentIDs).Scan(&rows)
 
@@ -89,7 +89,7 @@ func (h *EmployeeHandler) loadEmployeeTriggers(agentIDs ...uuid.UUID) map[uuid.U
 			response.Provider = *row.Provider
 		}
 
-		result[row.AgentID] = append(result[row.AgentID], response)
+		result[row.EmployeeID] = append(result[row.EmployeeID], response)
 	}
 	return result
 }
@@ -99,8 +99,8 @@ func (h *EmployeeHandler) loadEmployeeSkills(agentIDs ...uuid.UUID) map[uuid.UUI
 	if len(agentIDs) == 0 {
 		return nil
 	}
-	var links []model.AgentSkill
-	if err := h.db.Where("agent_id IN ?", agentIDs).Find(&links).Error; err != nil {
+	var links []model.EmployeeSkill
+	if err := h.db.Where("employee_id IN ?", agentIDs).Find(&links).Error; err != nil {
 		return nil
 	}
 	if len(links) == 0 {
@@ -124,7 +124,7 @@ func (h *EmployeeHandler) loadEmployeeSkills(agentIDs ...uuid.UUID) map[uuid.UUI
 		if !ok {
 			continue
 		}
-		result[link.AgentID] = append(result[link.AgentID], employeeSkillSummary{
+		result[link.EmployeeID] = append(result[link.EmployeeID], employeeSkillSummary{
 			ID:          skill.ID.String(),
 			Name:        skill.Name,
 			Description: skill.Description,

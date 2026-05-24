@@ -14,7 +14,7 @@ import (
 // ensureOrgBankConfigured creates and configures the org-scoped Hindsight bank
 // if it doesn't exist yet, or re-applies config if it has changed.
 // Per-agent observation scoping is set on each RetainItem in retainConversation.
-func (r *Retainer) ensureOrgBankConfigured(ctx context.Context, agent *model.Agent) error {
+func (r *Retainer) ensureOrgBankConfigured(ctx context.Context, agent *model.Employee) error {
 	bankID := OrgBankID(*agent.OrgID)
 	memCfg := DefaultMemoryConfig()
 

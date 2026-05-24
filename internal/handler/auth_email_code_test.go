@@ -90,7 +90,7 @@ func (h *emailConfirmationHarness) cleanupEmail(t *testing.T, emailAddr string) 
 			h.db.Where("user_id = ?", user.ID).Delete(&model.RefreshToken{})
 			h.db.Where("user_id = ?", user.ID).Delete(&model.OrgMembership{})
 			if len(orgIDs) > 0 {
-				h.db.Where("org_id IN ?", orgIDs).Delete(&model.Agent{})
+				h.db.Where("org_id IN ?", orgIDs).Delete(&model.Employee{})
 				h.db.Where("org_id IN ?", orgIDs).Delete(&model.CreditLedgerEntry{})
 				h.db.Exec("DELETE FROM orgs WHERE id IN ?", orgIDs)
 			}

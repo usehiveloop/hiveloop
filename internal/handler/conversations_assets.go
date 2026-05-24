@@ -36,7 +36,7 @@ func (h *ConversationHandler) ListAssets(w http.ResponseWriter, r *http.Request)
 	}
 
 	convID := chi.URLParam(r, "convID")
-	var conv model.AgentConversation
+	var conv model.EmployeeConversation
 	if err := h.db.Where("id = ? AND org_id = ?", convID, org.ID).First(&conv).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			writeJSON(w, http.StatusNotFound, map[string]string{"error": "conversation not found"})

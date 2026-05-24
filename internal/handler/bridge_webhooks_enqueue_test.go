@@ -13,7 +13,7 @@ import (
 
 func TestMaybeEnqueueConversationNaming_NoEnqueuer(t *testing.T) {
 	handler := &BridgeWebhookHandler{enqueuer: nil}
-	handler.maybeEnqueueConversationNaming(context.Background(), &model.AgentConversation{
+	handler.maybeEnqueueConversationNaming(context.Background(), &model.EmployeeConversation{
 		ID:   uuid.New(),
 		Name: "",
 	})
@@ -24,7 +24,7 @@ func TestMaybeEnqueueConversationNaming_AlreadyNamed(t *testing.T) {
 	mock := &enqueue.MockClient{}
 	handler := &BridgeWebhookHandler{enqueuer: mock}
 
-	handler.maybeEnqueueConversationNaming(context.Background(), &model.AgentConversation{
+	handler.maybeEnqueueConversationNaming(context.Background(), &model.EmployeeConversation{
 		ID:   uuid.New(),
 		Name: "Already Named",
 	})
@@ -39,7 +39,7 @@ func TestMaybeEnqueueConversationNaming_Enqueues(t *testing.T) {
 	handler := &BridgeWebhookHandler{enqueuer: mock}
 	convID := uuid.New()
 
-	handler.maybeEnqueueConversationNaming(context.Background(), &model.AgentConversation{
+	handler.maybeEnqueueConversationNaming(context.Background(), &model.EmployeeConversation{
 		ID:   convID,
 		Name: "",
 	})

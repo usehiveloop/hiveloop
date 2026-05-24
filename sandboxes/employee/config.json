@@ -135,19 +135,19 @@
       "type": "builtin.skill_manage"
     },
     {
-      "type": "builtin.cloud_agent_launch_task"
+      "type": "builtin.specialist_launch_task"
     },
     {
-      "type": "builtin.cloud_agent_task_status"
+      "type": "builtin.specialist_task_status"
     },
     {
-      "type": "builtin.cloud_agent_list_tasks"
+      "type": "builtin.specialist_list_tasks"
     },
     {
-      "type": "builtin.cloud_agent_task_send_message"
+      "type": "builtin.specialist_task_send_message"
     },
     {
-      "type": "builtin.cloud_agent_task_terminate"
+      "type": "builtin.specialist_task_terminate"
     }
   ],
   "mcp_servers": [],

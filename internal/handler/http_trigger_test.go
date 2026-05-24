@@ -33,7 +33,7 @@ func connectHTTPTriggerTestDB(t *testing.T) *gorm.DB {
 	if err := database.AutoMigrate(&model.Org{}); err != nil {
 		t.Fatalf("auto-migrate orgs: %v", err)
 	}
-	if err := database.AutoMigrate(&model.Agent{}, &model.AgentTrigger{}); err != nil {
+	if err := database.AutoMigrate(&model.Employee{}, &model.EmployeeTrigger{}); err != nil {
 		t.Fatalf("auto-migrate agent triggers: %v", err)
 	}
 	return database
@@ -58,7 +58,7 @@ func newHTTPTriggerHarness(t *testing.T) *httpTriggerHarness {
 	if err := database.Create(&model.Org{ID: orgID, Name: "test-org-" + orgID.String()}).Error; err != nil {
 		t.Fatalf("create org: %v", err)
 	}
-	if err := database.Create(&model.Agent{
+	if err := database.Create(&model.Employee{
 		ID:           agentID,
 		OrgID:        &orgID,
 		Name:         "Employee",
@@ -70,8 +70,8 @@ func newHTTPTriggerHarness(t *testing.T) *httpTriggerHarness {
 		t.Fatalf("create employee: %v", err)
 	}
 	t.Cleanup(func() {
-		database.Where("org_id = ?", orgID).Delete(&model.AgentTrigger{})
-		database.Where("id = ?", agentID).Delete(&model.Agent{})
+		database.Where("org_id = ?", orgID).Delete(&model.EmployeeTrigger{})
+		database.Where("id = ?", agentID).Delete(&model.Employee{})
 		database.Where("id = ?", orgID).Delete(&model.Org{})
 	})
 
@@ -91,7 +91,7 @@ func newHTTPTriggerHarness(t *testing.T) *httpTriggerHarness {
 	}
 }
 
-func (harness *httpTriggerHarness) createTrigger(t *testing.T, triggerType, plaintextSecret string) model.AgentTrigger {
+func (harness *httpTriggerHarness) createTrigger(t *testing.T, triggerType, plaintextSecret string) model.EmployeeTrigger {
 	t.Helper()
 	storedSecret := ""
 	if plaintextSecret != "" {
@@ -101,9 +101,9 @@ func (harness *httpTriggerHarness) createTrigger(t *testing.T, triggerType, plai
 		}
 		storedSecret = string(hash)
 	}
-	trigger := model.AgentTrigger{
+	trigger := model.EmployeeTrigger{
 		OrgID:       harness.orgID,
-		AgentID:     harness.agentID,
+		EmployeeID:  harness.agentID,
 		TriggerType: triggerType,
 		Enabled:     true,
 		SecretKey:   storedSecret,
@@ -112,7 +112,7 @@ func (harness *httpTriggerHarness) createTrigger(t *testing.T, triggerType, plai
 		t.Fatalf("create trigger: %v", err)
 	}
 	t.Cleanup(func() {
-		harness.db.Where("id = ?", trigger.ID).Delete(&model.AgentTrigger{})
+		harness.db.Where("id = ?", trigger.ID).Delete(&model.EmployeeTrigger{})
 	})
 	return trigger
 }

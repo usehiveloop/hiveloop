@@ -28,18 +28,18 @@ func attachPublishedGlobalSkills(ctx context.Context, db *gorm.DB, agentID uuid.
 		if err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				log.WarnContext(ctx, "default global skill not found, skipping",
-					"agent_id", agentID, "skill_name", name)
+					"employee_id", agentID, "skill_name", name)
 			} else {
 				log.ErrorContext(ctx, "lookup default global skill",
-					"error", err, "agent_id", agentID, "skill_name", name)
+					"error", err, "employee_id", agentID, "skill_name", name)
 			}
 			continue
 		}
-		link := model.AgentSkill{AgentID: agentID, SkillID: skill.ID}
+		link := model.EmployeeSkill{EmployeeID: agentID, SkillID: skill.ID}
 		result := db.WithContext(ctx).Clauses(clause.OnConflict{DoNothing: true}).Create(&link)
 		if result.Error != nil {
 			log.ErrorContext(ctx, "attach default global skill",
-				"error", result.Error, "agent_id", agentID, "skill_id", skill.ID, "skill_name", name)
+				"error", result.Error, "employee_id", agentID, "skill_id", skill.ID, "skill_name", name)
 			continue
 		}
 		if result.RowsAffected == 0 {

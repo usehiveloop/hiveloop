@@ -1,10 +1,10 @@
 .PHONY: build test test-e2e lint check-file-length vet check up down dev dev-nango dev-nango-secret clean fetch-actions generate docker-build docker-run test-clean test-clean-auth test-clean-nango test-clean-proxy test-clean-connect test-clean-integrations test-auth test-nango test-real-nango test-proxy test-connect test-integrations test-connections test-sandbox-docker test-setup test-setup-nango openapi generate-auth-keys generate-bridge-client generate-employee-bridge-client build-employee-sandbox-templates employee-env-doctor employee-debug-pack test-services-up test-services-down ragtest-slack-live ragtest-kb-search-live seed-test local-up local-down local-reset local-status login-test asynq-peek
-.PHONY: sandbox-cloud-agents-build sandbox-cloud-agents-test sandbox-cloud-agents-fmt-check sandbox-cloud-agents-clippy sandbox-cloud-agents-openapi sandbox-employee-build sandbox-employee-test sandbox-employee-fmt-check sandbox-employee-openapi employee-openapi sandbox-employee-image sandbox-employee-image-test
+.PHONY: sandbox-specialists-build sandbox-specialists-test sandbox-specialists-fmt-check sandbox-specialists-clippy sandbox-specialists-openapi sandbox-employee-build sandbox-employee-test sandbox-employee-fmt-check sandbox-employee-openapi employee-openapi sandbox-employee-image sandbox-employee-image-test
 
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 COMMIT  ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo unknown)
 IMAGE   ?= usehivy/hivy
-SANDBOX_CLOUD_AGENTS_DIR ?= sandboxes/cloud-agents
+SANDBOX_SPECIALISTS_DIR ?= sandboxes/specialists
 SANDBOX_EMPLOYEE_DIR ?= sandboxes/employee
 GO_BIN ?= $(shell if command -v go >/dev/null 2>&1; then command -v go; elif [ -x /opt/homebrew/bin/go ]; then echo /opt/homebrew/bin/go; elif [ -x /usr/local/go/bin/go ]; then echo /usr/local/go/bin/go; else echo go; fi)
 DEV_COMPOSE_SERVICES ?= postgres redis nango qdrant minio minio-setup hindsight api worker web
@@ -49,13 +49,13 @@ openapi:
 # HIVY_DAYTONA_API_KEY, HIVY_DAYTONA_API_URL, HIVY_DAYTONA_TARGET.
 # Usage: make build-templates VERSION=1.0.1 BRIDGE_VERSION=v1.0.0
 #        make build-templates VERSION=1.0.1 BRIDGE_VERSION=v1.0.0 SIZE=small
-#        make build-templates VERSION=1.0.1 BRIDGE_VERSION=v1.0.0 BRIDGE_BINARY=sandboxes/cloud-agents/target/release/bridge
+#        make build-templates VERSION=1.0.1 BRIDGE_VERSION=v1.0.0 BRIDGE_BINARY=sandboxes/specialists/target/release/bridge
 # VERSION drives the GHCR image tag and Daytona snapshot name. Bump it on every
 # rebuild — Daytona freezes the snapshot's mirrored image at create time, so
 # reusing a VERSION leaves the old bytes in the control-plane registry.
 # BRIDGE_VERSION is the monorepo release tag installed into the image, either
 # from ghcr.io/usehivy/hivy release assets or from BRIDGE_BINARY when
-# building the cloud agent bridge directly from sandboxes/cloud-agents.
+# building the specialist bridge directly from sandboxes/specialists.
 build-templates:
 	@test -n "$(VERSION)" || (echo "error: VERSION is required (e.g. make build-templates VERSION=1.0.1 BRIDGE_VERSION=v1.0.0)" && exit 1)
 	@test -n "$(BRIDGE_VERSION)" || (echo "error: BRIDGE_VERSION is required (e.g. make build-templates VERSION=1.0.1 BRIDGE_VERSION=v1.0.0)" && exit 1)
@@ -128,21 +128,21 @@ generate-employee-bridge-client:
 		--config=internal/employeebridge/oapi-codegen.yaml $(SANDBOX_EMPLOYEE_DIR)/openapi.generated.json
 	rm $(SANDBOX_EMPLOYEE_DIR)/openapi.generated.json
 
-sandbox-cloud-agents-build:
-	cd $(SANDBOX_CLOUD_AGENTS_DIR) && cargo build --release -p bridge
+sandbox-specialists-build:
+	cd $(SANDBOX_SPECIALISTS_DIR) && cargo build --release -p bridge
 
-sandbox-cloud-agents-test:
-	cd $(SANDBOX_CLOUD_AGENTS_DIR) && cargo test --workspace --exclude storage-e2e
+sandbox-specialists-test:
+	cd $(SANDBOX_SPECIALISTS_DIR) && cargo test --workspace --exclude storage-e2e
 
-sandbox-cloud-agents-fmt-check:
-	cd $(SANDBOX_CLOUD_AGENTS_DIR) && cargo fmt --all -- --check
+sandbox-specialists-fmt-check:
+	cd $(SANDBOX_SPECIALISTS_DIR) && cargo fmt --all -- --check
 
-sandbox-cloud-agents-clippy:
-	cd $(SANDBOX_CLOUD_AGENTS_DIR) && cargo clippy --workspace -- -D warnings
+sandbox-specialists-clippy:
+	cd $(SANDBOX_SPECIALISTS_DIR) && cargo clippy --workspace -- -D warnings
 
-sandbox-cloud-agents-openapi:
-	$(MAKE) -C $(SANDBOX_CLOUD_AGENTS_DIR) openapi
-	cp $(SANDBOX_CLOUD_AGENTS_DIR)/openapi.json openapi/bridge.json
+sandbox-specialists-openapi:
+	$(MAKE) -C $(SANDBOX_SPECIALISTS_DIR) openapi
+	cp $(SANDBOX_SPECIALISTS_DIR)/openapi.json openapi/bridge.json
 	$(MAKE) generate-bridge-client
 
 sandbox-employee-build:
@@ -365,7 +365,7 @@ docker-run:
 		-e HIVY_JWT_SIGNING_KEY=local-dev-signing-key \
 		-e HIVY_AUTH_RSA_PRIVATE_KEY=$${HIVY_AUTH_RSA_PRIVATE_KEY} \
 		-e HIVY_FRONTEND_URL=http://localhost:30112 \
-		-e HIVY_CLOUD_AGENTS_SANDBOX_RUNTIME_VERSION=dev \
+		-e HIVY_SPECIALIST_SANDBOX_RUNTIME_VERSION=dev \
 		$(IMAGE):latest
 
 # --- RAG test-service targets (Phase 0) ---

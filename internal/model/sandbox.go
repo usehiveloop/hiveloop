@@ -10,8 +10,8 @@ type Sandbox struct {
 	ID                    uuid.UUID        `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
 	OrgID                 *uuid.UUID       `gorm:"type:uuid;index"`
 	Org                   *Org             `gorm:"foreignKey:OrgID;constraint:OnDelete:CASCADE"`
-	AgentID               *uuid.UUID       `gorm:"type:uuid;index"`
-	Agent                 *Agent           `gorm:"foreignKey:AgentID;constraint:OnDelete:CASCADE"`
+	EmployeeID            *uuid.UUID       `gorm:"type:uuid;index"`
+	Employee              *Employee        `gorm:"foreignKey:EmployeeID;constraint:OnDelete:CASCADE"`
 	SandboxTemplateID     *uuid.UUID       `gorm:"type:uuid"`
 	SandboxTemplate       *SandboxTemplate `gorm:"foreignKey:SandboxTemplateID;constraint:OnDelete:SET NULL"`
 	SnapshotID            *string          `gorm:"column:snapshot_id"`

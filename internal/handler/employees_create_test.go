@@ -22,8 +22,8 @@ func TestIntegration_EmployeesCreate_RouteRemoved(t *testing.T) {
 
 func skillIDsFor(t *testing.T, db *gorm.DB, agentID uuid.UUID) map[uuid.UUID]bool {
 	t.Helper()
-	var rows []model.AgentSkill
-	if err := db.Where("agent_id = ?", agentID).Find(&rows).Error; err != nil {
+	var rows []model.EmployeeSkill
+	if err := db.Where("employee_id = ?", agentID).Find(&rows).Error; err != nil {
 		t.Fatalf("load employee_skills for %v: %v", agentID, err)
 	}
 	out := make(map[uuid.UUID]bool, len(rows))

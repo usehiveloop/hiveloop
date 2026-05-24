@@ -14,7 +14,7 @@ import (
 
 func TestControlPlaneOutboundChannels_EmitsEmployeeWebhookSpec(t *testing.T) {
 	sandboxID := uuid.New()
-	channels := ControlPlaneOutboundChannels(&config.Config{CloudAgentsSandboxHost: "api.hivy.test"}, sandboxID)
+	channels := ControlPlaneOutboundChannels(&config.Config{SpecialistSandboxHost: "api.hivy.test"}, sandboxID)
 	if len(channels) != 1 {
 		t.Fatalf("channels = %#v", channels)
 	}
@@ -32,7 +32,7 @@ func TestControlPlaneOutboundChannels_EmitsEmployeeWebhookSpec(t *testing.T) {
 
 func TestCompile_ReferencesProxyEnvInsteadOfRawProviderKeys(t *testing.T) {
 	orgID := uuid.New()
-	agent := &model.Agent{ID: uuid.New(), OrgID: &orgID, Name: "Aria", Model: DefaultEmployeeModel}
+	agent := &model.Employee{ID: uuid.New(), OrgID: &orgID, Name: "Aria", Model: DefaultEmployeeModel}
 
 	def, err := Compile(context.Background(), CompileDeps{Cfg: &config.Config{ProxyHost: "proxy.hivy.test"}}, agent)
 	if err != nil {
@@ -78,7 +78,7 @@ func TestCompile_ReferencesProxyEnvInsteadOfRawProviderKeys(t *testing.T) {
 
 func TestCompile_UsesAgentModelWithDefaultFallback(t *testing.T) {
 	orgID := uuid.New()
-	agent := &model.Agent{ID: uuid.New(), OrgID: &orgID, Name: "Aria", Model: "deepseek-v4-pro"}
+	agent := &model.Employee{ID: uuid.New(), OrgID: &orgID, Name: "Aria", Model: "deepseek-v4-pro"}
 
 	def, err := Compile(context.Background(), CompileDeps{Cfg: &config.Config{}}, agent)
 	if err != nil {

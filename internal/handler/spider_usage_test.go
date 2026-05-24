@@ -61,8 +61,8 @@ func TestSpiderCrawl_RecordsUsage(t *testing.T) {
 	if usage.TokenJTI != harness.tokenJTI {
 		t.Fatalf("expected token_jti %q, got %q", harness.tokenJTI, usage.TokenJTI)
 	}
-	if usage.AgentID == "" {
-		t.Fatal("expected agent_id to be set from token meta")
+	if usage.EmployeeID == "" {
+		t.Fatal("expected employee_id to be set from token meta")
 	}
 }
 

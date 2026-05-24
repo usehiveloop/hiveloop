@@ -47,8 +47,8 @@ func validateEmployeeTriggers(db *gorm.DB, orgID uuid.UUID, triggers []employeeT
 
 func replaceEmployeeTriggers(tx *gorm.DB, orgID, agentID uuid.UUID, triggers []employeeTriggerInput) error {
 	existingSecrets := map[uuid.UUID]string{}
-	var existing []model.AgentTrigger
-	if err := tx.Where("agent_id = ?", agentID).Find(&existing).Error; err != nil {
+	var existing []model.EmployeeTrigger
+	if err := tx.Where("employee_id = ?", agentID).Find(&existing).Error; err != nil {
 		return err
 	}
 	for _, trigger := range existing {
@@ -62,7 +62,7 @@ func replaceEmployeeTriggers(tx *gorm.DB, orgID, agentID uuid.UUID, triggers []e
 	return createEmployeeTriggersWithExistingSecrets(tx, orgID, agentID, triggers, existingSecrets)
 }
 
-// createEmployeeTriggers creates employee-owned AgentTrigger records inside an
+// createEmployeeTriggers creates employee-owned EmployeeTrigger records inside an
 // existing transaction. Connection IDs are in_connections IDs from the frontend.
 func createEmployeeTriggers(tx *gorm.DB, orgID, agentID uuid.UUID, triggers []employeeTriggerInput) error {
 	return createEmployeeTriggersWithExistingSecrets(tx, orgID, agentID, triggers, nil)
@@ -88,9 +88,9 @@ func createEmployeeTriggersWithExistingSecrets(tx *gorm.DB, orgID, agentID uuid.
 			triggerType = "webhook"
 		}
 
-		trigger := model.AgentTrigger{
+		trigger := model.EmployeeTrigger{
 			OrgID:        orgID,
-			AgentID:      agentID,
+			EmployeeID:   agentID,
 			Enabled:      true,
 			TriggerType:  triggerType,
 			Instructions: input.Instructions,
@@ -138,7 +138,7 @@ func createEmployeeTriggersWithExistingSecrets(tx *gorm.DB, orgID, agentID uuid.
 
 // deleteEmployeeTriggers removes all trigger records owned by an agent.
 func deleteEmployeeTriggers(db *gorm.DB, agentID uuid.UUID) error {
-	if err := db.Where("agent_id = ?", agentID).Delete(&model.AgentTrigger{}).Error; err != nil {
+	if err := db.Where("employee_id = ?", agentID).Delete(&model.EmployeeTrigger{}).Error; err != nil {
 		return fmt.Errorf("delete agent triggers: %w", err)
 	}
 	return nil

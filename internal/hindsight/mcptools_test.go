@@ -12,7 +12,7 @@ import (
 func TestBaseMemoryTags(t *testing.T) {
 	orgID := uuid.New()
 	agentID := uuid.New()
-	agent := &model.Agent{
+	agent := &model.Employee{
 		ID:    agentID,
 		OrgID: &orgID,
 	}

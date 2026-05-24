@@ -44,13 +44,13 @@ func TestSkillsPassthrough_NewWireShape(t *testing.T) {
 	h.db.Create(&cred)
 	t.Cleanup(func() { h.db.Where("id = ?", cred.ID).Delete(&model.Credential{}) })
 
-	agent := model.Agent{
+	agent := model.Employee{
 		OrgID: &org.ID, Name: "sk-agent-" + suffix,
 		CredentialID: &cred.ID, SystemPrompt: "test", Model: "claude-sonnet-4-5",
 		Status: "active",
 	}
 	h.db.Create(&agent)
-	t.Cleanup(func() { h.db.Where("id = ?", agent.ID).Delete(&model.Agent{}) })
+	t.Cleanup(func() { h.db.Where("id = ?", agent.ID).Delete(&model.Employee{}) })
 
 	skillFixtures := []struct {
 		bundleID string
@@ -76,10 +76,10 @@ func TestSkillsPassthrough_NewWireShape(t *testing.T) {
 			}`),
 		}
 		h.db.Create(&sk)
-		h.db.Create(&model.AgentSkill{AgentID: agent.ID, SkillID: sk.ID})
+		h.db.Create(&model.EmployeeSkill{EmployeeID: agent.ID, SkillID: sk.ID})
 		skillIDs = append(skillIDs, sk.ID)
 		t.Cleanup(func() {
-			h.db.Where("agent_id = ? AND skill_id = ?", agent.ID, sk.ID).Delete(&model.AgentSkill{})
+			h.db.Where("employee_id = ? AND skill_id = ?", agent.ID, sk.ID).Delete(&model.EmployeeSkill{})
 			h.db.Where("id = ?", sk.ID).Delete(&model.Skill{})
 		})
 	}
@@ -90,7 +90,7 @@ func TestSkillsPassthrough_NewWireShape(t *testing.T) {
 	expiresAt := time.Now().Add(24 * time.Hour)
 	sb := model.Sandbox{
 		OrgID:                 &org.ID,
-		AgentID:               &agent.ID,
+		EmployeeID:            &agent.ID,
 		ExternalID:            "sk-ext-" + suffix,
 		BridgeURL:             fb.URL,
 		BridgeURLExpiresAt:    &expiresAt,
@@ -108,8 +108,8 @@ func TestSkillsPassthrough_NewWireShape(t *testing.T) {
 	orch := sandbox.NewOrchestrator(h.db, nil, nil, encKey, cfg)
 	pusher := sandbox.NewPusher(h.db, orch, h.signingKey, cfg, nil)
 
-	if err := pusher.PushAgentToSandbox(t.Context(), &agent, &sb); err != nil {
-		t.Fatalf("PushAgentToSandbox: %v", err)
+	if err := pusher.PushSpecialistToSandbox(t.Context(), &agent, &sb); err != nil {
+		t.Fatalf("PushSpecialistToSandbox: %v", err)
 	}
 
 	cap := fb.CapturedSnapshot()

@@ -12,9 +12,9 @@ import (
 	"github.com/usehivy/hivy/internal/model"
 )
 
-type cloudAgentTaskResponse struct {
+type specialistTaskResponse struct {
 	ID                     string                 `json:"id"`
-	CloudAgentID           string                 `json:"cloud_agent_id"`
+	SpecialistID           string                 `json:"specialist_id"`
 	SandboxID              string                 `json:"sandbox_id"`
 	ConversationID         string                 `json:"conversation_id"`
 	ParentConversationType string                 `json:"parent_conversation_type"`
@@ -22,43 +22,43 @@ type cloudAgentTaskResponse struct {
 	Brief                  string                 `json:"brief"`
 	Metadata               map[string]any         `json:"metadata,omitempty"`
 	CreatedAt              string                 `json:"created_at"`
-	RecentEvents           []cloudAgentEventBrief `json:"recent_events,omitempty"`
+	RecentEvents           []specialistEventBrief `json:"recent_events,omitempty"`
 }
 
-type cloudAgentWithTasks struct {
+type specialistWithTasks struct {
 	ID           string                     `json:"id"`
 	Name         string                     `json:"name"`
 	SystemPrompt string                     `json:"system_prompt"`
 	Model        string                     `json:"model"`
 	Tools        model.JSON                 `json:"tools"`
 	Skills       model.JSON                 `json:"skills"`
-	RecentTasks  []cloudAgentTaskWithEvents `json:"recent_tasks"`
+	RecentTasks  []specialistTaskWithEvents `json:"recent_tasks"`
 }
 
-type cloudAgentTaskWithEvents struct {
+type specialistTaskWithEvents struct {
 	ID             string                 `json:"id"`
 	Brief          string                 `json:"brief"`
 	Metadata       model.JSON             `json:"metadata,omitempty"`
 	ConversationID string                 `json:"conversation_id"`
 	SandboxID      string                 `json:"sandbox_id"`
 	CreatedAt      string                 `json:"created_at"`
-	RecentEvents   []cloudAgentEventBrief `json:"recent_events"`
+	RecentEvents   []specialistEventBrief `json:"recent_events"`
 }
 
-type cloudAgentEventBrief struct {
+type specialistEventBrief struct {
 	EventType string        `json:"event_type"`
 	Data      model.RawJSON `json:"data"`
 	CreatedAt string        `json:"created_at"`
 }
 
-func taskToResponse(t model.CloudAgentTask, events []model.ConversationEvent) cloudAgentTaskResponse {
+func taskToResponse(t model.SpecialistTask, events []model.ConversationEvent) specialistTaskResponse {
 	var meta map[string]any
 	if t.Metadata != nil {
 		meta = map[string]any(t.Metadata)
 	}
-	resp := cloudAgentTaskResponse{
+	resp := specialistTaskResponse{
 		ID:                     t.ID.String(),
-		CloudAgentID:           t.CloudAgentID.String(),
+		SpecialistID:           t.SpecialistID.String(),
 		SandboxID:              t.SandboxID.String(),
 		ConversationID:         t.ConversationID.String(),
 		ParentConversationType: t.ParentConversationType,
@@ -68,7 +68,7 @@ func taskToResponse(t model.CloudAgentTask, events []model.ConversationEvent) cl
 		CreatedAt:              t.CreatedAt.UTC().Format("2006-01-02T15:04:05Z"),
 	}
 	for _, ev := range events {
-		resp.RecentEvents = append(resp.RecentEvents, cloudAgentEventBrief{
+		resp.RecentEvents = append(resp.RecentEvents, specialistEventBrief{
 			EventType: ev.EventType,
 			Data:      ev.Data,
 			CreatedAt: ev.CreatedAt.UTC().Format("2006-01-02T15:04:05Z"),
@@ -83,7 +83,7 @@ func specialistSlugParam(r *http.Request) string {
 
 func (h *SpecialistTaskHandler) parseAgentAndTaskIDs(w http.ResponseWriter, r *http.Request) (uuid.UUID, uuid.UUID, bool) {
 	slug := specialistSlugParam(r)
-	if specialistTemplateBySlug(slug) == nil {
+	if _, ok := h.catalog.BySlug(slug); !ok {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid specialist_slug"})
 		return uuid.Nil, uuid.Nil, false
 	}
@@ -96,18 +96,18 @@ func (h *SpecialistTaskHandler) parseAgentAndTaskIDs(w http.ResponseWriter, r *h
 	return agentID, taskID, true
 }
 
-func (h *SpecialistTaskHandler) loadTask(ctx context.Context, w http.ResponseWriter, employee *model.Agent, agentID, taskID uuid.UUID) (*model.CloudAgentTask, bool) {
-	var task model.CloudAgentTask
-	if err := h.db.Where("id = ? AND employee_agent_id = ? AND cloud_agent_id = ?", taskID, employee.ID, agentID).First(&task).Error; err != nil {
+func (h *SpecialistTaskHandler) loadTask(ctx context.Context, w http.ResponseWriter, employee *model.Employee, agentID, taskID uuid.UUID) (*model.SpecialistTask, bool) {
+	var task model.SpecialistTask
+	if err := h.db.Where("id = ? AND employee_id = ? AND specialist_id = ?", taskID, employee.ID, agentID).First(&task).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			writeJSON(w, http.StatusNotFound, map[string]string{"error": "task not found"})
 			return nil, false
 		}
-		captureCloudAgentFailure(ctx, "load_task", err, cloudAgentSentryContext{
+		captureSpecialistFailure(ctx, "load_task", err, specialistSentryContext{
 			Operation:    "load_task",
 			OrgID:        uuidValue(employee.OrgID),
 			EmployeeID:   employee.ID,
-			CloudAgentID: agentID,
+			SpecialistID: agentID,
 			TaskID:       taskID,
 		})
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to load task"})
@@ -116,14 +116,14 @@ func (h *SpecialistTaskHandler) loadTask(ctx context.Context, w http.ResponseWri
 	return &task, true
 }
 
-func (h *SpecialistTaskHandler) loadTaskRuntime(ctx context.Context, w http.ResponseWriter, task model.CloudAgentTask) (*model.AgentConversation, *model.Sandbox, bool) {
-	var conv model.AgentConversation
+func (h *SpecialistTaskHandler) loadTaskRuntime(ctx context.Context, w http.ResponseWriter, task model.SpecialistTask) (*model.EmployeeConversation, *model.Sandbox, bool) {
+	var conv model.EmployeeConversation
 	if err := h.db.Where("id = ?", task.ConversationID).First(&conv).Error; err != nil {
-		captureCloudAgentFailure(ctx, "load_task_runtime", err, cloudAgentSentryContext{
+		captureSpecialistFailure(ctx, "load_task_runtime", err, specialistSentryContext{
 			Operation:      "load_conversation",
 			OrgID:          task.OrgID,
-			EmployeeID:     task.EmployeeAgentID,
-			CloudAgentID:   task.CloudAgentID,
+			EmployeeID:     task.EmployeeID,
+			SpecialistID:   task.SpecialistID,
 			TaskID:         task.ID,
 			SandboxID:      task.SandboxID,
 			ConversationID: task.ConversationID,
@@ -133,11 +133,11 @@ func (h *SpecialistTaskHandler) loadTaskRuntime(ctx context.Context, w http.Resp
 	}
 	var sb model.Sandbox
 	if err := h.db.Where("id = ?", task.SandboxID).First(&sb).Error; err != nil {
-		captureCloudAgentFailure(ctx, "load_task_runtime", err, cloudAgentSentryContext{
+		captureSpecialistFailure(ctx, "load_task_runtime", err, specialistSentryContext{
 			Operation:      "load_sandbox",
 			OrgID:          task.OrgID,
-			EmployeeID:     task.EmployeeAgentID,
-			CloudAgentID:   task.CloudAgentID,
+			EmployeeID:     task.EmployeeID,
+			SpecialistID:   task.SpecialistID,
 			TaskID:         task.ID,
 			SandboxID:      task.SandboxID,
 			ConversationID: task.ConversationID,
@@ -148,7 +148,7 @@ func (h *SpecialistTaskHandler) loadTaskRuntime(ctx context.Context, w http.Resp
 	return &conv, &sb, true
 }
 
-func conversationIDsForTasks(tasks []model.CloudAgentTask) []uuid.UUID {
+func conversationIDsForTasks(tasks []model.SpecialistTask) []uuid.UUID {
 	ids := make([]uuid.UUID, 0, len(tasks))
 	for _, task := range tasks {
 		ids = append(ids, task.ConversationID)
@@ -182,7 +182,7 @@ func (h *SpecialistTaskHandler) recentEventsByConversation(conversationIDs []uui
 		) ranked
 		WHERE rn <= ?
 	`, conversationIDs, limit).Scan(&rows).Error; err != nil {
-		captureCloudAgentFailure(context.Background(), "load_recent_events", err, cloudAgentSentryContext{
+		captureSpecialistFailure(context.Background(), "load_recent_events", err, specialistSentryContext{
 			Operation: "load_conversation_events",
 		})
 		return eventsByConv

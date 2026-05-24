@@ -11,7 +11,7 @@ import (
 	"github.com/usehivy/hivy/internal/model"
 )
 
-func buildEmployeeRetainItem(agent *model.Agent, payload EmployeeMemoryRetainPayload, events []model.EmployeeMemoryEvent) (hindsight.RetainItem, bool) {
+func buildEmployeeRetainItem(agent *model.Employee, payload EmployeeMemoryRetainPayload, events []model.EmployeeMemoryEvent) (hindsight.RetainItem, bool) {
 	if agent == nil || agent.OrgID == nil || len(events) == 0 {
 		return hindsight.RetainItem{}, false
 	}
@@ -104,9 +104,9 @@ func employeeMemorySlackMention(userID string) string {
 	return ""
 }
 
-func employeeMemoryRetainMetadata(agent *model.Agent, payload EmployeeMemoryRetainPayload, events []model.EmployeeMemoryEvent) map[string]string {
+func employeeMemoryRetainMetadata(agent *model.Employee, payload EmployeeMemoryRetainPayload, events []model.EmployeeMemoryEvent) map[string]string {
 	meta := map[string]string{
-		"agent_id":     agent.ID.String(),
+		"employee_id":  agent.ID.String(),
 		"sandbox_id":   payload.SandboxID.String(),
 		"session_id":   payload.SessionID,
 		"event_count":  fmt.Sprintf("%d", len(events)),

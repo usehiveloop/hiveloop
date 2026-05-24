@@ -20,7 +20,7 @@ import (
 // conversation (with its sandbox), and verifies the Authorization bearer
 // matches the sandbox's decrypted bridge API key. On failure it writes the
 // JSON error response and returns nil — callers should return immediately.
-func (h *UploadsHandler) authConversation(w http.ResponseWriter, r *http.Request) (*model.AgentConversation, bool) {
+func (h *UploadsHandler) authConversation(w http.ResponseWriter, r *http.Request) (*model.EmployeeConversation, bool) {
 	if h.encKey == nil {
 		writeJSON(w, http.StatusServiceUnavailable, map[string]string{"error": "asset endpoints not configured"})
 		return nil, false
@@ -39,7 +39,7 @@ func (h *UploadsHandler) authConversation(w http.ResponseWriter, r *http.Request
 		return nil, false
 	}
 
-	var conv model.AgentConversation
+	var conv model.EmployeeConversation
 	if err := h.db.Preload("Sandbox").Where("id = ?", convID).First(&conv).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			writeJSON(w, http.StatusNotFound, map[string]string{"error": "conversation not found"})

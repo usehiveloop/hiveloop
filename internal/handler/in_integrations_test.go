@@ -80,7 +80,7 @@ func createTestIntegrationManagedSkill(t *testing.T, db *gorm.DB, name string, i
 		t.Fatalf("create integration-managed skill: %v", err)
 	}
 	t.Cleanup(func() {
-		db.Where("skill_id = ?", skill.ID).Delete(&model.AgentSkill{})
+		db.Where("skill_id = ?", skill.ID).Delete(&model.EmployeeSkill{})
 		db.Where("id = ?", skill.ID).Delete(&model.Skill{})
 	})
 	return skill

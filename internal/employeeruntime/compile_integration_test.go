@@ -26,7 +26,7 @@ func TestCompile_EmitsTypedPromptFragmentsWithoutRawSystemPrompt(t *testing.T) {
 	t.Cleanup(func() { db.Where("id = ?", org.ID).Delete(&model.Org{}) })
 	description := "Coordinates platform engineering work."
 	category := "engineering"
-	agent := model.Agent{
+	agent := model.Employee{
 		ID:                        uuid.New(),
 		OrgID:                     &org.ID,
 		Name:                      "Aria",
@@ -41,7 +41,7 @@ func TestCompile_EmitsTypedPromptFragmentsWithoutRawSystemPrompt(t *testing.T) {
 		Skills:                    model.JSON{},
 		Integrations:              model.JSON{},
 		Resources:                 model.JSON{},
-		AgentConfig:               model.JSON{},
+		RuntimeConfig:             model.JSON{},
 		Permissions:               model.JSON{},
 	}
 	if err := db.Create(&agent).Error; err != nil {
@@ -80,19 +80,19 @@ func TestCompile_SerializesSkillOptionalArraysAsEmptyArrays(t *testing.T) {
 		t.Fatalf("create org: %v", err)
 	}
 	category := "engineering"
-	agent := model.Agent{
-		ID:           uuid.New(),
-		OrgID:        &org.ID,
-		Name:         "Aria",
-		Category:     &category,
-		Model:        DefaultEmployeeModel,
-		Tools:        model.JSON{},
-		McpServers:   model.JSON{},
-		Skills:       model.JSON{},
-		Integrations: model.JSON{},
-		Resources:    model.JSON{},
-		AgentConfig:  model.JSON{},
-		Permissions:  model.JSON{},
+	agent := model.Employee{
+		ID:            uuid.New(),
+		OrgID:         &org.ID,
+		Name:          "Aria",
+		Category:      &category,
+		Model:         DefaultEmployeeModel,
+		Tools:         model.JSON{},
+		McpServers:    model.JSON{},
+		Skills:        model.JSON{},
+		Integrations:  model.JSON{},
+		Resources:     model.JSON{},
+		RuntimeConfig: model.JSON{},
+		Permissions:   model.JSON{},
 	}
 	if err := db.Create(&agent).Error; err != nil {
 		t.Fatalf("create agent: %v", err)
@@ -112,7 +112,7 @@ func TestCompile_SerializesSkillOptionalArraysAsEmptyArrays(t *testing.T) {
 	if err := db.Create(&skill).Error; err != nil {
 		t.Fatalf("create skill: %v", err)
 	}
-	if err := db.Create(&model.AgentSkill{AgentID: agent.ID, SkillID: skill.ID}).Error; err != nil {
+	if err := db.Create(&model.EmployeeSkill{EmployeeID: agent.ID, SkillID: skill.ID}).Error; err != nil {
 		t.Fatalf("attach skill: %v", err)
 	}
 
@@ -145,19 +145,19 @@ func TestCompile_PreservesSkillRequiredEnvironmentVariables(t *testing.T) {
 		t.Fatalf("create org: %v", err)
 	}
 	category := "engineering"
-	agent := model.Agent{
-		ID:           uuid.New(),
-		OrgID:        &org.ID,
-		Name:         "Aria",
-		Category:     &category,
-		Model:        DefaultEmployeeModel,
-		Tools:        model.JSON{},
-		McpServers:   model.JSON{},
-		Skills:       model.JSON{},
-		Integrations: model.JSON{},
-		Resources:    model.JSON{},
-		AgentConfig:  model.JSON{},
-		Permissions:  model.JSON{},
+	agent := model.Employee{
+		ID:            uuid.New(),
+		OrgID:         &org.ID,
+		Name:          "Aria",
+		Category:      &category,
+		Model:         DefaultEmployeeModel,
+		Tools:         model.JSON{},
+		McpServers:    model.JSON{},
+		Skills:        model.JSON{},
+		Integrations:  model.JSON{},
+		Resources:     model.JSON{},
+		RuntimeConfig: model.JSON{},
+		Permissions:   model.JSON{},
 	}
 	if err := db.Create(&agent).Error; err != nil {
 		t.Fatalf("create agent: %v", err)
@@ -182,7 +182,7 @@ func TestCompile_PreservesSkillRequiredEnvironmentVariables(t *testing.T) {
 	if err := db.Create(&skill).Error; err != nil {
 		t.Fatalf("create skill: %v", err)
 	}
-	if err := db.Create(&model.AgentSkill{AgentID: agent.ID, SkillID: skill.ID}).Error; err != nil {
+	if err := db.Create(&model.EmployeeSkill{EmployeeID: agent.ID, SkillID: skill.ID}).Error; err != nil {
 		t.Fatalf("attach skill: %v", err)
 	}
 

@@ -26,14 +26,14 @@ func bridgeWebhookSentryFields(stage string, sb *model.Sandbox, event *webhookEv
 		if sb.OrgID != nil {
 			fields["org_id"] = sb.OrgID.String()
 		}
-		if sb.AgentID != nil {
-			fields["agent_id"] = sb.AgentID.String()
+		if sb.EmployeeID != nil {
+			fields["employee_id"] = sb.EmployeeID.String()
 		}
 	}
 	if event != nil {
 		fields["event_id"] = event.EventID
 		fields["event_type"] = event.EventType
-		fields["bridge_agent_id"] = event.AgentID
+		fields["bridge_employee_id"] = event.EmployeeID
 		fields["runtime_conversation_id"] = event.ConversationID
 		fields["sequence_number"] = event.SequenceNumber
 		if !event.Timestamp.IsZero() {

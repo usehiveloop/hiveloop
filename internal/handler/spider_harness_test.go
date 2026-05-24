@@ -90,7 +90,7 @@ func newSpiderHarness(t *testing.T, spiderHandler http.Handler) *spiderTestHarne
 		CredentialID: credID,
 		JTI:          tokenJTI,
 		ExpiresAt:    time.Now().Add(24 * time.Hour),
-		Meta:         model.JSON{"agent_id": agentID.String(), "type": "agent_proxy"},
+		Meta:         model.JSON{"employee_id": agentID.String(), "type": "employee_proxy"},
 	}
 	if err := database.Create(&token).Error; err != nil {
 		t.Fatalf("create test token: %v", err)

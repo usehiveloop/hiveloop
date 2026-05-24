@@ -235,7 +235,7 @@ func TestInConnectionHandler_RevokeDetachesIntegrationManagedSkillWhenLastConnec
 	integ := createTestInIntegration(t, db, "linear")
 	skill := createTestIntegrationManagedSkill(t, db, "revoke-linear-"+uuid.New().String()[:8], []string{"linear"})
 	employee := createTestEmployee(t, db, org.ID)
-	if err := db.Create(&model.AgentSkill{AgentID: employee.ID, SkillID: skill.ID}).Error; err != nil {
+	if err := db.Create(&model.EmployeeSkill{EmployeeID: employee.ID, SkillID: skill.ID}).Error; err != nil {
 		t.Fatalf("attach skill: %v", err)
 	}
 	connID := uuid.New()
@@ -259,8 +259,8 @@ func TestInConnectionHandler_RevokeDetachesIntegrationManagedSkillWhenLastConnec
 		t.Fatalf("expected 200, got %d: %s", rr.Code, rr.Body.String())
 	}
 	var count int64
-	if err := db.Model(&model.AgentSkill{}).
-		Where("agent_id = ? AND skill_id = ?", employee.ID, skill.ID).
+	if err := db.Model(&model.EmployeeSkill{}).
+		Where("employee_id = ? AND skill_id = ?", employee.ID, skill.ID).
 		Count(&count).Error; err != nil {
 		t.Fatalf("count attached skill: %v", err)
 	}
@@ -291,7 +291,7 @@ func TestInConnectionHandler_RevokeKeepsSkillRequiredByAnotherActiveIntegration(
 	reviews := createTestInIntegration(t, db, "github-app-code-reviews")
 	skill := createTestIntegrationManagedSkill(t, db, "shared-github-"+uuid.New().String()[:8], []string{"github-app", "github-app-code-reviews"})
 	employee := createTestEmployee(t, db, org.ID)
-	if err := db.Create(&model.AgentSkill{AgentID: employee.ID, SkillID: skill.ID}).Error; err != nil {
+	if err := db.Create(&model.EmployeeSkill{EmployeeID: employee.ID, SkillID: skill.ID}).Error; err != nil {
 		t.Fatalf("attach skill: %v", err)
 	}
 	revokedConnID := uuid.New()
@@ -324,8 +324,8 @@ func TestInConnectionHandler_RevokeKeepsSkillRequiredByAnotherActiveIntegration(
 		t.Fatalf("expected 200, got %d: %s", rr.Code, rr.Body.String())
 	}
 	var count int64
-	if err := db.Model(&model.AgentSkill{}).
-		Where("agent_id = ? AND skill_id = ?", employee.ID, skill.ID).
+	if err := db.Model(&model.EmployeeSkill{}).
+		Where("employee_id = ? AND skill_id = ?", employee.ID, skill.ID).
 		Count(&count).Error; err != nil {
 		t.Fatalf("count attached skill: %v", err)
 	}
@@ -334,26 +334,26 @@ func TestInConnectionHandler_RevokeKeepsSkillRequiredByAnotherActiveIntegration(
 	}
 }
 
-func createTestEmployee(t *testing.T, db *gorm.DB, orgID uuid.UUID) model.Agent {
+func createTestEmployee(t *testing.T, db *gorm.DB, orgID uuid.UUID) model.Employee {
 	t.Helper()
-	employee := model.Agent{
-		ID:          uuid.New(),
-		OrgID:       &orgID,
-		Model:       "test-model",
-		Status:      "active",
-		Tools:       model.JSON{},
-		McpServers:  model.JSON{},
-		Skills:      model.JSON{},
-		AgentConfig: model.JSON{},
-		Permissions: model.JSON{},
-		Resources:   model.JSON{},
+	employee := model.Employee{
+		ID:            uuid.New(),
+		OrgID:         &orgID,
+		Model:         "test-model",
+		Status:        "active",
+		Tools:         model.JSON{},
+		McpServers:    model.JSON{},
+		Skills:        model.JSON{},
+		RuntimeConfig: model.JSON{},
+		Permissions:   model.JSON{},
+		Resources:     model.JSON{},
 	}
 	if err := db.Create(&employee).Error; err != nil {
 		t.Fatalf("create employee: %v", err)
 	}
 	t.Cleanup(func() {
-		db.Where("agent_id = ?", employee.ID).Delete(&model.AgentSkill{})
-		db.Where("id = ?", employee.ID).Delete(&model.Agent{})
+		db.Where("employee_id = ?", employee.ID).Delete(&model.EmployeeSkill{})
+		db.Where("id = ?", employee.ID).Delete(&model.Employee{})
 	})
 	return employee
 }

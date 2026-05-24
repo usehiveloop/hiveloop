@@ -22,7 +22,7 @@ type compiledTriggerMessage struct {
 	Raw            map[string]any
 }
 
-func (h *EmployeeTriggerDispatchHandler) compileMessage(payload EmployeeTriggerDispatchPayload, trigger model.AgentTrigger, webhookPayload map[string]any) compiledTriggerMessage {
+func (h *EmployeeTriggerDispatchHandler) compileMessage(payload EmployeeTriggerDispatchPayload, trigger model.EmployeeTrigger, webhookPayload map[string]any) compiledTriggerMessage {
 	triggerType := trigger.TriggerType
 	if triggerType == "" {
 		triggerType = "webhook"
@@ -104,7 +104,7 @@ func eventKey(eventType, eventAction string) string {
 	return eventType + "." + eventAction
 }
 
-func triggerConditionsMatch(trigger model.AgentTrigger, payload map[string]any) (bool, string) {
+func triggerConditionsMatch(trigger model.EmployeeTrigger, payload map[string]any) (bool, string) {
 	if len(trigger.Conditions) == 0 {
 		return true, ""
 	}

@@ -28,6 +28,7 @@ import (
 	ragmodel "github.com/usehivy/hivy/internal/rag/model"
 	"github.com/usehivy/hivy/internal/registry"
 	"github.com/usehivy/hivy/internal/sandbox"
+	"github.com/usehivy/hivy/internal/specialists"
 	"github.com/usehivy/hivy/internal/spider"
 	"github.com/usehivy/hivy/internal/storage"
 	"github.com/usehivy/hivy/internal/streaming"
@@ -53,6 +54,7 @@ type Deps struct {
 	SandboxEncKey   *crypto.SymmetricKey
 	Orchestrator    *sandbox.Orchestrator
 	AgentPusher     *sandbox.Pusher
+	Specialists     *specialists.Catalog
 	EventBus        *streaming.EventBus
 	Flusher         *streaming.Flusher
 	Cleanup         *streaming.Cleanup
@@ -112,6 +114,10 @@ func New(ctx context.Context) (*Deps, error) {
 		return nil, fmt.Errorf("seeding platform org: %w", err)
 	}
 	if err := seedGlobalSkills(ctx, database); err != nil {
+		return nil, err
+	}
+	specialistCatalog, err := loadGlobalSpecialists(ctx, database)
+	if err != nil {
 		return nil, err
 	}
 
@@ -288,6 +294,7 @@ func New(ctx context.Context) (*Deps, error) {
 		SandboxEncKey:   sandboxEncKey,
 		Orchestrator:    orchestrator,
 		AgentPusher:     agentPusher,
+		Specialists:     specialistCatalog,
 		EventBus:        eventBus,
 		Flusher:         flusher,
 		Cleanup:         cleanup,

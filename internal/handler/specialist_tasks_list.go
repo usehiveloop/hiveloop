@@ -17,25 +17,25 @@ func (h *SpecialistTaskHandler) ListSpecialistRuntimes(w http.ResponseWriter, r 
 		return
 	}
 
-	disabled := disabledSpecialistSet(employee.DisabledSpecialists)
-	agents := make([]model.Agent, 0, len(specialistTemplates))
-	specialistIDs := make([]uuid.UUID, 0, len(specialistTemplates))
-	for i := range specialistTemplates {
-		template := &specialistTemplates[i]
-		if disabled[template.Slug] {
+	attached := attachedSpecialistSet(employee.AttachedSpecialists)
+	defs := h.catalog.List()
+	agents := make([]model.Employee, 0, len(defs))
+	specialistIDs := make([]uuid.UUID, 0, len(defs))
+	for _, def := range defs {
+		if !attached[def.Slug] {
 			continue
 		}
-		agent := specialistAgentFromTemplate(employee, template)
+		agent := specialistAgentFromDefinition(employee, def)
 		agents = append(agents, agent)
 		specialistIDs = append(specialistIDs, agent.ID)
 	}
 
-	var allTasks []model.CloudAgentTask
+	var allTasks []model.SpecialistTask
 	if err := h.db.
-		Where("employee_agent_id = ? AND cloud_agent_id IN ?", employee.ID, specialistIDs).
+		Where("employee_id = ? AND specialist_id IN ?", employee.ID, specialistIDs).
 		Order("created_at DESC").
 		Find(&allTasks).Error; err != nil {
-		captureCloudAgentFailure(r.Context(), "list_cloud_agents", err, cloudAgentSentryContext{
+		captureSpecialistFailure(r.Context(), "list_specialists", err, specialistSentryContext{
 			Operation:  "load_recent_tasks",
 			OrgID:      uuidValue(employee.OrgID),
 			EmployeeID: employee.ID,
@@ -44,11 +44,11 @@ func (h *SpecialistTaskHandler) ListSpecialistRuntimes(w http.ResponseWriter, r 
 		return
 	}
 
-	tasksByAgent := make(map[uuid.UUID][]model.CloudAgentTask)
+	tasksByAgent := make(map[uuid.UUID][]model.SpecialistTask)
 	for _, t := range allTasks {
-		list := tasksByAgent[t.CloudAgentID]
+		list := tasksByAgent[t.SpecialistID]
 		if len(list) < 3 {
-			tasksByAgent[t.CloudAgentID] = append(list, t)
+			tasksByAgent[t.SpecialistID] = append(list, t)
 		}
 	}
 
@@ -60,30 +60,30 @@ func (h *SpecialistTaskHandler) ListSpecialistRuntimes(w http.ResponseWriter, r 
 	}
 	eventsByConv := h.recentEventsByConversation(convIDs, 10)
 
-	result := make([]cloudAgentWithTasks, 0, len(agents))
+	result := make([]specialistWithTasks, 0, len(agents))
 	for _, agent := range agents {
-		ca := cloudAgentWithTasks{
+		ca := specialistWithTasks{
 			ID:           agent.ID.String(),
 			Name:         agent.Name,
 			SystemPrompt: agent.SystemPrompt,
 			Model:        agent.Model,
 			Tools:        agent.Tools,
 			Skills:       agent.Skills,
-			RecentTasks:  []cloudAgentTaskWithEvents{},
+			RecentTasks:  []specialistTaskWithEvents{},
 		}
 
 		for _, task := range tasksByAgent[agent.ID] {
-			tw := cloudAgentTaskWithEvents{
+			tw := specialistTaskWithEvents{
 				ID:             task.ID.String(),
 				Brief:          task.Brief,
 				Metadata:       task.Metadata,
 				ConversationID: task.ConversationID.String(),
 				SandboxID:      task.SandboxID.String(),
 				CreatedAt:      task.CreatedAt.UTC().Format("2006-01-02T15:04:05Z"),
-				RecentEvents:   []cloudAgentEventBrief{},
+				RecentEvents:   []specialistEventBrief{},
 			}
 			for _, ev := range eventsByConv[task.ConversationID] {
-				tw.RecentEvents = append(tw.RecentEvents, cloudAgentEventBrief{
+				tw.RecentEvents = append(tw.RecentEvents, specialistEventBrief{
 					EventType: ev.EventType,
 					Data:      ev.Data,
 					CreatedAt: ev.CreatedAt.UTC().Format("2006-01-02T15:04:05Z"),
@@ -95,7 +95,7 @@ func (h *SpecialistTaskHandler) ListSpecialistRuntimes(w http.ResponseWriter, r 
 		result = append(result, ca)
 	}
 
-	writeJSON(w, http.StatusOK, map[string]any{"cloud_agents": result})
+	writeJSON(w, http.StatusOK, map[string]any{"specialists": result})
 }
 
 // ListTasks returns paginated tasks for a specific specialist.
@@ -116,16 +116,16 @@ func (h *SpecialistTaskHandler) ListTasks(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	q := h.db.Where("org_id = ? AND employee_agent_id = ? AND cloud_agent_id = ?", employee.OrgID, employee.ID, agentID)
+	q := h.db.Where("org_id = ? AND employee_id = ? AND specialist_id = ?", employee.OrgID, employee.ID, agentID)
 	q = applyPagination(q, cursor, limit)
 
-	var tasks []model.CloudAgentTask
+	var tasks []model.SpecialistTask
 	if err := q.Find(&tasks).Error; err != nil {
-		captureCloudAgentFailure(r.Context(), "list_tasks", err, cloudAgentSentryContext{
+		captureSpecialistFailure(r.Context(), "list_tasks", err, specialistSentryContext{
 			Operation:    "load_tasks",
 			OrgID:        uuidValue(employee.OrgID),
 			EmployeeID:   employee.ID,
-			CloudAgentID: agentID,
+			SpecialistID: agentID,
 		})
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to load tasks"})
 		return
@@ -138,7 +138,7 @@ func (h *SpecialistTaskHandler) ListTasks(w http.ResponseWriter, r *http.Request
 
 	eventsByConv := h.recentEventsByConversation(conversationIDsForTasks(tasks), 10)
 
-	items := make([]cloudAgentTaskResponse, len(tasks))
+	items := make([]specialistTaskResponse, len(tasks))
 	for i, t := range tasks {
 		items[i] = taskToResponse(t, eventsByConv[t.ConversationID])
 	}
@@ -150,7 +150,7 @@ func (h *SpecialistTaskHandler) ListTasks(w http.ResponseWriter, r *http.Request
 		nextCursor = &c
 	}
 
-	writeJSON(w, http.StatusOK, paginatedResponse[cloudAgentTaskResponse]{
+	writeJSON(w, http.StatusOK, paginatedResponse[specialistTaskResponse]{
 		Data:       items,
 		NextCursor: nextCursor,
 		HasMore:    hasMore,

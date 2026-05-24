@@ -15,7 +15,7 @@ use serde_json::{json, Value};
 use storage::CronJobRepo;
 use tools::{JsonTool, ProcessRegistry, ToolDefinition};
 
-use crate::cloud_agents::CloudAgentService;
+use crate::specialists::SpecialistService;
 
 pub type ToolFuture = Pin<Box<dyn Future<Output = Result<Value>> + Send>>;
 
@@ -53,7 +53,7 @@ pub struct ToolContext {
     pub process_registry: Option<Arc<ProcessRegistry>>,
     pub mcp_registry: Option<Arc<McpRegistry>>,
     pub workspace_root: PathBuf,
-    pub cloud_agents: Option<Arc<CloudAgentService>>,
+    pub specialists: Option<Arc<SpecialistService>>,
     pub outbound_emitter: Option<Arc<OutboundEmitter>>,
 }
 
@@ -120,32 +120,32 @@ pub fn build_agent_tools(
                     tools.push(check_delegated_status_tool(repo.clone()));
                 }
             }
-            ToolSpec::CloudAgentLaunchTask => {
-                if let Some(service) = &ctx.cloud_agents {
-                    tools.push(cloud_agent_launch_task_tool(
+            ToolSpec::SpecialistLaunchTask => {
+                if let Some(service) = &ctx.specialists {
+                    tools.push(specialist_launch_task_tool(
                         service.clone(),
                         session_id.clone(),
                     ));
                 }
             }
-            ToolSpec::CloudAgentTaskStatus => {
-                if let Some(service) = &ctx.cloud_agents {
-                    tools.push(cloud_agent_task_status_tool(service.clone()));
+            ToolSpec::SpecialistTaskStatus => {
+                if let Some(service) = &ctx.specialists {
+                    tools.push(specialist_task_status_tool(service.clone()));
                 }
             }
-            ToolSpec::CloudAgentListTasks => {
-                if let Some(service) = &ctx.cloud_agents {
-                    tools.push(cloud_agent_list_tasks_tool(service.clone()));
+            ToolSpec::SpecialistListTasks => {
+                if let Some(service) = &ctx.specialists {
+                    tools.push(specialist_list_tasks_tool(service.clone()));
                 }
             }
-            ToolSpec::CloudAgentTaskSendMessage => {
-                if let Some(service) = &ctx.cloud_agents {
-                    tools.push(cloud_agent_task_send_message_tool(service.clone()));
+            ToolSpec::SpecialistTaskSendMessage => {
+                if let Some(service) = &ctx.specialists {
+                    tools.push(specialist_task_send_message_tool(service.clone()));
                 }
             }
-            ToolSpec::CloudAgentTaskTerminate => {
-                if let Some(service) = &ctx.cloud_agents {
-                    tools.push(cloud_agent_task_terminate_tool(service.clone()));
+            ToolSpec::SpecialistTaskTerminate => {
+                if let Some(service) = &ctx.specialists {
+                    tools.push(specialist_task_terminate_tool(service.clone()));
                 }
             }
             _ => {}
@@ -473,32 +473,32 @@ async fn emit_skill_synced(
         .await;
 }
 
-fn cloud_agent_launch_task_tool(
-    service: Arc<CloudAgentService>,
+fn specialist_launch_task_tool(
+    service: Arc<SpecialistService>,
     session_id: SessionId,
 ) -> Arc<dyn JsonTool> {
     Arc::new(DynamicTool::new(
         ToolDefinition {
-            name: "cloud_agent_launch_task".into(),
-            description: "Launch a task on a cloud agent. Use for implementation-heavy, investigative, or long-running work. The prompt must be a complete standalone task prompt; the description is only short searchable metadata.".into(),
+            name: "specialist_launch_task".into(),
+            description: "Launch a task on a specialist. Use for implementation-heavy, investigative, or long-running work. The prompt must be a complete standalone task prompt; the description is only short searchable metadata.".into(),
             parameters: json!({
                 "type": "object",
                 "properties": {
-                    "agent_id": {"type": "string", "description": "Cloud agent id."},
+                    "specialist_id": {"type": "string", "description": "Specialist id."},
                     "description": {"type": "string", "description": "Short searchable task description stored in metadata."},
-                    "prompt": {"type": "string", "description": "Full standalone task prompt for the cloud agent."}
+                    "prompt": {"type": "string", "description": "Full standalone task prompt for the specialist."}
                 },
-                "required": ["agent_id", "description", "prompt"]
+                "required": ["specialist_id", "description", "prompt"]
             }),
         },
         move |args| {
             let service = service.clone();
             let session_id = session_id.clone();
             Box::pin(async move {
-                let agent_id = args
-                    .get("agent_id")
+                let specialist_id = args
+                    .get("specialist_id")
                     .and_then(Value::as_str)
-                    .ok_or_else(|| anyhow!("agent_id required"))?;
+                    .ok_or_else(|| anyhow!("specialist_id required"))?;
                 let description = args
                     .get("description")
                     .and_then(Value::as_str)
@@ -508,22 +508,22 @@ fn cloud_agent_launch_task_tool(
                     .and_then(Value::as_str)
                     .ok_or_else(|| anyhow!("prompt required"))?;
                 service
-                    .launch_task(agent_id, description, prompt, &session_id)
+                    .launch_task(specialist_id, description, prompt, &session_id)
                     .await
             })
         },
     ))
 }
 
-fn cloud_agent_task_status_tool(service: Arc<CloudAgentService>) -> Arc<dyn JsonTool> {
+fn specialist_task_status_tool(service: Arc<SpecialistService>) -> Arc<dyn JsonTool> {
     Arc::new(DynamicTool::new(
         ToolDefinition {
-            name: "cloud_agent_task_status".into(),
-            description: "Check a cloud-agent task status and recent events. Status is completed when events show ConversationEnded/done, failed on AgentError, otherwise running.".into(),
+            name: "specialist_task_status".into(),
+            description: "Check a specialist task status and recent events. Status is completed when events show ConversationEnded/done, failed on AgentError, otherwise running.".into(),
             parameters: json!({
                 "type": "object",
                 "properties": {
-                    "task_id": {"type": "string", "description": "Cloud-agent task id."}
+                    "task_id": {"type": "string", "description": "Specialist task id."}
                 },
                 "required": ["task_id"]
             }),
@@ -541,44 +541,44 @@ fn cloud_agent_task_status_tool(service: Arc<CloudAgentService>) -> Arc<dyn Json
     ))
 }
 
-fn cloud_agent_list_tasks_tool(service: Arc<CloudAgentService>) -> Arc<dyn JsonTool> {
+fn specialist_list_tasks_tool(service: Arc<SpecialistService>) -> Arc<dyn JsonTool> {
     Arc::new(DynamicTool::new(
         ToolDefinition {
-            name: "cloud_agent_list_tasks".into(),
-            description: "List recent tasks for a cloud agent and cache task ids so later status/message/terminate calls can resolve the agent.".into(),
+            name: "specialist_list_tasks".into(),
+            description: "List recent tasks for a specialist and cache task ids so later status/message/terminate calls can resolve the agent.".into(),
             parameters: json!({
                 "type": "object",
                 "properties": {
-                    "agent_id": {"type": "string", "description": "Cloud agent id."}
+                    "specialist_id": {"type": "string", "description": "Specialist id."}
                 },
-                "required": ["agent_id"]
+                "required": ["specialist_id"]
             }),
         },
         move |args| {
             let service = service.clone();
             Box::pin(async move {
-                let agent_id = args
-                    .get("agent_id")
+                let specialist_id = args
+                    .get("specialist_id")
                     .and_then(Value::as_str)
-                    .ok_or_else(|| anyhow!("agent_id required"))?;
-                service.list_tasks(agent_id).await
+                    .ok_or_else(|| anyhow!("specialist_id required"))?;
+                service.list_tasks(specialist_id).await
             })
         },
     ))
 }
 
-fn cloud_agent_task_send_message_tool(service: Arc<CloudAgentService>) -> Arc<dyn JsonTool> {
+fn specialist_task_send_message_tool(service: Arc<SpecialistService>) -> Arc<dyn JsonTool> {
     Arc::new(DynamicTool::new(
         ToolDefinition {
-            name: "cloud_agent_task_send_message".into(),
+            name: "specialist_task_send_message".into(),
             description:
-                "Send feedback, a new request, or an update prompt to a running cloud-agent task."
+                "Send feedback, a new request, or an update prompt to a running specialist task."
                     .into(),
             parameters: json!({
                 "type": "object",
                 "properties": {
-                    "task_id": {"type": "string", "description": "Cloud-agent task id."},
-                    "message": {"type": "string", "description": "Message to send to the cloud-agent task."}
+                    "task_id": {"type": "string", "description": "Specialist task id."},
+                    "message": {"type": "string", "description": "Message to send to the specialist task."}
                 },
                 "required": ["task_id", "message"]
             }),
@@ -600,15 +600,15 @@ fn cloud_agent_task_send_message_tool(service: Arc<CloudAgentService>) -> Arc<dy
     ))
 }
 
-fn cloud_agent_task_terminate_tool(service: Arc<CloudAgentService>) -> Arc<dyn JsonTool> {
+fn specialist_task_terminate_tool(service: Arc<SpecialistService>) -> Arc<dyn JsonTool> {
     Arc::new(DynamicTool::new(
         ToolDefinition {
-            name: "cloud_agent_task_terminate".into(),
-            description: "Terminate a cloud-agent task with a reason. Use when the task is no longer needed or should stop.".into(),
+            name: "specialist_task_terminate".into(),
+            description: "Terminate a specialist task with a reason. Use when the task is no longer needed or should stop.".into(),
             parameters: json!({
                 "type": "object",
                 "properties": {
-                    "task_id": {"type": "string", "description": "Cloud-agent task id."},
+                    "task_id": {"type": "string", "description": "Specialist task id."},
                     "reason": {"type": "string", "description": "Reason for terminating the task."}
                 },
                 "required": ["task_id", "reason"]
@@ -1205,7 +1205,7 @@ mod tests {
             process_registry: None,
             mcp_registry: None,
             workspace_root: workspace,
-            cloud_agents: None,
+            specialists: None,
             outbound_emitter: Some(emitter),
         };
         build_agent_tools(

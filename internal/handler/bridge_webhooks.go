@@ -31,7 +31,7 @@ type BridgeWebhookHandler struct {
 	encKey                  *crypto.SymmetricKey
 	eventBus                EventPublisher       // nil-safe: if nil, events go directly to Postgres
 	enqueuer                enqueue.TaskEnqueuer // nil-safe: if nil, conversation naming is skipped
-	employeeCallbackRuntime employeeCallbackSandboxCloudAgents
+	employeeCallbackRuntime employeeCallbackSandboxSpecialists
 }
 
 // EventPublisher is the interface for publishing events to the streaming bus.
@@ -45,8 +45,8 @@ func NewBridgeWebhookHandler(db *gorm.DB, encKey *crypto.SymmetricKey, eventBus 
 }
 
 // NewBridgeWebhookHandlerWithEmployeeRuntime creates a webhook handler that can
-// refresh and wake employee runtimes before forwarding cloud-agent callbacks.
-func NewBridgeWebhookHandlerWithEmployeeRuntime(db *gorm.DB, encKey *crypto.SymmetricKey, eventBus EventPublisher, enqueuer enqueue.TaskEnqueuer, runtime employeeCallbackSandboxCloudAgents) *BridgeWebhookHandler {
+// refresh and wake employee runtimes before forwarding specialist callbacks.
+func NewBridgeWebhookHandlerWithEmployeeRuntime(db *gorm.DB, encKey *crypto.SymmetricKey, eventBus EventPublisher, enqueuer enqueue.TaskEnqueuer, runtime employeeCallbackSandboxSpecialists) *BridgeWebhookHandler {
 	h := NewBridgeWebhookHandler(db, encKey, eventBus, enqueuer)
 	h.employeeCallbackRuntime = runtime
 	return h
@@ -56,7 +56,7 @@ func NewBridgeWebhookHandlerWithEmployeeRuntime(db *gorm.DB, encKey *crypto.Symm
 type webhookEvent struct {
 	EventID        string          `json:"event_id"`
 	EventType      string          `json:"event_type"`
-	AgentID        string          `json:"agent_id"`
+	EmployeeID     string          `json:"employee_id"`
 	ConversationID string          `json:"conversation_id"`
 	Timestamp      time.Time       `json:"timestamp"`
 	SequenceNumber int64           `json:"sequence_number"`
@@ -86,7 +86,7 @@ func (h *BridgeWebhookHandler) Handle(w http.ResponseWriter, r *http.Request) {
 			writeJSON(w, http.StatusNotFound, map[string]string{"error": "sandbox not found"})
 			return
 		}
-		captureCloudAgentFailure(ctx, "bridge_webhook", err, cloudAgentSentryContext{
+		captureSpecialistFailure(ctx, "bridge_webhook", err, specialistSentryContext{
 			Operation: "load_sandbox",
 			SandboxID: sbUUID,
 		})
@@ -104,7 +104,7 @@ func (h *BridgeWebhookHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		secret, err := h.encKey.DecryptString(sb.EncryptedBridgeAPIKey)
 		if err != nil {
 			logging.FromContext(r.Context()).ErrorContext(r.Context(), "webhook: failed to decrypt bridge api key", "sandbox_id", sandboxID, "error", err)
-			captureCloudAgentFailure(ctx, "bridge_webhook", err, cloudAgentSentryContext{
+			captureSpecialistFailure(ctx, "bridge_webhook", err, specialistSentryContext{
 				Operation: "decrypt_bridge_key",
 				OrgID:     uuidValue(sb.OrgID),
 				SandboxID: sb.ID,
@@ -151,7 +151,7 @@ func (h *BridgeWebhookHandler) Handle(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *BridgeWebhookHandler) processEvent(ctx context.Context, sb *model.Sandbox, event *webhookEvent) {
-	var conv model.AgentConversation
+	var conv model.EmployeeConversation
 	if err := h.db.WithContext(ctx).Where("runtime_conversation_id = ? AND sandbox_id = ?",
 		event.ConversationID, sb.ID).First(&conv).Error; err != nil {
 		stage := "load_conversation"
@@ -162,23 +162,23 @@ func (h *BridgeWebhookHandler) processEvent(ctx context.Context, sb *model.Sandb
 		return
 	}
 
-	var cloudTask *model.CloudAgentTask
-	if task, ok := h.cloudAgentTaskForConversation(ctx, conv.ID); ok {
-		cloudTask = task
+	var specialistTask *model.SpecialistTask
+	if task, ok := h.specialistTaskForConversation(ctx, conv.ID); ok {
+		specialistTask = task
 	}
 
 	redisPayloadMap := map[string]any{
 		"event_id":        event.EventID,
 		"event_type":      event.EventType,
-		"agent_id":        event.AgentID,
+		"employee_id":     event.EmployeeID,
 		"conversation_id": event.ConversationID,
 		"timestamp":       event.Timestamp.Format(time.RFC3339),
 		"sequence_number": event.SequenceNumber,
 		"data":            json.RawMessage(event.Data),
 	}
-	if cloudTask != nil {
-		redisPayloadMap["task_id"] = cloudTask.ID.String()
-		redisPayloadMap["metadata"] = map[string]any(cloudTask.Metadata)
+	if specialistTask != nil {
+		redisPayloadMap["task_id"] = specialistTask.ID.String()
+		redisPayloadMap["metadata"] = map[string]any(specialistTask.Metadata)
 	}
 	redisPayload, _ := json.Marshal(redisPayloadMap)
 
@@ -217,8 +217,8 @@ func (h *BridgeWebhookHandler) processEvent(ctx context.Context, sb *model.Sandb
 		h.maybeEnqueueConversationNaming(ctx, &conv)
 	}
 
-	if cloudTask != nil && shouldForwardCloudAgentEvent(event.EventType) {
-		h.forwardCloudAgentEvent(ctx, *cloudTask, &conv, event)
+	if specialistTask != nil && shouldForwardSpecialistEvent(event.EventType) {
+		h.forwardSpecialistEvent(ctx, *specialistTask, &conv, event)
 	}
 }
 
@@ -228,7 +228,7 @@ func (h *BridgeWebhookHandler) processEvent(ctx context.Context, sb *model.Sandb
 // this is best-effort — if the enqueuer isn't configured or enqueue fails, we
 // log and move on. The frontend falls back to deriving a title from the
 // message content.
-func (h *BridgeWebhookHandler) maybeEnqueueConversationNaming(ctx context.Context, conv *model.AgentConversation) {
+func (h *BridgeWebhookHandler) maybeEnqueueConversationNaming(ctx context.Context, conv *model.EmployeeConversation) {
 	if h.enqueuer == nil {
 		return
 	}
@@ -245,7 +245,7 @@ func (h *BridgeWebhookHandler) maybeEnqueueConversationNaming(ctx context.Contex
 	}
 }
 
-func (h *BridgeWebhookHandler) writeEventToPostgres(ctx context.Context, conv *model.AgentConversation, event *webhookEvent) {
+func (h *BridgeWebhookHandler) writeEventToPostgres(ctx context.Context, conv *model.EmployeeConversation, event *webhookEvent) {
 	eventType := event.EventType
 	if !shouldStoreConversationEvent(eventType) {
 		return
@@ -255,7 +255,7 @@ func (h *BridgeWebhookHandler) writeEventToPostgres(ctx context.Context, conv *m
 		ConversationID:        conv.ID,
 		EventID:               event.EventID,
 		EventType:             eventType,
-		AgentID:               event.AgentID,
+		EmployeeID:            event.EmployeeID,
 		RuntimeConversationID: event.ConversationID,
 		Timestamp:             event.Timestamp,
 		SequenceNumber:        event.SequenceNumber,
@@ -267,7 +267,7 @@ func (h *BridgeWebhookHandler) writeEventToPostgres(ctx context.Context, conv *m
 			"conversation_id", conv.ID,
 			"error", err,
 		)
-		sb := model.Sandbox{ID: conv.SandboxID, OrgID: &conv.OrgID, AgentID: &conv.AgentID}
+		sb := model.Sandbox{ID: conv.SandboxID, OrgID: &conv.OrgID, EmployeeID: &conv.EmployeeID}
 		captureBridgeWebhookIngest(ctx, "store_conversation_event", &sb, event, conv.ID, err)
 	}
 }
@@ -276,7 +276,7 @@ func shouldStoreConversationEvent(eventType string) bool {
 	return eventType != bridgeevents.EventResponseChunk && eventType != bridgeevents.EventReasoningDelta
 }
 
-func shouldForwardCloudAgentEvent(eventType string) bool {
+func shouldForwardSpecialistEvent(eventType string) bool {
 	switch eventType {
 	case bridgeevents.EventConversationEnded, bridgeevents.EventDone, bridgeevents.EventTodoUpdated:
 		return true

@@ -56,7 +56,7 @@ const (
 )
 
 // streamFromRedis streams events from Redis Streams (multi-subscriber, resumable).
-func (h *ConversationHandler) streamFromRedis(w http.ResponseWriter, r *http.Request, conv *model.AgentConversation) {
+func (h *ConversationHandler) streamFromRedis(w http.ResponseWriter, r *http.Request, conv *model.EmployeeConversation) {
 
 	cursor := r.Header.Get("Last-Event-ID")
 	if cursor == "" {
@@ -146,7 +146,7 @@ func writeSSEFrame(w http.ResponseWriter, rc *http.ResponseController, frame str
 }
 
 // trimSSEEnvelope removes fields from the event envelope that the browser
-// already knows from context (conversation_id from URL, agent_id from
+// already knows from context (conversation_id from URL, employee_id from
 // conversation metadata). The original envelope is preserved in Redis and
 // Postgres for history / debugging. On parse error, returns the original
 // bytes unchanged.
@@ -159,7 +159,7 @@ func trimSSEEnvelope(data json.RawMessage) json.RawMessage {
 		return data
 	}
 	delete(obj, "conversation_id")
-	delete(obj, "agent_id")
+	delete(obj, "employee_id")
 	out, err := json.Marshal(obj)
 	if err != nil {
 		return data
@@ -173,7 +173,7 @@ func trimSSEEnvelope(data json.RawMessage) json.RawMessage {
 func (h *ConversationHandler) stillAuthorized(ctx context.Context, convID uuid.UUID, orgID uuid.UUID) bool {
 	var count int64
 	if err := h.db.WithContext(ctx).
-		Model(&model.AgentConversation{}).
+		Model(&model.EmployeeConversation{}).
 		Where("id = ? AND org_id = ? AND status = ?", convID, orgID, "active").
 		Count(&count).Error; err != nil {
 		return false

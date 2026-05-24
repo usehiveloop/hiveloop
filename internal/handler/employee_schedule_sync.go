@@ -48,7 +48,7 @@ func upsertEmployeeScheduleFromEvent(tx *gorm.DB, event model.EmployeeMemoryEven
 	}
 	schedule := model.EmployeeSchedule{
 		OrgID:            event.OrgID,
-		AgentID:          event.AgentID,
+		EmployeeID:       event.EmployeeID,
 		SandboxID:        event.SandboxID,
 		BridgeJobID:      jobID,
 		Status:           status,
@@ -67,7 +67,7 @@ func upsertEmployeeScheduleFromEvent(tx *gorm.DB, event model.EmployeeMemoryEven
 		CancelledAt:      cancelledAt,
 	}
 	err := tx.Clauses(clause.OnConflict{
-		Columns: []clause.Column{{Name: "agent_id"}, {Name: "bridge_job_id"}},
+		Columns: []clause.Column{{Name: "employee_id"}, {Name: "bridge_job_id"}},
 		DoUpdates: clause.Assignments(map[string]any{
 			"org_id":             schedule.OrgID,
 			"sandbox_id":         schedule.SandboxID,
@@ -91,7 +91,7 @@ func upsertEmployeeScheduleFromEvent(tx *gorm.DB, event model.EmployeeMemoryEven
 	if err != nil {
 		return nil, fmt.Errorf("upsert employee schedule: %w", err)
 	}
-	if err := tx.Where("agent_id = ? AND bridge_job_id = ?", event.AgentID, jobID).First(&schedule).Error; err != nil {
+	if err := tx.Where("employee_id = ? AND bridge_job_id = ?", event.EmployeeID, jobID).First(&schedule).Error; err != nil {
 		return nil, fmt.Errorf("load employee schedule: %w", err)
 	}
 	return &schedule, nil
@@ -109,7 +109,7 @@ func upsertEmployeeScheduleRunFromEvent(tx *gorm.DB, event model.EmployeeMemoryE
 	}
 	run := model.EmployeeScheduleRun{
 		OrgID:        event.OrgID,
-		AgentID:      event.AgentID,
+		EmployeeID:   event.EmployeeID,
 		ScheduleID:   schedule.ID,
 		SandboxID:    event.SandboxID,
 		BridgeJobID:  jobID,
@@ -132,7 +132,7 @@ func upsertEmployeeScheduleRunFromEvent(tx *gorm.DB, event model.EmployeeMemoryE
 		Columns: []clause.Column{{Name: "schedule_id"}, {Name: "run_key"}},
 		DoUpdates: clause.Assignments(map[string]any{
 			"org_id":        run.OrgID,
-			"agent_id":      run.AgentID,
+			"employee_id":   run.EmployeeID,
 			"sandbox_id":    run.SandboxID,
 			"bridge_job_id": run.BridgeJobID,
 			"status":        run.Status,

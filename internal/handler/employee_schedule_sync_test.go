@@ -17,7 +17,7 @@ func TestIntegration_EmployeeScheduleEvents_UpdateSchedulesAndRuns(t *testing.T)
 	if err := db.Create(&org).Error; err != nil {
 		t.Fatalf("create org: %v", err)
 	}
-	agent := model.Agent{OrgID: &org.ID, Name: "Aria", Model: "test"}
+	agent := model.Employee{OrgID: &org.ID, Name: "Aria", Model: "test"}
 	if err := db.Create(&agent).Error; err != nil {
 		t.Fatalf("create agent: %v", err)
 	}
@@ -44,7 +44,7 @@ func TestIntegration_EmployeeScheduleEvents_UpdateSchedulesAndRuns(t *testing.T)
 
 	assertEmployeeScheduleMirror(t, db, agent.ID, payload)
 
-	agent2 := model.Agent{OrgID: &org.ID, Name: "Mira", Model: "test"}
+	agent2 := model.Employee{OrgID: &org.ID, Name: "Mira", Model: "test"}
 	if err := db.Create(&agent2).Error; err != nil {
 		t.Fatalf("create agent2: %v", err)
 	}
@@ -85,13 +85,13 @@ func TestIntegration_EmployeeScheduleNonCronSource_StoresEventOnly(t *testing.T)
 
 func employeeScheduleTestScope(t *testing.T, db interface {
 	Create(value any) *gorm.DB
-}, orgPrefix string) (model.Org, model.Agent, model.Sandbox) {
+}, orgPrefix string) (model.Org, model.Employee, model.Sandbox) {
 	t.Helper()
 	org := model.Org{Name: orgPrefix + uuid.NewString()}
 	if err := db.Create(&org).Error; err != nil {
 		t.Fatalf("create org: %v", err)
 	}
-	agent := model.Agent{OrgID: &org.ID, Name: "Aria", Model: "test"}
+	agent := model.Employee{OrgID: &org.ID, Name: "Aria", Model: "test"}
 	if err := db.Create(&agent).Error; err != nil {
 		t.Fatalf("create agent: %v", err)
 	}
@@ -104,7 +104,7 @@ func employeeScheduleTestSandbox(t *testing.T, db interface {
 	t.Helper()
 	sb := model.Sandbox{
 		OrgID:                 &orgID,
-		AgentID:               &agentID,
+		EmployeeID:            &agentID,
 		ExternalID:            "sandbox-" + uuid.NewString(),
 		BridgeURL:             "https://bridge.test",
 		EncryptedBridgeAPIKey: []byte("secret"),
@@ -137,12 +137,12 @@ func employeeScheduleTestPayload(now time.Time) map[string]any {
 func assertEmployeeScheduleMirror(t *testing.T, db *gorm.DB, agentID uuid.UUID, payload map[string]any) {
 	t.Helper()
 	var eventCount int64
-	db.Model(&model.EmployeeMemoryEvent{}).Where("agent_id = ? AND event_type LIKE ?", agentID, "schedule.%").Count(&eventCount)
+	db.Model(&model.EmployeeMemoryEvent{}).Where("employee_id = ? AND event_type LIKE ?", agentID, "schedule.%").Count(&eventCount)
 	if eventCount != 6 {
 		t.Fatalf("schedule event count = %d", eventCount)
 	}
 	var schedule model.EmployeeSchedule
-	if err := db.Where("agent_id = ? AND bridge_job_id = ?", agentID, "cron-1").First(&schedule).Error; err != nil {
+	if err := db.Where("employee_id = ? AND bridge_job_id = ?", agentID, "cron-1").First(&schedule).Error; err != nil {
 		t.Fatalf("load schedule: %v", err)
 	}
 	if schedule.Status != "cancelled" || schedule.CancelledAt == nil {
@@ -152,7 +152,7 @@ func assertEmployeeScheduleMirror(t *testing.T, db *gorm.DB, agentID uuid.UUID, 
 		t.Fatalf("schedule run fields = %#v", schedule)
 	}
 	var scheduleCount int64
-	db.Model(&model.EmployeeSchedule{}).Where("agent_id = ? AND bridge_job_id = ?", agentID, "cron-1").Count(&scheduleCount)
+	db.Model(&model.EmployeeSchedule{}).Where("employee_id = ? AND bridge_job_id = ?", agentID, "cron-1").Count(&scheduleCount)
 	if scheduleCount != 1 {
 		t.Fatalf("schedule count = %d", scheduleCount)
 	}
@@ -173,12 +173,12 @@ func assertEmployeeScheduleMirror(t *testing.T, db *gorm.DB, agentID uuid.UUID, 
 func assertScheduleEventWithoutMirror(t *testing.T, db *gorm.DB, agentID uuid.UUID) {
 	t.Helper()
 	var eventCount int64
-	db.Model(&model.EmployeeMemoryEvent{}).Where("agent_id = ? AND event_type = ?", agentID, "schedule.created").Count(&eventCount)
+	db.Model(&model.EmployeeMemoryEvent{}).Where("employee_id = ? AND event_type = ?", agentID, "schedule.created").Count(&eventCount)
 	if eventCount != 1 {
 		t.Fatalf("event count = %d", eventCount)
 	}
 	var scheduleCount int64
-	db.Model(&model.EmployeeSchedule{}).Where("agent_id = ?", agentID).Count(&scheduleCount)
+	db.Model(&model.EmployeeSchedule{}).Where("employee_id = ?", agentID).Count(&scheduleCount)
 	if scheduleCount != 0 {
 		t.Fatalf("schedule count = %d", scheduleCount)
 	}

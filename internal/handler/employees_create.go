@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 
@@ -16,20 +17,23 @@ import (
 	"github.com/usehivy/hivy/internal/model"
 )
 
-func ensureHivyEmployee(ctx context.Context, db *gorm.DB, orgID uuid.UUID) (*model.Agent, error) {
-	var existing model.Agent
+func ensureHivyEmployee(ctx context.Context, db *gorm.DB, orgID uuid.UUID) (*model.Employee, error) {
+	var existing model.Employee
 	err := db.WithContext(ctx).
 		Where("org_id = ? AND status <> ?", orgID, "archived").
 		Order("created_at ASC").
 		First(&existing).Error
 	if err == nil {
+		if err := ensureAutoAttachedSpecialists(ctx, db, &existing, specialistCatalogFromArgs().AutoAttachSlugs()); err != nil {
+			return nil, err
+		}
 		return &existing, nil
 	}
 	if !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, fmt.Errorf("lookup Hivy employee: %w", err)
 	}
 
-	var out *model.Agent
+	var out *model.Employee
 	err = db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		agent, err := createHivyEmployeeWithDefaultsTx(ctx, tx, orgID)
 		if err != nil {
@@ -52,8 +56,34 @@ func ensureHivyEmployee(ctx context.Context, db *gorm.DB, orgID uuid.UUID) (*mod
 	return out, nil
 }
 
-func createHivyEmployeeWithDefaultsTx(ctx context.Context, tx *gorm.DB, orgID uuid.UUID) (*model.Agent, error) {
-	agent, err := createHivyEmployeeTx(ctx, tx, orgID)
+func ensureAutoAttachedSpecialists(ctx context.Context, db *gorm.DB, agent *model.Employee, slugs []string) error {
+	if agent == nil || len(slugs) == 0 {
+		return nil
+	}
+	next := append([]string(nil), agent.AttachedSpecialists...)
+	changed := false
+	for _, slug := range slugs {
+		before := len(next)
+		next = setAttachedSpecialist(next, slug, true)
+		if len(next) != before {
+			changed = true
+		}
+	}
+	if !changed {
+		return nil
+	}
+	if err := db.WithContext(ctx).
+		Model(&model.Employee{}).
+		Where("id = ?", agent.ID).
+		Update("attached_specialists", pq.StringArray(next)).Error; err != nil {
+		return fmt.Errorf("auto-attach specialists: %w", err)
+	}
+	agent.AttachedSpecialists = next
+	return nil
+}
+
+func createHivyEmployeeWithDefaultsTx(ctx context.Context, tx *gorm.DB, orgID uuid.UUID) (*model.Employee, error) {
+	agent, err := createHivyEmployeeTx(ctx, tx, orgID, specialistCatalogFromArgs().AutoAttachSlugs())
 	if err != nil {
 		return nil, err
 	}
@@ -63,7 +93,7 @@ func createHivyEmployeeWithDefaultsTx(ctx context.Context, tx *gorm.DB, orgID uu
 	return agent, nil
 }
 
-func createHivyEmployeeTx(ctx context.Context, tx *gorm.DB, orgID uuid.UUID) (*model.Agent, error) {
+func createHivyEmployeeTx(ctx context.Context, tx *gorm.DB, orgID uuid.UUID, attachedSpecialists []string) (*model.Employee, error) {
 	choice, err := pickEmployeeCredential(tx)
 	if err != nil {
 		logging.FromContext(ctx).WarnContext(ctx, "no provider credential available for Hivy employee", "error", err, "org_id", orgID)
@@ -71,22 +101,23 @@ func createHivyEmployeeTx(ctx context.Context, tx *gorm.DB, orgID uuid.UUID) (*m
 	}
 
 	desc := hivyEmployeeDescription
-	agent := model.Agent{
-		OrgID:          &orgID,
-		Name:           hivyEmployeeName,
-		Description:    &desc,
-		SystemPrompt:   "",
-		IdentityPrompt: employeeprompts.EngineeringIdentityPrompt,
-		Model:          choice.model,
-		Harness:        employeeHarness,
-		Status:         "draft",
-		Tools:          model.JSON{},
-		McpServers:     model.JSON{},
-		Skills:         model.JSON{},
-		Integrations:   model.JSON{},
-		Resources:      model.JSON{},
-		AgentConfig:    model.JSON{},
-		Permissions:    model.JSON{},
+	agent := model.Employee{
+		OrgID:               &orgID,
+		Name:                hivyEmployeeName,
+		Description:         &desc,
+		SystemPrompt:        "",
+		IdentityPrompt:      employeeprompts.EngineeringIdentityPrompt,
+		Model:               choice.model,
+		Harness:             employeeHarness,
+		Status:              "draft",
+		Tools:               model.JSON{},
+		McpServers:          model.JSON{},
+		Skills:              model.JSON{},
+		Integrations:        model.JSON{},
+		Resources:           model.JSON{},
+		RuntimeConfig:       model.JSON{},
+		Permissions:         model.JSON{},
+		AttachedSpecialists: attachedSpecialists,
 	}
 	if choice.cred != nil {
 		agent.CredentialID = &choice.cred.ID
@@ -110,10 +141,10 @@ func attachPublishedGlobalSkillsTx(ctx context.Context, tx *gorm.DB, agentID uui
 	for _, name := range names {
 		skill, ok := skills[name]
 		if !ok {
-			logging.FromContext(ctx).WarnContext(ctx, "global skill not attached to Hivy", "skill_name", name, "agent_id", agentID)
+			logging.FromContext(ctx).WarnContext(ctx, "global skill not attached to Hivy", "skill_name", name, "employee_id", agentID)
 			continue
 		}
-		link := model.AgentSkill{AgentID: agentID, SkillID: skill.ID}
+		link := model.EmployeeSkill{EmployeeID: agentID, SkillID: skill.ID}
 		if err := tx.WithContext(ctx).Clauses(clause.OnConflict{DoNothing: true}).Create(&link).Error; err != nil {
 			return fmt.Errorf("attach global skill %q: %w", name, err)
 		}
@@ -127,14 +158,14 @@ func (h *EmployeeHandler) attachGlobalSkills(ctx context.Context, agentID uuid.U
 
 func (h *EmployeeHandler) rollbackEmployee(ctx context.Context, orgID, agentID, subagentID uuid.UUID) {
 	err := h.db.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Where("org_id = ? AND agent_id = ?", orgID, agentID).Delete(&model.Sandbox{}).Error; err != nil {
+		if err := tx.Where("org_id = ? AND employee_id = ?", orgID, agentID).Delete(&model.Sandbox{}).Error; err != nil {
 			return fmt.Errorf("delete sandbox: %w", err)
 		}
-		if err := tx.Where("org_id = ? AND id = ?", orgID, agentID).Delete(&model.Agent{}).Error; err != nil {
+		if err := tx.Where("org_id = ? AND id = ?", orgID, agentID).Delete(&model.Employee{}).Error; err != nil {
 			return fmt.Errorf("delete employee agent: %w", err)
 		}
 		if subagentID != uuid.Nil {
-			if err := tx.Where("org_id = ? AND id = ?", orgID, subagentID).Delete(&model.Agent{}).Error; err != nil {
+			if err := tx.Where("org_id = ? AND id = ?", orgID, subagentID).Delete(&model.Employee{}).Error; err != nil {
 				return fmt.Errorf("delete subagent: %w", err)
 			}
 		}
@@ -142,7 +173,7 @@ func (h *EmployeeHandler) rollbackEmployee(ctx context.Context, orgID, agentID, 
 	})
 	if err != nil {
 		logging.FromContext(ctx).ErrorContext(ctx, "rollback employee", "error", err,
-			"agent_id", agentID, "subagent_id", subagentID, "org_id", orgID)
+			"employee_id", agentID, "subemployee_id", subagentID, "org_id", orgID)
 	}
 }
 
@@ -163,7 +194,7 @@ func slugifyAgentName(s string) string {
 	return strings.TrimRight(b.String(), "-")
 }
 
-func createWithUniqueNameSlug(tx *gorm.DB, agent *model.Agent, baseSlug string) error {
+func createWithUniqueNameSlug(tx *gorm.DB, agent *model.Employee, baseSlug string) error {
 	for i := 0; i < subagentSlugMaxAttempts; i++ {
 		candidate := baseSlug
 		if i > 0 {
@@ -200,7 +231,7 @@ func createWithUniqueNameSlug(tx *gorm.DB, agent *model.Agent, baseSlug string) 
 
 func agentNameExists(tx *gorm.DB, orgID *uuid.UUID, name string) (bool, error) {
 	var count int64
-	query := tx.Model(&model.Agent{}).Where("name = ?", name)
+	query := tx.Model(&model.Employee{}).Where("name = ?", name)
 	if orgID == nil {
 		query = query.Where("org_id IS NULL")
 	} else {

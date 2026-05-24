@@ -10,14 +10,14 @@ import (
 	sentryobs "github.com/usehivy/hivy/internal/observability/sentry"
 )
 
-func annotateEmployeeSandboxUpgradeSentry(ctx context.Context, upgrade *model.EmployeeSandboxUpgrade, agent *model.Agent, oldSandbox *model.Sandbox) {
+func annotateEmployeeSandboxUpgradeSentry(ctx context.Context, upgrade *model.EmployeeSandboxUpgrade, agent *model.Employee, oldSandbox *model.Sandbox) {
 	hub := employeeUpgradeHub(ctx)
 	if hub == nil || upgrade == nil {
 		return
 	}
 	hub.Scope().SetTag("feature", "employee_sandbox_upgrade")
 	hub.Scope().SetTag("employee.upgrade_id", upgrade.ID.String())
-	hub.Scope().SetTag("employee.agent_id", upgrade.AgentID.String())
+	hub.Scope().SetTag("employee.employee_id", upgrade.EmployeeID.String())
 	hub.Scope().SetTag("employee.org_id", upgrade.OrgID.String())
 	if oldSandbox != nil {
 		hub.Scope().SetTag("employee.old_sandbox_id", oldSandbox.ID.String())
@@ -105,7 +105,7 @@ func recordEmployeeSandboxRetire(ctx context.Context, upgrade *model.EmployeeSan
 	}
 	hub.Scope().SetTag("feature", "employee_sandbox_upgrade")
 	hub.Scope().SetTag("employee.upgrade_id", upgrade.ID.String())
-	hub.Scope().SetTag("employee.agent_id", upgrade.AgentID.String())
+	hub.Scope().SetTag("employee.employee_id", upgrade.EmployeeID.String())
 	hub.Scope().SetTag("employee.old_sandbox_id", sb.ID.String())
 	setEmployeeUpgradeContext(hub, upgrade, sb, nil)
 	addEmployeeUpgradeBreadcrumb(ctx, "retire old sandbox", sentrygo.LevelInfo, sentrygo.Context{
@@ -128,7 +128,7 @@ func setEmployeeUpgradeContext(hub *sentrygo.Hub, upgrade *model.EmployeeSandbox
 	data := sentrygo.Context{
 		"upgrade_id":   upgrade.ID.String(),
 		"org_id":       upgrade.OrgID.String(),
-		"agent_id":     upgrade.AgentID.String(),
+		"employee_id":  upgrade.EmployeeID.String(),
 		"status":       upgrade.Status,
 		"phase":        upgrade.Phase,
 		"backup_bytes": upgrade.BackupBytes,

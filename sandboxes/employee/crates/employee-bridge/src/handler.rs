@@ -493,7 +493,7 @@ fn inbound_event_source(inbound: &InboundEvent) -> &'static str {
         "http" => "http",
         "trigger" => "trigger",
         "cron" => "cron",
-        "cloud_agent_callback" => "cloud_agent_callback",
+        "specialist_callback" => "specialist_callback",
         _ if inbound.session_id.as_str().starts_with("http-") => "http",
         _ => "http",
     }

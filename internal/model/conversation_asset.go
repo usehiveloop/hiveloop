@@ -11,11 +11,11 @@ import (
 // folder path, so re-uploading the same path overwrites both the S3 object
 // and this row (drive semantics).
 type ConversationAsset struct {
-	ID             uuid.UUID         `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
-	ConversationID uuid.UUID         `gorm:"type:uuid;not null;index:idx_conv_asset_conv_created,priority:1"`
-	Conversation   AgentConversation `gorm:"foreignKey:ConversationID;constraint:OnDelete:CASCADE"`
-	OrgID          uuid.UUID         `gorm:"type:uuid;not null;index"`
-	SandboxID      uuid.UUID         `gorm:"type:uuid;not null"`
+	ID             uuid.UUID            `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
+	ConversationID uuid.UUID            `gorm:"type:uuid;not null;index:idx_conv_asset_conv_created,priority:1"`
+	Conversation   EmployeeConversation `gorm:"foreignKey:ConversationID;constraint:OnDelete:CASCADE"`
+	OrgID          uuid.UUID            `gorm:"type:uuid;not null;index"`
+	SandboxID      uuid.UUID            `gorm:"type:uuid;not null"`
 
 	Path        string `gorm:"type:text;not null"`             // user-chosen folder, "" = root
 	Filename    string `gorm:"type:text;not null"`             // sanitized basename

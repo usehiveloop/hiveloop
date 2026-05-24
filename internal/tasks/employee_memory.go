@@ -38,12 +38,12 @@ func (h *EmployeeMemoryRetainHandler) Handle(ctx context.Context, task *asynq.Ta
 	if err := json.Unmarshal(task.Payload(), &payload); err != nil {
 		return fmt.Errorf("unmarshal employee memory retain payload: %w", err)
 	}
-	if payload.AgentID == uuid.Nil || payload.SandboxID == uuid.Nil || strings.TrimSpace(payload.SessionID) == "" {
+	if payload.EmployeeID == uuid.Nil || payload.SandboxID == uuid.Nil || strings.TrimSpace(payload.SessionID) == "" {
 		return nil
 	}
 
-	var agent model.Agent
-	if err := h.db.WithContext(ctx).Where("id = ?", payload.AgentID).First(&agent).Error; err != nil {
+	var agent model.Employee
+	if err := h.db.WithContext(ctx).Where("id = ?", payload.EmployeeID).First(&agent).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil
 		}
@@ -70,7 +70,7 @@ func (h *EmployeeMemoryRetainHandler) Handle(ctx context.Context, task *asynq.Ta
 	retainCtx, cancel := context.WithTimeout(ctx, employeeMemoryRetainTimeout)
 	defer cancel()
 	if _, err := h.memory.Retain(retainCtx, bankID, &hindsight.RetainRequest{Items: []hindsight.RetainItem{item}, Async: true}); err != nil {
-		logging.Capture(ctx, fmt.Errorf("employee memory retain: retain bank_id=%s agent_id=%s: %w", bankID, agent.ID, err))
+		logging.Capture(ctx, fmt.Errorf("employee memory retain: retain bank_id=%s employee_id=%s: %w", bankID, agent.ID, err))
 		return fmt.Errorf("retain employee memory: %w", err)
 	}
 
@@ -82,15 +82,15 @@ func (h *EmployeeMemoryRetainHandler) Handle(ctx context.Context, task *asynq.Ta
 		return fmt.Errorf("mark employee memory events retained: %w", err)
 	}
 
-	h.enqueueRefresh(ctx, payload.AgentID, payload.SandboxID)
+	h.enqueueRefresh(ctx, payload.EmployeeID, payload.SandboxID)
 	return nil
 }
 
 func (h *EmployeeMemoryRetainHandler) loadPendingEvents(ctx context.Context, payload EmployeeMemoryRetainPayload) ([]model.EmployeeMemoryEvent, error) {
 	var events []model.EmployeeMemoryEvent
 	if err := h.db.WithContext(ctx).
-		Where("agent_id = ? AND sandbox_id = ? AND session_id = ? AND retained_at IS NULL",
-			payload.AgentID, payload.SandboxID, payload.SessionID).
+		Where("employee_id = ? AND sandbox_id = ? AND session_id = ? AND retained_at IS NULL",
+			payload.EmployeeID, payload.SandboxID, payload.SessionID).
 		Order("event_at ASC, created_at ASC").
 		Find(&events).Error; err != nil {
 		return nil, fmt.Errorf("load employee memory events: %w", err)
@@ -104,9 +104,9 @@ func (h *EmployeeMemoryRetainHandler) enqueueRefresh(ctx context.Context, agentI
 	}
 	h.updateAgentMemoryRefreshStatus(ctx, agentID, "queued", "")
 	task, err := NewEmployeeMemoryRefreshTask(EmployeeMemoryRefreshPayload{
-		AgentID:   agentID,
-		SandboxID: sandboxID,
-		Reason:    "hindsight_retain",
+		EmployeeID: agentID,
+		SandboxID:  sandboxID,
+		Reason:     "hindsight_retain",
 	})
 	if err != nil {
 		logging.Capture(ctx, err)
@@ -128,7 +128,7 @@ func (h *EmployeeMemoryRetainHandler) updateAgentMemoryRefreshStatus(ctx context
 		"memory_refresh_status": status,
 		"memory_refresh_error":  truncateMemoryRefreshError(message),
 	}
-	if err := h.db.WithContext(ctx).Model(&model.Agent{}).Where("id = ?", agentID).Updates(updates).Error; err != nil {
+	if err := h.db.WithContext(ctx).Model(&model.Employee{}).Where("id = ?", agentID).Updates(updates).Error; err != nil {
 		logging.Capture(ctx, fmt.Errorf("employee memory retain: update refresh status: %w", err))
 	}
 }

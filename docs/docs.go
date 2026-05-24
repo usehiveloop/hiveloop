@@ -3281,7 +3281,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Returns all code-defined specialists and whether Hivy currently has each enabled.",
+                "description": "Returns all global specialists and whether Hivy currently has each attached.",
                 "produces": [
                     "application/json"
                 ],
@@ -3342,14 +3342,14 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Removes a specialist slug from Hivy's disabled specialist list.",
+                "description": "Adds a global specialist slug to Hivy's attached specialist list.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "employees"
                 ],
-                "summary": "Enable an employee specialist",
+                "summary": "Attach an employee specialist",
                 "parameters": [
                     {
                         "type": "string",
@@ -3408,14 +3408,14 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Adds a specialist slug to Hivy's disabled specialist list.",
+                "description": "Removes a global specialist slug from Hivy's attached specialist list.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "employees"
                 ],
-                "summary": "Disable an employee specialist",
+                "summary": "Detach an employee specialist",
                 "parameters": [
                     {
                         "type": "string",
@@ -4982,7 +4982,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Returns the attempt's status / counts / window plus the first page of per-doc failure rows. The cloud agent errors page can be used to walk later pages if needed.",
+                "description": "Returns the attempt's status / counts / window plus the first page of per-doc failure rows. The specialist errors page can be used to walk later pages if needed.",
                 "produces": [
                     "application/json"
                 ],
@@ -8135,11 +8135,11 @@ const docTemplate = `{
         "employeeSpecialistResponse": {
             "type": "object",
             "properties": {
+                "attached": {
+                    "type": "boolean"
+                },
                 "description": {
                     "type": "string"
-                },
-                "enabled": {
-                    "type": "boolean"
                 },
                 "name": {
                     "type": "string"

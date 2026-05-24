@@ -218,7 +218,7 @@ func newEmployeeHarness(t *testing.T) *employeeHarness {
 
 	cfg := &config.Config{
 		EmployeeSandboxBaseImagePrefix: "hivy-employee-sandbox-test-small-v1",
-		CloudAgentsSandboxHost:         "cp.hivy.test",
+		SpecialistSandboxHost:          "cp.hivy.test",
 		ProxyHost:                      "proxy.hivy.test",
 	}
 	orch := sandbox.NewOrchestrator(db, provider, encKey, cfg)

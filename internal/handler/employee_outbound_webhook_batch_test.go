@@ -28,7 +28,7 @@ func TestEmployeeOutboundWebhookBatch_IngestsCoalescedStreamWithoutPerDeltaRows(
 		t.Fatalf("create org: %v", err)
 	}
 	t.Cleanup(func() { db.Where("id = ?", org.ID).Delete(&model.Org{}) })
-	agent := model.Agent{OrgID: &org.ID, Name: "Higu", Model: "test", IsEmployee: true}
+	agent := model.Employee{OrgID: &org.ID, Name: "Higu", Model: "test", IsEmployee: true}
 	if err := db.Create(&agent).Error; err != nil {
 		t.Fatalf("create agent: %v", err)
 	}
@@ -39,7 +39,7 @@ func TestEmployeeOutboundWebhookBatch_IngestsCoalescedStreamWithoutPerDeltaRows(
 	}
 	sandbox := model.Sandbox{
 		OrgID:                 &org.ID,
-		AgentID:               &agent.ID,
+		EmployeeID:            &agent.ID,
 		ExternalID:            "batch-webhook-sandbox",
 		BridgeURL:             "http://localhost:7080",
 		EncryptedBridgeAPIKey: encryptedKey,
@@ -113,7 +113,7 @@ func TestEmployeeOutboundWebhookBatch_RejectsBadSignature(t *testing.T) {
 		t.Fatalf("create org: %v", err)
 	}
 	t.Cleanup(func() { db.Where("id = ?", org.ID).Delete(&model.Org{}) })
-	agent := model.Agent{OrgID: &org.ID, Name: "Higu", Model: "test", IsEmployee: true}
+	agent := model.Employee{OrgID: &org.ID, Name: "Higu", Model: "test", IsEmployee: true}
 	if err := db.Create(&agent).Error; err != nil {
 		t.Fatalf("create agent: %v", err)
 	}
@@ -121,7 +121,7 @@ func TestEmployeeOutboundWebhookBatch_RejectsBadSignature(t *testing.T) {
 	if err != nil {
 		t.Fatalf("encrypt bridge key: %v", err)
 	}
-	sandbox := model.Sandbox{OrgID: &org.ID, AgentID: &agent.ID, EncryptedBridgeAPIKey: encryptedKey, Status: "running"}
+	sandbox := model.Sandbox{OrgID: &org.ID, EmployeeID: &agent.ID, EncryptedBridgeAPIKey: encryptedKey, Status: "running"}
 	if err := db.Create(&sandbox).Error; err != nil {
 		t.Fatalf("create sandbox: %v", err)
 	}

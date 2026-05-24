@@ -20,11 +20,11 @@ import (
 	"github.com/usehivy/hivy/internal/sandbox"
 )
 
-func (h *EmployeeSandboxUpgradeHandler) loadAndStart(ctx context.Context, payload EmployeeSandboxUpgradePayload) (*model.EmployeeSandboxUpgrade, *model.Agent, *model.Sandbox, error) {
+func (h *EmployeeSandboxUpgradeHandler) loadAndStart(ctx context.Context, payload EmployeeSandboxUpgradePayload) (*model.EmployeeSandboxUpgrade, *model.Employee, *model.Sandbox, error) {
 	var upgrade model.EmployeeSandboxUpgrade
 	err := h.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
-			Where("id = ? AND agent_id = ?", payload.UpgradeID, payload.AgentID).
+			Where("id = ? AND employee_id = ?", payload.UpgradeID, payload.EmployeeID).
 			First(&upgrade).Error; err != nil {
 			return err
 		}
@@ -52,9 +52,9 @@ func (h *EmployeeSandboxUpgradeHandler) loadAndStart(ctx context.Context, payloa
 	upgrade.Status = model.EmployeeSandboxUpgradeStatusRunning
 	upgrade.Phase = model.EmployeeSandboxUpgradePhaseBackup
 
-	var agent model.Agent
+	var agent model.Employee
 	if err := h.db.WithContext(ctx).
-		Where("id = ? AND org_id = ? AND status <> ?", upgrade.AgentID, upgrade.OrgID, "archived").
+		Where("id = ? AND org_id = ? AND status <> ?", upgrade.EmployeeID, upgrade.OrgID, "archived").
 		First(&agent).Error; err != nil {
 		h.markFailed(ctx, &upgrade, model.EmployeeSandboxUpgradePhaseBackup, "employee not found")
 		return nil, nil, nil, fmt.Errorf("load employee: %w", err)
@@ -64,7 +64,7 @@ func (h *EmployeeSandboxUpgradeHandler) loadAndStart(ctx context.Context, payloa
 		return nil, nil, nil, fmt.Errorf("employee missing org")
 	}
 	var oldSandbox model.Sandbox
-	query := h.db.WithContext(ctx).Where("agent_id = ? AND org_id = ? AND status <> ?", upgrade.AgentID, upgrade.OrgID, string(sandbox.StatusError))
+	query := h.db.WithContext(ctx).Where("employee_id = ? AND org_id = ? AND status <> ?", upgrade.EmployeeID, upgrade.OrgID, string(sandbox.StatusError))
 	if upgrade.OldSandboxID != nil {
 		query = query.Where("id = ?", *upgrade.OldSandboxID)
 	}
@@ -81,7 +81,7 @@ func (h *EmployeeSandboxUpgradeHandler) loadAndStart(ctx context.Context, payloa
 	return &upgrade, &agent, &oldSandbox, nil
 }
 
-func (h *EmployeeSandboxUpgradeHandler) syncEmployeeRuntime(ctx context.Context, agent *model.Agent, sb *model.Sandbox) error {
+func (h *EmployeeSandboxUpgradeHandler) syncEmployeeRuntime(ctx context.Context, agent *model.Employee, sb *model.Sandbox) error {
 	apiKey, err := h.compileDeps.EncKey.DecryptString(sb.EncryptedBridgeAPIKey)
 	if err != nil {
 		return fmt.Errorf("decrypt runtime secret: %w", err)
@@ -102,7 +102,7 @@ func (h *EmployeeSandboxUpgradeHandler) syncEmployeeRuntime(ctx context.Context,
 		return fmt.Errorf("employee runtime readyz: %w", err)
 	}
 	if agent.Status != "active" {
-		if err := h.db.WithContext(ctx).Model(&model.Agent{}).
+		if err := h.db.WithContext(ctx).Model(&model.Employee{}).
 			Where("id = ? AND org_id = ?", agent.ID, *agent.OrgID).
 			Update("status", "active").Error; err != nil {
 			return fmt.Errorf("mark employee active: %w", err)

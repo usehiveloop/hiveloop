@@ -25,13 +25,13 @@ if [[ -n "${RAILWAY_PROJECT_ID:-}" ]]; then
   railway link --project "${RAILWAY_PROJECT_ID}" >/dev/null
 fi
 
-cloud_agents_sandbox_runtime_version="$(jq -r '.runtimeConfig.HIVY_CLOUD_AGENTS_SANDBOX_RUNTIME_VERSION' "${manifest}")"
-cloud_agents_sandbox_base_image_prefix="$(jq -r '.runtimeConfig.HIVY_CLOUD_AGENTS_SANDBOX_BASE_IMAGE_PREFIX' "${manifest}")"
+specialist_sandbox_runtime_version="$(jq -r '.runtimeConfig.HIVY_SPECIALIST_SANDBOX_RUNTIME_VERSION' "${manifest}")"
+specialist_sandbox_base_image_prefix="$(jq -r '.runtimeConfig.HIVY_SPECIALIST_SANDBOX_BASE_IMAGE_PREFIX' "${manifest}")"
 employee_sandbox_base_image_prefix="$(jq -r '.runtimeConfig.HIVY_EMPLOYEE_SANDBOX_BASE_IMAGE_PREFIX' "${manifest}")"
 
 for value in \
-  "${cloud_agents_sandbox_runtime_version}" \
-  "${cloud_agents_sandbox_base_image_prefix}" \
+  "${specialist_sandbox_runtime_version}" \
+  "${specialist_sandbox_base_image_prefix}" \
   "${employee_sandbox_base_image_prefix}"
 do
   if [[ -z "${value}" || "${value}" == "null" ]]; then
@@ -49,8 +49,8 @@ fi
 for service in "${service_list[@]}"; do
   echo "Updating Railway runtime config on ${service}..."
   railway variable set \
-    "HIVY_CLOUD_AGENTS_SANDBOX_RUNTIME_VERSION=${cloud_agents_sandbox_runtime_version}" \
-    "HIVY_CLOUD_AGENTS_SANDBOX_BASE_IMAGE_PREFIX=${cloud_agents_sandbox_base_image_prefix}" \
+    "HIVY_SPECIALIST_SANDBOX_RUNTIME_VERSION=${specialist_sandbox_runtime_version}" \
+    "HIVY_SPECIALIST_SANDBOX_BASE_IMAGE_PREFIX=${specialist_sandbox_base_image_prefix}" \
     "HIVY_EMPLOYEE_SANDBOX_BASE_IMAGE_PREFIX=${employee_sandbox_base_image_prefix}" \
     --environment "${environment}" \
     --service "${service}"

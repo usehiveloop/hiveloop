@@ -21,7 +21,7 @@ import (
 // authEmployee resolves the employee agent + its sandbox from the URL param
 // and verifies the bearer matches the sandbox's bridge API key. On failure
 // it writes the JSON error response and returns false — callers must return.
-func (h *UploadsHandler) authEmployee(w http.ResponseWriter, r *http.Request) (*model.Agent, *model.Sandbox, bool) {
+func (h *UploadsHandler) authEmployee(w http.ResponseWriter, r *http.Request) (*model.Employee, *model.Sandbox, bool) {
 	if h.encKey == nil {
 		writeJSON(w, http.StatusServiceUnavailable, map[string]string{"error": "asset endpoints not configured"})
 		return nil, nil, false
@@ -39,7 +39,7 @@ func (h *UploadsHandler) authEmployee(w http.ResponseWriter, r *http.Request) (*
 		return nil, nil, false
 	}
 
-	var agent model.Agent
+	var agent model.Employee
 	if err := h.db.Where("id = ? AND status <> ?", agentID, "archived").First(&agent).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			writeJSON(w, http.StatusNotFound, map[string]string{"error": "employee not found"})
@@ -51,7 +51,7 @@ func (h *UploadsHandler) authEmployee(w http.ResponseWriter, r *http.Request) (*
 
 	var sandbox model.Sandbox
 	if err := h.db.
-		Where("agent_id = ? AND status NOT IN (?, ?)", agentID, "archived", "error").
+		Where("employee_id = ? AND status NOT IN (?, ?)", agentID, "archived", "error").
 		Order("created_at DESC").
 		First(&sandbox).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -64,7 +64,7 @@ func (h *UploadsHandler) authEmployee(w http.ResponseWriter, r *http.Request) (*
 
 	wantKey, err := h.encKey.DecryptString(sandbox.EncryptedBridgeAPIKey)
 	if err != nil {
-		logging.FromContext(r.Context()).ErrorContext(r.Context(), "decrypt bridge api key", "agent_id", agentID, "error", err)
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "decrypt bridge api key", "employee_id", agentID, "error", err)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to verify credentials"})
 		return nil, nil, false
 	}
@@ -83,7 +83,7 @@ func (h *UploadsHandler) bearerMatchesEmployeeSubagentSandbox(r *http.Request, e
 	var sandboxes []model.Sandbox
 	if err := h.db.
 		Joins("JOIN specialist_tasks ON specialist_tasks.sandbox_id = sandboxes.id").
-		Where("specialist_tasks.employee_agent_id = ? AND sandboxes.status NOT IN (?, ?)", employeeID, "archived", "error").
+		Where("specialist_tasks.employee_id = ? AND sandboxes.status NOT IN (?, ?)", employeeID, "archived", "error").
 		Find(&sandboxes).Error; err != nil {
 		logging.FromContext(r.Context()).ErrorContext(r.Context(), "load employee subagent sandboxes for asset auth", "employee_id", employeeID, "error", err)
 		return false
@@ -144,13 +144,13 @@ func (h *UploadsHandler) StreamEmployeeAsset(w http.ResponseWriter, r *http.Requ
 
 	stored, err := h.streamer.Stream(r.Context(), key, contentType, r.Body)
 	if err != nil {
-		logging.FromContext(r.Context()).ErrorContext(r.Context(), "employee asset stream failed", "agent_id", agent.ID, "key", key, "error", err)
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "employee asset stream failed", "employee_id", agent.ID, "key", key, "error", err)
 		writeJSON(w, http.StatusBadGateway, map[string]string{"error": "upload failed"})
 		return
 	}
 
 	asset := model.EmployeeAsset{
-		AgentID:     agent.ID,
+		EmployeeID:  agent.ID,
 		OrgID:       *agent.OrgID,
 		SandboxID:   sandbox.ID,
 		Path:        folder,
@@ -161,7 +161,7 @@ func (h *UploadsHandler) StreamEmployeeAsset(w http.ResponseWriter, r *http.Requ
 		Bytes:       stored.Bytes,
 	}
 	if err := h.db.Where("key = ?", stored.Key).Assign(map[string]any{
-		"agent_id":            agent.ID,
+		"employee_id":         agent.ID,
 		"org_id":              *agent.OrgID,
 		"sandbox_id":          sandbox.ID,
 		"path":                folder,
@@ -171,7 +171,7 @@ func (h *UploadsHandler) StreamEmployeeAsset(w http.ResponseWriter, r *http.Requ
 		"bytes":               stored.Bytes,
 		"updated_at":          time.Now(),
 	}).FirstOrCreate(&asset).Error; err != nil {
-		logging.FromContext(r.Context()).ErrorContext(r.Context(), "persist employee asset", "agent_id", agent.ID, "key", stored.Key, "error", err)
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "persist employee asset", "employee_id", agent.ID, "key", stored.Key, "error", err)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to save asset"})
 		return
 	}
@@ -210,7 +210,7 @@ func (h *UploadsHandler) DeleteEmployeeAsset(w http.ResponseWriter, r *http.Requ
 	key := buildEmployeeAssetKey(agent.ID, folder, filename)
 
 	var asset model.EmployeeAsset
-	if err := h.db.Where("agent_id = ? AND key = ?", agent.ID, key).First(&asset).Error; err != nil {
+	if err := h.db.Where("employee_id = ? AND key = ?", agent.ID, key).First(&asset).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			writeJSON(w, http.StatusNotFound, map[string]string{"error": "asset not found"})
 			return
@@ -220,12 +220,12 @@ func (h *UploadsHandler) DeleteEmployeeAsset(w http.ResponseWriter, r *http.Requ
 	}
 
 	if err := h.streamer.Delete(r.Context(), asset.Key); err != nil {
-		logging.FromContext(r.Context()).ErrorContext(r.Context(), "delete s3 object", "agent_id", agent.ID, "key", asset.Key, "error", err)
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "delete s3 object", "employee_id", agent.ID, "key", asset.Key, "error", err)
 		writeJSON(w, http.StatusBadGateway, map[string]string{"error": "failed to delete object"})
 		return
 	}
 	if err := h.db.Delete(&asset).Error; err != nil {
-		logging.FromContext(r.Context()).ErrorContext(r.Context(), "delete asset row", "agent_id", agent.ID, "key", asset.Key, "error", err)
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "delete asset row", "employee_id", agent.ID, "key", asset.Key, "error", err)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to delete asset"})
 		return
 	}

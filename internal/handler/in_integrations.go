@@ -39,7 +39,7 @@ type inIntegrationResponse struct {
 	Provider    string             `json:"provider"`
 	DisplayName string             `json:"display_name"`
 	OrgID       *string            `json:"org_id,omitempty"`
-	AgentID     *string            `json:"agent_id,omitempty"`
+	EmployeeID  *string            `json:"employee_id,omitempty"`
 	CustomApp   bool               `json:"custom_app"`
 	Meta        model.JSON         `json:"meta,omitempty"`
 	NangoConfig *model.NangoConfig `json:"nango_config,omitempty"`
@@ -78,8 +78,8 @@ func toInIntegrationResponse(integ model.InIntegration) inIntegrationResponse {
 		orgID = &s
 	}
 	var agentID *string
-	if integ.AgentID != nil {
-		s := integ.AgentID.String()
+	if integ.EmployeeID != nil {
+		s := integ.EmployeeID.String()
 		agentID = &s
 	}
 	return inIntegrationResponse{
@@ -88,7 +88,7 @@ func toInIntegrationResponse(integ model.InIntegration) inIntegrationResponse {
 		Provider:    integ.Provider,
 		DisplayName: integ.DisplayName,
 		OrgID:       orgID,
-		AgentID:     agentID,
+		EmployeeID:  agentID,
 		CustomApp:   integ.CustomApp,
 		Meta:        integ.Meta,
 		NangoConfig: parseNangoConfig(integ.NangoConfig),

@@ -115,7 +115,7 @@ func TestInConnectionHandler_CreateSlackKeepsOnboardingOpenAndEnsuresHivy(t *tes
 		t.Fatal("org onboarded = true, want false until org profile update")
 	}
 
-	var employee model.Agent
+	var employee model.Employee
 	if err := db.Where("org_id = ? AND status <> ?", org.ID, "archived").First(&employee).Error; err != nil {
 		t.Fatalf("load Hivy employee: %v", err)
 	}
@@ -157,13 +157,13 @@ func TestInConnectionHandler_CreateAttachesIntegrationManagedSkill(t *testing.T)
 		t.Fatalf("expected 201, got %d: %s", rr.Code, rr.Body.String())
 	}
 
-	var employee model.Agent
+	var employee model.Employee
 	if err := db.Where("org_id = ? AND status <> ?", org.ID, "archived").First(&employee).Error; err != nil {
 		t.Fatalf("load Hivy employee: %v", err)
 	}
 	var count int64
-	if err := db.Model(&model.AgentSkill{}).
-		Where("agent_id = ? AND skill_id = ?", employee.ID, skill.ID).
+	if err := db.Model(&model.EmployeeSkill{}).
+		Where("employee_id = ? AND skill_id = ?", employee.ID, skill.ID).
 		Count(&count).Error; err != nil {
 		t.Fatalf("count attached skill: %v", err)
 	}
@@ -183,22 +183,22 @@ func TestSkillHandler_DetachRejectsActiveIntegrationManagedSkill(t *testing.T) {
 	org := createTestOrg(t, db)
 	integ := createTestInIntegration(t, db, "linear")
 	skill := createTestIntegrationManagedSkill(t, db, "locked-linear-"+uuid.New().String()[:8], []string{"linear"})
-	employee := model.Agent{
-		ID:          uuid.New(),
-		OrgID:       &org.ID,
-		Model:       "test-model",
-		Status:      "active",
-		Tools:       model.JSON{},
-		McpServers:  model.JSON{},
-		Skills:      model.JSON{},
-		AgentConfig: model.JSON{},
-		Permissions: model.JSON{},
-		Resources:   model.JSON{},
+	employee := model.Employee{
+		ID:            uuid.New(),
+		OrgID:         &org.ID,
+		Model:         "test-model",
+		Status:        "active",
+		Tools:         model.JSON{},
+		McpServers:    model.JSON{},
+		Skills:        model.JSON{},
+		RuntimeConfig: model.JSON{},
+		Permissions:   model.JSON{},
+		Resources:     model.JSON{},
 	}
 	if err := db.Create(&employee).Error; err != nil {
 		t.Fatalf("create employee: %v", err)
 	}
-	if err := db.Create(&model.AgentSkill{AgentID: employee.ID, SkillID: skill.ID}).Error; err != nil {
+	if err := db.Create(&model.EmployeeSkill{EmployeeID: employee.ID, SkillID: skill.ID}).Error; err != nil {
 		t.Fatalf("attach skill: %v", err)
 	}
 	if err := db.Create(&model.InConnection{

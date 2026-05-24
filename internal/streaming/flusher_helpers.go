@@ -75,15 +75,15 @@ func (f *Flusher) accumulateDelta(ctx context.Context, kind, convID, dataStr str
 	}
 }
 
-func buildRecoveredEvent(conv *model.AgentConversation, terminal model.ConversationEvent, messageID, content string) model.ConversationEvent {
+func buildRecoveredEvent(conv *model.EmployeeConversation, terminal model.ConversationEvent, messageID, content string) model.ConversationEvent {
 	return buildRecoveredAccumulatedEvent(conv, terminal, messageID, content, bridgeevents.EventResponseCompleted, "full_response")
 }
 
-func buildRecoveredReasoningEvent(conv *model.AgentConversation, terminal model.ConversationEvent, messageID, content string) model.ConversationEvent {
+func buildRecoveredReasoningEvent(conv *model.EmployeeConversation, terminal model.ConversationEvent, messageID, content string) model.ConversationEvent {
 	return buildRecoveredAccumulatedEvent(conv, terminal, messageID, content, bridgeevents.EventReasoningCompleted, "full_reasoning")
 }
 
-func buildRecoveredAccumulatedEvent(conv *model.AgentConversation, terminal model.ConversationEvent, messageID, content, eventType, contentField string) model.ConversationEvent {
+func buildRecoveredAccumulatedEvent(conv *model.EmployeeConversation, terminal model.ConversationEvent, messageID, content, eventType, contentField string) model.ConversationEvent {
 	data, _ := json.Marshal(map[string]any{
 		"message_id": messageID,
 		contentField: content,
@@ -102,7 +102,7 @@ func buildRecoveredAccumulatedEvent(conv *model.AgentConversation, terminal mode
 		ConversationID:        conv.ID,
 		EventID:               recoveredEventID(eventType, messageID),
 		EventType:             eventType,
-		AgentID:               terminal.AgentID,
+		EmployeeID:            terminal.EmployeeID,
 		RuntimeConversationID: conv.RuntimeConversationID,
 		Timestamp:             timestamp,
 		SequenceNumber:        sequenceNumber,

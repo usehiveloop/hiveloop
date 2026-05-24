@@ -3,13 +3,13 @@ use domain::SessionId;
 use futures::stream::BoxStream;
 use serde::{Deserialize, Serialize};
 
-pub mod cloud_agents;
 pub mod history;
 pub mod model_client;
 pub mod primitives;
 pub mod request_builder;
 pub mod rig_tool_registry;
 pub mod runner;
+pub mod specialists;
 pub use runner::RigAgentRunner;
 
 #[derive(Debug, Clone)]

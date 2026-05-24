@@ -11,7 +11,7 @@ import (
 	"github.com/usehivy/hivy/internal/token"
 )
 
-func (p *Pusher) RotateAgentToken(ctx context.Context, agent *model.Agent, sb *model.Sandbox) error {
+func (p *Pusher) RotateEmployeeProxyToken(ctx context.Context, agent *model.Employee, sb *model.Sandbox) error {
 	if agent.OrgID == nil {
 		return fmt.Errorf("cannot rotate token for agent without org")
 	}
@@ -21,7 +21,7 @@ func (p *Pusher) RotateAgentToken(ctx context.Context, agent *model.Agent, sb *m
 		return fmt.Errorf("resolving agent credential: %w", err)
 	}
 
-	proxyToken, jti, err := p.mintAgentToken(agent, cred)
+	proxyToken, jti, err := p.mintEmployeeProxyToken(agent, cred)
 	if err != nil {
 		return fmt.Errorf("minting new token: %w", err)
 	}
@@ -40,7 +40,7 @@ func (p *Pusher) RotateAgentToken(ctx context.Context, agent *model.Agent, sb *m
 		JTI:          jti,
 		ExpiresAt:    expiresAt,
 		Scopes:       rotateScopesJSON,
-		Meta:         model.JSON{"agent_id": agent.ID.String(), "type": "agent_proxy"},
+		Meta:         model.JSON{"employee_id": agent.ID.String(), "type": "employee_proxy"},
 	}
 	if err := p.db.Create(&dbToken).Error; err != nil {
 		return fmt.Errorf("storing new token: %w", err)
@@ -55,18 +55,18 @@ func (p *Pusher) RotateAgentToken(ctx context.Context, agent *model.Agent, sb *m
 	}
 
 	p.db.Model(&model.Token{}).
-		Where("meta->>'agent_id' = ? AND meta->>'type' = 'agent_proxy' AND jti != ?",
+		Where("meta->>'employee_id' = ? AND meta->>'type' = 'employee_proxy' AND jti != ?",
 			agent.ID.String(), jti).
 		Update("revoked_at", now)
 
-	logging.FromContext(ctx).DebugContext(ctx, "agent token rotated", "agent_id", agent.ID, "jti", jti)
+	logging.FromContext(ctx).DebugContext(ctx, "agent token rotated", "employee_id", agent.ID, "jti", jti)
 
 	return nil
 }
 
 func (p *Pusher) NeedsTokenRotation(agentID string) bool {
 	var tok model.Token
-	err := p.db.Where("meta->>'agent_id' = ? AND meta->>'type' = 'agent_proxy' AND revoked_at IS NULL",
+	err := p.db.Where("meta->>'employee_id' = ? AND meta->>'type' = 'employee_proxy' AND revoked_at IS NULL",
 		agentID).Order("created_at DESC").First(&tok).Error
 	if err != nil {
 		return true
@@ -74,7 +74,7 @@ func (p *Pusher) NeedsTokenRotation(agentID string) bool {
 	return time.Until(tok.ExpiresAt) < tokenRotationWindow
 }
 
-func (p *Pusher) mintAgentToken(agent *model.Agent, cred *model.Credential) (tokenStr, jti string, err error) {
+func (p *Pusher) mintEmployeeProxyToken(agent *model.Employee, cred *model.Credential) (tokenStr, jti string, err error) {
 	if agent.OrgID == nil {
 		return "", "", fmt.Errorf("cannot mint token for agent without org_id")
 	}

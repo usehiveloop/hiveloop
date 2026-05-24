@@ -38,7 +38,7 @@ func (h *EmployeeHandler) ListAvailableConnections(w http.ResponseWriter, r *htt
 	}
 
 	var count int64
-	if err := h.db.WithContext(ctx).Model(&model.Agent{}).
+	if err := h.db.WithContext(ctx).Model(&model.Employee{}).
 		Where("id = ? AND org_id = ? AND status <> ?", agentID, org.ID, "archived").
 		Count(&count).Error; err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to load employee"})

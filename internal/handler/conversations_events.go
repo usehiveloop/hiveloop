@@ -34,7 +34,7 @@ func (h *ConversationHandler) ListEvents(w http.ResponseWriter, r *http.Request)
 	}
 
 	convID := chi.URLParam(r, "convID")
-	var conv model.AgentConversation
+	var conv model.EmployeeConversation
 	if err := h.db.Where("id = ? AND org_id = ?", convID, org.ID).First(&conv).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			writeJSON(w, http.StatusNotFound, map[string]string{"error": "conversation not found"})
@@ -76,7 +76,7 @@ func (h *ConversationHandler) ListEvents(w http.ResponseWriter, r *http.Request)
 			ID:                    e.ID.String(),
 			EventID:               e.EventID,
 			EventType:             e.EventType,
-			EmployeeID:            e.AgentID,
+			EmployeeID:            e.EmployeeID,
 			RuntimeConversationID: e.RuntimeConversationID,
 			Timestamp:             e.Timestamp.Format("2006-01-02T15:04:05Z07:00"),
 			SequenceNumber:        e.SequenceNumber,
@@ -139,7 +139,7 @@ func (h *ConversationHandler) History(w http.ResponseWriter, r *http.Request) {
 	}
 
 	convID := chi.URLParam(r, "convID")
-	var conv model.AgentConversation
+	var conv model.EmployeeConversation
 	if err := h.db.Where("id = ? AND org_id = ?", convID, org.ID).First(&conv).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			writeJSON(w, http.StatusNotFound, map[string]string{"error": "conversation not found"})
@@ -189,7 +189,7 @@ func (h *ConversationHandler) History(w http.ResponseWriter, r *http.Request) {
 			ID:                    e.ID.String(),
 			EventID:               e.EventID,
 			EventType:             e.EventType,
-			EmployeeID:            e.AgentID,
+			EmployeeID:            e.EmployeeID,
 			RuntimeConversationID: e.RuntimeConversationID,
 			Timestamp:             e.Timestamp.Format("2006-01-02T15:04:05Z07:00"),
 			SequenceNumber:        e.SequenceNumber,

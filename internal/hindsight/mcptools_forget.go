@@ -22,7 +22,7 @@ type memoryForgetToolResponse struct {
 	Message            string `json:"message"`
 }
 
-func addForgetTool(server *mcp.Server, agent *model.Agent, client *Client, db *gorm.DB, bankID string, refresh MemoryRefreshFunc) {
+func addForgetTool(server *mcp.Server, agent *model.Employee, client *Client, db *gorm.DB, bankID string, refresh MemoryRefreshFunc) {
 	server.AddTool(
 		&mcp.Tool{
 			Name:        "memory_forget",
@@ -75,7 +75,7 @@ func addForgetTool(server *mcp.Server, agent *model.Agent, client *Client, db *g
 	)
 }
 
-func documentAllowedForAgent(doc *DocumentResponse, agent *model.Agent) bool {
+func documentAllowedForAgent(doc *DocumentResponse, agent *model.Employee) bool {
 	if doc == nil || agent == nil || agent.OrgID == nil || len(doc.Tags) == 0 {
 		return true
 	}
@@ -89,12 +89,12 @@ func documentAllowedForAgent(doc *DocumentResponse, agent *model.Agent) bool {
 	return true
 }
 
-func writeMemoryForgetAudit(ctx context.Context, db *gorm.DB, agent *model.Agent, bankID, documentID, reason string, deleted *DeleteDocumentResponse) {
+func writeMemoryForgetAudit(ctx context.Context, db *gorm.DB, agent *model.Employee, bankID, documentID, reason string, deleted *DeleteDocumentResponse) {
 	if db == nil || agent == nil || agent.OrgID == nil {
 		return
 	}
 	meta := model.JSON{
-		"agent_id":             agent.ID.String(),
+		"employee_id":          agent.ID.String(),
 		"bank_id":              bankID,
 		"document_id":          documentID,
 		"deleted":              deleted != nil && deleted.Deleted,

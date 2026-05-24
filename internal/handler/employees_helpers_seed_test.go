@@ -57,7 +57,7 @@ func (h *employeeHarness) createOrgWithRole(t *testing.T, role string) orgWithMe
 	userID := user.ID
 	t.Cleanup(func() {
 		h.db.Where("org_id = ?", orgID).Delete(&model.Sandbox{})
-		h.db.Where("org_id = ?", orgID).Delete(&model.Agent{})
+		h.db.Where("org_id = ?", orgID).Delete(&model.Employee{})
 		h.db.Where("user_id = ?", userID).Delete(&model.OrgMembership{})
 		h.db.Where("id = ?", orgID).Delete(&model.Org{})
 		h.db.Where("id = ?", userID).Delete(&model.User{})

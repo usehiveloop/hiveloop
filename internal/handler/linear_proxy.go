@@ -55,7 +55,7 @@ func (h *LinearProxyHandler) Handle(w http.ResponseWriter, r *http.Request) {
 
 	agentID, err := uuid.Parse(chi.URLParam(r, "employeeID"))
 	if err != nil {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid agent_id"})
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid employee_id"})
 		return
 	}
 	eventCtx.CallerAgentID = agentID
@@ -67,7 +67,7 @@ func (h *LinearProxyHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var agent model.Agent
+	var agent model.Employee
 	if err := h.db.WithContext(ctx).Where("id = ?", agentID).First(&agent).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			h.captureProxyFailure(ctx, eventCtx, http.StatusNotFound, "agent not found")
@@ -120,7 +120,7 @@ func (h *LinearProxyHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	resp, err := h.nango.RawProxyRequest(ctx, r.Method, providerConfigKey, conn.NangoConnectionID, linearGraphQLPath, "", proxyRequestBody(r), r.Header.Get("Content-Type"))
 	if err != nil {
 		logging.FromContext(ctx).ErrorContext(ctx, "linear-proxy: nango proxy failed",
-			"agent_id", agentID,
+			"employee_id", agentID,
 			"employee_id", employee.ID,
 			"connection_id", conn.ID,
 			"method", r.Method,
@@ -142,7 +142,7 @@ func (h *LinearProxyHandler) Handle(w http.ResponseWriter, r *http.Request) {
 
 func (h *LinearProxyHandler) authenticatedSandbox(ctx context.Context, agentID uuid.UUID, bearerToken string) bool {
 	var sandboxes []model.Sandbox
-	if err := h.db.WithContext(ctx).Where("agent_id = ?", agentID).Find(&sandboxes).Error; err != nil {
+	if err := h.db.WithContext(ctx).Where("employee_id = ?", agentID).Find(&sandboxes).Error; err != nil {
 		return false
 	}
 	for _, sb := range sandboxes {
@@ -157,21 +157,21 @@ func (h *LinearProxyHandler) authenticatedSandbox(ctx context.Context, agentID u
 	return false
 }
 
-func (h *LinearProxyHandler) resolveOwningEmployee(ctx context.Context, orgID uuid.UUID, agent model.Agent) (model.Agent, error) {
+func (h *LinearProxyHandler) resolveOwningEmployee(ctx context.Context, orgID uuid.UUID, agent model.Employee) (model.Employee, error) {
 	if agent.OrgID != nil && *agent.OrgID == orgID {
 		return agent, nil
 	}
-	var employee model.Agent
+	var employee model.Employee
 	if err := h.db.WithContext(ctx).
 		Where("org_id = ? AND status <> ?", orgID, "archived").
 		Order("created_at ASC").
 		First(&employee).Error; err != nil {
-		return model.Agent{}, err
+		return model.Employee{}, err
 	}
 	return employee, nil
 }
 
-func (h *LinearProxyHandler) resolveLinearConnection(ctx context.Context, employee model.Agent) (model.InConnection, string, error) {
+func (h *LinearProxyHandler) resolveLinearConnection(ctx context.Context, employee model.Employee) (model.InConnection, string, error) {
 	if employee.OrgID == nil {
 		return model.InConnection{}, "", gorm.ErrRecordNotFound
 	}
@@ -204,7 +204,7 @@ func (h *LinearProxyHandler) captureProxyFailure(ctx context.Context, eventCtx l
 			scope.SetTag("org_id", eventCtx.OrgID.String())
 		}
 		if eventCtx.CallerAgentID != uuid.Nil {
-			scope.SetTag("agent_id", eventCtx.CallerAgentID.String())
+			scope.SetTag("employee_id", eventCtx.CallerAgentID.String())
 		}
 		if eventCtx.EmployeeID != uuid.Nil {
 			scope.SetTag("employee_id", eventCtx.EmployeeID.String())

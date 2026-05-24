@@ -17,13 +17,13 @@ import (
 	"gorm.io/gorm"
 )
 
-func (h *EmployeeHandler) ensureEmployeeSandbox(ctx context.Context, agent *model.Agent) (*model.Sandbox, error) {
+func (h *EmployeeHandler) ensureEmployeeSandbox(ctx context.Context, agent *model.Employee) (*model.Sandbox, error) {
 	if agent == nil || agent.OrgID == nil {
 		return nil, fmt.Errorf("agent must have org_id")
 	}
 	var sb model.Sandbox
 	err := h.db.WithContext(ctx).
-		Where("agent_id = ? AND org_id = ? AND status <> ?", agent.ID, *agent.OrgID, "error").
+		Where("employee_id = ? AND org_id = ? AND status <> ?", agent.ID, *agent.OrgID, "error").
 		Order("created_at DESC").Limit(1).First(&sb).Error
 	if err == nil {
 		if h.orchestrator.NeedsURLRefresh(&sb) {
@@ -50,7 +50,7 @@ func (h *EmployeeHandler) ensureEmployeeSandbox(ctx context.Context, agent *mode
 	return created, nil
 }
 
-func (h *EmployeeHandler) runEmployeeSync(ctx context.Context, agent *model.Agent, sb *model.Sandbox) (*employeeruntime.SyncResponse, error) {
+func (h *EmployeeHandler) runEmployeeSync(ctx context.Context, agent *model.Employee, sb *model.Sandbox) (*employeeruntime.SyncResponse, error) {
 	apiKey, err := h.compileDeps.EncKey.DecryptString(sb.EncryptedBridgeAPIKey)
 	if err != nil {
 		return nil, fmt.Errorf("decrypt runtime secret: %w", err)
@@ -93,7 +93,7 @@ func (h *EmployeeHandler) runEmployeeSync(ctx context.Context, agent *model.Agen
 		if agent.OrgID == nil {
 			return nil, fmt.Errorf("mark employee active: missing org_id")
 		}
-		if err := h.db.WithContext(ctx).Model(&model.Agent{}).
+		if err := h.db.WithContext(ctx).Model(&model.Employee{}).
 			Where("id = ? AND org_id = ?", agent.ID, *agent.OrgID).
 			Update("status", "active").Error; err != nil {
 			return nil, fmt.Errorf("mark employee active: %w", err)
@@ -104,13 +104,13 @@ func (h *EmployeeHandler) runEmployeeSync(ctx context.Context, agent *model.Agen
 	return resp, nil
 }
 
-func (h *EmployeeHandler) scheduleExistingEmployeeProxyTokenRefresh(ctx context.Context, agent *model.Agent) {
+func (h *EmployeeHandler) scheduleExistingEmployeeProxyTokenRefresh(ctx context.Context, agent *model.Employee) {
 	if h == nil || h.db == nil || agent == nil || agent.OrgID == nil {
 		return
 	}
 	var sb model.Sandbox
 	err := h.db.WithContext(ctx).
-		Where("agent_id = ? AND org_id = ? AND status <> ?", agent.ID, *agent.OrgID, "error").
+		Where("employee_id = ? AND org_id = ? AND status <> ?", agent.ID, *agent.OrgID, "error").
 		Order("created_at DESC").Limit(1).First(&sb).Error
 	if err != nil {
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
@@ -121,13 +121,13 @@ func (h *EmployeeHandler) scheduleExistingEmployeeProxyTokenRefresh(ctx context.
 	h.scheduleEmployeeProxyTokenRefresh(ctx, agent, &sb)
 }
 
-func (h *EmployeeHandler) scheduleEmployeeProxyTokenRefresh(ctx context.Context, agent *model.Agent, sb *model.Sandbox) {
+func (h *EmployeeHandler) scheduleEmployeeProxyTokenRefresh(ctx context.Context, agent *model.Employee, sb *model.Sandbox) {
 	if err := tasks.ScheduleEmployeeProxyTokenRefresh(ctx, h.db, h.enqueuer, agent, sb); err != nil {
 		logging.Capture(ctx, fmt.Errorf("schedule employee proxy token refresh: %w", err))
 	}
 }
 
-func (h *EmployeeHandler) loadRuntimeEnv(ctx context.Context, agent *model.Agent, runtimeSecret string) (map[string]string, error) {
+func (h *EmployeeHandler) loadRuntimeEnv(ctx context.Context, agent *model.Employee, runtimeSecret string) (map[string]string, error) {
 	env := make(map[string]string)
 	if agent == nil {
 		return env, nil
@@ -161,11 +161,11 @@ func (h *EmployeeHandler) loadRuntimeEnv(ctx context.Context, agent *model.Agent
 	return env, nil
 }
 
-func addControlPlaneRuntimeEnv(ctx context.Context, db *gorm.DB, env map[string]string, cfg *config.Config, agent *model.Agent, runtimeSecret string) {
+func addControlPlaneRuntimeEnv(ctx context.Context, db *gorm.DB, env map[string]string, cfg *config.Config, agent *model.Employee, runtimeSecret string) {
 	if env == nil || cfg == nil || agent == nil || agent.ID == uuid.Nil || runtimeSecret == "" {
 		return
 	}
-	bridgeHost := strings.TrimSpace(cfg.CloudAgentsSandboxHost)
+	bridgeHost := strings.TrimSpace(cfg.SpecialistSandboxHost)
 	if bridgeHost == "" {
 		return
 	}

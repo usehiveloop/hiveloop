@@ -14,7 +14,7 @@ import (
 
 func TestCompile_PopulatesMemoryContextFromHindsight(t *testing.T) {
 	orgID := uuid.New()
-	agent := model.Agent{
+	agent := model.Employee{
 		ID:    uuid.New(),
 		OrgID: &orgID,
 		Name:  "Aria",
@@ -55,7 +55,7 @@ func TestCompile_PopulatesMemoryContextFromHindsight(t *testing.T) {
 
 func TestCompile_SucceedsWhenHindsightRecallFails(t *testing.T) {
 	orgID := uuid.New()
-	agent := model.Agent{ID: uuid.New(), OrgID: &orgID, Name: "Aria", Model: DefaultEmployeeModel}
+	agent := model.Employee{ID: uuid.New(), OrgID: &orgID, Name: "Aria", Model: DefaultEmployeeModel}
 
 	def, err := Compile(context.Background(), CompileDeps{Hindsight: &fakeMemoryRecall{err: errors.New("offline")}, Cfg: &config.Config{}}, &agent)
 	if err != nil {

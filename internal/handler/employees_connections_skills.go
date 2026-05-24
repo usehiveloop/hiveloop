@@ -84,7 +84,7 @@ func attachEmployeeRequiredSkills(ctx context.Context, db *gorm.DB, agentID uuid
 	}
 
 	for _, skill := range skills {
-		link := model.AgentSkill{AgentID: agentID, SkillID: skill.ID}
+		link := model.EmployeeSkill{EmployeeID: agentID, SkillID: skill.ID}
 		result := db.WithContext(ctx).Clauses(clause.OnConflict{DoNothing: true}).Create(&link)
 		if result.Error != nil {
 			return fmt.Errorf("attach global skill %q: %w", skill.Name, result.Error)
@@ -102,7 +102,7 @@ func attachEmployeeRequiredSkills(ctx context.Context, db *gorm.DB, agentID uuid
 	return nil
 }
 
-func attachEmployeeRequiredSkillsForAgent(ctx context.Context, db *gorm.DB, orgID uuid.UUID, agent *model.Agent) error {
+func attachEmployeeRequiredSkillsForAgent(ctx context.Context, db *gorm.DB, orgID uuid.UUID, agent *model.Employee) error {
 	if agent == nil {
 		return nil
 	}
@@ -115,7 +115,7 @@ func attachEmployeeRequiredSkillsForAgent(ctx context.Context, db *gorm.DB, orgI
 	}
 	for _, warning := range warnings {
 		logging.FromContext(ctx).WarnContext(ctx, "employee required skill not attached",
-			"warning", warning, "agent_id", agent.ID, "org_id", orgID)
+			"warning", warning, "employee_id", agent.ID, "org_id", orgID)
 	}
 	return nil
 }
@@ -167,7 +167,7 @@ func loadPublishedGlobalSkillsByName(ctx context.Context, db *gorm.DB, names map
 	return out, nil
 }
 
-func employeeLockedSkillIDs(ctx context.Context, db *gorm.DB, orgID uuid.UUID, agent *model.Agent) (map[uuid.UUID]bool, error) {
+func employeeLockedSkillIDs(ctx context.Context, db *gorm.DB, orgID uuid.UUID, agent *model.Employee) (map[uuid.UUID]bool, error) {
 	skills, _, err := employeeRequiredSkills(ctx, db, orgID)
 	if err != nil {
 		return nil, err
@@ -179,18 +179,18 @@ func employeeLockedSkillIDs(ctx context.Context, db *gorm.DB, orgID uuid.UUID, a
 	return out, nil
 }
 
-func (h *EmployeeHandler) markEmployeeSkillLocks(ctx context.Context, orgID uuid.UUID, agent *model.Agent, summaries []employeeSkillSummary) []employeeSkillSummary {
+func (h *EmployeeHandler) markEmployeeSkillLocks(ctx context.Context, orgID uuid.UUID, agent *model.Employee, summaries []employeeSkillSummary) []employeeSkillSummary {
 	return markEmployeeSkillSummaries(ctx, h.db, orgID, agent, summaries)
 }
 
-func markEmployeeSkillSummaries(ctx context.Context, db *gorm.DB, orgID uuid.UUID, agent *model.Agent, summaries []employeeSkillSummary) []employeeSkillSummary {
+func markEmployeeSkillSummaries(ctx context.Context, db *gorm.DB, orgID uuid.UUID, agent *model.Employee, summaries []employeeSkillSummary) []employeeSkillSummary {
 	if len(summaries) == 0 {
 		return summaries
 	}
 	skills, _, err := employeeRequiredSkills(ctx, db, orgID)
 	if err != nil {
 		logging.FromContext(ctx).WarnContext(ctx, "load employee required skills",
-			"error", err, "agent_id", agent.ID, "org_id", orgID)
+			"error", err, "employee_id", agent.ID, "org_id", orgID)
 		return summaries
 	}
 	requiredIDs := make(map[string]bool, len(skills))

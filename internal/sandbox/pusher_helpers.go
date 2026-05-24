@@ -77,11 +77,11 @@ func buildScopesFromIntegrations(integrations model.JSON) []map[string]any {
 	return scopes
 }
 
-func (p *Pusher) loadOwningEmployee(ctx context.Context, agent *model.Agent) (*model.Agent, error) {
+func (p *Pusher) loadOwningEmployee(ctx context.Context, agent *model.Employee) (*model.Employee, error) {
 	if agent == nil || agent.IsEmployee || agent.OrgID == nil {
 		return nil, nil
 	}
-	var employee model.Agent
+	var employee model.Employee
 	err := p.db.WithContext(ctx).
 		Where("org_id = ? AND status <> ?", *agent.OrgID, "archived").
 		Order("created_at ASC").
@@ -95,7 +95,7 @@ func (p *Pusher) loadOwningEmployee(ctx context.Context, agent *model.Agent) (*m
 	return &employee, nil
 }
 
-func mergeAgentIntegrationsForAccess(agent *model.Agent, employee *model.Agent) model.JSON {
+func mergeAgentIntegrationsForAccess(agent *model.Employee, employee *model.Employee) model.JSON {
 	if agent == nil {
 		return model.JSON{}
 	}
@@ -105,7 +105,7 @@ func mergeAgentIntegrationsForAccess(agent *model.Agent, employee *model.Agent) 
 	return mergeJSONMaps(employee.Integrations, agent.Integrations)
 }
 
-func mergeAgentResourcesForContext(agent *model.Agent, employee *model.Agent) model.JSON {
+func mergeAgentResourcesForContext(agent *model.Employee, employee *model.Employee) model.JSON {
 	if agent == nil {
 		return model.JSON{}
 	}
@@ -135,8 +135,8 @@ func (p *Pusher) loadBridgeSkills(ctx context.Context, agentID uuid.UUID, inheri
 	agentIDs := appendUniqueUUIDs(nil, seenAgentIDs, inheritedAgentIDs...)
 	agentIDs = appendUniqueUUIDs(agentIDs, seenAgentIDs, agentID)
 
-	var links []model.AgentSkill
-	if err := p.db.WithContext(ctx).Where("agent_id IN ?", agentIDs).Find(&links).Error; err != nil || len(links) == 0 {
+	var links []model.EmployeeSkill
+	if err := p.db.WithContext(ctx).Where("employee_id IN ?", agentIDs).Find(&links).Error; err != nil || len(links) == 0 {
 		return nil
 	}
 

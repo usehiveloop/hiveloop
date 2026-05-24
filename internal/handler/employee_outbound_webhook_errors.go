@@ -22,8 +22,8 @@ func captureEmployeeWebhookIngest(ctx context.Context, stage string, sb *model.S
 		if sb.OrgID != nil {
 			fields["org_id"] = sb.OrgID.String()
 		}
-		if sb.AgentID != nil {
-			fields["agent_id"] = sb.AgentID.String()
+		if sb.EmployeeID != nil {
+			fields["employee_id"] = sb.EmployeeID.String()
 		}
 	}
 	if event != nil {
@@ -44,12 +44,12 @@ func captureEmployeeMemoryEventFailure(ctx context.Context, stage string, entry 
 
 func employeeMemoryEventSentryFields(stage string, entry model.EmployeeMemoryEvent) map[string]any {
 	return map[string]any{
-		"stage":      stage,
-		"org_id":     entry.OrgID.String(),
-		"agent_id":   entry.AgentID.String(),
-		"sandbox_id": entry.SandboxID.String(),
-		"session_id": entry.SessionID,
-		"event_type": entry.EventType,
-		"source":     entry.Source,
+		"stage":       stage,
+		"org_id":      entry.OrgID.String(),
+		"employee_id": entry.EmployeeID.String(),
+		"sandbox_id":  entry.SandboxID.String(),
+		"session_id":  entry.SessionID,
+		"event_type":  entry.EventType,
+		"source":      entry.Source,
 	}
 }

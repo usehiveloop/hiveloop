@@ -23,9 +23,9 @@ type fbHarness struct {
 	encKey   *crypto.SymmetricKey
 	bridge   *fakebridge.Server
 	org      model.Org
-	agent    model.Agent
+	agent    model.Employee
 	sandbox  model.Sandbox
-	conv     model.AgentConversation
+	conv     model.EmployeeConversation
 	router   *chi.Mux
 	eventBus *streaming.EventBus
 	secret   string
@@ -65,18 +65,18 @@ func newFakeBridgeHarness(t *testing.T) *fbHarness {
 	h.db.Create(&cred)
 	t.Cleanup(func() { h.db.Where("id = ?", cred.ID).Delete(&model.Credential{}) })
 
-	agent := model.Agent{
+	agent := model.Employee{
 		OrgID: &org.ID, Name: "fb-agent-" + suffix,
 		CredentialID: &cred.ID, SystemPrompt: "test", Model: "gpt-4o",
 	}
 	h.db.Create(&agent)
-	t.Cleanup(func() { h.db.Where("id = ?", agent.ID).Delete(&model.Agent{}) })
+	t.Cleanup(func() { h.db.Where("id = ?", agent.ID).Delete(&model.Employee{}) })
 
 	// BridgeURLExpiresAt set far in the future to short-circuit refresh.
 	expiresAt := time.Now().Add(24 * time.Hour)
 	sb := model.Sandbox{
 		OrgID:                 &org.ID,
-		AgentID:               &agent.ID,
+		EmployeeID:            &agent.ID,
 		ExternalID:            "fb-ext-" + suffix,
 		BridgeURL:             fb.URL,
 		BridgeURLExpiresAt:    &expiresAt,
@@ -86,14 +86,14 @@ func newFakeBridgeHarness(t *testing.T) *fbHarness {
 	h.db.Create(&sb)
 	t.Cleanup(func() { h.db.Where("id = ?", sb.ID).Delete(&model.Sandbox{}) })
 
-	conv := model.AgentConversation{
-		OrgID: org.ID, AgentID: agent.ID, SandboxID: sb.ID,
+	conv := model.EmployeeConversation{
+		OrgID: org.ID, EmployeeID: agent.ID, SandboxID: sb.ID,
 		RuntimeConversationID: "fb-conv-" + suffix, Status: "active",
 	}
 	h.db.Create(&conv)
 	t.Cleanup(func() {
 		h.db.Where("conversation_id = ?", conv.ID).Delete(&model.ConversationEvent{})
-		h.db.Where("id = ?", conv.ID).Delete(&model.AgentConversation{})
+		h.db.Where("id = ?", conv.ID).Delete(&model.EmployeeConversation{})
 	})
 
 	eventBus := streaming.NewEventBus(h.redisClient)

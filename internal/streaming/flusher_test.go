@@ -69,21 +69,21 @@ func createTestConversation(t *testing.T, db *gorm.DB) (uuid.UUID, uuid.UUID) {
 	}
 
 	emptyJSON := model.JSON{}
-	agent := model.Agent{
+	agent := model.Employee{
 		ID: agentID, OrgID: &orgID,
 		Name: "test-agent-" + suffix, Model: "test",
 		CredentialID: &credID,
 		SystemPrompt: "test", Status: "active",
 		Tools: emptyJSON, McpServers: emptyJSON, Skills: emptyJSON,
-		Integrations: emptyJSON, AgentConfig: emptyJSON,
+		Integrations: emptyJSON, RuntimeConfig: emptyJSON,
 		Permissions: emptyJSON,
 	}
 	if err := db.Create(&agent).Error; err != nil {
 		t.Fatalf("create agent: %v", err)
 	}
 
-	conv := model.AgentConversation{
-		ID: convID, OrgID: orgID, AgentID: agentID, SandboxID: sandboxID,
+	conv := model.EmployeeConversation{
+		ID: convID, OrgID: orgID, EmployeeID: agentID, SandboxID: sandboxID,
 		RuntimeConversationID: "bridge-" + suffix, Status: "active",
 	}
 	if err := db.Create(&conv).Error; err != nil {

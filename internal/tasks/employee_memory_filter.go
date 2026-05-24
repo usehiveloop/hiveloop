@@ -103,7 +103,7 @@ func meaningfulEmployeeMemoryTranscript(transcript string, events []model.Employ
 	return hasUser && hasCheckpoint
 }
 
-func employeeMemoryTags(agent *model.Agent, source string) []string {
+func employeeMemoryTags(agent *model.Employee, source string) []string {
 	tags := []string{
 		"company:" + agent.OrgID.String(),
 		"source:" + sanitizeMemoryTagValue(source),

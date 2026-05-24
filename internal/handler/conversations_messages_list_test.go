@@ -25,9 +25,9 @@ type messagesListHarness struct {
 	db      *gorm.DB
 	router  *chi.Mux
 	org     model.Org
-	agent   model.Agent
+	agent   model.Employee
 	sandbox model.Sandbox
-	conv    model.AgentConversation
+	conv    model.EmployeeConversation
 }
 
 func newMessagesListHarness(t *testing.T) *messagesListHarness {
@@ -61,7 +61,7 @@ func newMessagesListHarness(t *testing.T) *messagesListHarness {
 	}
 
 	orgID := org.ID
-	agent := model.Agent{
+	agent := model.Employee{
 		ID:           uuid.New(),
 		OrgID:        &orgID,
 		Name:         "test-agent",
@@ -75,7 +75,7 @@ func newMessagesListHarness(t *testing.T) *messagesListHarness {
 	sb := model.Sandbox{
 		ID:                    uuid.New(),
 		OrgID:                 &orgID,
-		AgentID:               &agent.ID,
+		EmployeeID:            &agent.ID,
 		ExternalID:            "test-sb",
 		BridgeURL:             "http://localhost:25434",
 		EncryptedBridgeAPIKey: []byte{0x00},
@@ -85,10 +85,10 @@ func newMessagesListHarness(t *testing.T) *messagesListHarness {
 		t.Fatalf("create sandbox: %v", err)
 	}
 
-	conv := model.AgentConversation{
+	conv := model.EmployeeConversation{
 		ID:                    uuid.New(),
 		OrgID:                 org.ID,
-		AgentID:               agent.ID,
+		EmployeeID:            agent.ID,
 		SandboxID:             sb.ID,
 		RuntimeConversationID: "ses_test",
 		Status:                "active",
@@ -99,9 +99,9 @@ func newMessagesListHarness(t *testing.T) *messagesListHarness {
 
 	t.Cleanup(func() {
 		db.Where("conversation_id = ?", conv.ID).Delete(&model.ConversationEvent{})
-		db.Where("id = ?", conv.ID).Delete(&model.AgentConversation{})
+		db.Where("id = ?", conv.ID).Delete(&model.EmployeeConversation{})
 		db.Where("id = ?", sb.ID).Delete(&model.Sandbox{})
-		db.Where("id = ?", agent.ID).Delete(&model.Agent{})
+		db.Where("id = ?", agent.ID).Delete(&model.Employee{})
 		db.Where("id = ?", org.ID).Delete(&model.Org{})
 	})
 
@@ -119,7 +119,7 @@ func (h *messagesListHarness) seed(t *testing.T, events []model.ConversationEven
 	for i := range events {
 		events[i].OrgID = h.org.ID
 		events[i].ConversationID = h.conv.ID
-		events[i].AgentID = h.agent.ID.String()
+		events[i].EmployeeID = h.agent.ID.String()
 		events[i].RuntimeConversationID = h.conv.RuntimeConversationID
 		if events[i].EventID == "" {
 			events[i].EventID = uuid.New().String()

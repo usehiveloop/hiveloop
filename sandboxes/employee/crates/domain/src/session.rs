@@ -66,7 +66,7 @@ pub enum EventKind {
     ToolCall,
     ToolResult,
     RunEvent,
-    CloudAgentEvent,
+    SpecialistEvent,
     Error,
 }
 

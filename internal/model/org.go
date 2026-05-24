@@ -66,7 +66,7 @@ func AutoMigrate(db *gorm.DB) (err error) {
 		"agent_triggers",
 		"agent_trigger_deliveries",
 		"agent_conversations",
-		"cloud_agent_tasks",
+		"specialist_tasks",
 		"agent_profiles",
 		"teams",
 		"agent_subagents",
@@ -86,9 +86,9 @@ func AutoMigrate(db *gorm.DB) (err error) {
 	if err := dropEmployeeLegacyColumns(db); err != nil {
 		return err
 	}
-	if db.Migrator().HasColumn(&AgentConversation{}, "bridge_conversation_id") &&
-		!db.Migrator().HasColumn(&AgentConversation{}, "runtime_conversation_id") {
-		if err := db.Migrator().RenameColumn(&AgentConversation{}, "bridge_conversation_id", "runtime_conversation_id"); err != nil {
+	if db.Migrator().HasColumn(&EmployeeConversation{}, "bridge_conversation_id") &&
+		!db.Migrator().HasColumn(&EmployeeConversation{}, "runtime_conversation_id") {
+		if err := db.Migrator().RenameColumn(&EmployeeConversation{}, "bridge_conversation_id", "runtime_conversation_id"); err != nil {
 			return err
 		}
 	}
@@ -121,15 +121,15 @@ func AutoMigrate(db *gorm.DB) (err error) {
 		&SandboxTemplate{},
 		&Employee{},
 		&Sandbox{},
-		&AgentConversation{},
+		&EmployeeConversation{},
 		&ConversationEvent{},
 		&ConversationAsset{},
 		&CustomDomain{},
 		&HindsightBank{},
 		&InIntegration{},
 		&InConnection{},
-		&AgentTrigger{},
-		&AgentTriggerDelivery{},
+		&EmployeeTrigger{},
+		&EmployeeTriggerDelivery{},
 		&OAuthAccount{},
 		&OAuthExchangeToken{},
 		&OTPCode{},
@@ -140,10 +140,10 @@ func AutoMigrate(db *gorm.DB) (err error) {
 		&CreditLedgerEntry{},
 		&DriveAsset{},
 		&Skill{},
-		&AgentSkill{},
+		&EmployeeSkill{},
 		&FailedEvent{},
 		&EmployeeAsset{},
-		&CloudAgentTask{},
+		&SpecialistTask{},
 		&EmployeeMemoryEvent{},
 		&EmployeeSchedule{},
 		&EmployeeScheduleRun{},
@@ -180,6 +180,7 @@ func dropEmployeeLegacyColumns(db *gorm.DB) error {
 		"is_employee",
 		"is_system",
 		"provider_group",
+		"disabled_specialists",
 	} {
 		if !db.Migrator().HasColumn("employees", column) {
 			continue

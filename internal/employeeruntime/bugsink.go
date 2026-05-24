@@ -17,7 +17,7 @@ const bugsinkProvider = "bugsink"
 // BugsinkDashboardBaseURL returns the real Bugsink instance base URL attached
 // to the employee. It deliberately does not return BUGSINK_URL, because
 // BUGSINK_URL is the Hivy proxy URL used for API calls.
-func BugsinkDashboardBaseURL(ctx context.Context, db *gorm.DB, orgID uuid.UUID, agent model.Agent) string {
+func BugsinkDashboardBaseURL(ctx context.Context, db *gorm.DB, orgID uuid.UUID, agent model.Employee) string {
 	if db == nil || orgID == uuid.Nil {
 		return ""
 	}

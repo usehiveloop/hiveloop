@@ -13,7 +13,7 @@ import (
 
 // List handles GET /v1/drive/assets.
 func (handler *DriveHandler) List(writer http.ResponseWriter, request *http.Request) {
-	orgID, agent, ok := handler.resolveAgentFromToken(writer, request)
+	orgID, agent, ok := handler.resolveEmployeeFromToken(writer, request)
 	if !ok {
 		return
 	}
@@ -24,7 +24,7 @@ func (handler *DriveHandler) List(writer http.ResponseWriter, request *http.Requ
 		return
 	}
 
-	query := handler.db.Where("org_id = ? AND agent_id = ?", orgID, agent.ID)
+	query := handler.db.Where("org_id = ? AND employee_id = ?", orgID, agent.ID)
 
 	if contentTypeFilter := request.URL.Query().Get("content_type"); contentTypeFilter != "" {
 		query = query.Where("content_type LIKE ?", contentTypeFilter+"%")
@@ -61,7 +61,7 @@ func (handler *DriveHandler) List(writer http.ResponseWriter, request *http.Requ
 
 // Get handles GET /v1/drive/assets/{assetID}.
 func (handler *DriveHandler) Get(writer http.ResponseWriter, request *http.Request) {
-	orgID, agent, ok := handler.resolveAgentFromToken(writer, request)
+	orgID, agent, ok := handler.resolveEmployeeFromToken(writer, request)
 	if !ok {
 		return
 	}
@@ -69,7 +69,7 @@ func (handler *DriveHandler) Get(writer http.ResponseWriter, request *http.Reque
 	assetID := chi.URLParam(request, "assetID")
 
 	var asset model.DriveAsset
-	if err := handler.db.Where("id = ? AND org_id = ? AND agent_id = ?", assetID, orgID, agent.ID).First(&asset).Error; err != nil {
+	if err := handler.db.Where("id = ? AND org_id = ? AND employee_id = ?", assetID, orgID, agent.ID).First(&asset).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			writeJSON(writer, http.StatusNotFound, map[string]string{"error": "asset not found"})
 			return
@@ -93,7 +93,7 @@ func (handler *DriveHandler) Get(writer http.ResponseWriter, request *http.Reque
 
 // Delete handles DELETE /v1/drive/assets/{assetID}.
 func (handler *DriveHandler) Delete(writer http.ResponseWriter, request *http.Request) {
-	orgID, agent, ok := handler.resolveAgentFromToken(writer, request)
+	orgID, agent, ok := handler.resolveEmployeeFromToken(writer, request)
 	if !ok {
 		return
 	}
@@ -101,7 +101,7 @@ func (handler *DriveHandler) Delete(writer http.ResponseWriter, request *http.Re
 	assetID := chi.URLParam(request, "assetID")
 
 	var asset model.DriveAsset
-	if err := handler.db.Where("id = ? AND org_id = ? AND agent_id = ?", assetID, orgID, agent.ID).First(&asset).Error; err != nil {
+	if err := handler.db.Where("id = ? AND org_id = ? AND employee_id = ?", assetID, orgID, agent.ID).First(&asset).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			writeJSON(writer, http.StatusNotFound, map[string]string{"error": "asset not found"})
 			return

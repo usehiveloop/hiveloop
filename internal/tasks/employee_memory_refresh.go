@@ -34,22 +34,22 @@ func (h *EmployeeMemoryRefreshHandler) Handle(ctx context.Context, task *asynq.T
 	if err := json.Unmarshal(task.Payload(), &payload); err != nil {
 		return fmt.Errorf("unmarshal employee memory refresh payload: %w", err)
 	}
-	if payload.AgentID == uuid.Nil {
+	if payload.EmployeeID == uuid.Nil {
 		return nil
 	}
-	h.updateRefreshStatus(ctx, payload.AgentID, "running", "", nil)
+	h.updateRefreshStatus(ctx, payload.EmployeeID, "running", "", nil)
 	if err := h.refresh(ctx, payload); err != nil {
-		h.updateRefreshStatus(ctx, payload.AgentID, "failed", err.Error(), nil)
+		h.updateRefreshStatus(ctx, payload.EmployeeID, "failed", err.Error(), nil)
 		return err
 	}
 	now := time.Now().UTC()
-	h.updateRefreshStatus(ctx, payload.AgentID, "succeeded", "", &now)
+	h.updateRefreshStatus(ctx, payload.EmployeeID, "succeeded", "", &now)
 	return nil
 }
 
 func (h *EmployeeMemoryRefreshHandler) refresh(ctx context.Context, payload EmployeeMemoryRefreshPayload) error {
-	var agent model.Agent
-	if err := h.db.WithContext(ctx).Where("id = ? AND status <> ?", payload.AgentID, "archived").First(&agent).Error; err != nil {
+	var agent model.Employee
+	if err := h.db.WithContext(ctx).Where("id = ? AND status <> ?", payload.EmployeeID, "archived").First(&agent).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil
 		}
@@ -82,7 +82,7 @@ func (h *EmployeeMemoryRefreshHandler) refresh(ctx context.Context, payload Empl
 		return fmt.Errorf("employee runtime readyz: %w", err)
 	}
 	logging.FromContext(ctx).InfoContext(ctx, "employee memory refreshed",
-		"agent_id", agent.ID,
+		"employee_id", agent.ID,
 		"sandbox_id", sb.ID,
 		"reason", payload.Reason,
 	)
@@ -100,7 +100,7 @@ func (h *EmployeeMemoryRefreshHandler) updateRefreshStatus(ctx context.Context, 
 	if refreshedAt != nil {
 		updates["last_memory_refreshed_at"] = *refreshedAt
 	}
-	if err := h.db.WithContext(ctx).Model(&model.Agent{}).Where("id = ?", agentID).Updates(updates).Error; err != nil {
+	if err := h.db.WithContext(ctx).Model(&model.Employee{}).Where("id = ?", agentID).Updates(updates).Error; err != nil {
 		logging.Capture(ctx, fmt.Errorf("employee memory refresh: update status: %w", err))
 	}
 }
@@ -115,7 +115,7 @@ func truncateMemoryRefreshError(message string) string {
 
 func (h *EmployeeMemoryRefreshHandler) loadSandbox(ctx context.Context, payload EmployeeMemoryRefreshPayload) (*model.Sandbox, error) {
 	var sb model.Sandbox
-	q := h.db.WithContext(ctx).Where("agent_id = ? AND status <> ?", payload.AgentID, "error")
+	q := h.db.WithContext(ctx).Where("employee_id = ? AND status <> ?", payload.EmployeeID, "error")
 	if payload.SandboxID != uuid.Nil {
 		q = q.Where("id = ?", payload.SandboxID)
 	}

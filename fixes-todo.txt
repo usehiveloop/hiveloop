@@ -20,7 +20,7 @@ P0
 4. Shared subagents can inherit the wrong employee GitHub identity/token.
    - Problem: subagents are many-to-many, but GitHub identity/token resolution picks the first linked employee by created_at instead of the employee dispatching the task.
    - Fix: pass employee context into sandbox creation and git credential resolution for delegated subagent tasks. Do not infer owner from first agent_subagents row.
-   - Key files: internal/model/agent_subagent.go, internal/handler/cloud_agents.go, internal/handler/git_credentials.go, internal/sandbox/orchestrator_git_identity.go
+   - Key files: internal/model/agent_subagent.go, internal/handler/specialists.go, internal/handler/git_credentials.go, internal/sandbox/orchestrator_git_identity.go
 
 5. GitHub profiles can be bound to another user's org connection.
    - Problem: GitHub profile connection lookup is scoped to org, not current user, while org connection IDs are exposed in responses.
@@ -69,15 +69,15 @@ P1
     - Fix: derive delivery_id from provider delivery header/event ID/payload ID where available. Store/dedupe dispatches at DB level where provider IDs exist.
     - Key files: internal/handler/nango_webhooks_dispatch.go, internal/handler/incoming_webhooks.go, internal/tasks/payloads_trigger.go
 
-14. Failed cloud agent sandbox setup/clone can leave live provider sandboxes running.
+14. Failed specialist sandbox setup/clone can leave live provider sandboxes running.
     - Problem: provider auto-stop/archive is disabled, but setup/clone failure only marks DB status error. Lifecycle only cleans running/stopped rows.
     - Fix: delete or stop provider sandbox on setup/clone failure, or include error rows in cleanup with strong retry semantics.
-    - Key files: internal/sandbox/orchestrator_create_cloud_agent.go, internal/sandbox/orchestrator_helpers.go, internal/sandbox/orchestrator_lifecycle.go
+    - Key files: internal/sandbox/orchestrator_create_specialist.go, internal/sandbox/orchestrator_helpers.go, internal/sandbox/orchestrator_lifecycle.go
 
 15. Subagent task upload bearer is not restricted to the task folder.
     - Problem: a task-scoped upload URL is issued, but auth accepts any sandbox for the employee and allows writes/deletes/moves outside the task folder.
     - Fix: bind bearer/sandbox/task to an allowed path prefix and enforce it on PUT, DELETE, and MOVE.
-    - Key files: internal/handler/cloud_agents.go, internal/handler/employee_uploads_stream.go
+    - Key files: internal/handler/specialists.go, internal/handler/employee_uploads_stream.go
 
 P2
 
@@ -124,7 +124,7 @@ P2
 24. Setup command failure can persist platform secrets into visible sandbox errors.
     - Problem: setup errors can include provider command output and are stored/returned as error_message while secrets are in env.
     - Fix: redact known secret env names and suppress raw command output in user-visible errors.
-    - Key files: internal/sandbox/orchestrator_types.go, internal/sandbox/daytona/driver_lifecycle.go, internal/sandbox/orchestrator_helpers.go, internal/sandbox/orchestrator_create_cloud_agent.go, internal/handler/sandboxes.go
+    - Key files: internal/sandbox/orchestrator_types.go, internal/sandbox/daytona/driver_lifecycle.go, internal/sandbox/orchestrator_helpers.go, internal/sandbox/orchestrator_create_specialist.go, internal/handler/sandboxes.go
 
 25. Git author env overrides bypass GitHub identity enforcement.
     - Problem: user env can set GIT_AUTHOR_NAME, GIT_AUTHOR_EMAIL, GIT_COMMITTER_NAME, or GIT_COMMITTER_EMAIL, overriding system git config.

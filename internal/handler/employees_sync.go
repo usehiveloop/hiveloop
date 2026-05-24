@@ -26,7 +26,7 @@ type syncEmployeeResponse struct {
 // @Description needed, pushes it to the runtime, and verifies readiness.
 // @Tags employees
 // @Produce json
-// @Param id path string true "Agent UUID"
+// @Param id path string true "Employee UUID"
 // @Success 200 {object} syncEmployeeResponse
 // @Failure 400 {object} errorResponse
 // @Failure 401 {object} errorResponse
@@ -53,19 +53,19 @@ func (h *EmployeeHandler) Sync(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var agent model.Agent
+	var agent model.Employee
 	if err := h.db.WithContext(ctx).Where("id = ? AND org_id = ?", agentID, org.ID).First(&agent).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			writeJSON(w, http.StatusNotFound, map[string]string{"error": "employee not found"})
 			return
 		}
-		log.ErrorContext(ctx, "load employee", "error", err, "agent_id", agentID, "org_id", org.ID)
+		log.ErrorContext(ctx, "load employee", "error", err, "employee_id", agentID, "org_id", org.ID)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to load employee"})
 		return
 	}
 
 	if upgrade, ok, err := activeEmployeeSandboxUpgrade(ctx, h.db, org.ID, agentID); err != nil {
-		log.ErrorContext(ctx, "load active employee sandbox upgrade", "error", err, "agent_id", agentID)
+		log.ErrorContext(ctx, "load active employee sandbox upgrade", "error", err, "employee_id", agentID)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to load active upgrade"})
 		return
 	} else if ok {
@@ -75,7 +75,7 @@ func (h *EmployeeHandler) Sync(w http.ResponseWriter, r *http.Request) {
 
 	sb, err := h.ensureEmployeeSandbox(ctx, &agent)
 	if err != nil {
-		log.ErrorContext(ctx, "provision employee sandbox during sync", "error", err, "agent_id", agentID)
+		log.ErrorContext(ctx, "provision employee sandbox during sync", "error", err, "employee_id", agentID)
 		writeJSON(w, http.StatusBadGateway, map[string]string{"error": "failed to provision employee sandbox"})
 		return
 	}
@@ -83,7 +83,7 @@ func (h *EmployeeHandler) Sync(w http.ResponseWriter, r *http.Request) {
 	resp, err := h.runEmployeeSync(ctx, &agent, sb)
 	if err != nil {
 		log.ErrorContext(ctx, "sync employee config", "error", err,
-			"agent_id", agentID, "sandbox_id", sb.ID)
+			"employee_id", agentID, "sandbox_id", sb.ID)
 		logging.Capture(ctx, err)
 		writeJSON(w, http.StatusBadGateway, map[string]string{"error": "sandbox rejected sync"})
 		return

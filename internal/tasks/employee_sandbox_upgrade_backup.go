@@ -20,7 +20,7 @@ type employeeSandboxBackupMetadata struct {
 	Bytes  int64  `json:"bytes"`
 }
 
-func (h *EmployeeSandboxUpgradeHandler) runBackup(ctx context.Context, upgrade *model.EmployeeSandboxUpgrade, agent *model.Agent, sb *model.Sandbox) (*employeeSandboxBackupMetadata, error) {
+func (h *EmployeeSandboxUpgradeHandler) runBackup(ctx context.Context, upgrade *model.EmployeeSandboxUpgrade, agent *model.Employee, sb *model.Sandbox) (*employeeSandboxBackupMetadata, error) {
 	key := employeeSandboxUpgradeBackupKey(upgrade.OrgID, agent.ID, upgrade.ID)
 	uploadURL, err := h.store.PresignedPutURL(ctx, key, time.Hour)
 	if err != nil {

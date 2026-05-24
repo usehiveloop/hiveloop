@@ -118,63 +118,6 @@
         ]
       }
     },
-    "/gateway/cloud-agents/callback": {
-      "post": {
-        "tags": [
-          "crate::cloud_agent_callbacks"
-        ],
-        "operationId": "post_cloud_agent_callback",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CloudAgentCallbackRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Duplicate callback ignored",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CloudAgentCallbackResponse"
-                }
-              }
-            }
-          },
-          "202": {
-            "description": "Callback accepted",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CloudAgentCallbackResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid callback payload"
-          },
-          "404": {
-            "description": "No matching session route"
-          },
-          "500": {
-            "description": "Failed to persist callback"
-          },
-          "502": {
-            "description": "Failed to deliver callback"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ]
-      }
-    },
     "/gateway/http/messages": {
       "post": {
         "tags": [
@@ -245,6 +188,63 @@
           },
           "503": {
             "description": "HTTP gateway is not enabled"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/gateway/specialists/callback": {
+      "post": {
+        "tags": [
+          "crate::specialist_callbacks"
+        ],
+        "operationId": "post_specialist_callback",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SpecialistCallbackRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Duplicate callback ignored",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SpecialistCallbackResponse"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Callback accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SpecialistCallbackResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid callback payload"
+          },
+          "404": {
+            "description": "No matching session route"
+          },
+          "500": {
+            "description": "Failed to persist callback"
+          },
+          "502": {
+            "description": "Failed to deliver callback"
           }
         },
         "security": [
@@ -664,67 +664,6 @@
           }
         }
       },
-      "CloudAgentCallbackRequest": {
-        "type": "object",
-        "required": [
-          "task_id",
-          "agent_id",
-          "session_id",
-          "event_type",
-          "event_id",
-          "timestamp",
-          "metadata",
-          "data"
-        ],
-        "properties": {
-          "agent_id": {
-            "type": "string"
-          },
-          "data": {
-            "type": "object"
-          },
-          "event_id": {
-            "type": "string"
-          },
-          "event_type": {
-            "type": "string"
-          },
-          "metadata": {
-            "type": "object"
-          },
-          "session_id": {
-            "type": "string"
-          },
-          "task_id": {
-            "type": "string"
-          },
-          "timestamp": {
-            "type": "string",
-            "format": "date-time"
-          }
-        }
-      },
-      "CloudAgentCallbackResponse": {
-        "type": "object",
-        "required": [
-          "accepted",
-          "duplicate"
-        ],
-        "properties": {
-          "accepted": {
-            "type": "boolean"
-          },
-          "duplicate": {
-            "type": "boolean"
-          },
-          "session_id": {
-            "type": [
-              "string",
-              "null"
-            ]
-          }
-        }
-      },
       "CompactionConfig": {
         "type": "object",
         "required": [
@@ -925,7 +864,7 @@
           "tool_call",
           "tool_result",
           "run_event",
-          "cloud_agent_event",
+          "specialist_event",
           "error"
         ]
       },
@@ -2015,6 +1954,67 @@
           }
         ]
       },
+      "SpecialistCallbackRequest": {
+        "type": "object",
+        "required": [
+          "task_id",
+          "specialist_id",
+          "session_id",
+          "event_type",
+          "event_id",
+          "timestamp",
+          "metadata",
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "type": "object"
+          },
+          "event_id": {
+            "type": "string"
+          },
+          "event_type": {
+            "type": "string"
+          },
+          "metadata": {
+            "type": "object"
+          },
+          "session_id": {
+            "type": "string"
+          },
+          "specialist_id": {
+            "type": "string"
+          },
+          "task_id": {
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "SpecialistCallbackResponse": {
+        "type": "object",
+        "required": [
+          "accepted",
+          "duplicate"
+        ],
+        "properties": {
+          "accepted": {
+            "type": "boolean"
+          },
+          "duplicate": {
+            "type": "boolean"
+          },
+          "session_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
       "SubagentDefinition": {
         "type": "object",
         "required": [
@@ -2289,7 +2289,7 @@
               "type": {
                 "type": "string",
                 "enum": [
-                  "builtin.cloud_agent_launch_task"
+                  "builtin.specialist_launch_task"
                 ]
               }
             }
@@ -2303,7 +2303,7 @@
               "type": {
                 "type": "string",
                 "enum": [
-                  "builtin.cloud_agent_task_status"
+                  "builtin.specialist_task_status"
                 ]
               }
             }
@@ -2317,7 +2317,7 @@
               "type": {
                 "type": "string",
                 "enum": [
-                  "builtin.cloud_agent_list_tasks"
+                  "builtin.specialist_list_tasks"
                 ]
               }
             }
@@ -2331,7 +2331,7 @@
               "type": {
                 "type": "string",
                 "enum": [
-                  "builtin.cloud_agent_task_send_message"
+                  "builtin.specialist_task_send_message"
                 ]
               }
             }
@@ -2345,7 +2345,7 @@
               "type": {
                 "type": "string",
                 "enum": [
-                  "builtin.cloud_agent_task_terminate"
+                  "builtin.specialist_task_terminate"
                 ]
               }
             }

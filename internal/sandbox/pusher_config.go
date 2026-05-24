@@ -26,9 +26,9 @@ func applyAgentConfigDefaults(cfg *bridgepkg.AgentConfig, providerID, modelName 
 }
 
 // applyHarnessOptionalFields propagates harness-aware optional fields from
-// the author's AgentConfig. Leave nil values nil so the harness applies its
+// the author's RuntimeConfig. Leave nil values nil so the harness applies its
 // own defaults. disabled_tools is set from the permissions map in
-// buildAgentDefinition and is intentionally not touched here.
+// buildSpecialistDefinition and is intentionally not touched here.
 func applyHarnessOptionalFields(cfg *bridgepkg.AgentConfig, agentCfg *bridgepkg.AgentConfig) {
 	if cfg == nil || agentCfg == nil {
 		return

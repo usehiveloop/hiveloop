@@ -91,7 +91,7 @@ type attachSkillRequest struct {
 	SkillID string `json:"skill_id"`
 }
 
-type agentSkillResponse struct {
+type employeeSkillResponse struct {
 	SkillID   string        `json:"skill_id"`
 	CreatedAt time.Time     `json:"created_at"`
 	Skill     skillResponse `json:"skill"`

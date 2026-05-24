@@ -13,7 +13,7 @@ func TestBuildEmployeeRetainItem_BundlesSessionAtCheckpoint(t *testing.T) {
 	orgID := uuid.New()
 	agentID := uuid.New()
 	sandboxID := uuid.New()
-	agent := &model.Agent{ID: agentID, OrgID: &orgID, Name: "Aria"}
+	agent := &model.Employee{ID: agentID, OrgID: &orgID, Name: "Aria"}
 	events := []model.EmployeeMemoryEvent{
 		memoryEvent(t, orgID, agentID, sandboxID, "S1", "user.message.received", map[string]any{
 			"source": "slack", "channel": "C123", "user": "U123", "user_display_name": "Kim",
@@ -28,7 +28,7 @@ func TestBuildEmployeeRetainItem_BundlesSessionAtCheckpoint(t *testing.T) {
 	}
 
 	item, ok := buildEmployeeRetainItem(agent, EmployeeMemoryRetainPayload{
-		AgentID: agentID, SandboxID: sandboxID, SessionID: "S1", SourceEvent: "agent.message.sent",
+		EmployeeID: agentID, SandboxID: sandboxID, SessionID: "S1", SourceEvent: "agent.message.sent",
 	}, events)
 	if !ok {
 		t.Fatal("expected retain item")
@@ -68,15 +68,15 @@ func TestBuildEmployeeRetainItem_SkipsNoCheckpointAndSecrets(t *testing.T) {
 	orgID := uuid.New()
 	agentID := uuid.New()
 	sandboxID := uuid.New()
-	agent := &model.Agent{ID: agentID, OrgID: &orgID, Name: "Aria"}
+	agent := &model.Employee{ID: agentID, OrgID: &orgID, Name: "Aria"}
 	onlyUser := []model.EmployeeMemoryEvent{
 		memoryEvent(t, orgID, agentID, sandboxID, "S1", "user.message.received", map[string]any{"text": "remember this later"}),
 	}
-	if _, ok := buildEmployeeRetainItem(agent, EmployeeMemoryRetainPayload{AgentID: agentID, SandboxID: sandboxID, SessionID: "S1"}, onlyUser); ok {
+	if _, ok := buildEmployeeRetainItem(agent, EmployeeMemoryRetainPayload{EmployeeID: agentID, SandboxID: sandboxID, SessionID: "S1"}, onlyUser); ok {
 		t.Fatal("user event without checkpoint should not retain")
 	}
 	withSecret := append(onlyUser, memoryEvent(t, orgID, agentID, sandboxID, "S1", "agent.message.sent", map[string]any{"text": "api_key=sk-secret"}))
-	if _, ok := buildEmployeeRetainItem(agent, EmployeeMemoryRetainPayload{AgentID: agentID, SandboxID: sandboxID, SessionID: "S1"}, withSecret); ok {
+	if _, ok := buildEmployeeRetainItem(agent, EmployeeMemoryRetainPayload{EmployeeID: agentID, SandboxID: sandboxID, SessionID: "S1"}, withSecret); ok {
 		t.Fatal("secret-looking transcript should not retain")
 	}
 }
@@ -85,7 +85,7 @@ func TestBuildEmployeeRetainItem_SkipsPureBanterWithoutWorkSignal(t *testing.T) 
 	orgID := uuid.New()
 	agentID := uuid.New()
 	sandboxID := uuid.New()
-	agent := &model.Agent{ID: agentID, OrgID: &orgID, Name: "Aria"}
+	agent := &model.Employee{ID: agentID, OrgID: &orgID, Name: "Aria"}
 	events := []model.EmployeeMemoryEvent{
 		memoryEvent(t, orgID, agentID, sandboxID, "S1", "user.message.received", map[string]any{
 			"source": "slack", "channel": "C123", "user_display_name": "Kim",
@@ -95,7 +95,7 @@ func TestBuildEmployeeRetainItem_SkipsPureBanterWithoutWorkSignal(t *testing.T) 
 			"source": "slack", "text": "Painfully relational.",
 		}),
 	}
-	if _, ok := buildEmployeeRetainItem(agent, EmployeeMemoryRetainPayload{AgentID: agentID, SandboxID: sandboxID, SessionID: "S1"}, events); ok {
+	if _, ok := buildEmployeeRetainItem(agent, EmployeeMemoryRetainPayload{EmployeeID: agentID, SandboxID: sandboxID, SessionID: "S1"}, events); ok {
 		t.Fatal("pure banter without a work/tool signal should not retain")
 	}
 }
@@ -104,7 +104,7 @@ func TestBuildEmployeeRetainItem_PreservesExplicitRememberFactsWithoutTools(t *t
 	orgID := uuid.New()
 	agentID := uuid.New()
 	sandboxID := uuid.New()
-	agent := &model.Agent{ID: agentID, OrgID: &orgID, Name: "Aria"}
+	agent := &model.Employee{ID: agentID, OrgID: &orgID, Name: "Aria"}
 	events := []model.EmployeeMemoryEvent{
 		memoryEvent(t, orgID, agentID, sandboxID, "S1", "user.message.received", map[string]any{
 			"source": "slack", "channel": "C123", "user_display_name": "Nora",
@@ -119,7 +119,7 @@ func TestBuildEmployeeRetainItem_PreservesExplicitRememberFactsWithoutTools(t *t
 	}
 
 	item, ok := buildEmployeeRetainItem(agent, EmployeeMemoryRetainPayload{
-		AgentID: agentID, SandboxID: sandboxID, SessionID: "S1", SourceEvent: "agent.message.sent",
+		EmployeeID: agentID, SandboxID: sandboxID, SessionID: "S1", SourceEvent: "agent.message.sent",
 	}, events)
 	if !ok {
 		t.Fatal("expected retain item")

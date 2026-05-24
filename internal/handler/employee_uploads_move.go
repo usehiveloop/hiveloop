@@ -50,7 +50,7 @@ func (h *UploadsHandler) MoveEmployeeAsset(w http.ResponseWriter, r *http.Reques
 
 	key := buildEmployeeAssetKey(agent.ID, folder, filename)
 	var asset model.EmployeeAsset
-	if err := h.db.Where("agent_id = ? AND key = ?", agent.ID, key).First(&asset).Error; err != nil {
+	if err := h.db.Where("employee_id = ? AND key = ?", agent.ID, key).First(&asset).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			writeJSON(w, http.StatusNotFound, map[string]string{"error": "asset not found"})
 			return

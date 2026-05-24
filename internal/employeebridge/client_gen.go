@@ -24,9 +24,9 @@ const (
 // Defines values for EventKind.
 const (
 	EventKindAssistantMessage EventKind = "assistant_message"
-	EventKindCloudAgentEvent  EventKind = "cloud_agent_event"
 	EventKindError            EventKind = "error"
 	EventKindRunEvent         EventKind = "run_event"
+	EventKindSpecialistEvent  EventKind = "specialist_event"
 	EventKindToolCall         EventKind = "tool_call"
 	EventKindToolResult       EventKind = "tool_result"
 	EventKindUserMessage      EventKind = "user_message"
@@ -37,11 +37,11 @@ func (e EventKind) Valid() bool {
 	switch e {
 	case EventKindAssistantMessage:
 		return true
-	case EventKindCloudAgentEvent:
-		return true
 	case EventKindError:
 		return true
 	case EventKindRunEvent:
+		return true
+	case EventKindSpecialistEvent:
 		return true
 	case EventKindToolCall:
 		return true
@@ -437,13 +437,13 @@ func (e ToolSpec11Type) Valid() bool {
 
 // Defines values for ToolSpec12Type.
 const (
-	BuiltinCloudAgentLaunchTask ToolSpec12Type = "builtin.cloud_agent_launch_task"
+	BuiltinSpecialistLaunchTask ToolSpec12Type = "builtin.specialist_launch_task"
 )
 
 // Valid indicates whether the value is a known member of the ToolSpec12Type enum.
 func (e ToolSpec12Type) Valid() bool {
 	switch e {
-	case BuiltinCloudAgentLaunchTask:
+	case BuiltinSpecialistLaunchTask:
 		return true
 	default:
 		return false
@@ -452,13 +452,13 @@ func (e ToolSpec12Type) Valid() bool {
 
 // Defines values for ToolSpec13Type.
 const (
-	BuiltinCloudAgentTaskStatus ToolSpec13Type = "builtin.cloud_agent_task_status"
+	BuiltinSpecialistTaskStatus ToolSpec13Type = "builtin.specialist_task_status"
 )
 
 // Valid indicates whether the value is a known member of the ToolSpec13Type enum.
 func (e ToolSpec13Type) Valid() bool {
 	switch e {
-	case BuiltinCloudAgentTaskStatus:
+	case BuiltinSpecialistTaskStatus:
 		return true
 	default:
 		return false
@@ -467,13 +467,13 @@ func (e ToolSpec13Type) Valid() bool {
 
 // Defines values for ToolSpec14Type.
 const (
-	BuiltinCloudAgentListTasks ToolSpec14Type = "builtin.cloud_agent_list_tasks"
+	BuiltinSpecialistListTasks ToolSpec14Type = "builtin.specialist_list_tasks"
 )
 
 // Valid indicates whether the value is a known member of the ToolSpec14Type enum.
 func (e ToolSpec14Type) Valid() bool {
 	switch e {
-	case BuiltinCloudAgentListTasks:
+	case BuiltinSpecialistListTasks:
 		return true
 	default:
 		return false
@@ -482,13 +482,13 @@ func (e ToolSpec14Type) Valid() bool {
 
 // Defines values for ToolSpec15Type.
 const (
-	BuiltinCloudAgentTaskSendMessage ToolSpec15Type = "builtin.cloud_agent_task_send_message"
+	BuiltinSpecialistTaskSendMessage ToolSpec15Type = "builtin.specialist_task_send_message"
 )
 
 // Valid indicates whether the value is a known member of the ToolSpec15Type enum.
 func (e ToolSpec15Type) Valid() bool {
 	switch e {
-	case BuiltinCloudAgentTaskSendMessage:
+	case BuiltinSpecialistTaskSendMessage:
 		return true
 	default:
 		return false
@@ -497,13 +497,13 @@ func (e ToolSpec15Type) Valid() bool {
 
 // Defines values for ToolSpec16Type.
 const (
-	BuiltinCloudAgentTaskTerminate ToolSpec16Type = "builtin.cloud_agent_task_terminate"
+	BuiltinSpecialistTaskTerminate ToolSpec16Type = "builtin.specialist_task_terminate"
 )
 
 // Valid indicates whether the value is a known member of the ToolSpec16Type enum.
 func (e ToolSpec16Type) Valid() bool {
 	switch e {
-	case BuiltinCloudAgentTaskTerminate:
+	case BuiltinSpecialistTaskTerminate:
 		return true
 	default:
 		return false
@@ -548,25 +548,6 @@ type BashConfig struct {
 	Sandbox        *string   `json:"sandbox,omitempty"`
 	TimeoutSeconds int32     `json:"timeout_seconds"`
 	Workdir        string    `json:"workdir"`
-}
-
-// CloudAgentCallbackRequest defines model for CloudAgentCallbackRequest.
-type CloudAgentCallbackRequest struct {
-	AgentId   string                 `json:"agent_id"`
-	Data      map[string]interface{} `json:"data"`
-	EventId   string                 `json:"event_id"`
-	EventType string                 `json:"event_type"`
-	Metadata  map[string]interface{} `json:"metadata"`
-	SessionId string                 `json:"session_id"`
-	TaskId    string                 `json:"task_id"`
-	Timestamp time.Time              `json:"timestamp"`
-}
-
-// CloudAgentCallbackResponse defines model for CloudAgentCallbackResponse.
-type CloudAgentCallbackResponse struct {
-	Accepted  bool    `json:"accepted"`
-	Duplicate bool    `json:"duplicate"`
-	SessionId *string `json:"session_id,omitempty"`
 }
 
 // CompactionConfig defines model for CompactionConfig.
@@ -893,6 +874,25 @@ type SkillTrigger1 struct {
 // SkillTrigger1Type defines model for SkillTrigger.1.Type.
 type SkillTrigger1Type string
 
+// SpecialistCallbackRequest defines model for SpecialistCallbackRequest.
+type SpecialistCallbackRequest struct {
+	Data         map[string]interface{} `json:"data"`
+	EventId      string                 `json:"event_id"`
+	EventType    string                 `json:"event_type"`
+	Metadata     map[string]interface{} `json:"metadata"`
+	SessionId    string                 `json:"session_id"`
+	SpecialistId string                 `json:"specialist_id"`
+	TaskId       string                 `json:"task_id"`
+	Timestamp    time.Time              `json:"timestamp"`
+}
+
+// SpecialistCallbackResponse defines model for SpecialistCallbackResponse.
+type SpecialistCallbackResponse struct {
+	Accepted  bool    `json:"accepted"`
+	Duplicate bool    `json:"duplicate"`
+	SessionId *string `json:"session_id,omitempty"`
+}
+
 // SubagentDefinition defines model for SubagentDefinition.
 type SubagentDefinition struct {
 	Limits       *Limits     `json:"limits,omitempty"`
@@ -1127,11 +1127,11 @@ type PutConfigJSONRequestBody = AgentDefinition
 // PutRuntimeEnvJSONRequestBody defines body for PutRuntimeEnv for application/json ContentType.
 type PutRuntimeEnvJSONRequestBody = RuntimeEnvUpdate
 
-// PostCloudAgentCallbackJSONRequestBody defines body for PostCloudAgentCallback for application/json ContentType.
-type PostCloudAgentCallbackJSONRequestBody = CloudAgentCallbackRequest
-
 // PostHttpMessageJSONRequestBody defines body for PostHttpMessage for application/json ContentType.
 type PostHttpMessageJSONRequestBody = HttpMessageRequest
+
+// PostSpecialistCallbackJSONRequestBody defines body for PostSpecialistCallback for application/json ContentType.
+type PostSpecialistCallbackJSONRequestBody = SpecialistCallbackRequest
 
 // AsMcpSpec0 returns the union data inside the McpSpec as a McpSpec0
 func (t McpSpec) AsMcpSpec0() (McpSpec0, error) {
@@ -1976,11 +1976,6 @@ type ClientInterface interface {
 
 	PutRuntimeEnv(ctx context.Context, body PutRuntimeEnvJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// PostCloudAgentCallbackWithBody request with any body
-	PostCloudAgentCallbackWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	PostCloudAgentCallback(ctx context.Context, body PostCloudAgentCallbackJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
-
 	// PostHttpMessageWithBody request with any body
 	PostHttpMessageWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -1988,6 +1983,11 @@ type ClientInterface interface {
 
 	// GetHttpStream request
 	GetHttpStream(ctx context.Context, streamId string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// PostSpecialistCallbackWithBody request with any body
+	PostSpecialistCallbackWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	PostSpecialistCallback(ctx context.Context, body PostSpecialistCallbackJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// Healthz request
 	Healthz(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -2068,30 +2068,6 @@ func (c *Client) PutRuntimeEnv(ctx context.Context, body PutRuntimeEnvJSONReques
 	return c.Client.Do(req)
 }
 
-func (c *Client) PostCloudAgentCallbackWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewPostCloudAgentCallbackRequestWithBody(c.Server, contentType, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) PostCloudAgentCallback(ctx context.Context, body PostCloudAgentCallbackJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewPostCloudAgentCallbackRequest(c.Server, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
 func (c *Client) PostHttpMessageWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewPostHttpMessageRequestWithBody(c.Server, contentType, body)
 	if err != nil {
@@ -2118,6 +2094,30 @@ func (c *Client) PostHttpMessage(ctx context.Context, body PostHttpMessageJSONRe
 
 func (c *Client) GetHttpStream(ctx context.Context, streamId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetHttpStreamRequest(c.Server, streamId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PostSpecialistCallbackWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostSpecialistCallbackRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PostSpecialistCallback(ctx context.Context, body PostSpecialistCallbackJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostSpecialistCallbackRequest(c.Server, body)
 	if err != nil {
 		return nil, err
 	}
@@ -2307,46 +2307,6 @@ func NewPutRuntimeEnvRequestWithBody(server string, contentType string, body io.
 	return req, nil
 }
 
-// NewPostCloudAgentCallbackRequest calls the generic PostCloudAgentCallback builder with application/json body
-func NewPostCloudAgentCallbackRequest(server string, body PostCloudAgentCallbackJSONRequestBody) (*http.Request, error) {
-	var bodyReader io.Reader
-	buf, err := json.Marshal(body)
-	if err != nil {
-		return nil, err
-	}
-	bodyReader = bytes.NewReader(buf)
-	return NewPostCloudAgentCallbackRequestWithBody(server, "application/json", bodyReader)
-}
-
-// NewPostCloudAgentCallbackRequestWithBody generates requests for PostCloudAgentCallback with any type of body
-func NewPostCloudAgentCallbackRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
-	var err error
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/gateway/cloud-agents/callback")
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Add("Content-Type", contentType)
-
-	return req, nil
-}
-
 // NewPostHttpMessageRequest calls the generic PostHttpMessage builder with application/json body
 func NewPostHttpMessageRequest(server string, body PostHttpMessageJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
@@ -2417,6 +2377,46 @@ func NewGetHttpStreamRequest(server string, streamId string) (*http.Request, err
 	if err != nil {
 		return nil, err
 	}
+
+	return req, nil
+}
+
+// NewPostSpecialistCallbackRequest calls the generic PostSpecialistCallback builder with application/json body
+func NewPostSpecialistCallbackRequest(server string, body PostSpecialistCallbackJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewPostSpecialistCallbackRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewPostSpecialistCallbackRequestWithBody generates requests for PostSpecialistCallback with any type of body
+func NewPostSpecialistCallbackRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/gateway/specialists/callback")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
 
 	return req, nil
 }
@@ -2771,11 +2771,6 @@ type ClientWithResponsesInterface interface {
 
 	PutRuntimeEnvWithResponse(ctx context.Context, body PutRuntimeEnvJSONRequestBody, reqEditors ...RequestEditorFn) (*PutRuntimeEnvResp, error)
 
-	// PostCloudAgentCallbackWithBodyWithResponse request with any body
-	PostCloudAgentCallbackWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostCloudAgentCallbackResp, error)
-
-	PostCloudAgentCallbackWithResponse(ctx context.Context, body PostCloudAgentCallbackJSONRequestBody, reqEditors ...RequestEditorFn) (*PostCloudAgentCallbackResp, error)
-
 	// PostHttpMessageWithBodyWithResponse request with any body
 	PostHttpMessageWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostHttpMessageResp, error)
 
@@ -2783,6 +2778,11 @@ type ClientWithResponsesInterface interface {
 
 	// GetHttpStreamWithResponse request
 	GetHttpStreamWithResponse(ctx context.Context, streamId string, reqEditors ...RequestEditorFn) (*GetHttpStreamResp, error)
+
+	// PostSpecialistCallbackWithBodyWithResponse request with any body
+	PostSpecialistCallbackWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostSpecialistCallbackResp, error)
+
+	PostSpecialistCallbackWithResponse(ctx context.Context, body PostSpecialistCallbackJSONRequestBody, reqEditors ...RequestEditorFn) (*PostSpecialistCallbackResp, error)
 
 	// HealthzWithResponse request
 	HealthzWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*HealthzResp, error)
@@ -2893,37 +2893,6 @@ func (r PutRuntimeEnvResp) ContentType() string {
 	return ""
 }
 
-type PostCloudAgentCallbackResp struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON200      *CloudAgentCallbackResponse
-	JSON202      *CloudAgentCallbackResponse
-}
-
-// Status returns HTTPResponse.Status
-func (r PostCloudAgentCallbackResp) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r PostCloudAgentCallbackResp) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
-func (r PostCloudAgentCallbackResp) ContentType() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Header.Get("Content-Type")
-	}
-	return ""
-}
-
 type PostHttpMessageResp struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -2977,6 +2946,37 @@ func (r GetHttpStreamResp) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r GetHttpStreamResp) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type PostSpecialistCallbackResp struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *SpecialistCallbackResponse
+	JSON202      *SpecialistCallbackResponse
+}
+
+// Status returns HTTPResponse.Status
+func (r PostSpecialistCallbackResp) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r PostSpecialistCallbackResp) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r PostSpecialistCallbackResp) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -3204,23 +3204,6 @@ func (c *ClientWithResponses) PutRuntimeEnvWithResponse(ctx context.Context, bod
 	return ParsePutRuntimeEnvResp(rsp)
 }
 
-// PostCloudAgentCallbackWithBodyWithResponse request with arbitrary body returning *PostCloudAgentCallbackResp
-func (c *ClientWithResponses) PostCloudAgentCallbackWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostCloudAgentCallbackResp, error) {
-	rsp, err := c.PostCloudAgentCallbackWithBody(ctx, contentType, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParsePostCloudAgentCallbackResp(rsp)
-}
-
-func (c *ClientWithResponses) PostCloudAgentCallbackWithResponse(ctx context.Context, body PostCloudAgentCallbackJSONRequestBody, reqEditors ...RequestEditorFn) (*PostCloudAgentCallbackResp, error) {
-	rsp, err := c.PostCloudAgentCallback(ctx, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParsePostCloudAgentCallbackResp(rsp)
-}
-
 // PostHttpMessageWithBodyWithResponse request with arbitrary body returning *PostHttpMessageResp
 func (c *ClientWithResponses) PostHttpMessageWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostHttpMessageResp, error) {
 	rsp, err := c.PostHttpMessageWithBody(ctx, contentType, body, reqEditors...)
@@ -3245,6 +3228,23 @@ func (c *ClientWithResponses) GetHttpStreamWithResponse(ctx context.Context, str
 		return nil, err
 	}
 	return ParseGetHttpStreamResp(rsp)
+}
+
+// PostSpecialistCallbackWithBodyWithResponse request with arbitrary body returning *PostSpecialistCallbackResp
+func (c *ClientWithResponses) PostSpecialistCallbackWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostSpecialistCallbackResp, error) {
+	rsp, err := c.PostSpecialistCallbackWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePostSpecialistCallbackResp(rsp)
+}
+
+func (c *ClientWithResponses) PostSpecialistCallbackWithResponse(ctx context.Context, body PostSpecialistCallbackJSONRequestBody, reqEditors ...RequestEditorFn) (*PostSpecialistCallbackResp, error) {
+	rsp, err := c.PostSpecialistCallback(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePostSpecialistCallbackResp(rsp)
 }
 
 // HealthzWithResponse request returning *HealthzResp
@@ -3379,39 +3379,6 @@ func ParsePutRuntimeEnvResp(rsp *http.Response) (*PutRuntimeEnvResp, error) {
 	return response, nil
 }
 
-// ParsePostCloudAgentCallbackResp parses an HTTP response from a PostCloudAgentCallbackWithResponse call
-func ParsePostCloudAgentCallbackResp(rsp *http.Response) (*PostCloudAgentCallbackResp, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &PostCloudAgentCallbackResp{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest CloudAgentCallbackResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 202:
-		var dest CloudAgentCallbackResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON202 = &dest
-
-	}
-
-	return response, nil
-}
-
 // ParsePostHttpMessageResp parses an HTTP response from a PostHttpMessageWithResponse call
 func ParsePostHttpMessageResp(rsp *http.Response) (*PostHttpMessageResp, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -3449,6 +3416,39 @@ func ParseGetHttpStreamResp(rsp *http.Response) (*GetHttpStreamResp, error) {
 	response := &GetHttpStreamResp{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
+	}
+
+	return response, nil
+}
+
+// ParsePostSpecialistCallbackResp parses an HTTP response from a PostSpecialistCallbackWithResponse call
+func ParsePostSpecialistCallbackResp(rsp *http.Response) (*PostSpecialistCallbackResp, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &PostSpecialistCallbackResp{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest SpecialistCallbackResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 202:
+		var dest SpecialistCallbackResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON202 = &dest
+
 	}
 
 	return response, nil

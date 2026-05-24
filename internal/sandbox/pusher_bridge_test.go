@@ -48,9 +48,9 @@ func TestPusherBuildAgentDefinition(t *testing.T) {
 			},
 		},
 	}
-	agent := model.Agent{
+	agent := model.Employee{
 		ID: uuid.New(), OrgID: &org.ID, CredentialID: &cred.ID,
-		Name: "Test Railway Agent", Model: "kimi-k2",
+		Name: "Test Railway Employee", Model: "kimi-k2",
 		SystemPrompt: "You are a DevOps engineer.",
 		Status:       "active", SharedMemory: false,
 		Permissions: permissions, Resources: resources,
@@ -58,10 +58,10 @@ func TestPusherBuildAgentDefinition(t *testing.T) {
 		Integrations: model.JSON{
 			"conn-github-123": map[string]any{"actions": []any{"repos.list", "issues.list"}},
 		},
-		AgentConfig: model.JSON{}, SandboxTools: pq.StringArray{"chrome"},
+		RuntimeConfig: model.JSON{}, SandboxTools: pq.StringArray{"chrome"},
 	}
 	db.Create(&agent)
-	t.Cleanup(func() { db.Where("id = ?", agent.ID).Delete(&model.Agent{}) })
+	t.Cleanup(func() { db.Where("id = ?", agent.ID).Delete(&model.Employee{}) })
 
 	skill := model.Skill{
 		ID: uuid.New(), Slug: "use-railway-test-" + uuid.New().String()[:8],
@@ -74,9 +74,9 @@ func TestPusherBuildAgentDefinition(t *testing.T) {
 		}`),
 	}
 	db.Create(&skill)
-	db.Create(&model.AgentSkill{AgentID: agent.ID, SkillID: skill.ID})
+	db.Create(&model.EmployeeSkill{EmployeeID: agent.ID, SkillID: skill.ID})
 	t.Cleanup(func() {
-		db.Where("agent_id = ? AND skill_id = ?", agent.ID, skill.ID).Delete(&model.AgentSkill{})
+		db.Where("employee_id = ? AND skill_id = ?", agent.ID, skill.ID).Delete(&model.EmployeeSkill{})
 		db.Where("id = ?", skill.ID).Delete(&model.Skill{})
 	})
 
@@ -88,9 +88,9 @@ func TestPusherBuildAgentDefinition(t *testing.T) {
 
 	proxyToken := "ptok_test_token"
 	jti := uuid.New().String()
-	def := pusher.buildAgentDefinition(t.Context(), &agent, nil, &cred, proxyToken, jti)
+	def := pusher.buildSpecialistDefinition(t.Context(), &agent, nil, &cred, proxyToken, jti)
 
-	assertEqual(t, "name", def.Name, "Test Railway Agent")
+	assertEqual(t, "name", def.Name, "Test Railway Employee")
 	assertEqual(t, "model", def.Provider.Model, "kimi-k2")
 	assertEqual(t, "provider_type", string(def.Provider.ProviderType), string(bridgepkg.OpenAi))
 	assertEqual(t, "harness", string(def.Harness), string(bridgepkg.OpenCode))
@@ -195,7 +195,7 @@ func createPusherSkill(t *testing.T, db interface {
 		t.Fatalf("create skill: %v", err)
 	}
 	t.Cleanup(func() {
-		db.Where("skill_id = ?", skill.ID).Delete(&model.AgentSkill{})
+		db.Where("skill_id = ?", skill.ID).Delete(&model.EmployeeSkill{})
 		db.Where("id = ?", skill.ID).Delete(&model.Skill{})
 	})
 	return skill

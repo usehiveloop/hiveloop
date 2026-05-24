@@ -64,7 +64,7 @@ func (h *EmployeeHandler) ListSessions(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var agent model.Agent
+	var agent model.Employee
 	if err := h.db.WithContext(ctx).
 		Where("id = ? AND org_id = ? AND status <> ?", agentID, org.ID, "archived").
 		First(&agent).Error; err != nil {
@@ -86,14 +86,14 @@ func (h *EmployeeHandler) ListSessions(w http.ResponseWriter, r *http.Request) {
 	}
 	apiKey, err := h.compileDeps.EncKey.DecryptString(sb.EncryptedBridgeAPIKey)
 	if err != nil {
-		logging.FromContext(ctx).ErrorContext(ctx, "decrypt employee runtime key", "error", err, "agent_id", agentID, "sandbox_id", sb.ID)
+		logging.FromContext(ctx).ErrorContext(ctx, "decrypt employee runtime key", "error", err, "employee_id", agentID, "sandbox_id", sb.ID)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to load employee runtime credentials"})
 		return
 	}
 
 	resp, err := employeeruntime.NewClient(sb.BridgeURL, apiKey).ListSessions(ctx, employeeSessionListParams(r))
 	if err != nil {
-		logging.FromContext(ctx).ErrorContext(ctx, "list employee runtime sessions", "error", err, "agent_id", agentID, "sandbox_id", sb.ID)
+		logging.FromContext(ctx).ErrorContext(ctx, "list employee runtime sessions", "error", err, "employee_id", agentID, "sandbox_id", sb.ID)
 		writeJSON(w, http.StatusBadGateway, map[string]string{"error": "failed to list employee sessions"})
 		return
 	}
@@ -114,7 +114,7 @@ func (h *EmployeeHandler) loadLatestEmployeeSandbox(w http.ResponseWriter, r *ht
 	ctx := r.Context()
 	var sb model.Sandbox
 	if err := h.db.WithContext(ctx).
-		Where("agent_id = ? AND org_id = ? AND status <> ?", agentID, orgID, "error").
+		Where("employee_id = ? AND org_id = ? AND status <> ?", agentID, orgID, "error").
 		Order("created_at DESC").
 		First(&sb).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -126,7 +126,7 @@ func (h *EmployeeHandler) loadLatestEmployeeSandbox(w http.ResponseWriter, r *ht
 	}
 	if h.orchestrator != nil && h.orchestrator.NeedsURLRefresh(&sb) {
 		if err := h.orchestrator.RefreshEmployeeSandboxURL(ctx, &sb); err != nil {
-			logging.FromContext(ctx).ErrorContext(ctx, "refresh employee sandbox url", "error", err, "agent_id", agentID, "sandbox_id", sb.ID)
+			logging.FromContext(ctx).ErrorContext(ctx, "refresh employee sandbox url", "error", err, "employee_id", agentID, "sandbox_id", sb.ID)
 			writeJSON(w, http.StatusBadGateway, map[string]string{"error": "failed to refresh employee sandbox URL"})
 			return nil, false
 		}
@@ -183,12 +183,12 @@ func (h *EmployeeHandler) loadTriggerDeliveriesForRuntimeSessions(ctx context.Co
 	if len(sessionIDs) == 0 {
 		return out
 	}
-	var rows []model.AgentTriggerDelivery
+	var rows []model.EmployeeTriggerDelivery
 	if err := h.db.WithContext(ctx).
-		Where("org_id = ? AND agent_id = ? AND runtime_session_id IN ?", orgID, agentID, sessionIDs).
+		Where("org_id = ? AND employee_id = ? AND runtime_session_id IN ?", orgID, agentID, sessionIDs).
 		Order("created_at DESC").
 		Find(&rows).Error; err != nil {
-		logging.FromContext(ctx).ErrorContext(ctx, "load trigger deliveries for employee sessions", "error", err, "agent_id", agentID)
+		logging.FromContext(ctx).ErrorContext(ctx, "load trigger deliveries for employee sessions", "error", err, "employee_id", agentID)
 		return out
 	}
 	for _, row := range rows {

@@ -204,10 +204,10 @@ func (h *SandboxHandler) Exec(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *SandboxHandler) blockEmployeeUpgradeConflict(w http.ResponseWriter, r *http.Request, orgID uuid.UUID, sb *model.Sandbox) bool {
-	if sb.AgentID == nil {
+	if sb.EmployeeID == nil {
 		return false
 	}
-	upgrade, ok, err := activeEmployeeSandboxUpgrade(r.Context(), h.db, orgID, *sb.AgentID)
+	upgrade, ok, err := activeEmployeeSandboxUpgrade(r.Context(), h.db, orgID, *sb.EmployeeID)
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to load active upgrade"})
 		return true

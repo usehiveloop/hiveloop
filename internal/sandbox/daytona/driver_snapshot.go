@@ -26,7 +26,7 @@ func (d *Driver) buildImage(ctx context.Context, opts sandbox.TemplateBuildReque
 		baseImage = "node:22-bookworm-slim"
 	}
 
-	tag := "v" + strings.TrimPrefix(d.cloudAgentsSandboxRuntimeVersion, "v")
+	tag := "v" + strings.TrimPrefix(d.specialistSandboxRuntimeVersion, "v")
 	bridgeDownloadURL := fmt.Sprintf(
 		"https://github.com/usehivy/hivy/releases/download/%s/bridge-%s-x86_64-unknown-linux-gnu.tar.gz",
 		tag, tag,

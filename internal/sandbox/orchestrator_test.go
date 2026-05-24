@@ -70,9 +70,9 @@ func setupOrchestrator(t *testing.T) (*Orchestrator, *mockProvider, *gorm.DB) {
 	provider.endpointOverride = bridgeSrv.URL
 
 	cfg := &config.Config{
-		CloudAgentsSandboxBaseImagePrefix: "hivy-bridge-1-0-0-small-v1",
-		CloudAgentsSandboxHost:            "test.usehivy.com",
-		CloudAgentSandboxGracePeriodMins:  5,
+		SpecialistSandboxBaseImagePrefix: "hivy-bridge-1-0-0-small-v1",
+		SpecialistSandboxHost:            "test.usehivy.com",
+		SpecialistSandboxGracePeriodMins: 5,
 	}
 
 	orch := NewOrchestrator(db, provider, testEncKey(t), cfg)
@@ -88,16 +88,16 @@ func createTestOrg(t *testing.T, db *gorm.DB) model.Org {
 	return org
 }
 
-func createTestAgent(t *testing.T, db *gorm.DB, orgID, credID uuid.UUID) model.Agent {
+func createTestAgent(t *testing.T, db *gorm.DB, orgID, credID uuid.UUID) model.Employee {
 	t.Helper()
 	suffix := uuid.New().String()[:8]
-	agent := model.Agent{
+	agent := model.Employee{
 		OrgID: &orgID, Name: "agent-" + suffix,
 		CredentialID: &credID,
 		SystemPrompt: "test", Model: "gpt-4o",
 	}
 	db.Create(&agent)
-	t.Cleanup(func() { db.Where("id = ?", agent.ID).Delete(&model.Agent{}) })
+	t.Cleanup(func() { db.Where("id = ?", agent.ID).Delete(&model.Employee{}) })
 	return agent
 }
 

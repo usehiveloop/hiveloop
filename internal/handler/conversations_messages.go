@@ -39,11 +39,11 @@ func (h *ConversationHandler) SendMessage(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	if h.pusher != nil && conv.CredentialID == nil && h.pusher.NeedsTokenRotation(conv.AgentID.String()) {
-		var agent model.Agent
-		if err := h.db.Where("id = ?", conv.AgentID).First(&agent).Error; err == nil {
-			if err := h.pusher.RotateAgentToken(r.Context(), &agent, &conv.Sandbox); err != nil {
-				logging.FromContext(r.Context()).ErrorContext(r.Context(), "failed to rotate agent token", "agent_id", conv.AgentID, "error", err)
+	if h.pusher != nil && conv.CredentialID == nil && h.pusher.NeedsTokenRotation(conv.EmployeeID.String()) {
+		var agent model.Employee
+		if err := h.db.Where("id = ?", conv.EmployeeID).First(&agent).Error; err == nil {
+			if err := h.pusher.RotateEmployeeProxyToken(r.Context(), &agent, &conv.Sandbox); err != nil {
+				logging.FromContext(r.Context()).ErrorContext(r.Context(), "failed to rotate agent token", "employee_id", conv.EmployeeID, "error", err)
 
 			}
 		}
@@ -151,7 +151,7 @@ func (h *ConversationHandler) ListApprovals(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	approvals, err := client.ListApprovals(r.Context(), conv.AgentID.String(), conv.RuntimeConversationID)
+	approvals, err := client.ListApprovals(r.Context(), conv.EmployeeID.String(), conv.RuntimeConversationID)
 	if err != nil {
 		logging.FromContext(r.Context()).ErrorContext(r.Context(), "failed to list approvals", "conversation_id", conv.ID, "error", err)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to list approvals"})
@@ -204,7 +204,7 @@ func (h *ConversationHandler) ResolveApproval(w http.ResponseWriter, r *http.Req
 	if req.Decision == "deny" {
 		decision = bridgepkg.ApprovalDecisionDeny
 	}
-	if err := client.ResolveApproval(r.Context(), conv.AgentID.String(), conv.RuntimeConversationID, requestID, decision); err != nil {
+	if err := client.ResolveApproval(r.Context(), conv.EmployeeID.String(), conv.RuntimeConversationID, requestID, decision); err != nil {
 		logging.FromContext(r.Context()).ErrorContext(r.Context(), "failed to resolve approval", "conversation_id", conv.ID, "request_id", requestID, "error", err)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to resolve approval"})
 		return

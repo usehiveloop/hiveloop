@@ -55,7 +55,7 @@ func newStreamHarness(t *testing.T) *streamHarness {
 	t.Cleanup(func() { db.Where("id = ?", orgID).Delete(&model.Org{}) })
 
 	agentID := uuid.New()
-	if err := db.Create(&model.Agent{
+	if err := db.Create(&model.Employee{
 		ID:     agentID,
 		OrgID:  &orgID,
 		Name:   "stream-agent",
@@ -74,7 +74,7 @@ func newStreamHarness(t *testing.T) *streamHarness {
 	if err := db.Create(&model.Sandbox{
 		ID:                    sandboxID,
 		OrgID:                 &orgID,
-		AgentID:               &agentID,
+		EmployeeID:            &agentID,
 		EncryptedBridgeAPIKey: encrypted,
 		Status:                "running",
 		ExternalID:            "mock-external-id",
@@ -84,10 +84,10 @@ func newStreamHarness(t *testing.T) *streamHarness {
 	}
 
 	convID := uuid.New()
-	if err := db.Create(&model.AgentConversation{
+	if err := db.Create(&model.EmployeeConversation{
 		ID:                    convID,
 		OrgID:                 orgID,
-		AgentID:               agentID,
+		EmployeeID:            agentID,
 		SandboxID:             sandboxID,
 		RuntimeConversationID: "bridge-conv-" + uuid.New().String()[:8],
 		Status:                "active",

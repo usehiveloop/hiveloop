@@ -102,11 +102,11 @@ func (o *Orchestrator) mergeUserEnvVars(ctx context.Context, envVars map[string]
 	}
 }
 
-func (o *Orchestrator) loadOwningEmployee(ctx context.Context, agent *model.Agent) (*model.Agent, error) {
+func (o *Orchestrator) loadOwningEmployee(ctx context.Context, agent *model.Employee) (*model.Employee, error) {
 	if agent == nil || agent.IsEmployee || agent.OrgID == nil {
 		return nil, nil
 	}
-	var employee model.Agent
+	var employee model.Employee
 	err := o.db.WithContext(ctx).
 		Where("org_id = ? AND id <> ? AND status <> ?", *agent.OrgID, agent.ID, "archived").
 		Order("created_at ASC").
@@ -134,7 +134,7 @@ func mergeJSONMaps(base model.JSON, override model.JSON) model.JSON {
 	return out
 }
 
-func cloneAgentWithInheritedResources(agent *model.Agent, employee *model.Agent) *model.Agent {
+func cloneAgentWithInheritedResources(agent *model.Employee, employee *model.Employee) *model.Employee {
 	if agent == nil || employee == nil {
 		return agent
 	}
@@ -154,7 +154,7 @@ func appendUniqueUUIDs(ids []uuid.UUID, seen map[uuid.UUID]bool, values ...uuid.
 	return ids
 }
 
-func (o *Orchestrator) cloneAgentRepositories(ctx context.Context, sb *model.Sandbox, agent *model.Agent) error {
+func (o *Orchestrator) cloneAgentRepositories(ctx context.Context, sb *model.Sandbox, agent *model.Employee) error {
 	if len(agent.Resources) == 0 {
 		return nil
 	}
@@ -193,7 +193,7 @@ func (o *Orchestrator) cloneAgentRepositories(ctx context.Context, sb *model.San
 	return o.cloneRepositories(ctx, sb, repos, o.runtimeLayout().AgentRepoDir)
 }
 
-func (o *Orchestrator) cloneEmployeeSelectedRepositories(ctx context.Context, sb *model.Sandbox, agent *model.Agent) error {
+func (o *Orchestrator) cloneEmployeeSelectedRepositories(ctx context.Context, sb *model.Sandbox, agent *model.Employee) error {
 	repos, err := o.loadEmployeeSelectedGitHubRepositories(ctx, agent)
 	if err != nil {
 		return err
@@ -204,7 +204,7 @@ func (o *Orchestrator) cloneEmployeeSelectedRepositories(ctx context.Context, sb
 	return o.cloneRepositories(ctx, sb, repos, o.runtimeLayout().EmployeeRepoDir)
 }
 
-func (o *Orchestrator) loadEmployeeSelectedGitHubRepositories(ctx context.Context, agent *model.Agent) ([]repoResource, error) {
+func (o *Orchestrator) loadEmployeeSelectedGitHubRepositories(ctx context.Context, agent *model.Employee) ([]repoResource, error) {
 	if agent == nil {
 		return nil, nil
 	}
@@ -215,7 +215,7 @@ func loadSelectedGitHubRepositoriesForAgent(ctx context.Context, db *gorm.DB, ag
 	if db == nil {
 		return nil, nil
 	}
-	var agent model.Agent
+	var agent model.Employee
 	err := db.WithContext(ctx).Where("id = ?", agentID).First(&agent).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {

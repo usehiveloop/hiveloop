@@ -62,11 +62,11 @@ func TestBuildScopesFromIntegrations(t *testing.T) {
 }
 
 func TestMergeAgentIntegrationsForAccess_InheritsEmployeeAndAllowsSubagentOverride(t *testing.T) {
-	employee := &model.Agent{Integrations: model.JSON{
+	employee := &model.Employee{Integrations: model.JSON{
 		"employee-conn": map[string]any{"actions": []any{"issues.read"}},
 		"shared-conn":   map[string]any{"actions": []any{"parent.action"}},
 	}}
-	subagent := &model.Agent{Integrations: model.JSON{
+	subagent := &model.Employee{Integrations: model.JSON{
 		"shared-conn":   map[string]any{"actions": []any{"child.action"}},
 		"subagent-conn": map[string]any{"actions": []any{"deploy.create"}},
 	}}

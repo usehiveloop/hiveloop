@@ -16,13 +16,13 @@ import (
 )
 
 func hindsightMemoryRefresh(enqueuer enqueue.TaskEnqueuer) hindsight.MemoryRefreshFunc {
-	return func(ctx context.Context, agent *model.Agent) {
+	return func(ctx context.Context, agent *model.Employee) {
 		if enqueuer == nil || agent == nil || !agent.IsEmployee {
 			return
 		}
 		task, err := tasks.NewEmployeeMemoryRefreshTask(tasks.EmployeeMemoryRefreshPayload{
-			AgentID: agent.ID,
-			Reason:  "memory_forget",
+			EmployeeID: agent.ID,
+			Reason:     "memory_forget",
 		})
 		if err != nil {
 			logging.Capture(ctx, err)

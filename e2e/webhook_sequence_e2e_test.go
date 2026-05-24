@@ -35,7 +35,7 @@ func TestWebhookSequence_NoGaps(t *testing.T) {
 		events = append(events, fakebridge.BridgeEvent{
 			EventID:        fmt.Sprintf("ev-%d", i),
 			EventType:      etype,
-			AgentID:        wh.agent.ID.String(),
+			EmployeeID:     wh.agent.ID.String(),
 			ConversationID: wh.conv.RuntimeConversationID,
 			Timestamp:      now.Add(time.Duration(i) * time.Millisecond),
 			SequenceNumber: int64(i),
@@ -85,7 +85,7 @@ func TestWebhookSequence_BadSignatureRejected(t *testing.T) {
 	events := []fakebridge.BridgeEvent{
 		{
 			EventID: "ev1", EventType: "message_received",
-			AgentID: wh.agent.ID.String(), ConversationID: wh.conv.RuntimeConversationID,
+			EmployeeID: wh.agent.ID.String(), ConversationID: wh.conv.RuntimeConversationID,
 			Timestamp: time.Now(), SequenceNumber: 1, Data: json.RawMessage(`{}`),
 		},
 	}
@@ -137,29 +137,29 @@ func TestWebhookSequence_StatusTransitions(t *testing.T) {
 	}
 	h.db.Create(&cred)
 	t.Cleanup(func() { h.db.Where("id = ?", cred.ID).Delete(&model.Credential{}) })
-	agent := model.Agent{
+	agent := model.Employee{
 		OrgID: &org.ID, Name: "wh3-agent-" + suffix,
 		CredentialID: &cred.ID, SystemPrompt: "x", Model: "gpt-4o",
 	}
 	h.db.Create(&agent)
-	t.Cleanup(func() { h.db.Where("id = ?", agent.ID).Delete(&model.Agent{}) })
+	t.Cleanup(func() { h.db.Where("id = ?", agent.ID).Delete(&model.Employee{}) })
 
-	mkSB := func() (model.Sandbox, model.AgentConversation) {
+	mkSB := func() (model.Sandbox, model.EmployeeConversation) {
 		sb := model.Sandbox{
-			OrgID: &org.ID, AgentID: &agent.ID,
+			OrgID: &org.ID, EmployeeID: &agent.ID,
 			ExternalID: "wh3-ext-" + uuid.New().String()[:6],
 			BridgeURL:  "x", EncryptedBridgeAPIKey: encryptedKey, Status: "running",
 		}
 		h.db.Create(&sb)
 		t.Cleanup(func() { h.db.Where("id = ?", sb.ID).Delete(&model.Sandbox{}) })
-		conv := model.AgentConversation{
-			OrgID: org.ID, AgentID: agent.ID, SandboxID: sb.ID,
+		conv := model.EmployeeConversation{
+			OrgID: org.ID, EmployeeID: agent.ID, SandboxID: sb.ID,
 			RuntimeConversationID: "wh3-conv-" + uuid.New().String()[:6], Status: "active",
 		}
 		h.db.Create(&conv)
 		t.Cleanup(func() {
 			h.db.Where("conversation_id = ?", conv.ID).Delete(&model.ConversationEvent{})
-			h.db.Where("id = ?", conv.ID).Delete(&model.AgentConversation{})
+			h.db.Where("id = ?", conv.ID).Delete(&model.EmployeeConversation{})
 		})
 		return sb, conv
 	}
@@ -179,14 +179,14 @@ func TestWebhookSequence_StatusTransitions(t *testing.T) {
 	endEvents := []fakebridge.BridgeEvent{
 		{
 			EventID: "ev-end", EventType: "conversation_ended",
-			AgentID: agent.ID.String(), ConversationID: conv1.RuntimeConversationID,
+			EmployeeID: agent.ID.String(), ConversationID: conv1.RuntimeConversationID,
 			Timestamp: time.Now(), SequenceNumber: 1, Data: json.RawMessage(`{}`),
 		},
 	}
 	if status, _ := fb.PostWebhook(t, endEvents); status != http.StatusOK {
 		t.Fatalf("end webhook status=%d", status)
 	}
-	var c1 model.AgentConversation
+	var c1 model.EmployeeConversation
 	h.db.Where("id = ?", conv1.ID).First(&c1)
 	if c1.Status != "ended" {
 		t.Errorf("status: got %q, want ended", c1.Status)
@@ -201,14 +201,14 @@ func TestWebhookSequence_StatusTransitions(t *testing.T) {
 	errEvents := []fakebridge.BridgeEvent{
 		{
 			EventID: "ev-err", EventType: "agent_error",
-			AgentID: agent.ID.String(), ConversationID: conv2.RuntimeConversationID,
+			EmployeeID: agent.ID.String(), ConversationID: conv2.RuntimeConversationID,
 			Timestamp: time.Now(), SequenceNumber: 1, Data: json.RawMessage(`{"error":"boom"}`),
 		},
 	}
 	if status, _ := fb.PostWebhook(t, errEvents); status != http.StatusOK {
 		t.Fatalf("err webhook status=%d", status)
 	}
-	var c2 model.AgentConversation
+	var c2 model.EmployeeConversation
 	h.db.Where("id = ?", conv2.ID).First(&c2)
 	if c2.Status != "error" {
 		t.Errorf("status: got %q, want error", c2.Status)

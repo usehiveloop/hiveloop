@@ -81,13 +81,13 @@ func (h *EmployeeTriggerDispatchHandler) Handle(ctx context.Context, task *asynq
 	for _, trigger := range triggers {
 		if ok, reason := triggerConditionsMatch(trigger, webhookPayload); !ok {
 			logging.FromContext(ctx).InfoContext(ctx, "employee trigger conditions skipped event",
-				"trigger_id", trigger.ID, "agent_id", trigger.AgentID, "reason", reason)
+				"trigger_id", trigger.ID, "employee_id", trigger.EmployeeID, "reason", reason)
 			continue
 		}
 		if err := h.deliver(ctx, payload, trigger, webhookPayload); err != nil {
 			logging.CaptureWithFields(ctx, fmt.Errorf("deliver employee trigger %s: %w", trigger.ID, err), map[string]any{
 				"org_id":      payload.OrgID.String(),
-				"agent_id":    trigger.AgentID.String(),
+				"employee_id": trigger.EmployeeID.String(),
 				"trigger_id":  trigger.ID.String(),
 				"delivery_id": payload.DeliveryID,
 				"event_key":   eventKey(payload.EventType, payload.EventAction),
@@ -98,39 +98,39 @@ func (h *EmployeeTriggerDispatchHandler) Handle(ctx context.Context, task *asynq
 	return nil
 }
 
-func (h *EmployeeTriggerDispatchHandler) matchTriggers(ctx context.Context, payload EmployeeTriggerDispatchPayload) ([]model.AgentTrigger, error) {
+func (h *EmployeeTriggerDispatchHandler) matchTriggers(ctx context.Context, payload EmployeeTriggerDispatchPayload) ([]model.EmployeeTrigger, error) {
 	if payload.TriggerID != nil {
-		var trigger model.AgentTrigger
+		var trigger model.EmployeeTrigger
 		if err := h.db.WithContext(ctx).
-			Preload("Agent").
+			Preload("Employee").
 			Where("id = ? AND org_id = ? AND enabled = true AND trigger_type = ?", *payload.TriggerID, payload.OrgID, "http").
 			First(&trigger).Error; err != nil {
 			return nil, fmt.Errorf("load http trigger: %w", err)
 		}
-		return []model.AgentTrigger{trigger}, nil
+		return []model.EmployeeTrigger{trigger}, nil
 	}
 
 	eventKeys := []string{eventKey(payload.EventType, payload.EventAction)}
 	if payload.EventAction != "" {
 		eventKeys = append(eventKeys, payload.EventType)
 	}
-	var triggers []model.AgentTrigger
+	var triggers []model.EmployeeTrigger
 	if err := h.db.WithContext(ctx).
-		Joins("JOIN employees ON employees.id = employee_triggers.agent_id").
+		Joins("JOIN employees ON employees.id = employee_triggers.employee_id").
 		Where("employee_triggers.org_id = ? AND employee_triggers.connection_id = ? AND employee_triggers.enabled = true AND employee_triggers.trigger_type = ? AND employees.status <> ?",
 			payload.OrgID, payload.ConnectionID, "webhook", "archived").
 		Where("employee_triggers.trigger_keys && ?", pq.StringArray(eventKeys)).
-		Preload("Agent").
+		Preload("Employee").
 		Find(&triggers).Error; err != nil {
 		return nil, fmt.Errorf("find employee triggers: %w", err)
 	}
 	return triggers, nil
 }
 
-func (h *EmployeeTriggerDispatchHandler) deliver(ctx context.Context, payload EmployeeTriggerDispatchPayload, trigger model.AgentTrigger, webhookPayload map[string]any) error {
-	agent := trigger.Agent
+func (h *EmployeeTriggerDispatchHandler) deliver(ctx context.Context, payload EmployeeTriggerDispatchPayload, trigger model.EmployeeTrigger, webhookPayload map[string]any) error {
+	agent := trigger.Employee
 	if agent.ID == uuid.Nil {
-		if err := h.db.WithContext(ctx).Where("id = ? AND status <> ?", trigger.AgentID, "archived").First(&agent).Error; err != nil {
+		if err := h.db.WithContext(ctx).Where("id = ? AND status <> ?", trigger.EmployeeID, "archived").First(&agent).Error; err != nil {
 			return fmt.Errorf("load employee: %w", err)
 		}
 	}
@@ -194,7 +194,7 @@ func (h *EmployeeTriggerDispatchHandler) deliver(ctx context.Context, payload Em
 	return nil
 }
 
-func (h *EmployeeTriggerDispatchHandler) enqueueStoreDelivery(ctx context.Context, payload EmployeeTriggerDispatchPayload, trigger model.AgentTrigger, conv *model.AgentConversation, compiled compiledTriggerMessage, resp *employeeruntime.HTTPMessageResponse) {
+func (h *EmployeeTriggerDispatchHandler) enqueueStoreDelivery(ctx context.Context, payload EmployeeTriggerDispatchPayload, trigger model.EmployeeTrigger, conv *model.EmployeeConversation, compiled compiledTriggerMessage, resp *employeeruntime.HTTPMessageResponse) {
 	if h.enqueuer == nil {
 		logging.CaptureWithFields(ctx, fmt.Errorf("employee trigger delivery store enqueue skipped: enqueuer is nil"), triggerStoreEnqueueFields(payload, trigger, conv, compiled, resp))
 		return
@@ -204,7 +204,7 @@ func (h *EmployeeTriggerDispatchHandler) enqueueStoreDelivery(ctx context.Contex
 	}
 	task, err := NewEmployeeTriggerStoreDeliveryTask(EmployeeTriggerStoreDeliveryPayload{
 		OrgID:                 trigger.OrgID,
-		AgentID:               trigger.AgentID,
+		EmployeeID:            trigger.EmployeeID,
 		TriggerID:             trigger.ID,
 		ConnectionID:          trigger.ConnectionID,
 		DeliveryID:            payload.DeliveryID,
@@ -227,10 +227,10 @@ func (h *EmployeeTriggerDispatchHandler) enqueueStoreDelivery(ctx context.Contex
 	}
 }
 
-func triggerStoreEnqueueFields(payload EmployeeTriggerDispatchPayload, trigger model.AgentTrigger, conv *model.AgentConversation, compiled compiledTriggerMessage, resp *employeeruntime.HTTPMessageResponse) map[string]any {
+func triggerStoreEnqueueFields(payload EmployeeTriggerDispatchPayload, trigger model.EmployeeTrigger, conv *model.EmployeeConversation, compiled compiledTriggerMessage, resp *employeeruntime.HTTPMessageResponse) map[string]any {
 	fields := map[string]any{
 		"org_id":                  trigger.OrgID.String(),
-		"agent_id":                trigger.AgentID.String(),
+		"employee_id":             trigger.EmployeeID.String(),
 		"trigger_id":              trigger.ID.String(),
 		"delivery_id":             payload.DeliveryID,
 		"event_key":               eventKey(payload.EventType, payload.EventAction),
@@ -248,14 +248,14 @@ func triggerStoreEnqueueFields(payload EmployeeTriggerDispatchPayload, trigger m
 	return fields
 }
 
-func captureTriggerDispatchBoundary(ctx context.Context, stage string, payload EmployeeTriggerDispatchPayload, trigger model.AgentTrigger, resourceKey, conversationID string, err error) {
+func captureTriggerDispatchBoundary(ctx context.Context, stage string, payload EmployeeTriggerDispatchPayload, trigger model.EmployeeTrigger, resourceKey, conversationID string, err error) {
 	if err == nil {
 		return
 	}
 	logging.CaptureWithFields(ctx, fmt.Errorf("employee trigger dispatch %s: %w", stage, err), map[string]any{
 		"stage":           stage,
 		"org_id":          payload.OrgID.String(),
-		"agent_id":        trigger.AgentID.String(),
+		"employee_id":     trigger.EmployeeID.String(),
 		"trigger_id":      trigger.ID.String(),
 		"delivery_id":     payload.DeliveryID,
 		"event_key":       eventKey(payload.EventType, payload.EventAction),
@@ -267,7 +267,7 @@ func captureTriggerDispatchBoundary(ctx context.Context, stage string, payload E
 func (h *EmployeeTriggerDispatchHandler) loadEmployeeSandbox(ctx context.Context, agentID, orgID uuid.UUID) (*model.Sandbox, error) {
 	var sb model.Sandbox
 	if err := h.db.WithContext(ctx).
-		Where("agent_id = ? AND org_id = ? AND status <> ?", agentID, orgID, string(sandbox.StatusError)).
+		Where("employee_id = ? AND org_id = ? AND status <> ?", agentID, orgID, string(sandbox.StatusError)).
 		Order("created_at DESC").
 		First(&sb).Error; err != nil {
 		return nil, fmt.Errorf("load employee sandbox: %w", err)
@@ -275,7 +275,7 @@ func (h *EmployeeTriggerDispatchHandler) loadEmployeeSandbox(ctx context.Context
 	return &sb, nil
 }
 
-func (h *EmployeeTriggerDispatchHandler) syncRuntime(ctx context.Context, agent *model.Agent, sb *model.Sandbox, client *employeeruntime.Client) error {
+func (h *EmployeeTriggerDispatchHandler) syncRuntime(ctx context.Context, agent *model.Employee, sb *model.Sandbox, client *employeeruntime.Client) error {
 	def, err := employeeruntime.Compile(ctx, h.compileDeps, agent)
 	if err != nil {
 		return fmt.Errorf("compile employee config: %w", err)

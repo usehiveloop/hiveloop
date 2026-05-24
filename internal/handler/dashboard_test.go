@@ -165,14 +165,14 @@ func seedDashboardConnection(t *testing.T, db *gorm.DB, orgID, userID uuid.UUID,
 
 func seedDashboardSchedule(t *testing.T, db *gorm.DB, orgID uuid.UUID) {
 	t.Helper()
-	employee := model.Agent{ID: uuid.New(), OrgID: &orgID, Model: "gpt-5.4", Status: "active"}
+	employee := model.Employee{ID: uuid.New(), OrgID: &orgID, Model: "gpt-5.4", Status: "active"}
 	if err := db.Create(&employee).Error; err != nil {
 		t.Fatalf("create employee: %v", err)
 	}
 	sandbox := model.Sandbox{
 		ID:                    uuid.New(),
 		OrgID:                 &orgID,
-		AgentID:               &employee.ID,
+		EmployeeID:            &employee.ID,
 		ExternalID:            "sb-test",
 		BridgeURL:             "https://bridge.test",
 		EncryptedBridgeAPIKey: []byte("encrypted"),
@@ -184,7 +184,7 @@ func seedDashboardSchedule(t *testing.T, db *gorm.DB, orgID uuid.UUID) {
 	schedule := model.EmployeeSchedule{
 		ID:          uuid.New(),
 		OrgID:       orgID,
-		AgentID:     employee.ID,
+		EmployeeID:  employee.ID,
 		SandboxID:   sandbox.ID,
 		BridgeJobID: "cron-test",
 		Status:      "cancelled",

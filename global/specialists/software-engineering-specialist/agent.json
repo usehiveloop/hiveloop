@@ -1,0 +1,10 @@
+{
+  "slug": "software-engineering-specialist",
+  "name": "Software Engineering Specialist",
+  "description": "Handles implementation, debugging, codebase changes, verification, and PR-ready engineering work.",
+  "specialist_type": "software_engineering",
+  "version": 1,
+  "auto_attach": true,
+  "default_skill_names": ["agent-browser", "git-github", "asset-uploads"],
+  "prompt_path": "prompt.md"
+}

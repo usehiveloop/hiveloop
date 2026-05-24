@@ -31,7 +31,7 @@ type CreateSandboxOpts struct {
 	Name        string            // human-readable name
 	TemplateRef string            // provider template/image reference
 	EnvVars     map[string]string // environment variables (e.g. BRIDGE_* config)
-	Labels      map[string]string // metadata labels (org_id, sandbox_id, agent_id)
+	Labels      map[string]string // metadata labels (org_id, sandbox_id, employee_id)
 	CPU         int               // CPU cores (0 = provider default)
 	Memory      int               // memory in GB (0 = provider default)
 	Disk        int               // disk in GB (0 = provider default)

@@ -132,24 +132,24 @@ func TestPusherAgentConfig_HarnessOptionalFields(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			agent := model.Agent{
+			agent := model.Employee{
 				ID: uuid.New(), OrgID: &org.ID, CredentialID: &cred.ID,
-				Name:         "Cfg Agent " + tc.name + "-" + uuid.New().String()[:8],
+				Name:         "Cfg Employee " + tc.name + "-" + uuid.New().String()[:8],
 				Model:        "claude-sonnet-4-5",
 				SystemPrompt: "test agent",
 				Status:       "active",
 				Tools:        model.JSON{}, McpServers: model.JSON{}, Skills: model.JSON{},
-				Integrations: model.JSON{}, AgentConfig: tc.agentCfg, Permissions: model.JSON{},
+				Integrations: model.JSON{}, RuntimeConfig: tc.agentCfg, Permissions: model.JSON{},
 			}
 			if err := db.Create(&agent).Error; err != nil {
 				t.Fatalf("create agent: %v", err)
 			}
-			t.Cleanup(func() { db.Where("id = ?", agent.ID).Delete(&model.Agent{}) })
+			t.Cleanup(func() { db.Where("id = ?", agent.ID).Delete(&model.Employee{}) })
 
 			cfg := &config.Config{ProxyHost: "proxy.cfg.test", MCPBaseURL: "https://mcp.cfg.test"}
 			pusher := NewPusher(db, nil, signingKey, cfg, nil)
 
-			def := pusher.buildAgentDefinition(t.Context(), &agent, nil, &cred, "ptok_cfg", uuid.New().String())
+			def := pusher.buildSpecialistDefinition(t.Context(), &agent, nil, &cred, "ptok_cfg", uuid.New().String())
 
 			var captured []byte
 			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -210,24 +210,24 @@ func TestPusherAgentConfig_ResolvesCanonicalModelForProvider(t *testing.T) {
 	}
 	t.Cleanup(func() { db.Where("id = ?", cred.ID).Delete(&model.Credential{}) })
 
-	agent := model.Agent{
+	agent := model.Employee{
 		ID: uuid.New(), OrgID: &org.ID, CredentialID: &cred.ID,
 		Name:         "Canonical Model " + uuid.New().String()[:8],
 		Model:        "claude-sonnet-4.6",
 		SystemPrompt: "canonical prompt",
 		Status:       "active",
 		Tools:        model.JSON{}, McpServers: model.JSON{}, Skills: model.JSON{},
-		Integrations: model.JSON{}, AgentConfig: model.JSON{}, Permissions: model.JSON{},
+		Integrations: model.JSON{}, RuntimeConfig: model.JSON{}, Permissions: model.JSON{},
 	}
 	if err := db.Create(&agent).Error; err != nil {
 		t.Fatalf("create agent: %v", err)
 	}
-	t.Cleanup(func() { db.Where("id = ?", agent.ID).Delete(&model.Agent{}) })
+	t.Cleanup(func() { db.Where("id = ?", agent.ID).Delete(&model.Employee{}) })
 
 	cfg := &config.Config{ProxyHost: "proxy.cfg.test", MCPBaseURL: "https://mcp.cfg.test"}
 	pusher := NewPusher(db, nil, signingKey, cfg, nil)
 
-	def := pusher.buildAgentDefinition(t.Context(), &agent, nil, &cred, "ptok_cfg", uuid.New().String())
+	def := pusher.buildSpecialistDefinition(t.Context(), &agent, nil, &cred, "ptok_cfg", uuid.New().String())
 	if def.Provider.Model != "anthropic/claude-sonnet-4.6" {
 		t.Fatalf("provider.model = %q, want anthropic/claude-sonnet-4.6", def.Provider.Model)
 	}

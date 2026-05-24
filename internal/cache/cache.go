@@ -20,7 +20,7 @@ type DecryptedCredential struct {
 	APIKey     []byte
 	BaseURL    string
 	AuthScheme string
-	ProviderID  string
+	ProviderID string
 }
 
 // Manager orchestrates the 3-tier cache: L1 (memory) → L2 (Redis) → L3 (Postgres + KMS).
@@ -99,7 +99,7 @@ func (m *Manager) GetDecryptedCredential(ctx context.Context, credentialID strin
 				APIKey:     apiKey,
 				BaseURL:    cached.BaseURL,
 				AuthScheme: cached.AuthScheme,
-				ProviderID:  cached.ProviderID,
+				ProviderID: cached.ProviderID,
 			}, nil
 		}
 	}
@@ -133,7 +133,7 @@ func (m *Manager) resolveFromLowerTiers(ctx context.Context, credentialID string
 				APIKey:     apiKey,
 				BaseURL:    redisCred.BaseURL,
 				AuthScheme: redisCred.AuthScheme,
-				ProviderID:  redisCred.ProviderID,
+				ProviderID: redisCred.ProviderID,
 			}
 
 			m.promoteToL1(credentialID, orgID, apiKey, redisCred.BaseURL, redisCred.AuthScheme, redisCred.ProviderID)
@@ -179,7 +179,7 @@ func (m *Manager) resolveFromDB(ctx context.Context, credentialID string, orgID 
 		WrappedDEK:   dbCred.WrappedDEK,
 		BaseURL:      dbCred.BaseURL,
 		AuthScheme:   dbCred.AuthScheme,
-		ProviderID:    dbCred.ProviderID,
+		ProviderID:   dbCred.ProviderID,
 		OrgID:        orgID.String(),
 	})
 
@@ -189,7 +189,7 @@ func (m *Manager) resolveFromDB(ctx context.Context, credentialID string, orgID 
 		APIKey:     apiKey,
 		BaseURL:    dbCred.BaseURL,
 		AuthScheme: dbCred.AuthScheme,
-		ProviderID:  dbCred.ProviderID,
+		ProviderID: dbCred.ProviderID,
 	}, nil
 }
 
@@ -248,7 +248,7 @@ func (m *Manager) promoteToL1(credentialID string, orgID uuid.UUID, apiKey []byt
 		Enclave:    enclave,
 		BaseURL:    baseURL,
 		AuthScheme: authScheme,
-		ProviderID:  providerID,
+		ProviderID: providerID,
 		OrgID:      orgID,
 		CachedAt:   time.Now(),
 		HardExpiry: time.Now().Add(m.hardExpiry),

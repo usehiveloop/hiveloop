@@ -93,8 +93,8 @@ func (h *InConnectionHandler) afterConnectionRevoked(r *http.Request, orgID uuid
 			continue
 		}
 		if err := h.db.WithContext(r.Context()).
-			Where("agent_id = ? AND skill_id = ?", employee.ID, skill.ID).
-			Delete(&model.AgentSkill{}).Error; err != nil {
+			Where("employee_id = ? AND skill_id = ?", employee.ID, skill.ID).
+			Delete(&model.EmployeeSkill{}).Error; err != nil {
 			return err
 		}
 	}

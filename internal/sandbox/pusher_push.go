@@ -14,7 +14,7 @@ import (
 	"github.com/usehivy/hivy/internal/registry"
 )
 
-func (p *Pusher) pushAgentToSandbox(ctx context.Context, agent *model.Agent, sb *model.Sandbox) error {
+func (p *Pusher) pushSpecialistToSandbox(ctx context.Context, agent *model.Employee, sb *model.Sandbox) error {
 	if agent.OrgID == nil {
 		return fmt.Errorf("cannot push agent without org")
 	}
@@ -24,7 +24,7 @@ func (p *Pusher) pushAgentToSandbox(ctx context.Context, agent *model.Agent, sb 
 		return fmt.Errorf("resolving agent credential: %w", err)
 	}
 
-	proxyToken, jti, err := p.mintAgentToken(agent, cred)
+	proxyToken, jti, err := p.mintEmployeeProxyToken(agent, cred)
 	if err != nil {
 		return fmt.Errorf("minting proxy token: %w", err)
 	}
@@ -48,13 +48,13 @@ func (p *Pusher) pushAgentToSandbox(ctx context.Context, agent *model.Agent, sb 
 		JTI:          jti,
 		ExpiresAt:    expiresAt,
 		Scopes:       scopesJSON,
-		Meta:         model.JSON{"agent_id": agent.ID.String(), "type": "agent_proxy"},
+		Meta:         model.JSON{"employee_id": agent.ID.String(), "type": "employee_proxy"},
 	}
 	if err := p.db.Create(&dbToken).Error; err != nil {
 		return fmt.Errorf("storing proxy token: %w", err)
 	}
 
-	def := p.buildAgentDefinition(ctx, agent, owningEmployee, cred, proxyToken, jti)
+	def := p.buildSpecialistDefinition(ctx, agent, owningEmployee, cred, proxyToken, jti)
 
 	client, err := p.orchestrator.GetBridgeClient(ctx, sb)
 	if err != nil {
@@ -65,12 +65,12 @@ func (p *Pusher) pushAgentToSandbox(ctx context.Context, agent *model.Agent, sb 
 		return fmt.Errorf("pushing agent to bridge: %w", err)
 	}
 
-	logging.FromContext(ctx).DebugContext(ctx, "agent pushed to bridge", "agent_id", agent.ID, "sandbox_id", sb.ID)
+	logging.FromContext(ctx).DebugContext(ctx, "agent pushed to bridge", "employee_id", agent.ID, "sandbox_id", sb.ID)
 
 	return nil
 }
 
-func (p *Pusher) buildAgentDefinition(ctx context.Context, agent *model.Agent, owningEmployee *model.Agent, cred *model.Credential, proxyToken, jti string) bridgepkg.AgentDefinition {
+func (p *Pusher) buildSpecialistDefinition(ctx context.Context, agent *model.Employee, owningEmployee *model.Employee, cred *model.Credential, proxyToken, jti string) bridgepkg.AgentDefinition {
 	providerType := bridgepkg.Custom
 	if pt, ok := providerTypeMap[cred.ProviderID]; ok {
 		providerType = pt
@@ -111,7 +111,7 @@ func (p *Pusher) buildAgentDefinition(ctx context.Context, agent *model.Agent, o
 		},
 	}
 
-	authorCfg := decodeJSONAs[bridgepkg.AgentConfig](agent.AgentConfig)
+	authorCfg := decodeJSONAs[bridgepkg.AgentConfig](agent.RuntimeConfig)
 	def.Config = applyAgentConfigDefaults(authorCfg, cred.ProviderID, modelName)
 	applyHarnessOptionalFields(def.Config, authorCfg)
 

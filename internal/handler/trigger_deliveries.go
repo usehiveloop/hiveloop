@@ -56,7 +56,7 @@ func (h *TriggerDeliveryHandler) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	q := h.db.Where("org_id = ? AND agent_id = ?", org.ID, employeeID)
+	q := h.db.Where("org_id = ? AND employee_id = ?", org.ID, employeeID)
 	if triggerID := r.URL.Query().Get("trigger_id"); triggerID != "" {
 		parsed, err := uuid.Parse(triggerID)
 		if err != nil {
@@ -73,7 +73,7 @@ func (h *TriggerDeliveryHandler) List(w http.ResponseWriter, r *http.Request) {
 	}
 	q = applyPagination(q, cursor, limit)
 
-	var rows []model.AgentTriggerDelivery
+	var rows []model.EmployeeTriggerDelivery
 	if err := q.Find(&rows).Error; err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to list trigger deliveries"})
 		return
@@ -111,8 +111,8 @@ func (h *TriggerDeliveryHandler) Get(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid delivery ID"})
 		return
 	}
-	var row model.AgentTriggerDelivery
-	if err := h.db.Where("id = ? AND org_id = ? AND agent_id = ?", deliveryID, org.ID, employeeID).First(&row).Error; err != nil {
+	var row model.EmployeeTriggerDelivery
+	if err := h.db.Where("id = ? AND org_id = ? AND employee_id = ?", deliveryID, org.ID, employeeID).First(&row).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			writeJSON(w, http.StatusNotFound, map[string]string{"error": "trigger delivery not found"})
 			return
@@ -123,7 +123,7 @@ func (h *TriggerDeliveryHandler) Get(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, triggerDeliveryToResponse(row))
 }
 
-func triggerDeliveryToResponse(row model.AgentTriggerDelivery) triggerDeliveryResponse {
+func triggerDeliveryToResponse(row model.EmployeeTriggerDelivery) triggerDeliveryResponse {
 	var connectionID string
 	if row.ConnectionID != nil {
 		connectionID = row.ConnectionID.String()
@@ -134,7 +134,7 @@ func triggerDeliveryToResponse(row model.AgentTriggerDelivery) triggerDeliveryRe
 	}
 	return triggerDeliveryResponse{
 		ID:                    row.ID.String(),
-		EmployeeID:            row.AgentID.String(),
+		EmployeeID:            row.EmployeeID.String(),
 		TriggerID:             row.TriggerID.String(),
 		ConnectionID:          connectionID,
 		DeliveryID:            row.DeliveryID,

@@ -45,27 +45,27 @@ func TestToolUsageWriter_WriteAndFlush(t *testing.T) {
 	writer := middleware.NewToolUsageWriter(t.Context(), database, 100)
 
 	writer.Write(t.Context(), model.ToolUsage{
-		ID:        "tu_" + ulid.Make().String(),
-		OrgID:     orgID,
-		AgentID:   uuid.New().String(),
-		TokenJTI:  "test-jti-1",
-		ToolName:  "crawl",
-		Input:     "https://example.com",
-		Status:    "success",
-		TotalMs:   150,
-		CreatedAt: time.Now().UTC(),
+		ID:         "tu_" + ulid.Make().String(),
+		OrgID:      orgID,
+		EmployeeID: uuid.New().String(),
+		TokenJTI:   "test-jti-1",
+		ToolName:   "crawl",
+		Input:      "https://example.com",
+		Status:     "success",
+		TotalMs:    150,
+		CreatedAt:  time.Now().UTC(),
 	})
 
 	writer.Write(t.Context(), model.ToolUsage{
-		ID:        "tu_" + ulid.Make().String(),
-		OrgID:     orgID,
-		AgentID:   uuid.New().String(),
-		TokenJTI:  "test-jti-2",
-		ToolName:  "search",
-		Input:     "golang testing",
-		Status:    "success",
-		TotalMs:   200,
-		CreatedAt: time.Now().UTC(),
+		ID:         "tu_" + ulid.Make().String(),
+		OrgID:      orgID,
+		EmployeeID: uuid.New().String(),
+		TokenJTI:   "test-jti-2",
+		ToolName:   "search",
+		Input:      "golang testing",
+		Status:     "success",
+		TotalMs:    200,
+		CreatedAt:  time.Now().UTC(),
 	})
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -91,14 +91,14 @@ func TestToolUsageWriter_BatchFlush(t *testing.T) {
 
 	for index := range 60 {
 		writer.Write(t.Context(), model.ToolUsage{
-			ID:        "tu_" + ulid.Make().String(),
-			OrgID:     orgID,
-			AgentID:   uuid.New().String(),
-			TokenJTI:  fmt.Sprintf("jti-%d", index),
-			ToolName:  "crawl",
-			Input:     fmt.Sprintf("https://example.com/%d", index),
-			Status:    "success",
-			CreatedAt: time.Now().UTC(),
+			ID:         "tu_" + ulid.Make().String(),
+			OrgID:      orgID,
+			EmployeeID: uuid.New().String(),
+			TokenJTI:   fmt.Sprintf("jti-%d", index),
+			ToolName:   "crawl",
+			Input:      fmt.Sprintf("https://example.com/%d", index),
+			Status:     "success",
+			CreatedAt:  time.Now().UTC(),
 		})
 	}
 
@@ -139,14 +139,14 @@ func TestToolUsageWriter_DropWhenFull(t *testing.T) {
 
 	for index := range 100 {
 		writer.Write(t.Context(), model.ToolUsage{
-			ID:        "tu_" + ulid.Make().String(),
-			OrgID:     orgID,
-			AgentID:   uuid.New().String(),
-			TokenJTI:  fmt.Sprintf("jti-%d", index),
-			ToolName:  "crawl",
-			Input:     "https://example.com",
-			Status:    "success",
-			CreatedAt: time.Now().UTC(),
+			ID:         "tu_" + ulid.Make().String(),
+			OrgID:      orgID,
+			EmployeeID: uuid.New().String(),
+			TokenJTI:   fmt.Sprintf("jti-%d", index),
+			ToolName:   "crawl",
+			Input:      "https://example.com",
+			Status:     "success",
+			CreatedAt:  time.Now().UTC(),
 		})
 	}
 

@@ -142,7 +142,7 @@ func (h *EmployeeOutboundWebhookHandler) storeAndMaybeEnqueue(ctx context.Contex
 	source := employeeEventSource(payload)
 	stored, ok := employeeMemoryEventFromOutbound(sb, event, payload, sessionID)
 	if !ok {
-		captureEmployeeWebhookIngest(ctx, "drop_missing_sandbox_owner", sb, event, sessionID, source, fmt.Errorf("employee sandbox missing org_id or agent_id"))
+		captureEmployeeWebhookIngest(ctx, "drop_missing_sandbox_owner", sb, event, sessionID, source, fmt.Errorf("employee sandbox missing org_id or employee_id"))
 		return
 	}
 	if h.writer != nil {
@@ -171,7 +171,7 @@ func (h *EmployeeOutboundWebhookHandler) storeAndMaybeEnqueue(ctx context.Contex
 		return
 	}
 	task, err := tasks.NewEmployeeMemoryRetainTask(tasks.EmployeeMemoryRetainPayload{
-		AgentID:     *sb.AgentID,
+		EmployeeID:  *sb.EmployeeID,
 		SandboxID:   sb.ID,
 		SessionID:   sessionID,
 		Reason:      "employee_outbound_checkpoint",
@@ -191,18 +191,18 @@ func (h *EmployeeOutboundWebhookHandler) storeAndMaybeEnqueue(ctx context.Contex
 }
 
 func employeeMemoryEventFromOutbound(sb *model.Sandbox, event *employeeOutboundEvent, payload map[string]any, sessionID string) (model.EmployeeMemoryEvent, bool) {
-	if sb.OrgID == nil || sb.AgentID == nil {
+	if sb.OrgID == nil || sb.EmployeeID == nil {
 		return model.EmployeeMemoryEvent{}, false
 	}
 	return model.EmployeeMemoryEvent{
-		OrgID:     *sb.OrgID,
-		AgentID:   *sb.AgentID,
-		SandboxID: sb.ID,
-		SessionID: sessionID,
-		EventType: event.EventType,
-		Source:    employeeEventSource(payload),
-		Payload:   model.RawJSON(event.Payload),
-		EventAt:   event.At.UTC(),
+		OrgID:      *sb.OrgID,
+		EmployeeID: *sb.EmployeeID,
+		SandboxID:  sb.ID,
+		SessionID:  sessionID,
+		EventType:  event.EventType,
+		Source:     employeeEventSource(payload),
+		Payload:    model.RawJSON(event.Payload),
+		EventAt:    event.At.UTC(),
 	}, true
 }
 

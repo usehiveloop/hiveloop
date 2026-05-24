@@ -20,7 +20,7 @@ type memoryRetainToolResponse struct {
 	DocumentID  string `json:"document_id"`
 }
 
-func addRetainTool(server *mcp.Server, agent *model.Agent, client *Client, bankID string, memoryTags []string) {
+func addRetainTool(server *mcp.Server, agent *model.Employee, client *Client, bankID string, memoryTags []string) {
 	server.AddTool(
 		&mcp.Tool{
 			Name: "memory_retain",
@@ -87,7 +87,7 @@ Write the content as a clear, specific factual statement. Bad: "User talked abou
 					Context:    params.Context,
 					DocumentID: documentID,
 					Tags:       tags,
-					Metadata:   map[string]string{"agent_id": agent.ID.String(), "document_id": documentID},
+					Metadata:   map[string]string{"employee_id": agent.ID.String(), "document_id": documentID},
 				}},
 				Async: true,
 			})

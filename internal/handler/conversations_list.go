@@ -39,13 +39,13 @@ func (h *ConversationHandler) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	q := h.db.Where("org_id = ? AND agent_id = ?", org.ID, employeeID)
+	q := h.db.Where("org_id = ? AND employee_id = ?", org.ID, employeeID)
 	if status := r.URL.Query().Get("status"); status != "" {
 		q = q.Where("status = ?", status)
 	}
 	q = applyPagination(q, cursor, limit)
 
-	var convs []model.AgentConversation
+	var convs []model.EmployeeConversation
 	if err := q.Find(&convs).Error; err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to list conversations"})
 		return
@@ -60,7 +60,7 @@ func (h *ConversationHandler) List(w http.ResponseWriter, r *http.Request) {
 	for i, c := range convs {
 		resp[i] = conversationResponse{
 			ID:         c.ID.String(),
-			EmployeeID: c.AgentID.String(),
+			EmployeeID: c.EmployeeID.String(),
 			Name:       c.Name,
 			Status:     c.Status,
 			StreamURL:  fmt.Sprintf("/v1/conversations/%s/stream", c.ID),
@@ -95,7 +95,7 @@ func (h *ConversationHandler) Get(w http.ResponseWriter, r *http.Request) {
 	}
 	writeJSON(w, http.StatusOK, conversationResponse{
 		ID:         conv.ID.String(),
-		EmployeeID: conv.AgentID.String(),
+		EmployeeID: conv.EmployeeID.String(),
 		Name:       conv.Name,
 		Status:     conv.Status,
 		StreamURL:  fmt.Sprintf("/v1/conversations/%s/stream", conv.ID),

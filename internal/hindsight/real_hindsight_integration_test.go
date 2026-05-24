@@ -115,7 +115,7 @@ func TestRealHindsightForgetDocument(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Retain: %v", err)
 	}
-	agent := &model.Agent{ID: uuid.New(), OrgID: &orgID}
+	agent := &model.Employee{ID: uuid.New(), OrgID: &orgID}
 	result := callRealMemoryTool(t, ctx, agent, client, "memory_forget", map[string]any{
 		"document_id": documentID,
 		"reason":      "real Hindsight integration test cleanup",
@@ -170,7 +170,7 @@ func TestRealHindsightMemoryRetainToolReturnsDocumentID(t *testing.T) {
 		t.Fatalf("ConfigureBank: %v", err)
 	}
 
-	result := callRealMemoryTool(t, ctx, &model.Agent{ID: agentID, OrgID: &orgID}, client, "memory_retain", map[string]any{
+	result := callRealMemoryTool(t, ctx, &model.Employee{ID: agentID, OrgID: &orgID}, client, "memory_retain", map[string]any{
 		"content":     "Integration test memory_retain document ID marker " + uuid.NewString(),
 		"context":     "Real Hindsight integration test",
 		"memory_type": "preference",
@@ -193,7 +193,7 @@ func toJSONForTest(v any) string {
 	return string(b)
 }
 
-func callRealMemoryTool(t *testing.T, ctx context.Context, agent *model.Agent, client *Client, name string, args map[string]any) *mcp.CallToolResult {
+func callRealMemoryTool(t *testing.T, ctx context.Context, agent *model.Employee, client *Client, name string, args map[string]any) *mcp.CallToolResult {
 	t.Helper()
 	serverTransport, clientTransport := mcp.NewInMemoryTransports()
 	server := mcp.NewServer(&mcp.Implementation{Name: "real-memory-test", Version: "v1"}, nil)

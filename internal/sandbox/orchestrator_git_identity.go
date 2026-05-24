@@ -15,7 +15,7 @@ type employeeGitIdentity struct {
 	Email    string
 }
 
-func (o *Orchestrator) loadAgentGitIdentity(ctx context.Context, agent *model.Agent) (*employeeGitIdentity, error) {
+func (o *Orchestrator) loadAgentGitIdentity(ctx context.Context, agent *model.Employee) (*employeeGitIdentity, error) {
 	identityAgent, err := o.resolveGitIdentityAgent(ctx, agent)
 	if err != nil {
 		return nil, err
@@ -27,11 +27,11 @@ func (o *Orchestrator) loadAgentGitIdentity(ctx context.Context, agent *model.Ag
 	return gitIdentityFromProfile(identityAgent), nil
 }
 
-func (o *Orchestrator) loadEmployeeGitIdentity(ctx context.Context, agent *model.Agent) (*employeeGitIdentity, error) {
+func (o *Orchestrator) loadEmployeeGitIdentity(ctx context.Context, agent *model.Employee) (*employeeGitIdentity, error) {
 	return o.loadAgentGitIdentity(ctx, agent)
 }
 
-func (o *Orchestrator) resolveGitIdentityAgent(ctx context.Context, agent *model.Agent) (*model.Agent, error) {
+func (o *Orchestrator) resolveGitIdentityAgent(ctx context.Context, agent *model.Employee) (*model.Employee, error) {
 	if agent == nil {
 		return nil, nil
 	}
@@ -42,7 +42,7 @@ func (o *Orchestrator) resolveGitIdentityAgent(ctx context.Context, agent *model
 		return agent, nil
 	}
 
-	var employee model.Agent
+	var employee model.Employee
 	query := o.db.WithContext(ctx).
 		Where("org_id = ? AND id <> ? AND status <> ?", *agent.OrgID, agent.ID, "archived")
 	err := query.Order("created_at ASC").First(&employee).Error
@@ -55,7 +55,7 @@ func (o *Orchestrator) resolveGitIdentityAgent(ctx context.Context, agent *model
 	return &employee, nil
 }
 
-func gitIdentityFromProfile(agent *model.Agent) *employeeGitIdentity {
+func gitIdentityFromProfile(agent *model.Employee) *employeeGitIdentity {
 	username := fallbackGitUsername(agent)
 	email := fallbackGitEmail(agent)
 	return &employeeGitIdentity{
@@ -64,7 +64,7 @@ func gitIdentityFromProfile(agent *model.Agent) *employeeGitIdentity {
 	}
 }
 
-func setGitIdentityEnvVars(envVars map[string]string, agent *model.Agent, identity *employeeGitIdentity) {
+func setGitIdentityEnvVars(envVars map[string]string, agent *model.Employee, identity *employeeGitIdentity) {
 	if agent == nil {
 		return
 	}
@@ -72,21 +72,21 @@ func setGitIdentityEnvVars(envVars map[string]string, agent *model.Agent, identi
 	envVars["HIVY_GIT_EMAIL"] = employeeGitEmail(agent, identity)
 }
 
-func employeeGitUsername(agent *model.Agent, identity *employeeGitIdentity) string {
+func employeeGitUsername(agent *model.Employee, identity *employeeGitIdentity) string {
 	if identity != nil && strings.TrimSpace(identity.Username) != "" {
 		return strings.TrimSpace(identity.Username)
 	}
 	return fallbackGitUsername(agent)
 }
 
-func employeeGitEmail(agent *model.Agent, identity *employeeGitIdentity) string {
+func employeeGitEmail(agent *model.Employee, identity *employeeGitIdentity) string {
 	if identity != nil && strings.TrimSpace(identity.Email) != "" {
 		return strings.TrimSpace(identity.Email)
 	}
 	return fallbackGitEmail(agent)
 }
 
-func fallbackGitUsername(agent *model.Agent) string {
+func fallbackGitUsername(agent *model.Employee) string {
 	if agent == nil {
 		return "agent"
 	}
@@ -96,6 +96,6 @@ func fallbackGitUsername(agent *model.Agent) string {
 	return "hivy"
 }
 
-func fallbackGitEmail(agent *model.Agent) string {
+func fallbackGitEmail(agent *model.Employee) string {
 	return fallbackGitUsername(agent) + "@users.noreply.github.com"
 }

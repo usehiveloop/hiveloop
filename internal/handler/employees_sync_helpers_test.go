@@ -53,7 +53,7 @@ func (s *sidecarStub) setStatus(status int) {
 	s.syncConfigStatus = status
 }
 
-func (h *employeeHarness) seedEmployeeAgent(t *testing.T, m orgWithMember) model.Agent {
+func (h *employeeHarness) seedEmployeeAgent(t *testing.T, m orgWithMember) model.Employee {
 	t.Helper()
 	cred := h.seedSystemCred(t, "openrouter", false)
 
@@ -68,31 +68,31 @@ func (h *employeeHarness) seedEmployeeAgent(t *testing.T, m orgWithMember) model
 	}
 
 	credID := cred.ID
-	agent := model.Agent{
-		OrgID:        &m.org.ID,
-		Name:         "agent-" + uuid.NewString()[:8],
-		IsEmployee:   true,
-		Harness:      "employee-sandbox",
-		Model:        "deepseek-v4-flash",
-		SystemPrompt: "you are a test employee",
-		CredentialID: &credID,
-		Status:       "active",
-		Tools:        model.JSON{},
-		McpServers:   model.JSON{},
-		Skills:       model.JSON{},
-		Integrations: model.JSON{},
-		Resources:    model.JSON{},
-		AgentConfig:  model.JSON{},
-		Permissions:  model.JSON{},
+	agent := model.Employee{
+		OrgID:         &m.org.ID,
+		Name:          "agent-" + uuid.NewString()[:8],
+		IsEmployee:    true,
+		Harness:       "employee-sandbox",
+		Model:         "deepseek-v4-flash",
+		SystemPrompt:  "you are a test employee",
+		CredentialID:  &credID,
+		Status:        "active",
+		Tools:         model.JSON{},
+		McpServers:    model.JSON{},
+		Skills:        model.JSON{},
+		Integrations:  model.JSON{},
+		Resources:     model.JSON{},
+		RuntimeConfig: model.JSON{},
+		Permissions:   model.JSON{},
 	}
 	if err := h.db.Create(&agent).Error; err != nil {
 		t.Fatalf("create agent: %v", err)
 	}
 	agentID := agent.ID
 	t.Cleanup(func() {
-		h.db.Where("agent_id = ?", agentID).Delete(&model.Sandbox{})
-		h.db.Where("meta->>'agent_id' = ?", agentID.String()).Delete(&model.Token{})
-		h.db.Where("id = ?", agentID).Delete(&model.Agent{})
+		h.db.Where("employee_id = ?", agentID).Delete(&model.Sandbox{})
+		h.db.Where("meta->>'employee_id' = ?", agentID.String()).Delete(&model.Token{})
+		h.db.Where("id = ?", agentID).Delete(&model.Employee{})
 	})
 	return agent
 }
@@ -106,7 +106,7 @@ func (h *employeeHarness) seedSandbox(t *testing.T, m orgWithMember, agentID uui
 	}
 	sb := model.Sandbox{
 		OrgID:                 &m.org.ID,
-		AgentID:               &agentID,
+		EmployeeID:            &agentID,
 		SnapshotID:            &h.cfg.EmployeeSandboxBaseImagePrefix,
 		ExternalID:            "stub-sb-" + uuid.NewString()[:8],
 		BridgeURL:             h.sidecarSrv.URL,
@@ -142,7 +142,7 @@ func (h *employeeHarness) setRuntimeEnvVars(t *testing.T, agentID uuid.UUID, var
 	if err != nil {
 		t.Fatalf("encrypt env vars: %v", err)
 	}
-	if err := h.db.Model(&model.Agent{}).
+	if err := h.db.Model(&model.Employee{}).
 		Where("id = ?", agentID).
 		Update("encrypted_env_vars", []byte(encrypted)).
 		Error; err != nil {

@@ -13,22 +13,22 @@ const employeeSandboxUpgradeTimeout = 90 * time.Minute
 const employeeSandboxRetireDelay = 24 * time.Hour
 
 type EmployeeSandboxUpgradePayload struct {
-	UpgradeID uuid.UUID `json:"upgrade_id"`
-	AgentID   uuid.UUID `json:"agent_id"`
-	SmokeTest bool      `json:"smoke_test,omitempty"`
+	UpgradeID  uuid.UUID `json:"upgrade_id"`
+	EmployeeID uuid.UUID `json:"employee_id"`
+	SmokeTest  bool      `json:"smoke_test,omitempty"`
 }
 
 type EmployeeSandboxRetirePayload struct {
-	UpgradeID uuid.UUID `json:"upgrade_id"`
-	AgentID   uuid.UUID `json:"agent_id"`
-	SandboxID uuid.UUID `json:"sandbox_id"`
+	UpgradeID  uuid.UUID `json:"upgrade_id"`
+	EmployeeID uuid.UUID `json:"employee_id"`
+	SandboxID  uuid.UUID `json:"sandbox_id"`
 }
 
 func NewEmployeeSandboxUpgradeTask(upgradeID, agentID uuid.UUID, smokeTest bool) (*asynq.Task, []asynq.Option, error) {
 	payload, err := json.Marshal(EmployeeSandboxUpgradePayload{
-		UpgradeID: upgradeID,
-		AgentID:   agentID,
-		SmokeTest: smokeTest,
+		UpgradeID:  upgradeID,
+		EmployeeID: agentID,
+		SmokeTest:  smokeTest,
 	})
 	if err != nil {
 		return nil, nil, fmt.Errorf("marshal employee sandbox upgrade payload: %w", err)
@@ -47,7 +47,7 @@ func EmployeeSandboxUpgradeTaskID(agentID uuid.UUID) string {
 }
 
 func NewEmployeeSandboxRetireTask(payload EmployeeSandboxRetirePayload) (*asynq.Task, []asynq.Option, error) {
-	if payload.UpgradeID == uuid.Nil || payload.AgentID == uuid.Nil || payload.SandboxID == uuid.Nil {
+	if payload.UpgradeID == uuid.Nil || payload.EmployeeID == uuid.Nil || payload.SandboxID == uuid.Nil {
 		return nil, nil, fmt.Errorf("employee sandbox retire payload missing ids")
 	}
 	body, err := json.Marshal(payload)

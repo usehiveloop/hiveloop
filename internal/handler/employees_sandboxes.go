@@ -16,19 +16,19 @@ func loadLatestSandboxPerAgent(db *gorm.DB, orgID uuid.UUID, agentIDs []uuid.UUI
 	}
 	var sandboxes []model.Sandbox
 	if err := db.
-		Where("org_id = ? AND agent_id IN ?", orgID, agentIDs).
-		Order("agent_id ASC, created_at DESC").
+		Where("org_id = ? AND employee_id IN ?", orgID, agentIDs).
+		Order("employee_id ASC, created_at DESC").
 		Find(&sandboxes).Error; err != nil {
 		return out
 	}
 	for _, sandbox := range sandboxes {
-		if sandbox.AgentID == nil {
+		if sandbox.EmployeeID == nil {
 			continue
 		}
-		if _, exists := out[*sandbox.AgentID]; exists {
+		if _, exists := out[*sandbox.EmployeeID]; exists {
 			continue
 		}
-		out[*sandbox.AgentID] = sandboxSummary(sandbox)
+		out[*sandbox.EmployeeID] = sandboxSummary(sandbox)
 	}
 	return out
 }

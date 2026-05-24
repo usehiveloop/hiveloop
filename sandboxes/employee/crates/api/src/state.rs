@@ -1,7 +1,7 @@
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
-use agent::cloud_agents::CloudTaskIndex;
+use agent::specialists::SpecialistTaskIndex;
 use async_trait::async_trait;
 use domain::{ConfigStore, OutboundChannelSpec};
 use mcp::McpRegistry;
@@ -26,7 +26,7 @@ pub struct ApiState {
     pub http_gateway: Option<HttpGatewayState>,
     pub mcp_registry: Option<Arc<McpRegistry>>,
     pub outbound_reloader: Option<Arc<dyn OutboundConfigReloader>>,
-    pub cloud_task_index: Option<Arc<CloudTaskIndex>>,
+    pub specialist_task_index: Option<Arc<SpecialistTaskIndex>>,
     pub observability: ObservabilityRecorder,
 }
 
@@ -46,7 +46,7 @@ impl ApiState {
         http_gateway: Option<HttpGatewayState>,
         mcp_registry: Option<Arc<McpRegistry>>,
         outbound_reloader: Option<Arc<dyn OutboundConfigReloader>>,
-        cloud_task_index: Option<Arc<CloudTaskIndex>>,
+        specialist_task_index: Option<Arc<SpecialistTaskIndex>>,
     ) -> Self {
         let observability = http_gateway
             .as_ref()
@@ -65,7 +65,7 @@ impl ApiState {
             http_gateway,
             mcp_registry,
             outbound_reloader,
-            cloud_task_index,
+            specialist_task_index,
             observability,
         }
     }

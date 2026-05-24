@@ -21,7 +21,7 @@ import (
 // @Produce json
 // @Param id path string true "Employee ID"
 // @Param body body attachSkillRequest true "Skill to attach"
-// @Success 201 {object} agentSkillResponse
+// @Success 201 {object} employeeSkillResponse
 // @Failure 400 {object} errorResponse
 // @Failure 404 {object} errorResponse
 // @Security BearerAuth
@@ -32,7 +32,7 @@ func (h *SkillHandler) AttachToEmployee(w http.ResponseWriter, r *http.Request) 
 		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "missing org context"})
 		return
 	}
-	agent, err := h.loadAgent(r.Context(), chi.URLParam(r, "id"), org.ID)
+	agent, err := h.loadEmployee(r.Context(), chi.URLParam(r, "id"), org.ID)
 	if err != nil {
 		writeSkillLookupError(w, err)
 		return
@@ -65,13 +65,13 @@ func (h *SkillHandler) AttachToEmployee(w http.ResponseWriter, r *http.Request) 
 		Where("id = ?", skill.ID).
 		UpdateColumn("install_count", gorm.Expr("install_count + 1"))
 
-	writeJSON(w, http.StatusCreated, toAgentSkillResponse(link, *skill))
+	writeJSON(w, http.StatusCreated, toEmployeeSkillResponse(link, *skill))
 }
 
-func (h *SkillHandler) attachSkillToEmployee(ctx context.Context, employeeID, skillID uuid.UUID) (model.AgentSkill, error) {
-	link := model.AgentSkill{
-		AgentID: employeeID,
-		SkillID: skillID,
+func (h *SkillHandler) attachSkillToEmployee(ctx context.Context, employeeID, skillID uuid.UUID) (model.EmployeeSkill, error) {
+	link := model.EmployeeSkill{
+		EmployeeID: employeeID,
+		SkillID:    skillID,
 	}
 	err := h.db.WithContext(ctx).Save(&link).Error
 	return link, err
@@ -94,7 +94,7 @@ func (h *SkillHandler) DetachFromEmployee(w http.ResponseWriter, r *http.Request
 		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "missing org context"})
 		return
 	}
-	agent, err := h.loadAgent(r.Context(), chi.URLParam(r, "id"), org.ID)
+	agent, err := h.loadEmployee(r.Context(), chi.URLParam(r, "id"), org.ID)
 	if err != nil {
 		writeSkillLookupError(w, err)
 		return
@@ -113,7 +113,7 @@ func (h *SkillHandler) DetachFromEmployee(w http.ResponseWriter, r *http.Request
 		writeJSON(w, http.StatusConflict, map[string]string{"error": "connection-managed employee skill cannot be removed while the connection is active"})
 		return
 	}
-	result := h.db.Where("agent_id = ? AND skill_id = ?", agent.ID, skillID).Delete(&model.AgentSkill{})
+	result := h.db.Where("employee_id = ? AND skill_id = ?", agent.ID, skillID).Delete(&model.EmployeeSkill{})
 	if result.Error != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to detach skill"})
 		return
@@ -130,7 +130,7 @@ func (h *SkillHandler) DetachFromEmployee(w http.ResponseWriter, r *http.Request
 // @Tags skills
 // @Produce json
 // @Param id path string true "Employee ID"
-// @Success 200 {array} agentSkillResponse
+// @Success 200 {array} employeeSkillResponse
 // @Failure 404 {object} errorResponse
 // @Security BearerAuth
 // @Router /v1/employees/{id}/skills [get]
@@ -140,19 +140,19 @@ func (h *SkillHandler) ListEmployeeSkills(w http.ResponseWriter, r *http.Request
 		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "missing org context"})
 		return
 	}
-	agent, err := h.loadAgent(r.Context(), chi.URLParam(r, "id"), org.ID)
+	agent, err := h.loadEmployee(r.Context(), chi.URLParam(r, "id"), org.ID)
 	if err != nil {
 		writeSkillLookupError(w, err)
 		return
 	}
 
-	var links []model.AgentSkill
-	if err := h.db.Where("agent_id = ?", agent.ID).Find(&links).Error; err != nil {
+	var links []model.EmployeeSkill
+	if err := h.db.Where("employee_id = ?", agent.ID).Find(&links).Error; err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to list agent skills"})
 		return
 	}
 	if len(links) == 0 {
-		writeJSON(w, http.StatusOK, []agentSkillResponse{})
+		writeJSON(w, http.StatusOK, []employeeSkillResponse{})
 		return
 	}
 
@@ -170,14 +170,14 @@ func (h *SkillHandler) ListEmployeeSkills(w http.ResponseWriter, r *http.Request
 		skillByID[s.ID] = s
 	}
 
-	resp := make([]agentSkillResponse, 0, len(links))
+	resp := make([]employeeSkillResponse, 0, len(links))
 	lockedSkillIDs, _ := employeeLockedSkillIDs(r.Context(), h.db, org.ID, agent)
 	for _, l := range links {
 		s, ok := skillByID[l.SkillID]
 		if !ok {
 			continue
 		}
-		item := toAgentSkillResponse(l, s)
+		item := toEmployeeSkillResponse(l, s)
 		if lockedSkillIDs[l.SkillID] {
 			item.Locked = true
 			item.Required = true

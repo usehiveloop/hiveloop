@@ -164,7 +164,7 @@ func BuildServer(
 	}
 
 	if addMemoryTools != nil {
-		agentID, _ := token.Meta["agent_id"].(string)
+		agentID, _ := token.Meta["employee_id"].(string)
 		if agentID != "" {
 			addMemoryTools(server, agentID, db)
 		}

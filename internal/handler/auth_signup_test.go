@@ -74,7 +74,7 @@ func seedSignupUser(t *testing.T, db *gorm.DB) *model.User {
 func cleanupOrgAndLedger(t *testing.T, db *gorm.DB, orgID uuid.UUID) {
 	t.Helper()
 	t.Cleanup(func() {
-		db.Unscoped().Where("org_id = ?", orgID).Delete(&model.Agent{})
+		db.Unscoped().Where("org_id = ?", orgID).Delete(&model.Employee{})
 		db.Unscoped().Where("org_id = ?", orgID).Delete(&model.CreditLedgerEntry{})
 		db.Unscoped().Where("org_id = ?", orgID).Delete(&model.OrgMembership{})
 		db.Unscoped().Where("id = ?", orgID).Delete(&model.Org{})
@@ -96,7 +96,7 @@ func TestCreateUserDefaultOrg_CreatesHivyWithAllSpecialists(t *testing.T) {
 	}
 	cleanupOrgAndLedger(t, db, org.ID)
 
-	var employee model.Agent
+	var employee model.Employee
 	if err := db.Where("org_id = ?", org.ID).First(&employee).Error; err != nil {
 		t.Fatalf("load Hivy employee: %v", err)
 	}
@@ -104,8 +104,9 @@ func TestCreateUserDefaultOrg_CreatesHivyWithAllSpecialists(t *testing.T) {
 	if resp.Name != "Hivy" {
 		t.Fatalf("employee name = %q, want Hivy", resp.Name)
 	}
-	if got := len(employeeEnabledSpecialistSummaries(employee)); got != len(specialistTemplates) {
-		t.Fatalf("enabled specialists = %d, want %d", got, len(specialistTemplates))
+	catalog := specialistCatalogFromArgs()
+	if got, want := len(attachedSpecialistSet(employee.AttachedSpecialists)), len(catalog.AutoAttachSlugs()); got != want {
+		t.Fatalf("attached specialists = %d, want %d", got, want)
 	}
 }
 

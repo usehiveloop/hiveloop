@@ -28,16 +28,16 @@ pub enum ToolSpec {
     SkillView,
     #[serde(rename = "builtin.skill_manage")]
     SkillManage,
-    #[serde(rename = "builtin.cloud_agent_launch_task")]
-    CloudAgentLaunchTask,
-    #[serde(rename = "builtin.cloud_agent_task_status")]
-    CloudAgentTaskStatus,
-    #[serde(rename = "builtin.cloud_agent_list_tasks")]
-    CloudAgentListTasks,
-    #[serde(rename = "builtin.cloud_agent_task_send_message")]
-    CloudAgentTaskSendMessage,
-    #[serde(rename = "builtin.cloud_agent_task_terminate")]
-    CloudAgentTaskTerminate,
+    #[serde(rename = "builtin.specialist_launch_task")]
+    SpecialistLaunchTask,
+    #[serde(rename = "builtin.specialist_task_status")]
+    SpecialistTaskStatus,
+    #[serde(rename = "builtin.specialist_list_tasks")]
+    SpecialistListTasks,
+    #[serde(rename = "builtin.specialist_task_send_message")]
+    SpecialistTaskSendMessage,
+    #[serde(rename = "builtin.specialist_task_terminate")]
+    SpecialistTaskTerminate,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -45,7 +45,7 @@ const (
 	TmplBillingSubscriptionRevoked  TemplateSlug = "billing-subscription-revoked"
 	TmplBillingUsage80              TemplateSlug = "billing-usage-80"
 
-	// --- Agent Runs & Activity ---
+	// --- Employee Runs & Activity ---
 	TmplAgentsApprovalRequired TemplateSlug = "agents-approval-required"
 	TmplAgentsApprovalTimeout  TemplateSlug = "agents-approval-timeout"
 	TmplAgentsAutoDisabled     TemplateSlug = "agents-auto-disabled"
@@ -140,7 +140,7 @@ var templateVars = map[TemplateSlug][]string{
 	TmplBillingSubscriptionRevoked:  {"firstName", "plan"},
 	TmplBillingUsage80:              {"agentName", "firstName", "included", "used"},
 
-	// Agent Runs & Activity
+	// Employee Runs & Activity
 	TmplAgentsApprovalRequired: {"agentName", "approveUrl", "denyUrl", "firstName", "toolName", "toolSummary"},
 	TmplAgentsApprovalTimeout:  {"agentName", "firstName", "timeoutMinutes", "toolName"},
 	TmplAgentsAutoDisabled:     {"agentName", "disabledAt", "firstName", "reason"},
@@ -342,8 +342,8 @@ var templateMeta = map[TemplateSlug]TemplateMeta{
 	TmplBillingSandboxChanged: {
 		Slug:        "billing-sandbox-changed",
 		Name:        "Billing — Sandbox add-on updated",
-		Subject:     "Cloud Agent sandbox {{action}} for {{agentName}}",
-		Description: "Fires when the cloud agent sandbox add-on is enabled or removed for an agent. Vars: firstName, agentName, action, monthlyCost.",
+		Subject:     "Specialist sandbox {{action}} for {{agentName}}",
+		Description: "Fires when the specialist sandbox add-on is enabled or removed for an agent. Vars: firstName, agentName, action, monthlyCost.",
 		Variables:   []string{"action", "agentName", "firstName", "monthlyCost"},
 	},
 	TmplBillingSubscriptionActive: {
@@ -375,7 +375,7 @@ var templateMeta = map[TemplateSlug]TemplateMeta{
 		Variables:   []string{"agentName", "firstName", "included", "used"},
 	},
 
-	// Agent Runs & Activity
+	// Employee Runs & Activity
 	TmplAgentsApprovalRequired: {
 		Slug:        "agents-approval-required",
 		Name:        "Agents — Approval required",
@@ -581,7 +581,7 @@ var templateMeta = map[TemplateSlug]TemplateMeta{
 	// Storage & Memory
 	TmplStorageMemory90: {
 		Slug:        "storage-memory-90",
-		Name:        "Storage — Agent memory at 90%",
+		Name:        "Storage — Employee memory at 90%",
 		Subject:     "{{agentName}} memory is 90% full",
 		Description: "Triggered when an agent's memory hits 90% of its limit. Variables: firstName, agentName, usedMb, limitMb.",
 		Variables:   []string{"agentName", "firstName", "limitMb", "usedMb"},
@@ -597,7 +597,7 @@ var templateMeta = map[TemplateSlug]TemplateMeta{
 	// Marketplace
 	TmplMarketplaceDeprecated: {
 		Slug:        "marketplace-deprecated",
-		Name:        "Marketplace — Agent deprecated",
+		Name:        "Marketplace — Employee deprecated",
 		Subject:     "{{agentName}} has been deprecated",
 		Description: "Fires when a publisher archives an installed agent. Variables: firstName, agentName, publisherName, recommendedAlternative (optional).",
 		Variables:   []string{"agentName", "firstName", "publisherName", "recommendedAlternative"},
@@ -618,7 +618,7 @@ var templateMeta = map[TemplateSlug]TemplateMeta{
 	},
 	TmplMarketplaceInstalled: {
 		Slug:        "marketplace-installed",
-		Name:        "Marketplace — Agent installed",
+		Name:        "Marketplace — Employee installed",
 		Subject:     "{{agentName}} is installed in {{orgName}}",
 		Description: "Fires when a marketplace agent is installed into the installer's org. Variables: firstName, agentName, orgName, publisherName.",
 		Variables:   []string{"agentName", "firstName", "orgName", "publisherName"},
@@ -632,7 +632,7 @@ var templateMeta = map[TemplateSlug]TemplateMeta{
 	},
 	TmplMarketplacePublished: {
 		Slug:        "marketplace-published",
-		Name:        "Marketplace — Agent published",
+		Name:        "Marketplace — Employee published",
 		Subject:     "{{agentName}} is live on the marketplace",
 		Description: "Fires when an admin approves a marketplace submission / PublishedAt is set. Variables: firstName, agentName, marketplaceUrl, publishedAt.",
 		Variables:   []string{"agentName", "firstName", "marketplaceUrl", "publishedAt"},

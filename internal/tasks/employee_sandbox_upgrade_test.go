@@ -56,7 +56,7 @@ func TestEmployeeSandboxUpgradeWorker_SucceedsAndSchedulesOldRetirement(t *testi
 	if err := json.Unmarshal(task.Payload, &payload); err != nil {
 		t.Fatalf("unmarshal retire payload: %v", err)
 	}
-	if payload.UpgradeID != f.upgrade.ID || payload.AgentID != f.agent.ID || payload.SandboxID != f.old.ID {
+	if payload.UpgradeID != f.upgrade.ID || payload.EmployeeID != f.agent.ID || payload.SandboxID != f.old.ID {
 		t.Fatalf("retire payload = %#v", payload)
 	}
 	requireOption(t, task.Options, asynq.ProcessInOpt, employeeSandboxRetireDelay)
@@ -132,9 +132,9 @@ func TestEmployeeSandboxRetireHandler_IgnoresRunningSandbox(t *testing.T) {
 		t.Fatalf("save upgrade: %v", err)
 	}
 	task, _, err := NewEmployeeSandboxRetireTask(EmployeeSandboxRetirePayload{
-		UpgradeID: upgrade.ID,
-		AgentID:   f.agent.ID,
-		SandboxID: f.old.ID,
+		UpgradeID:  upgrade.ID,
+		EmployeeID: f.agent.ID,
+		SandboxID:  f.old.ID,
 	})
 	if err != nil {
 		t.Fatalf("new retire task: %v", err)

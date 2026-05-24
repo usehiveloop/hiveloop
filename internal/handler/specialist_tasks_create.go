@@ -14,7 +14,7 @@ import (
 	"github.com/usehivy/hivy/internal/model"
 )
 
-// CreateTask handles POST /internal/employees/{employeeID}/cloud-agents/{agentID}/tasks.
+// CreateTask handles POST /internal/employees/{employeeID}/specialists/{specialistSlug}/tasks.
 // It synchronously provisions a sandbox, pushes the agent, creates a conversation,
 // sends the brief as the first message, and returns the task ID.
 func (h *SpecialistTaskHandler) CreateTask(w http.ResponseWriter, r *http.Request) {
@@ -23,8 +23,8 @@ func (h *SpecialistTaskHandler) CreateTask(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	if h.hooks.CreateCloudAgentSandbox == nil || h.hooks.PushAgentToSandbox == nil || h.hooks.GetBridgeClient == nil {
-		captureCloudAgentFailure(r.Context(), "create_task", errors.New("sandbox orchestrator hook is not configured"), cloudAgentSentryContext{
+	if h.hooks.CreateSpecialistSandbox == nil || h.hooks.PushSpecialistToSandbox == nil || h.hooks.GetBridgeClient == nil {
+		captureSpecialistFailure(r.Context(), "create_task", errors.New("sandbox orchestrator hook is not configured"), specialistSentryContext{
 			Operation:  "configuration",
 			OrgID:      uuidValue(employee.OrgID),
 			EmployeeID: employee.ID,
@@ -33,7 +33,7 @@ func (h *SpecialistTaskHandler) CreateTask(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	template, agentID, ok := h.validateSpecialist(r.Context(), w, employee, chi.URLParam(r, "specialistSlug"))
+	def, agentID, ok := h.validateSpecialist(r.Context(), w, employee, chi.URLParam(r, "specialistSlug"))
 	if !ok {
 		return
 	}
@@ -57,7 +57,7 @@ func (h *SpecialistTaskHandler) CreateTask(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	cloudAgent := specialistAgentFromTemplate(employee, template)
+	specialistAgent := specialistAgentFromDefinition(employee, *def)
 	ctx := r.Context()
 	taskID := uuid.New()
 	extraEnv := map[string]string{}
@@ -65,27 +65,27 @@ func (h *SpecialistTaskHandler) CreateTask(w http.ResponseWriter, r *http.Reques
 		extraEnv["HIVY_DRIVE_UPLOAD_URL"] = h.hooks.TaskDriveUploadURL(employee.ID, taskID)
 	}
 
-	sb, err := h.hooks.CreateCloudAgentSandbox(ctx, &cloudAgent, extraEnv)
+	sb, err := h.hooks.CreateSpecialistSandbox(ctx, &specialistAgent, extraEnv)
 	if err != nil {
-		logging.FromContext(ctx).ErrorContext(ctx, "failed to create sandbox for specialist", "agent_id", agentID, "error", err)
-		captureCloudAgentFailure(ctx, "create_task", err, cloudAgentSentryContext{
-			Operation:    "create_cloud_agent_sandbox",
+		logging.FromContext(ctx).ErrorContext(ctx, "failed to create sandbox for specialist", "employee_id", agentID, "error", err)
+		captureSpecialistFailure(ctx, "create_task", err, specialistSentryContext{
+			Operation:    "create_specialist_sandbox",
 			OrgID:        uuidValue(employee.OrgID),
 			EmployeeID:   employee.ID,
-			CloudAgentID: agentID,
+			SpecialistID: agentID,
 			TaskID:       taskID,
 		})
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to provision sandbox"})
 		return
 	}
 
-	if err := h.hooks.PushAgentToSandbox(ctx, &cloudAgent, sb); err != nil {
-		logging.FromContext(ctx).ErrorContext(ctx, "failed to push agent to sandbox", "agent_id", agentID, "sandbox_id", sb.ID, "error", err)
-		captureCloudAgentFailure(ctx, "create_task", err, cloudAgentSentryContext{
+	if err := h.hooks.PushSpecialistToSandbox(ctx, &specialistAgent, sb); err != nil {
+		logging.FromContext(ctx).ErrorContext(ctx, "failed to push agent to sandbox", "employee_id", agentID, "sandbox_id", sb.ID, "error", err)
+		captureSpecialistFailure(ctx, "create_task", err, specialistSentryContext{
 			Operation:    "push_agent_to_sandbox",
 			OrgID:        uuidValue(employee.OrgID),
 			EmployeeID:   employee.ID,
-			CloudAgentID: agentID,
+			SpecialistID: agentID,
 			TaskID:       taskID,
 			SandboxID:    sb.ID,
 		})
@@ -96,11 +96,11 @@ func (h *SpecialistTaskHandler) CreateTask(w http.ResponseWriter, r *http.Reques
 	client, err := h.hooks.GetBridgeClient(ctx, sb)
 	if err != nil {
 		logging.FromContext(ctx).ErrorContext(ctx, "failed to get bridge client", "sandbox_id", sb.ID, "error", err)
-		captureCloudAgentFailure(ctx, "create_task", err, cloudAgentSentryContext{
+		captureSpecialistFailure(ctx, "create_task", err, specialistSentryContext{
 			Operation:    "get_bridge_client",
 			OrgID:        uuidValue(employee.OrgID),
 			EmployeeID:   employee.ID,
-			CloudAgentID: agentID,
+			SpecialistID: agentID,
 			TaskID:       taskID,
 			SandboxID:    sb.ID,
 		})
@@ -110,12 +110,12 @@ func (h *SpecialistTaskHandler) CreateTask(w http.ResponseWriter, r *http.Reques
 
 	bridgeResp, err := client.CreateConversation(ctx, agentID.String())
 	if err != nil {
-		logging.FromContext(ctx).ErrorContext(ctx, "failed to create conversation in bridge", "agent_id", agentID, "error", err)
-		captureCloudAgentFailure(ctx, "create_task", err, cloudAgentSentryContext{
+		logging.FromContext(ctx).ErrorContext(ctx, "failed to create conversation in bridge", "employee_id", agentID, "error", err)
+		captureSpecialistFailure(ctx, "create_task", err, specialistSentryContext{
 			Operation:    "create_bridge_conversation",
 			OrgID:        uuidValue(employee.OrgID),
 			EmployeeID:   employee.ID,
-			CloudAgentID: agentID,
+			SpecialistID: agentID,
 			TaskID:       taskID,
 			SandboxID:    sb.ID,
 		})
@@ -129,11 +129,11 @@ func (h *SpecialistTaskHandler) CreateTask(w http.ResponseWriter, r *http.Reques
 	}
 
 	orgID := *employee.OrgID
-	task := model.CloudAgentTask{
+	task := model.SpecialistTask{
 		ID:                     taskID,
 		OrgID:                  orgID,
-		EmployeeAgentID:        employee.ID,
-		CloudAgentID:           agentID,
+		EmployeeID:             employee.ID,
+		SpecialistID:           agentID,
 		SandboxID:              sb.ID,
 		ConversationID:         uuid.Nil,
 		ParentConversationType: req.ParentConversationType,
@@ -142,20 +142,20 @@ func (h *SpecialistTaskHandler) CreateTask(w http.ResponseWriter, r *http.Reques
 		Metadata:               metadata,
 	}
 
-	conv := model.AgentConversation{
+	conv := model.EmployeeConversation{
 		OrgID:                 orgID,
-		AgentID:               agentID,
+		EmployeeID:            agentID,
 		SandboxID:             sb.ID,
 		RuntimeConversationID: bridgeResp.ConversationId,
 		Status:                "active",
 	}
 	if err := h.db.Create(&conv).Error; err != nil {
 		logging.FromContext(ctx).ErrorContext(ctx, "failed to save conversation", "error", err)
-		captureCloudAgentFailure(ctx, "create_task", err, cloudAgentSentryContext{
+		captureSpecialistFailure(ctx, "create_task", err, specialistSentryContext{
 			Operation:      "save_conversation",
 			OrgID:          orgID,
 			EmployeeID:     employee.ID,
-			CloudAgentID:   agentID,
+			SpecialistID:   agentID,
 			TaskID:         taskID,
 			SandboxID:      sb.ID,
 			ConversationID: conv.ID,
@@ -167,11 +167,11 @@ func (h *SpecialistTaskHandler) CreateTask(w http.ResponseWriter, r *http.Reques
 	task.ConversationID = conv.ID
 	if err := h.db.Create(&task).Error; err != nil {
 		logging.FromContext(ctx).ErrorContext(ctx, "failed to save specialist task", "error", err)
-		captureCloudAgentFailure(ctx, "create_task", err, cloudAgentSentryContext{
+		captureSpecialistFailure(ctx, "create_task", err, specialistSentryContext{
 			Operation:      "save_task",
 			OrgID:          orgID,
 			EmployeeID:     employee.ID,
-			CloudAgentID:   agentID,
+			SpecialistID:   agentID,
 			TaskID:         taskID,
 			SandboxID:      sb.ID,
 			ConversationID: conv.ID,
@@ -182,11 +182,11 @@ func (h *SpecialistTaskHandler) CreateTask(w http.ResponseWriter, r *http.Reques
 
 	if err := client.SendMessage(ctx, bridgeResp.ConversationId, req.Brief); err != nil {
 		logging.FromContext(ctx).ErrorContext(ctx, "failed to send brief to specialist", "conversation_id", bridgeResp.ConversationId, "error", err)
-		captureCloudAgentFailure(ctx, "create_task", err, cloudAgentSentryContext{
+		captureSpecialistFailure(ctx, "create_task", err, specialistSentryContext{
 			Operation:      "send_initial_message",
 			OrgID:          orgID,
 			EmployeeID:     employee.ID,
-			CloudAgentID:   agentID,
+			SpecialistID:   agentID,
 			TaskID:         taskID,
 			SandboxID:      sb.ID,
 			ConversationID: conv.ID,
@@ -198,14 +198,14 @@ func (h *SpecialistTaskHandler) CreateTask(w http.ResponseWriter, r *http.Reques
 	h.db.Model(sb).Update("last_active_at", time.Now())
 	logging.FromContext(ctx).InfoContext(ctx, "specialist task created",
 		"task_id", task.ID,
-		"employee_agent_id", employee.ID,
-		"cloud_agent_id", agentID,
+		"employee_id", employee.ID,
+		"specialist_id", agentID,
 		"sandbox_id", sb.ID,
 		"conversation_id", conv.ID,
 	)
 
 	writeJSON(w, http.StatusCreated, map[string]any{
 		"task_id": task.ID.String(),
-		"message": fmt.Sprintf("You may use the tool cloud_agent_task_status(%s) to get progress events from the task, and the tool cloud_agent_task_send_message to send messages to this agent.", task.ID.String()),
+		"message": fmt.Sprintf("You may use the tool specialist_task_status(%s) to get progress events from the task, and the tool specialist_task_send_message to send messages to this specialist.", task.ID.String()),
 	})
 }

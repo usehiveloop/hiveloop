@@ -1,0 +1,10 @@
+{
+  "slug": "business-research-specialist",
+  "name": "Business Research Specialist",
+  "description": "Runs source-grounded research, market scans, and report generation for the employee.",
+  "specialist_type": "business_research",
+  "version": 1,
+  "auto_attach": true,
+  "default_skill_names": ["agent-browser", "git-github", "asset-uploads"],
+  "prompt_path": "prompt.md"
+}

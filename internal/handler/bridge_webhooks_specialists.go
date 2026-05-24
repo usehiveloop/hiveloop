@@ -13,12 +13,12 @@ import (
 	"github.com/usehivy/hivy/internal/model"
 )
 
-func (h *BridgeWebhookHandler) cloudAgentTaskForConversation(ctx context.Context, conversationID uuid.UUID) (*model.CloudAgentTask, bool) {
-	var task model.CloudAgentTask
+func (h *BridgeWebhookHandler) specialistTaskForConversation(ctx context.Context, conversationID uuid.UUID) (*model.SpecialistTask, bool) {
+	var task model.SpecialistTask
 	if err := h.db.WithContext(ctx).Where("conversation_id = ?", conversationID).First(&task).Error; err != nil {
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
-			captureCloudAgentFailure(ctx, "bridge_webhook", err, cloudAgentSentryContext{
-				Operation:      "load_cloud_agent_task",
+			captureSpecialistFailure(ctx, "bridge_webhook", err, specialistSentryContext{
+				Operation:      "load_specialist_task",
 				ConversationID: conversationID,
 			})
 		}
@@ -27,13 +27,13 @@ func (h *BridgeWebhookHandler) cloudAgentTaskForConversation(ctx context.Context
 	return &task, true
 }
 
-func (h *BridgeWebhookHandler) forwardCloudAgentEvent(ctx context.Context, task model.CloudAgentTask, conv *model.AgentConversation, event *webhookEvent) {
-	if isCloudAgentErrorEvent(event.EventType) {
-		captureCloudAgentFailure(ctx, "bridge_webhook", fmt.Errorf("cloud agent emitted %s event", event.EventType), cloudAgentSentryContext{
+func (h *BridgeWebhookHandler) forwardSpecialistEvent(ctx context.Context, task model.SpecialistTask, conv *model.EmployeeConversation, event *webhookEvent) {
+	if isSpecialistErrorEvent(event.EventType) {
+		captureSpecialistFailure(ctx, "bridge_webhook", fmt.Errorf("specialist emitted %s event", event.EventType), specialistSentryContext{
 			Operation:      "agent_error_event",
 			OrgID:          task.OrgID,
-			EmployeeID:     task.EmployeeAgentID,
-			CloudAgentID:   task.CloudAgentID,
+			EmployeeID:     task.EmployeeID,
+			SpecialistID:   task.SpecialistID,
 			TaskID:         task.ID,
 			SandboxID:      task.SandboxID,
 			ConversationID: task.ConversationID,
@@ -45,24 +45,24 @@ func (h *BridgeWebhookHandler) forwardCloudAgentEvent(ctx context.Context, task 
 		ConversationID:        conv.ID,
 		EventID:               event.EventID,
 		EventType:             event.EventType,
-		AgentID:               event.AgentID,
+		EmployeeID:            event.EmployeeID,
 		RuntimeConversationID: event.ConversationID,
 		Timestamp:             event.Timestamp,
 		SequenceNumber:        event.SequenceNumber,
 		Data:                  model.RawJSON(event.Data),
 	}
-	if err := dispatchCloudAgentCallback(ctx, h.db, h.encKey, h.employeeCallbackRuntime, task, dbEvent); err != nil {
-		logging.FromContext(ctx).WarnContext(ctx, "webhook: failed to forward cloud agent event to employee bridge",
+	if err := dispatchSpecialistCallback(ctx, h.db, h.encKey, h.employeeCallbackRuntime, task, dbEvent); err != nil {
+		logging.FromContext(ctx).WarnContext(ctx, "webhook: failed to forward specialist event to employee bridge",
 			"task_id", task.ID,
 			"event_id", event.EventID,
 			"event_type", event.EventType,
 			"error", err,
 		)
-		captureCloudAgentWarning(ctx, "bridge_webhook", err, cloudAgentSentryContext{
-			Operation:      "dispatch_cloud_agent_callback",
+		captureSpecialistWarning(ctx, "bridge_webhook", err, specialistSentryContext{
+			Operation:      "dispatch_specialist_callback",
 			OrgID:          task.OrgID,
-			EmployeeID:     task.EmployeeAgentID,
-			CloudAgentID:   task.CloudAgentID,
+			EmployeeID:     task.EmployeeID,
+			SpecialistID:   task.SpecialistID,
 			TaskID:         task.ID,
 			SandboxID:      task.SandboxID,
 			ConversationID: task.ConversationID,
@@ -70,7 +70,7 @@ func (h *BridgeWebhookHandler) forwardCloudAgentEvent(ctx context.Context, task 
 	}
 }
 
-func isCloudAgentErrorEvent(eventType string) bool {
+func isSpecialistErrorEvent(eventType string) bool {
 	eventType = strings.ToLower(eventType)
 	return strings.Contains(eventType, "error") || strings.Contains(eventType, "failed") || strings.Contains(eventType, "failure")
 }

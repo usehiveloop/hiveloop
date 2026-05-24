@@ -41,10 +41,10 @@ func TestIntegration_EmployeesList_HappyPath_LoadsAllRelations(t *testing.T) {
 		t.Fatalf("create skill: %v", err)
 	}
 	t.Cleanup(func() { h.db.Where("id = ?", skill.ID).Delete(&model.Skill{}) })
-	if err := h.db.Create(&model.AgentSkill{AgentID: emp.ID, SkillID: skill.ID}).Error; err != nil {
+	if err := h.db.Create(&model.EmployeeSkill{EmployeeID: emp.ID, SkillID: skill.ID}).Error; err != nil {
 		t.Fatalf("attach skill: %v", err)
 	}
-	t.Cleanup(func() { h.db.Where("agent_id = ?", emp.ID).Delete(&model.AgentSkill{}) })
+	t.Cleanup(func() { h.db.Where("employee_id = ?", emp.ID).Delete(&model.EmployeeSkill{}) })
 
 	rr := h.listEmployees(t, m)
 	if rr.Code != http.StatusOK {

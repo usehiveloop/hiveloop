@@ -14,7 +14,7 @@ import (
 )
 
 // loadConversation loads and validates a conversation from the URL param + org context.
-func (h *ConversationHandler) loadConversation(w http.ResponseWriter, r *http.Request) (*model.AgentConversation, bool) {
+func (h *ConversationHandler) loadConversation(w http.ResponseWriter, r *http.Request) (*model.EmployeeConversation, bool) {
 	org, ok := middleware.OrgFromContext(r.Context())
 	if !ok {
 		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "missing org context"})
@@ -22,7 +22,7 @@ func (h *ConversationHandler) loadConversation(w http.ResponseWriter, r *http.Re
 	}
 
 	convID := chi.URLParam(r, "convID")
-	var conv model.AgentConversation
+	var conv model.EmployeeConversation
 	if err := h.db.Preload("Sandbox").Where("id = ? AND org_id = ?", convID, org.ID).First(&conv).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			writeJSON(w, http.StatusNotFound, map[string]string{"error": "conversation not found"})
@@ -41,7 +41,7 @@ func (h *ConversationHandler) loadConversation(w http.ResponseWriter, r *http.Re
 }
 
 // getBridgeClient returns a Bridge client for the conversation's sandbox.
-func (h *ConversationHandler) getBridgeClient(w http.ResponseWriter, r *http.Request, conv *model.AgentConversation) (*bridgepkg.BridgeClient, bool) {
+func (h *ConversationHandler) getBridgeClient(w http.ResponseWriter, r *http.Request, conv *model.EmployeeConversation) (*bridgepkg.BridgeClient, bool) {
 	client, err := h.orchestrator.GetBridgeClient(r.Context(), &conv.Sandbox)
 	if err != nil {
 		logging.FromContext(r.Context()).ErrorContext(r.Context(), "failed to get bridge client", "conversation_id", conv.ID, "sandbox_id", conv.SandboxID, "error", err)

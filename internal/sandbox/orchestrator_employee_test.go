@@ -143,7 +143,7 @@ func TestCreateEmployeeSandbox_RepositoryCloneFailureMarksSandboxError(t *testin
 	}
 
 	var stored model.Sandbox
-	if err := db.Where("agent_id = ?", agent.ID).Order("created_at DESC").First(&stored).Error; err != nil {
+	if err := db.Where("employee_id = ?", agent.ID).Order("created_at DESC").First(&stored).Error; err != nil {
 		t.Fatalf("load stored sandbox: %v", err)
 	}
 	if stored.Status != "error" {

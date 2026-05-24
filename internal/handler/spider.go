@@ -199,7 +199,7 @@ func (handler *SpiderHandler) recordUsageCount(r *http.Request, toolName, input 
 	}
 
 	orgID, _ := uuid.Parse(claims.OrgID)
-	agentID := handler.lookupAgentID(claims.JTI)
+	agentID := handler.lookupEmployeeID(claims.JTI)
 
 	status := "success"
 	errorMessage := ""
@@ -214,7 +214,7 @@ func (handler *SpiderHandler) recordUsageCount(r *http.Request, toolName, input 
 	usage := model.ToolUsage{
 		ID:            "tu_" + ulid.Make().String(),
 		OrgID:         orgID,
-		AgentID:       agentID,
+		EmployeeID:    agentID,
 		TokenJTI:      claims.JTI,
 		ToolName:      toolName,
 		Input:         truncateInput(input, 2000),
@@ -236,8 +236,8 @@ func (handler *SpiderHandler) recordUsageCount(r *http.Request, toolName, input 
 	handler.usageWriter.Write(r.Context(), usage)
 }
 
-// lookupAgentID extracts the agent_id from the token's meta JSONB field.
-func (handler *SpiderHandler) lookupAgentID(jti string) string {
+// lookupEmployeeID extracts the employee_id from the token's meta JSONB field.
+func (handler *SpiderHandler) lookupEmployeeID(jti string) string {
 	var token model.Token
 	if err := handler.db.Select("meta").Where("jti = ?", jti).First(&token).Error; err != nil {
 		return ""
@@ -245,7 +245,7 @@ func (handler *SpiderHandler) lookupAgentID(jti string) string {
 	if token.Meta == nil {
 		return ""
 	}
-	if agentID, ok := token.Meta["agent_id"].(string); ok {
+	if agentID, ok := token.Meta["employee_id"].(string); ok {
 		return agentID
 	}
 	return ""

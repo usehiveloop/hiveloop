@@ -33,7 +33,7 @@ func (h *ConversationHandler) ListMessages(w http.ResponseWriter, r *http.Reques
 	}
 
 	convID := chi.URLParam(r, "convID")
-	var conv model.AgentConversation
+	var conv model.EmployeeConversation
 	if err := h.db.Where("id = ? AND org_id = ?", convID, org.ID).First(&conv).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			writeJSON(w, http.StatusNotFound, map[string]string{"error": "conversation not found"})
@@ -146,7 +146,7 @@ func aggregateMessages(events []model.ConversationEvent) ([]conversationMessageR
 			// Todo writes (and reads) carry the todo list in
 			// raw_output.metadata.todos. We surface the latest one at the top
 			// of the response and skip emitting a tool group, since the
-			// cloud agent UI strip renders them outside the chat history.
+			// specialist UI strip renders them outside the chat history.
 			if todos := extractTodos(data["raw_output"]); todos != nil {
 				latestTodos = todos
 				continue

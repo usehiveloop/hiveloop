@@ -25,19 +25,19 @@ const (
 )
 
 type EmployeeProxyTokenRefreshPayload struct {
-	AgentID     uuid.UUID `json:"agent_id"`
+	EmployeeID  uuid.UUID `json:"employee_id"`
 	SandboxID   uuid.UUID `json:"sandbox_id"`
 	ScheduledAt time.Time `json:"scheduled_at"`
 }
 
-func ScheduleEmployeeProxyTokenRefresh(ctx context.Context, db *gorm.DB, enqueuer enqueue.TaskEnqueuer, agent *model.Agent, sb *model.Sandbox) error {
+func ScheduleEmployeeProxyTokenRefresh(ctx context.Context, db *gorm.DB, enqueuer enqueue.TaskEnqueuer, agent *model.Employee, sb *model.Sandbox) error {
 	if db == nil || enqueuer == nil || agent == nil || agent.OrgID == nil || sb == nil || sb.ID == uuid.Nil {
 		return nil
 	}
 	if agent.ID == uuid.Nil || agent.Harness != "employee-sandbox" {
 		return nil
 	}
-	if sb.AgentID == nil || *sb.AgentID != agent.ID {
+	if sb.EmployeeID == nil || *sb.EmployeeID != agent.ID {
 		return nil
 	}
 	scheduledAt, err := nextEmployeeProxyTokenRefreshAt(ctx, db, agent, sb.ID, time.Now().UTC())
@@ -45,7 +45,7 @@ func ScheduleEmployeeProxyTokenRefresh(ctx context.Context, db *gorm.DB, enqueue
 		return err
 	}
 	task, opts, err := NewEmployeeProxyTokenRefreshTask(EmployeeProxyTokenRefreshPayload{
-		AgentID:     agent.ID,
+		EmployeeID:  agent.ID,
 		SandboxID:   sb.ID,
 		ScheduledAt: scheduledAt,
 	})
@@ -62,7 +62,7 @@ func ScheduleEmployeeProxyTokenRefresh(ctx context.Context, db *gorm.DB, enqueue
 }
 
 func NewEmployeeProxyTokenRefreshTask(payload EmployeeProxyTokenRefreshPayload) (*asynq.Task, []asynq.Option, error) {
-	if payload.AgentID == uuid.Nil || payload.SandboxID == uuid.Nil {
+	if payload.EmployeeID == uuid.Nil || payload.SandboxID == uuid.Nil {
 		return nil, nil, fmt.Errorf("employee proxy token refresh payload missing ids")
 	}
 	if payload.ScheduledAt.IsZero() {
@@ -120,7 +120,7 @@ func (h *EmployeeProxyTokenRefreshHandler) Handle(ctx context.Context, task *asy
 	if err := json.Unmarshal(task.Payload(), &payload); err != nil {
 		return fmt.Errorf("unmarshal employee proxy token refresh payload: %w", err)
 	}
-	if payload.AgentID == uuid.Nil || payload.SandboxID == uuid.Nil {
+	if payload.EmployeeID == uuid.Nil || payload.SandboxID == uuid.Nil {
 		return fmt.Errorf("employee proxy token refresh payload missing ids")
 	}
 	return h.run(ctx, payload)
@@ -171,16 +171,16 @@ func (h *EmployeeProxyTokenRefreshHandler) run(ctx context.Context, payload Empl
 		return err
 	}
 	logging.FromContext(ctx).InfoContext(ctx, "employee proxy token refreshed",
-		"agent_id", agent.ID, "sandbox_id", sb.ID, "jti", refreshed.JTI)
+		"employee_id", agent.ID, "sandbox_id", sb.ID, "jti", refreshed.JTI)
 	return nil
 }
 
-func (h *EmployeeProxyTokenRefreshHandler) markAgentRefreshed(ctx context.Context, agent *model.Agent) error {
+func (h *EmployeeProxyTokenRefreshHandler) markAgentRefreshed(ctx context.Context, agent *model.Employee) error {
 	if agent == nil || agent.OrgID == nil {
 		return nil
 	}
 	now := time.Now().UTC()
-	if err := h.db.WithContext(ctx).Model(&model.Agent{}).
+	if err := h.db.WithContext(ctx).Model(&model.Employee{}).
 		Where("id = ? AND org_id = ?", agent.ID, *agent.OrgID).
 		Update("last_proxy_token_refreshed_at", now).Error; err != nil {
 		return fmt.Errorf("mark employee proxy token refreshed: %w", err)
@@ -189,10 +189,10 @@ func (h *EmployeeProxyTokenRefreshHandler) markAgentRefreshed(ctx context.Contex
 	return nil
 }
 
-func (h *EmployeeProxyTokenRefreshHandler) loadAgentAndSandbox(ctx context.Context, payload EmployeeProxyTokenRefreshPayload) (*model.Agent, *model.Sandbox, bool, error) {
-	var agent model.Agent
+func (h *EmployeeProxyTokenRefreshHandler) loadAgentAndSandbox(ctx context.Context, payload EmployeeProxyTokenRefreshPayload) (*model.Employee, *model.Sandbox, bool, error) {
+	var agent model.Employee
 	if err := h.db.WithContext(ctx).
-		Where("id = ? AND harness = ? AND status <> ?", payload.AgentID, "employee-sandbox", "archived").
+		Where("id = ? AND harness = ? AND status <> ?", payload.EmployeeID, "employee-sandbox", "archived").
 		First(&agent).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil, false, nil
@@ -204,7 +204,7 @@ func (h *EmployeeProxyTokenRefreshHandler) loadAgentAndSandbox(ctx context.Conte
 	}
 	var sb model.Sandbox
 	if err := h.db.WithContext(ctx).
-		Where("id = ? AND agent_id = ? AND org_id = ?", payload.SandboxID, agent.ID, *agent.OrgID).
+		Where("id = ? AND employee_id = ? AND org_id = ?", payload.SandboxID, agent.ID, *agent.OrgID).
 		First(&sb).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil, false, nil
@@ -218,7 +218,7 @@ func (h *EmployeeProxyTokenRefreshHandler) loadAgentAndSandbox(ctx context.Conte
 	return &agent, &sb, true, nil
 }
 
-func (h *EmployeeProxyTokenRefreshHandler) revokeOlderTokens(ctx context.Context, agent *model.Agent, sb *model.Sandbox, keepJTI string) error {
+func (h *EmployeeProxyTokenRefreshHandler) revokeOlderTokens(ctx context.Context, agent *model.Employee, sb *model.Sandbox, keepJTI string) error {
 	if agent == nil || agent.OrgID == nil || sb == nil || keepJTI == "" {
 		return nil
 	}
@@ -244,7 +244,7 @@ func (h *EmployeeProxyTokenRefreshHandler) revokeToken(ctx context.Context, jti 
 	}
 }
 
-func nextEmployeeProxyTokenRefreshAt(ctx context.Context, db *gorm.DB, agent *model.Agent, sandboxID uuid.UUID, now time.Time) (time.Time, error) {
+func nextEmployeeProxyTokenRefreshAt(ctx context.Context, db *gorm.DB, agent *model.Employee, sandboxID uuid.UUID, now time.Time) (time.Time, error) {
 	if agent == nil || agent.OrgID == nil {
 		return now.UTC(), nil
 	}

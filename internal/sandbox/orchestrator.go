@@ -37,13 +37,13 @@ func (o *Orchestrator) ProviderID() string {
 	return o.providerID()
 }
 
-func (o *Orchestrator) CreateCloudAgentSandbox(ctx context.Context, agent *model.Agent) (*model.Sandbox, error) {
-	return o.CreateCloudAgentSandboxWithEnv(ctx, agent, nil)
+func (o *Orchestrator) CreateSpecialistSandbox(ctx context.Context, agent *model.Employee) (*model.Sandbox, error) {
+	return o.CreateSpecialistSandboxWithEnv(ctx, agent, nil)
 }
 
-func (o *Orchestrator) CreateCloudAgentSandboxWithEnv(ctx context.Context, agent *model.Agent, extraEnv map[string]string) (*model.Sandbox, error) {
+func (o *Orchestrator) CreateSpecialistSandboxWithEnv(ctx context.Context, agent *model.Employee, extraEnv map[string]string) (*model.Sandbox, error) {
 	if agent.OrgID == nil {
-		return nil, fmt.Errorf("cannot create cloud agent sandbox for agent without org_id")
+		return nil, fmt.Errorf("cannot create specialist sandbox for agent without org_id")
 	}
 	var org model.Org
 	if err := o.db.Where("id = ?", *agent.OrgID).First(&org).Error; err != nil {

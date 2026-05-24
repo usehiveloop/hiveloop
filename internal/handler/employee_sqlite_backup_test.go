@@ -59,7 +59,7 @@ func newSQLiteBackupHarnessWithStreamer(t *testing.T, maxBytes int64, isEmployee
 	t.Cleanup(func() { db.Where("id = ?", orgID).Delete(&model.Org{}) })
 
 	agentID := uuid.New()
-	agent := model.Agent{
+	agent := model.Employee{
 		ID:           agentID,
 		OrgID:        &orgID,
 		Name:         fmt.Sprintf("employee-%s", uuid.New().String()[:8]),
@@ -81,7 +81,7 @@ func newSQLiteBackupHarnessWithStreamer(t *testing.T, maxBytes int64, isEmployee
 	sandbox := model.Sandbox{
 		ID:                    sandboxID,
 		OrgID:                 &orgID,
-		AgentID:               &agentID,
+		EmployeeID:            &agentID,
 		ExternalID:            "sqlite-backup-sandbox",
 		BridgeURL:             "http://localhost:7080",
 		EncryptedBridgeAPIKey: encryptedKey,
@@ -224,7 +224,7 @@ func TestEmployeeSQLiteBackup_UpgradeIDWritesImmutableUpgradeKey(t *testing.T) {
 	upgrade := model.EmployeeSandboxUpgrade{
 		ID:           upgradeID,
 		OrgID:        h.orgID,
-		AgentID:      h.agentID,
+		EmployeeID:   h.agentID,
 		OldSandboxID: &h.sandboxID,
 		Status:       model.EmployeeSandboxUpgradeStatusRunning,
 		Phase:        model.EmployeeSandboxUpgradePhaseBackup,

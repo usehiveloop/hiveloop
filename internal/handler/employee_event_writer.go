@@ -70,7 +70,7 @@ func (w *EmployeeEventWriter) drain(ctx context.Context) {
 					logging.FromContext(ctx).WarnContext(ctx, "employee schedule sync failed",
 						"error", err,
 						"event_type", entry.EventType,
-						"agent_id", entry.AgentID,
+						"employee_id", entry.EmployeeID,
 					)
 				}
 			}
@@ -124,7 +124,7 @@ func (w *EmployeeEventWriter) Write(ctx context.Context, entry model.EmployeeMem
 				logging.FromContext(ctx).WarnContext(ctx, "employee schedule sync failed",
 					"error", err,
 					"event_type", entry.EventType,
-					"agent_id", entry.AgentID,
+					"employee_id", entry.EmployeeID,
 				)
 			}
 			return nil
@@ -165,7 +165,7 @@ func employeeEventBatchSentryFields(stage string, batch []model.EmployeeMemoryEv
 	}
 	first := batch[0]
 	fields["org_id"] = first.OrgID.String()
-	fields["agent_id"] = first.AgentID.String()
+	fields["employee_id"] = first.EmployeeID.String()
 	fields["sandbox_id"] = first.SandboxID.String()
 	fields["session_id"] = first.SessionID
 	fields["event_type"] = first.EventType

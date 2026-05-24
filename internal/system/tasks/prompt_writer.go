@@ -136,7 +136,7 @@ Emit sections in this order, using the exact XML tag names below. Skip any secti
 
 Translate the operator's prose into the produced prompt — NEVER paste it verbatim into '<workflow>'. Extract every operator-stated tool, command, tone rule, trigger type, non-negotiable, and example. NEVER inject anything the operator did not provide.`
 
-const promptWriterUserTemplate = `Agent name: {{.name}}
+const promptWriterUserTemplate = `Employee name: {{.name}}
 {{with .category}}Category: {{.}}
 {{end}}
 {{with .instructions}}What the operator wants this agent to do:

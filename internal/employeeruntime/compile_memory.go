@@ -10,7 +10,7 @@ import (
 	"github.com/usehivy/hivy/internal/model"
 )
 
-func buildMemoryContext(ctx context.Context, deps CompileDeps, agent *model.Agent) MemoryContext {
+func buildMemoryContext(ctx context.Context, deps CompileDeps, agent *model.Employee) MemoryContext {
 	memory := MemoryContext{Entries: []MemoryContextEntry{}, TokenBudget: 1000}
 	if deps.Hindsight == nil || agent == nil || agent.OrgID == nil {
 		return memory
@@ -31,7 +31,7 @@ func buildMemoryContext(ctx context.Context, deps CompileDeps, agent *model.Agen
 	return memory
 }
 
-func employeeMemoryTagGroups(agent *model.Agent) []any {
+func employeeMemoryTagGroups(agent *model.Employee) []any {
 	if agent == nil || agent.OrgID == nil {
 		return nil
 	}

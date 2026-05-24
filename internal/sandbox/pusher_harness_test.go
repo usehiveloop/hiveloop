@@ -62,17 +62,17 @@ func pushHarnessFixture(t *testing.T, storedHarness string) map[string]any {
 	}
 	t.Cleanup(func() { db.Where("id = ?", cred.ID).Delete(&model.Credential{}) })
 
-	agent := model.Agent{
+	agent := model.Employee{
 		ID: uuid.New(), OrgID: &org.ID, CredentialID: &cred.ID,
-		Name: "Harness Agent-" + uuid.New().String()[:8], Model: "gpt-4o",
+		Name: "Harness Employee-" + uuid.New().String()[:8], Model: "gpt-4o",
 		SystemPrompt: "test", Status: "active", Harness: storedHarness,
 		Tools: model.JSON{}, McpServers: model.JSON{}, Skills: model.JSON{},
-		Integrations: model.JSON{}, AgentConfig: model.JSON{}, Permissions: model.JSON{},
+		Integrations: model.JSON{}, RuntimeConfig: model.JSON{}, Permissions: model.JSON{},
 	}
 	if err := db.Create(&agent).Error; err != nil {
 		t.Fatalf("create agent: %v", err)
 	}
-	t.Cleanup(func() { db.Where("id = ?", agent.ID).Delete(&model.Agent{}) })
+	t.Cleanup(func() { db.Where("id = ?", agent.ID).Delete(&model.Employee{}) })
 
 	cfg := &config.Config{ProxyHost: "proxy.test", MCPBaseURL: "https://mcp.test"}
 	pusher := NewPusher(db, nil, []byte("test-signing-key-for-harness"), cfg, nil)
@@ -89,7 +89,7 @@ func pushHarnessFixture(t *testing.T, storedHarness string) map[string]any {
 	}))
 	t.Cleanup(srv.Close)
 
-	def := pusher.buildAgentDefinition(t.Context(), &agent, nil, &cred, "ptok_harness", uuid.New().String())
+	def := pusher.buildSpecialistDefinition(t.Context(), &agent, nil, &cred, "ptok_harness", uuid.New().String())
 	client := bridgepkg.NewBridgeClient(srv.URL, "test-key")
 	if err := client.UpsertAgent(context.Background(), agent.ID.String(), def); err != nil {
 		t.Fatalf("UpsertAgent: %v", err)

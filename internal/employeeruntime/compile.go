@@ -122,7 +122,7 @@ type MemoryContextEntry struct {
 	Tags       []string `json:"tags,omitempty"`
 }
 
-func PrepareStartup(ctx context.Context, deps CompileDeps, agent *model.Agent) (*StartupSecrets, error) {
+func PrepareStartup(ctx context.Context, deps CompileDeps, agent *model.Employee) (*StartupSecrets, error) {
 	if agent == nil || agent.OrgID == nil {
 		return nil, fmt.Errorf("employee runtime startup: agent must have org_id")
 	}
@@ -135,7 +135,7 @@ func PrepareStartup(ctx context.Context, deps CompileDeps, agent *model.Agent) (
 	}, nil
 }
 
-func MintProxyToken(ctx context.Context, deps CompileDeps, agent *model.Agent, sandboxID uuid.UUID) (*ProxyTokenResult, error) {
+func MintProxyToken(ctx context.Context, deps CompileDeps, agent *model.Employee, sandboxID uuid.UUID) (*ProxyTokenResult, error) {
 	if agent == nil || agent.OrgID == nil {
 		return nil, fmt.Errorf("employee runtime proxy token: agent must have org_id")
 	}
@@ -183,7 +183,7 @@ func MintProxyToken(ctx context.Context, deps CompileDeps, agent *model.Agent, s
 	}, nil
 }
 
-func AttachLatestProxyTokenToSandbox(ctx context.Context, deps CompileDeps, agent *model.Agent, sandboxID uuid.UUID) error {
+func AttachLatestProxyTokenToSandbox(ctx context.Context, deps CompileDeps, agent *model.Employee, sandboxID uuid.UUID) error {
 	if agent == nil || agent.OrgID == nil || sandboxID == uuid.Nil || deps.DB == nil {
 		return nil
 	}
@@ -203,7 +203,7 @@ func AttachLatestProxyTokenToSandbox(ctx context.Context, deps CompileDeps, agen
 	return deps.DB.WithContext(ctx).Model(&tok).Update("meta", meta).Error
 }
 
-func Compile(ctx context.Context, deps CompileDeps, agent *model.Agent) (*EmployeeDefinition, error) {
+func Compile(ctx context.Context, deps CompileDeps, agent *model.Employee) (*EmployeeDefinition, error) {
 	if agent == nil || agent.OrgID == nil {
 		return nil, fmt.Errorf("employee runtime compile: agent must have org_id")
 	}
@@ -244,8 +244,8 @@ func Compile(ctx context.Context, deps CompileDeps, agent *model.Agent) (*Employ
 
 func ControlPlaneOutboundChannels(cfg *config.Config, sandboxID uuid.UUID) []any {
 	bridgeHost := "api.usehivy.com"
-	if cfg != nil && strings.TrimSpace(cfg.CloudAgentsSandboxHost) != "" {
-		bridgeHost = strings.TrimRight(strings.TrimSpace(cfg.CloudAgentsSandboxHost), "/")
+	if cfg != nil && strings.TrimSpace(cfg.SpecialistSandboxHost) != "" {
+		bridgeHost = strings.TrimRight(strings.TrimSpace(cfg.SpecialistSandboxHost), "/")
 	}
 	return []any{
 		map[string]any{

@@ -18,7 +18,7 @@ func TestIntegration_Resolve_BYOKPath(t *testing.T) {
 	orgID := seedBYOKOrg(t, db)
 	cred := seedBYOKCred(t, db, orgID, "anthropic")
 
-	agent := &model.Agent{
+	agent := &model.Employee{
 		ID:           uuid.New(),
 		OrgID:        &orgID,
 		CredentialID: &cred.ID,
@@ -44,7 +44,7 @@ func TestIntegration_Resolve_PlatformPath(t *testing.T) {
 	sys := seedSystemCred(t, db, "moonshotai", false)
 
 	orgID := seedBYOKOrg(t, db)
-	agent := &model.Agent{
+	agent := &model.Employee{
 		ID:           uuid.New(),
 		OrgID:        &orgID,
 		CredentialID: nil,
@@ -72,7 +72,7 @@ func TestIntegration_Resolve_MissingBYOKCredErrors(t *testing.T) {
 
 	// Point at a credential that doesn't exist.
 	ghostID := uuid.New()
-	agent := &model.Agent{
+	agent := &model.Employee{
 		ID:           uuid.New(),
 		OrgID:        &orgID,
 		CredentialID: &ghostID,

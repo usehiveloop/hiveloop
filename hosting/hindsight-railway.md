@@ -73,7 +73,7 @@ The API is never exposed publicly. Security is provided by Railway's private net
 | Variable | Value | Notes |
 |----------|-------|-------|
 | `HINDSIGHT_API_DATABASE_URL` | `${{Postgres.DATABASE_URL}}` | Railway reference variable, resolves to internal Postgres URL |
-| `HINDSIGHT_API_DATABASE_SCHEMA` | `hindsight` | Cloud Agent schema, auto-created by migrations |
+| `HINDSIGHT_API_DATABASE_SCHEMA` | `hindsight` | Specialist schema, auto-created by migrations |
 | `HINDSIGHT_API_RUN_MIGRATIONS_ON_STARTUP` | `true` | Migrations run automatically on deploy |
 
 ### LLM (OpenRouter)

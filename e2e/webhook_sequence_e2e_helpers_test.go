@@ -19,8 +19,8 @@ type webhookHarness struct {
 	h        *testHarness
 	fb       *fakebridge.Server
 	eventBus *streaming.EventBus
-	agent    model.Agent
-	conv     model.AgentConversation
+	agent    model.Employee
+	conv     model.EmployeeConversation
 }
 
 func newRotatedEncKey(seed byte) (*crypto.SymmetricKey, error) {
@@ -60,29 +60,29 @@ func newWebhookHarnessWithSecret(t *testing.T, prefix string, seed byte, bridgeS
 	h.db.Create(&cred)
 	t.Cleanup(func() { h.db.Where("id = ?", cred.ID).Delete(&model.Credential{}) })
 
-	agent := model.Agent{
+	agent := model.Employee{
 		OrgID: &org.ID, Name: prefix + "-agent-" + suffix,
 		CredentialID: &cred.ID, SystemPrompt: "test", Model: "gpt-4o",
 	}
 	h.db.Create(&agent)
-	t.Cleanup(func() { h.db.Where("id = ?", agent.ID).Delete(&model.Agent{}) })
+	t.Cleanup(func() { h.db.Where("id = ?", agent.ID).Delete(&model.Employee{}) })
 
 	sb := model.Sandbox{
-		OrgID: &org.ID, AgentID: &agent.ID,
+		OrgID: &org.ID, EmployeeID: &agent.ID,
 		ExternalID: prefix + "-ext-" + suffix, BridgeURL: "https://test:25434",
 		EncryptedBridgeAPIKey: encryptedKey, Status: "running",
 	}
 	h.db.Create(&sb)
 	t.Cleanup(func() { h.db.Where("id = ?", sb.ID).Delete(&model.Sandbox{}) })
 
-	conv := model.AgentConversation{
-		OrgID: org.ID, AgentID: agent.ID, SandboxID: sb.ID,
+	conv := model.EmployeeConversation{
+		OrgID: org.ID, EmployeeID: agent.ID, SandboxID: sb.ID,
 		RuntimeConversationID: prefix + "-conv-" + suffix, Status: "active",
 	}
 	h.db.Create(&conv)
 	t.Cleanup(func() {
 		h.db.Where("conversation_id = ?", conv.ID).Delete(&model.ConversationEvent{})
-		h.db.Where("id = ?", conv.ID).Delete(&model.AgentConversation{})
+		h.db.Where("id = ?", conv.ID).Delete(&model.EmployeeConversation{})
 	})
 
 	eventBus := streaming.NewEventBus(h.redisClient)

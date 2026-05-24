@@ -26,7 +26,7 @@ func init() {
 
 type EmployeeTriggerStoreDeliveryPayload struct {
 	OrgID                 uuid.UUID  `json:"org_id"`
-	AgentID               uuid.UUID  `json:"agent_id"`
+	EmployeeID            uuid.UUID  `json:"employee_id"`
 	TriggerID             uuid.UUID  `json:"trigger_id"`
 	ConnectionID          *uuid.UUID `json:"connection_id,omitempty"`
 	DeliveryID            string     `json:"delivery_id"`
@@ -74,9 +74,9 @@ func (h *EmployeeTriggerStoreDeliveryHandler) Handle(ctx context.Context, task *
 		raw = []byte("{}")
 	}
 
-	row := model.AgentTriggerDelivery{
+	row := model.EmployeeTriggerDelivery{
 		OrgID:                 payload.OrgID,
-		AgentID:               payload.AgentID,
+		EmployeeID:            payload.EmployeeID,
 		TriggerID:             payload.TriggerID,
 		ConnectionID:          payload.ConnectionID,
 		DeliveryID:            payload.DeliveryID,
@@ -100,7 +100,7 @@ func (h *EmployeeTriggerStoreDeliveryHandler) Handle(ctx context.Context, task *
 func triggerDeliverySentryFields(payload EmployeeTriggerStoreDeliveryPayload) map[string]any {
 	return map[string]any{
 		"org_id":                  payload.OrgID.String(),
-		"agent_id":                payload.AgentID.String(),
+		"employee_id":             payload.EmployeeID.String(),
 		"trigger_id":              payload.TriggerID.String(),
 		"delivery_id":             payload.DeliveryID,
 		"event_key":               payload.EventKey,

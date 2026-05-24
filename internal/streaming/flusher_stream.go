@@ -53,7 +53,7 @@ func (f *Flusher) flushStream(ctx context.Context, convID string) {
 		return
 	}
 
-	var conv model.AgentConversation
+	var conv model.EmployeeConversation
 	if err := f.db.Where("id = ?", convUUID).First(&conv).Error; err != nil {
 		captureTimelineFlush(ctx, "conversation_not_found", convID, err, map[string]any{
 			"message_count": len(msgs),
@@ -82,7 +82,7 @@ func (f *Flusher) flushStream(ctx context.Context, convID string) {
 
 		var full struct {
 			EventID        string          `json:"event_id"`
-			AgentID        string          `json:"agent_id"`
+			EmployeeID     string          `json:"employee_id"`
 			ConversationID string          `json:"conversation_id"`
 			Timestamp      time.Time       `json:"timestamp"`
 			SequenceNumber int64           `json:"sequence_number"`
@@ -103,7 +103,7 @@ func (f *Flusher) flushStream(ctx context.Context, convID string) {
 			ConversationID:        conv.ID,
 			EventID:               full.EventID,
 			EventType:             eventType,
-			AgentID:               full.AgentID,
+			EmployeeID:            full.EmployeeID,
 			RuntimeConversationID: full.ConversationID,
 			Timestamp:             full.Timestamp,
 			SequenceNumber:        full.SequenceNumber,
@@ -182,7 +182,7 @@ func (f *Flusher) flushStream(ctx context.Context, convID string) {
 func (f *Flusher) appendRecoveredReasoningEvents(
 	ctx context.Context,
 	convID string,
-	conv *model.AgentConversation,
+	conv *model.EmployeeConversation,
 	terminal model.ConversationEvent,
 	events *[]model.ConversationEvent,
 	recoveredMsgIDs *[]string,
@@ -215,7 +215,7 @@ func (f *Flusher) appendRecoveredReasoningEvents(
 func (f *Flusher) appendRecoveredEvents(
 	ctx context.Context,
 	convID string,
-	conv *model.AgentConversation,
+	conv *model.EmployeeConversation,
 	terminal model.ConversationEvent,
 	events *[]model.ConversationEvent,
 	recoveredMsgIDs *[]string,

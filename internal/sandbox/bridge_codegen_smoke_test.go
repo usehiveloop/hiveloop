@@ -45,19 +45,19 @@ func TestBridgeCodegenSmoke_NewWireShape(t *testing.T) {
 	}
 	t.Cleanup(func() { db.Where("id = ?", cred.ID).Delete(&model.Credential{}) })
 
-	agent := model.Agent{
+	agent := model.Employee{
 		ID: uuid.New(), OrgID: &org.ID, CredentialID: &cred.ID,
-		Name: "Smoke Agent", Model: "claude-sonnet-4-5",
+		Name: "Smoke Employee", Model: "claude-sonnet-4-5",
 		SystemPrompt: "You are a smoke-test agent.",
 		Status:       "active",
 		Permissions:  model.JSON{"Read": "allow"},
 		Tools:        model.JSON{}, McpServers: model.JSON{}, Skills: model.JSON{},
-		Integrations: model.JSON{}, AgentConfig: model.JSON{},
+		Integrations: model.JSON{}, RuntimeConfig: model.JSON{},
 	}
 	if err := db.Create(&agent).Error; err != nil {
 		t.Fatalf("create agent: %v", err)
 	}
-	t.Cleanup(func() { db.Where("id = ?", agent.ID).Delete(&model.Agent{}) })
+	t.Cleanup(func() { db.Where("id = ?", agent.ID).Delete(&model.Employee{}) })
 
 	cfg := &config.Config{
 		ProxyHost:  "proxy.smoke.test",
@@ -65,7 +65,7 @@ func TestBridgeCodegenSmoke_NewWireShape(t *testing.T) {
 	}
 	pusher := NewPusher(db, nil, signingKey, cfg, nil)
 
-	def := pusher.buildAgentDefinition(t.Context(), &agent, nil, &cred, "ptok_smoke", uuid.New().String())
+	def := pusher.buildSpecialistDefinition(t.Context(), &agent, nil, &cred, "ptok_smoke", uuid.New().String())
 
 	var (
 		gotUpsertBody []byte

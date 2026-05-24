@@ -37,7 +37,7 @@ func (h *EmployeeCleanupHandler) Handle(ctx context.Context, t *asynq.Task) erro
 		return nil
 	}
 
-	var employee model.Agent
+	var employee model.Employee
 	if err := h.db.Where("id = ?", payload.EmployeeID).First(&employee).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil
@@ -47,7 +47,7 @@ func (h *EmployeeCleanupHandler) Handle(ctx context.Context, t *asynq.Task) erro
 
 	h.cleanupEmployeeSandboxes(ctx, &employee)
 
-	if err := h.db.Where("id = ?", employee.ID).Delete(&model.Agent{}).Error; err != nil {
+	if err := h.db.Where("id = ?", employee.ID).Delete(&model.Employee{}).Error; err != nil {
 		return fmt.Errorf("hard-deleting employee: %w", err)
 	}
 
@@ -69,13 +69,13 @@ func (h *EmployeeCleanupHandler) cleanupExternalSandboxes(ctx context.Context, e
 	}
 }
 
-func (h *EmployeeCleanupHandler) cleanupEmployeeSandboxes(ctx context.Context, employee *model.Agent) {
+func (h *EmployeeCleanupHandler) cleanupEmployeeSandboxes(ctx context.Context, employee *model.Employee) {
 	if h.orchestrator == nil {
 		return
 	}
 
 	var sandboxes []model.Sandbox
-	if err := h.db.Where("agent_id = ?", employee.ID).Find(&sandboxes).Error; err != nil {
+	if err := h.db.Where("employee_id = ?", employee.ID).Find(&sandboxes).Error; err != nil {
 		logging.Capture(ctx, fmt.Errorf("find sandboxes for employee %s: %w", employee.ID, err))
 		return
 	}

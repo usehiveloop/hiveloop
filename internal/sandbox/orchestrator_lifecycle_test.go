@@ -67,9 +67,9 @@ func TestRunSandboxLifecycle_SkipsPersistentEmployeesFromArchive(t *testing.T) {
 	}
 }
 
-func newAgentWithHarness(t *testing.T, db *gorm.DB, orgID, credID uuid.UUID, harness string) model.Agent {
+func newAgentWithHarness(t *testing.T, db *gorm.DB, orgID, credID uuid.UUID, harness string) model.Employee {
 	t.Helper()
-	a := model.Agent{
+	a := model.Employee{
 		OrgID: &orgID, Name: "agent-" + uuid.NewString()[:8],
 		CredentialID: &credID, SystemPrompt: "x", Model: "y",
 		Harness: harness, IsEmployee: harness == "employee-sandbox",
@@ -78,14 +78,14 @@ func newAgentWithHarness(t *testing.T, db *gorm.DB, orgID, credID uuid.UUID, har
 	if err := db.Create(&a).Error; err != nil {
 		t.Fatalf("create agent: %v", err)
 	}
-	t.Cleanup(func() { db.Where("id = ?", a.ID).Delete(&model.Agent{}) })
+	t.Cleanup(func() { db.Where("id = ?", a.ID).Delete(&model.Employee{}) })
 	return a
 }
 
 func newRunningSandbox(t *testing.T, db *gorm.DB, orgID, agentID *uuid.UUID, externalID string, lastActiveAt time.Time) model.Sandbox {
 	t.Helper()
 	sb := model.Sandbox{
-		OrgID: orgID, AgentID: agentID,
+		OrgID: orgID, EmployeeID: agentID,
 		ExternalID:            externalID,
 		BridgeURL:             "https://stub.example",
 		EncryptedBridgeAPIKey: []byte("enc"),
@@ -102,7 +102,7 @@ func newRunningSandbox(t *testing.T, db *gorm.DB, orgID, agentID *uuid.UUID, ext
 func newStoppedSandbox(t *testing.T, db *gorm.DB, orgID, agentID *uuid.UUID, externalID string, stoppedAt time.Time) model.Sandbox {
 	t.Helper()
 	sb := model.Sandbox{
-		OrgID: orgID, AgentID: agentID,
+		OrgID: orgID, EmployeeID: agentID,
 		ExternalID:            externalID,
 		BridgeURL:             "https://stub.example",
 		EncryptedBridgeAPIKey: []byte("enc"),

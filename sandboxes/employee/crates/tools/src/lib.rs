@@ -122,11 +122,11 @@ pub fn build_builtin_tools(
             | ToolSpec::SkillsList
             | ToolSpec::SkillView
             | ToolSpec::SkillManage
-            | ToolSpec::CloudAgentLaunchTask
-            | ToolSpec::CloudAgentTaskStatus
-            | ToolSpec::CloudAgentListTasks
-            | ToolSpec::CloudAgentTaskSendMessage
-            | ToolSpec::CloudAgentTaskTerminate => {}
+            | ToolSpec::SpecialistLaunchTask
+            | ToolSpec::SpecialistTaskStatus
+            | ToolSpec::SpecialistListTasks
+            | ToolSpec::SpecialistTaskSendMessage
+            | ToolSpec::SpecialistTaskTerminate => {}
         }
     }
     tools

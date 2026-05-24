@@ -35,7 +35,7 @@ func TestEmployeeMemoryEventFromOutbound_StoresAllEventTypes(t *testing.T) {
 	agentID := uuid.New()
 	sandboxID := uuid.New()
 	eventAt := time.Date(2026, 5, 13, 9, 30, 0, 0, time.UTC)
-	sb := &model.Sandbox{ID: sandboxID, OrgID: &orgID, AgentID: &agentID}
+	sb := &model.Sandbox{ID: sandboxID, OrgID: &orgID, EmployeeID: &agentID}
 	for _, eventType := range []string{
 		"user.message.received",
 		"agent.stream.token",
@@ -73,7 +73,7 @@ func TestEmployeeMemoryEventFromOutbound_StoresEventWithoutSessionID(t *testing.
 	orgID := uuid.New()
 	agentID := uuid.New()
 	sandboxID := uuid.New()
-	sb := &model.Sandbox{ID: sandboxID, OrgID: &orgID, AgentID: &agentID}
+	sb := &model.Sandbox{ID: sandboxID, OrgID: &orgID, EmployeeID: &agentID}
 	payload := map[string]any{"source": "system"}
 	body, err := json.Marshal(payload)
 	if err != nil {
@@ -124,8 +124,8 @@ func TestIntegration_EmployeeSkillSync_UpsertsSkillAndAttachesAgent(t *testing.T
 	t.Cleanup(func() {
 		db.Where("id IN ?", []uuid.UUID{org1.ID, org2.ID}).Delete(&model.Org{})
 	})
-	agent1 := model.Agent{OrgID: &org1.ID, Name: "Aria", Model: "test"}
-	agent2 := model.Agent{OrgID: &org2.ID, Name: "Aria", Model: "test"}
+	agent1 := model.Employee{OrgID: &org1.ID, Name: "Aria", Model: "test"}
+	agent2 := model.Employee{OrgID: &org2.ID, Name: "Aria", Model: "test"}
 	if err := db.Create(&agent1).Error; err != nil {
 		t.Fatalf("create agent1: %v", err)
 	}
@@ -141,8 +141,8 @@ func TestIntegration_EmployeeSkillSync_UpsertsSkillAndAttachesAgent(t *testing.T
 	})
 
 	h := NewEmployeeOutboundWebhookHandler(db, nil, nil)
-	sb1 := &model.Sandbox{ID: uuid.New(), OrgID: &org1.ID, AgentID: &agent1.ID}
-	sb2 := &model.Sandbox{ID: uuid.New(), OrgID: &org2.ID, AgentID: &agent2.ID}
+	sb1 := &model.Sandbox{ID: uuid.New(), OrgID: &org1.ID, EmployeeID: &agent1.ID}
+	sb2 := &model.Sandbox{ID: uuid.New(), OrgID: &org2.ID, EmployeeID: &agent2.ID}
 	payload := map[string]any{
 		"action":      "create",
 		"name":        "debug-deploys",
@@ -162,7 +162,7 @@ func TestIntegration_EmployeeSkillSync_UpsertsSkillAndAttachesAgent(t *testing.T
 		t.Fatalf("status = %q", skill.Status)
 	}
 	var links int64
-	db.Model(&model.AgentSkill{}).Where("agent_id = ? AND skill_id = ?", agent1.ID, skill.ID).Count(&links)
+	db.Model(&model.EmployeeSkill{}).Where("employee_id = ? AND skill_id = ?", agent1.ID, skill.ID).Count(&links)
 	if links != 1 {
 		t.Fatalf("agent skill links = %d", links)
 	}
@@ -199,7 +199,7 @@ func TestIntegration_EmployeeSkillSync_UpsertsSkillAndAttachesAgent(t *testing.T
 	if err := h.syncSkillEvent(t.Context(), sb1, map[string]any{"action": "delete", "name": "debug-deploys", "deleted": true}); err != nil {
 		t.Fatalf("sync delete: %v", err)
 	}
-	db.Model(&model.AgentSkill{}).Where("agent_id = ? AND skill_id = ?", agent1.ID, skill.ID).Count(&links)
+	db.Model(&model.EmployeeSkill{}).Where("employee_id = ? AND skill_id = ?", agent1.ID, skill.ID).Count(&links)
 	if links != 0 {
 		t.Fatalf("agent link should be detached, got %d", links)
 	}

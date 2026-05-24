@@ -37,7 +37,7 @@ func connectDB(t *testing.T) *gorm.DB {
 	return db
 }
 
-func createAgent(t *testing.T, db *gorm.DB) model.Agent {
+func createAgent(t *testing.T, db *gorm.DB) model.Employee {
 	t.Helper()
 	orgID := uuid.New()
 	org := model.Org{ID: orgID, Name: "cleanup-test-" + uuid.New().String()[:8], Active: true}
@@ -45,7 +45,7 @@ func createAgent(t *testing.T, db *gorm.DB) model.Agent {
 		t.Fatalf("create org: %v", err)
 	}
 
-	agent := model.Agent{
+	agent := model.Employee{
 		OrgID:        &orgID,
 		Name:         "cleanup-agent-" + uuid.New().String()[:8],
 		SystemPrompt: "test",
@@ -57,7 +57,7 @@ func createAgent(t *testing.T, db *gorm.DB) model.Agent {
 	}
 
 	t.Cleanup(func() {
-		db.Where("id = ?", agent.ID).Delete(&model.Agent{})
+		db.Where("id = ?", agent.ID).Delete(&model.Employee{})
 		db.Where("id = ?", orgID).Delete(&model.Org{})
 	})
 
@@ -85,7 +85,7 @@ func TestEmployeeCleanup_HardDeletesActiveAgent(t *testing.T) {
 	}
 
 	var count int64
-	db.Model(&model.Agent{}).Where("id = ?", agent.ID).Count(&count)
+	db.Model(&model.Employee{}).Where("id = ?", agent.ID).Count(&count)
 	if count != 0 {
 		t.Fatal("agent should be hard-deleted from DB")
 	}
@@ -113,7 +113,7 @@ func TestEmployeeCleanup_NilOrchestratorHandledGracefully(t *testing.T) {
 	}
 
 	var count int64
-	db.Model(&model.Agent{}).Where("id = ?", agent.ID).Count(&count)
+	db.Model(&model.Employee{}).Where("id = ?", agent.ID).Count(&count)
 	if count != 0 {
 		t.Fatal("agent should still be hard-deleted even without orchestrator")
 	}

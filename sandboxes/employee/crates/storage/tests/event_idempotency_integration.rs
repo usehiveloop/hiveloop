@@ -29,18 +29,18 @@ async fn idempotent_event_append_is_enforced_by_sqlite() {
     let first = events
         .append_idempotent(
             &session_id,
-            EventKind::CloudAgentEvent,
+            EventKind::SpecialistEvent,
             serde_json::json!({"event_id": "event-1", "attempt": 1}),
-            "cloud-agent-callback:task-1:event-1",
+            "specialist-callback:task-1:event-1",
         )
         .await
         .expect("first append");
     let duplicate = events
         .append_idempotent(
             &session_id,
-            EventKind::CloudAgentEvent,
+            EventKind::SpecialistEvent,
             serde_json::json!({"event_id": "event-1", "attempt": 2}),
-            "cloud-agent-callback:task-1:event-1",
+            "specialist-callback:task-1:event-1",
         )
         .await
         .expect("duplicate append");

@@ -2,6 +2,7 @@ package handler
 
 import (
 	"net/http"
+	"sort"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
@@ -18,12 +19,12 @@ type employeeSpecialistResponse struct {
 	Description    string `json:"description"`
 	SpecialistType string `json:"specialist_type"`
 	Version        int    `json:"version"`
-	Enabled        bool   `json:"enabled"`
+	Attached       bool   `json:"attached"`
 }
 
 // ListSpecialists handles GET /v1/employees/{id}/specialists.
 // @Summary List employee specialists
-// @Description Returns all code-defined specialists and whether Hivy currently has each enabled.
+// @Description Returns all global specialists and whether Hivy currently has each attached.
 // @Tags employees
 // @Produce json
 // @Param id path string true "Employee ID"
@@ -39,25 +40,25 @@ func (h *EmployeeHandler) ListSpecialists(w http.ResponseWriter, r *http.Request
 	if !ok {
 		return
 	}
-	disabled := disabledSpecialistSet(employee.DisabledSpecialists)
-	out := make([]employeeSpecialistResponse, 0, len(specialistTemplates))
-	for i := range specialistTemplates {
-		t := specialistTemplates[i]
+	attached := attachedSpecialistSet(employee.AttachedSpecialists)
+	defs := h.specialists.List()
+	out := make([]employeeSpecialistResponse, 0, len(defs))
+	for _, def := range defs {
 		out = append(out, employeeSpecialistResponse{
-			Slug:           t.Slug,
-			Name:           t.Name,
-			Description:    t.Description,
-			SpecialistType: t.SpecialistType,
-			Version:        t.Version,
-			Enabled:        !disabled[t.Slug],
+			Slug:           def.Slug,
+			Name:           def.Name,
+			Description:    def.Description,
+			SpecialistType: def.SpecialistType,
+			Version:        def.Version,
+			Attached:       attached[def.Slug],
 		})
 	}
 	writeJSON(w, http.StatusOK, out)
 }
 
-// EnableSpecialist handles POST /v1/employees/{id}/specialists/{slug}.
-// @Summary Enable an employee specialist
-// @Description Removes a specialist slug from Hivy's disabled specialist list.
+// AttachSpecialist handles POST /v1/employees/{id}/specialists/{slug}.
+// @Summary Attach an employee specialist
+// @Description Adds a global specialist slug to Hivy's attached specialist list.
 // @Tags employees
 // @Produce json
 // @Param id path string true "Employee ID"
@@ -70,12 +71,12 @@ func (h *EmployeeHandler) ListSpecialists(w http.ResponseWriter, r *http.Request
 // @Security BearerAuth
 // @Router /v1/employees/{id}/specialists/{slug} [post]
 func (h *EmployeeHandler) EnableSpecialist(w http.ResponseWriter, r *http.Request) {
-	h.setSpecialistDisabled(w, r, false)
+	h.setSpecialistAttached(w, r, true)
 }
 
-// DisableSpecialist handles DELETE /v1/employees/{id}/specialists/{slug}.
-// @Summary Disable an employee specialist
-// @Description Adds a specialist slug to Hivy's disabled specialist list.
+// DetachSpecialist handles DELETE /v1/employees/{id}/specialists/{slug}.
+// @Summary Detach an employee specialist
+// @Description Removes a global specialist slug from Hivy's attached specialist list.
 // @Tags employees
 // @Produce json
 // @Param id path string true "Employee ID"
@@ -88,36 +89,36 @@ func (h *EmployeeHandler) EnableSpecialist(w http.ResponseWriter, r *http.Reques
 // @Security BearerAuth
 // @Router /v1/employees/{id}/specialists/{slug} [delete]
 func (h *EmployeeHandler) DisableSpecialist(w http.ResponseWriter, r *http.Request) {
-	h.setSpecialistDisabled(w, r, true)
+	h.setSpecialistAttached(w, r, false)
 }
 
-func (h *EmployeeHandler) setSpecialistDisabled(w http.ResponseWriter, r *http.Request, disabled bool) {
+func (h *EmployeeHandler) setSpecialistAttached(w http.ResponseWriter, r *http.Request, attached bool) {
 	employee, ok := h.loadEmployeeFromRequest(w, r)
 	if !ok {
 		return
 	}
 	slug := chi.URLParam(r, "slug")
-	if specialistTemplateBySlug(slug) == nil {
+	if _, ok := h.specialists.BySlug(slug); !ok {
 		writeJSON(w, http.StatusNotFound, map[string]string{"error": "specialist not found"})
 		return
 	}
-	next := setDisabledSpecialist(employee.DisabledSpecialists, slug, disabled)
+	next := setAttachedSpecialist(employee.AttachedSpecialists, slug, attached)
 	if err := h.db.WithContext(r.Context()).
-		Model(&model.Agent{}).
+		Model(&model.Employee{}).
 		Where("id = ?", employee.ID).
-		Update("disabled_specialists", pq.StringArray(next)).Error; err != nil {
+		Update("attached_specialists", pq.StringArray(next)).Error; err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to update specialist"})
 		return
 	}
-	employee.DisabledSpecialists = next
-	status := "enabled"
-	if disabled {
-		status = "disabled"
+	employee.AttachedSpecialists = next
+	status := "attached"
+	if !attached {
+		status = "detached"
 	}
 	writeJSON(w, http.StatusOK, map[string]string{"status": status})
 }
 
-func (h *EmployeeHandler) loadEmployeeFromRequest(w http.ResponseWriter, r *http.Request) (*model.Agent, bool) {
+func (h *EmployeeHandler) loadEmployeeFromRequest(w http.ResponseWriter, r *http.Request) (*model.Employee, bool) {
 	org, ok := middleware.OrgFromContext(r.Context())
 	if !ok {
 		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "missing org context"})
@@ -128,7 +129,7 @@ func (h *EmployeeHandler) loadEmployeeFromRequest(w http.ResponseWriter, r *http
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid employee id"})
 		return nil, false
 	}
-	var employee model.Agent
+	var employee model.Employee
 	if err := h.db.WithContext(r.Context()).
 		Where("id = ? AND org_id = ? AND status <> ?", id, org.ID, "archived").
 		First(&employee).Error; err != nil {
@@ -142,7 +143,7 @@ func (h *EmployeeHandler) loadEmployeeFromRequest(w http.ResponseWriter, r *http
 	return &employee, true
 }
 
-func disabledSpecialistSet(slugs []string) map[string]bool {
+func attachedSpecialistSet(slugs []string) map[string]bool {
 	out := make(map[string]bool, len(slugs))
 	for _, slug := range slugs {
 		out[slug] = true
@@ -150,9 +151,9 @@ func disabledSpecialistSet(slugs []string) map[string]bool {
 	return out
 }
 
-func setDisabledSpecialist(slugs []string, slug string, disabled bool) []string {
-	seen := disabledSpecialistSet(slugs)
-	if disabled {
+func setAttachedSpecialist(slugs []string, slug string, attached bool) []string {
+	seen := attachedSpecialistSet(slugs)
+	if attached {
 		seen[slug] = true
 	} else {
 		delete(seen, slug)
@@ -161,5 +162,6 @@ func setDisabledSpecialist(slugs []string, slug string, disabled bool) []string 
 	for item := range seen {
 		out = append(out, item)
 	}
+	sort.Strings(out)
 	return out
 }

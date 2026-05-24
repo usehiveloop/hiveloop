@@ -9,7 +9,7 @@ import (
 	"github.com/usehivy/hivy/internal/model"
 )
 
-func buildEmployeeMCPServer(ctx context.Context, deps CompileDeps, agent *model.Agent) any {
+func buildEmployeeMCPServer(ctx context.Context, deps CompileDeps, agent *model.Employee) any {
 	if deps.DB == nil || deps.Cfg == nil || deps.Cfg.MCPBaseURL == "" || agent.OrgID == nil {
 		return nil
 	}

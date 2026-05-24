@@ -4020,7 +4020,7 @@ export interface paths {
         };
         /**
          * List employee specialists
-         * @description Returns all code-defined specialists and whether Hivy currently has each enabled.
+         * @description Returns all global specialists and whether Hivy currently has each attached.
          */
         get: {
             parameters: {
@@ -4099,8 +4099,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Enable an employee specialist
-         * @description Removes a specialist slug from Hivy's disabled specialist list.
+         * Attach an employee specialist
+         * @description Adds a global specialist slug to Hivy's attached specialist list.
          */
         post: {
             parameters: {
@@ -4166,8 +4166,8 @@ export interface paths {
             };
         };
         /**
-         * Disable an employee specialist
-         * @description Adds a specialist slug to Hivy's disabled specialist list.
+         * Detach an employee specialist
+         * @description Removes a global specialist slug from Hivy's attached specialist list.
          */
         delete: {
             parameters: {
@@ -6094,7 +6094,7 @@ export interface paths {
         };
         /**
          * Get an index-attempt with per-doc errors
-         * @description Returns the attempt's status / counts / window plus the first page of per-doc failure rows. The cloud agent errors page can be used to walk later pages if needed.
+         * @description Returns the attempt's status / counts / window plus the first page of per-doc failure rows. The specialist errors page can be used to walk later pages if needed.
          */
         get: {
             parameters: {
@@ -8538,8 +8538,8 @@ export interface components {
             source_type?: string;
         };
         employeeSpecialistResponse: {
+            attached?: boolean;
             description?: string;
-            enabled?: boolean;
             name?: string;
             slug?: string;
             specialist_type?: string;

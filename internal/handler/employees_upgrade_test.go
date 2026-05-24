@@ -105,7 +105,7 @@ func TestEmployeeSandboxUpgrade_DuplicateActiveReturnsExisting(t *testing.T) {
 	oldSandbox := h.seedSandbox(t, m, agent.ID)
 	existing := model.EmployeeSandboxUpgrade{
 		OrgID:        m.org.ID,
-		AgentID:      agent.ID,
+		EmployeeID:   agent.ID,
 		OldSandboxID: &oldSandbox.ID,
 		Status:       model.EmployeeSandboxUpgradeStatusRunning,
 		Phase:        model.EmployeeSandboxUpgradePhaseBackup,
@@ -140,7 +140,7 @@ func TestEmployeeSandboxUpgrade_DeletesStaleTaskAfterFailedUpgrade(t *testing.T)
 	oldSandbox := h.seedSandbox(t, m, agent.ID)
 	failed := model.EmployeeSandboxUpgrade{
 		OrgID:        m.org.ID,
-		AgentID:      agent.ID,
+		EmployeeID:   agent.ID,
 		OldSandboxID: &oldSandbox.ID,
 		Status:       model.EmployeeSandboxUpgradeStatusFailed,
 		Phase:        model.EmployeeSandboxUpgradePhaseCreatingNew,
@@ -181,7 +181,7 @@ func TestEmployeeSandboxUpgrade_StatusScopedByOrgAndEmployee(t *testing.T) {
 	oldSandbox := h.seedSandbox(t, owner, agent.ID)
 	upgrade := model.EmployeeSandboxUpgrade{
 		OrgID:        owner.org.ID,
-		AgentID:      agent.ID,
+		EmployeeID:   agent.ID,
 		OldSandboxID: &oldSandbox.ID,
 		Status:       model.EmployeeSandboxUpgradeStatusQueued,
 		Phase:        model.EmployeeSandboxUpgradePhaseQueued,

@@ -31,7 +31,7 @@ type employeeSkillSyncPayload struct {
 }
 
 func (h *EmployeeOutboundWebhookHandler) syncSkillEvent(ctx context.Context, sb *model.Sandbox, raw map[string]any) error {
-	if sb.OrgID == nil || sb.AgentID == nil {
+	if sb.OrgID == nil || sb.EmployeeID == nil {
 		return nil
 	}
 	var payload employeeSkillSyncPayload
@@ -49,12 +49,12 @@ func (h *EmployeeOutboundWebhookHandler) syncSkillEvent(ctx context.Context, sb 
 	slug := strings.ToLower(payload.Name)
 
 	if payload.Action == "delete" || payload.Deleted {
-		return h.detachSyncedSkill(ctx, *sb.OrgID, *sb.AgentID, slug)
+		return h.detachSyncedSkill(ctx, *sb.OrgID, *sb.EmployeeID, slug)
 	}
 	if strings.TrimSpace(payload.Content) == "" {
 		return errors.New("skill content is required")
 	}
-	return h.upsertSyncedSkill(ctx, *sb.OrgID, *sb.AgentID, slug, payload)
+	return h.upsertSyncedSkill(ctx, *sb.OrgID, *sb.EmployeeID, slug, payload)
 }
 
 func (h *EmployeeOutboundWebhookHandler) detachSyncedSkill(ctx context.Context, orgID, agentID uuid.UUID, slug string) error {
@@ -70,8 +70,8 @@ func (h *EmployeeOutboundWebhookHandler) detachSyncedSkill(ctx context.Context, 
 			return fmt.Errorf("load skill for detach: %w", err)
 		}
 		if err := tx.
-			Where("agent_id = ? AND skill_id = ?", agentID, skill.ID).
-			Delete(&model.AgentSkill{}).Error; err != nil {
+			Where("employee_id = ? AND skill_id = ?", agentID, skill.ID).
+			Delete(&model.EmployeeSkill{}).Error; err != nil {
 			return fmt.Errorf("detach skill from agent: %w", err)
 		}
 		if err := tx.Model(&model.Skill{}).
@@ -146,8 +146,8 @@ func (h *EmployeeOutboundWebhookHandler) upsertSyncedSkill(ctx context.Context, 
 		if _, err := skillpkg.HydrateInline(ctx, tx, skill.ID, bundle); err != nil {
 			return fmt.Errorf("update inline skill content: %w", err)
 		}
-		link := model.AgentSkill{AgentID: agentID, SkillID: skill.ID}
-		if err := tx.Where("agent_id = ? AND skill_id = ?", agentID, skill.ID).
+		link := model.EmployeeSkill{EmployeeID: agentID, SkillID: skill.ID}
+		if err := tx.Where("employee_id = ? AND skill_id = ?", agentID, skill.ID).
 			FirstOrCreate(&link).Error; err != nil {
 			return fmt.Errorf("attach skill to agent: %w", err)
 		}

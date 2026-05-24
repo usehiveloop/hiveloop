@@ -36,7 +36,7 @@ func TestEmployeeProxyTokenRefreshHandler_InjectsNewTokenRevokesOldAndSchedulesN
 	}
 
 	task, _, err := NewEmployeeProxyTokenRefreshTask(EmployeeProxyTokenRefreshPayload{
-		AgentID:     f.agent.ID,
+		EmployeeID:  f.agent.ID,
 		SandboxID:   f.sandbox.ID,
 		ScheduledAt: oldToken.ExpiresAt.Add(-employeeProxyTokenRefreshLead),
 	})
@@ -75,7 +75,7 @@ func TestEmployeeProxyTokenRefreshHandler_InjectsNewTokenRevokesOldAndSchedulesN
 	if activeCount != 1 {
 		t.Fatalf("active employee proxy tokens = %d, want 1", activeCount)
 	}
-	var refreshedAgent model.Agent
+	var refreshedAgent model.Employee
 	if err := f.db.First(&refreshedAgent, "id = ?", f.agent.ID).Error; err != nil {
 		t.Fatalf("load refreshed agent: %v", err)
 	}
@@ -94,8 +94,8 @@ func TestEmployeeProxyTokenRefreshHandler_RevokesMintedTokenWhenRuntimeRejectsEn
 		t.Fatalf("mint old proxy token: %v", err)
 	}
 	task, _, err := NewEmployeeProxyTokenRefreshTask(EmployeeProxyTokenRefreshPayload{
-		AgentID:   f.agent.ID,
-		SandboxID: f.sandbox.ID,
+		EmployeeID: f.agent.ID,
+		SandboxID:  f.sandbox.ID,
 	})
 	if err != nil {
 		t.Fatalf("new refresh task: %v", err)
@@ -127,7 +127,7 @@ type employeeProxyTokenRefreshFixture struct {
 	handler     *EmployeeProxyTokenRefreshHandler
 	compileDeps employeeruntime.CompileDeps
 	org         model.Org
-	agent       model.Agent
+	agent       model.Employee
 	sandbox     model.Sandbox
 }
 
@@ -182,22 +182,22 @@ func newEmployeeProxyTokenRefreshFixture(t *testing.T, envStatus int) *employeeP
 	if err := db.Create(&cred).Error; err != nil {
 		t.Fatalf("create credential: %v", err)
 	}
-	agent := model.Agent{
-		OrgID:        &org.ID,
-		Name:         "employee-" + uuid.NewString()[:8],
-		IsEmployee:   true,
-		Harness:      "employee-sandbox",
-		Model:        employeeruntime.DefaultEmployeeModel,
-		CredentialID: &cred.ID,
-		Status:       "active",
-		SystemPrompt: "test employee",
-		Tools:        model.JSON{},
-		McpServers:   model.JSON{},
-		Skills:       model.JSON{},
-		Integrations: model.JSON{},
-		Resources:    model.JSON{},
-		AgentConfig:  model.JSON{},
-		Permissions:  model.JSON{},
+	agent := model.Employee{
+		OrgID:         &org.ID,
+		Name:          "employee-" + uuid.NewString()[:8],
+		IsEmployee:    true,
+		Harness:       "employee-sandbox",
+		Model:         employeeruntime.DefaultEmployeeModel,
+		CredentialID:  &cred.ID,
+		Status:        "active",
+		SystemPrompt:  "test employee",
+		Tools:         model.JSON{},
+		McpServers:    model.JSON{},
+		Skills:        model.JSON{},
+		Integrations:  model.JSON{},
+		Resources:     model.JSON{},
+		RuntimeConfig: model.JSON{},
+		Permissions:   model.JSON{},
 	}
 	if err := db.Create(&agent).Error; err != nil {
 		t.Fatalf("create agent: %v", err)
@@ -209,7 +209,7 @@ func newEmployeeProxyTokenRefreshFixture(t *testing.T, envStatus int) *employeeP
 	}
 	sb := model.Sandbox{
 		OrgID:                 &org.ID,
-		AgentID:               &agent.ID,
+		EmployeeID:            &agent.ID,
 		ExternalID:            "proxy-refresh-external",
 		BridgeURL:             server.URL,
 		EncryptedBridgeAPIKey: encryptedKey,
@@ -231,7 +231,7 @@ func newEmployeeProxyTokenRefreshFixture(t *testing.T, envStatus int) *employeeP
 	t.Cleanup(func() {
 		db.Where("org_id = ?", org.ID).Delete(&model.Token{})
 		db.Where("org_id = ?", org.ID).Delete(&model.Sandbox{})
-		db.Where("org_id = ?", org.ID).Delete(&model.Agent{})
+		db.Where("org_id = ?", org.ID).Delete(&model.Employee{})
 		db.Where("org_id = ?", org.ID).Delete(&model.Credential{})
 		db.Where("id = ?", org.ID).Delete(&model.Org{})
 	})

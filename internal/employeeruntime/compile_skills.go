@@ -24,8 +24,8 @@ func buildSkills(ctx context.Context, db *gorm.DB, agentID uuid.UUID) ([]SkillSp
 	if db == nil {
 		return []SkillSpec{}, nil
 	}
-	var links []model.AgentSkill
-	if err := db.WithContext(ctx).Where("agent_id = ?", agentID).Find(&links).Error; err != nil {
+	var links []model.EmployeeSkill
+	if err := db.WithContext(ctx).Where("employee_id = ?", agentID).Find(&links).Error; err != nil {
 		return nil, err
 	}
 	if len(links) == 0 {

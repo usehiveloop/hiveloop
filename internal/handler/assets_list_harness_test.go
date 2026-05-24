@@ -35,7 +35,7 @@ type assetsListHarness struct {
 
 // seedAssetRow inserts a ConversationAsset directly (no S3) so the listing
 // tests don't depend on MinIO being up. The list endpoint never touches S3.
-func seedAssetRow(t *testing.T, db *gorm.DB, conv model.AgentConversation, folder, filename string, createdAt time.Time) model.ConversationAsset {
+func seedAssetRow(t *testing.T, db *gorm.DB, conv model.EmployeeConversation, folder, filename string, createdAt time.Time) model.ConversationAsset {
 	t.Helper()
 	key := fmt.Sprintf("pub/c/%s/%s", conv.ID, filename)
 	if folder != "" {
@@ -85,7 +85,7 @@ func newAssetsListHarness(t *testing.T) *assetsListHarness {
 	}
 	mkAgent := func(orgID uuid.UUID, name string) uuid.UUID {
 		id := uuid.New()
-		if err := db.Create(&model.Agent{ID: id, OrgID: &orgID, Name: name, Status: "active"}).Error; err != nil {
+		if err := db.Create(&model.Employee{ID: id, OrgID: &orgID, Name: name, Status: "active"}).Error; err != nil {
 			t.Fatalf("create agent: %v", err)
 		}
 		return id
@@ -95,7 +95,7 @@ func newAssetsListHarness(t *testing.T) *assetsListHarness {
 		if err := db.Create(&model.Sandbox{
 			ID:                    id,
 			OrgID:                 &orgID,
-			AgentID:               &agentID,
+			EmployeeID:            &agentID,
 			EncryptedBridgeAPIKey: []byte("placeholder"),
 			Status:                "running",
 			ExternalID:            "x",
@@ -107,10 +107,10 @@ func newAssetsListHarness(t *testing.T) *assetsListHarness {
 	}
 	mkConv := func(orgID, agentID, sandboxID uuid.UUID) uuid.UUID {
 		id := uuid.New()
-		if err := db.Create(&model.AgentConversation{
+		if err := db.Create(&model.EmployeeConversation{
 			ID:                    id,
 			OrgID:                 orgID,
-			AgentID:               agentID,
+			EmployeeID:            agentID,
 			SandboxID:             sandboxID,
 			RuntimeConversationID: "bridge-" + uuid.New().String()[:8],
 			Status:                "active",
@@ -154,9 +154,9 @@ func (h *assetsListHarness) get(t *testing.T, query string, org *model.Org) *htt
 	return rr
 }
 
-func (h *assetsListHarness) loadConv(t *testing.T, id uuid.UUID) model.AgentConversation {
+func (h *assetsListHarness) loadConv(t *testing.T, id uuid.UUID) model.EmployeeConversation {
 	t.Helper()
-	var c model.AgentConversation
+	var c model.EmployeeConversation
 	if err := h.db.Where("id = ?", id).First(&c).Error; err != nil {
 		t.Fatalf("load conv: %v", err)
 	}

@@ -70,7 +70,7 @@ func (h *GitCredentialsHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	agentIDStr := chi.URLParam(r, "employeeID")
 	agentID, err := uuid.Parse(agentIDStr)
 	if err != nil {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid agent_id"})
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid employee_id"})
 		return
 	}
 
@@ -80,7 +80,7 @@ func (h *GitCredentialsHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var agent model.Agent
+	var agent model.Employee
 	if err := h.db.Where("id = ?", agentID).First(&agent).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			writeJSON(w, http.StatusNotFound, map[string]string{"error": "agent not found"})
@@ -91,7 +91,7 @@ func (h *GitCredentialsHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var sandboxes []model.Sandbox
-	if err := h.db.Where("agent_id = ?", agentID).Find(&sandboxes).Error; err != nil {
+	if err := h.db.Where("employee_id = ?", agentID).Find(&sandboxes).Error; err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to look up sandboxes"})
 		return
 	}
@@ -124,7 +124,7 @@ func (h *GitCredentialsHandler) Handle(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		logging.FromContext(r.Context()).ErrorContext(r.Context(), "git-credentials: failed to resolve github connection",
-			"agent_id", agentID,
+			"employee_id", agentID,
 			"error", err,
 		)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to look up connection"})
@@ -139,7 +139,7 @@ func (h *GitCredentialsHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	nangoConn, err := h.nango.GetConnection(r.Context(), tokenConn.conn.NangoConnectionID, tokenConn.providerConfigKey)
 	if err != nil {
 		logging.FromContext(r.Context()).ErrorContext(r.Context(), "git-credentials: failed to fetch from nango",
-			"agent_id", agentID,
+			"employee_id", agentID,
 			"connection_id", tokenConn.conn.ID,
 			"error", err,
 		)
@@ -166,7 +166,7 @@ func (h *GitCredentialsHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	writeGitCredentials(w, accessToken)
 }
 
-func (h *GitCredentialsHandler) resolveGitHubTokenConnection(ctx context.Context, orgID uuid.UUID, agent model.Agent) (gitHubTokenConnection, error) {
+func (h *GitCredentialsHandler) resolveGitHubTokenConnection(ctx context.Context, orgID uuid.UUID, agent model.Employee) (gitHubTokenConnection, error) {
 	var conn model.InConnection
 	if err := h.db.WithContext(ctx).
 		Preload("InIntegration").

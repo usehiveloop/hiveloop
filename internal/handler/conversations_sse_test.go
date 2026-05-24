@@ -7,7 +7,7 @@ import (
 )
 
 func TestTrimSSEEnvelope_StripsConversationIDAndAgentID(t *testing.T) {
-	in := json.RawMessage(`{"event_id":"e1","agent_id":"a1","conversation_id":"c1","data":{"x":1}}`)
+	in := json.RawMessage(`{"event_id":"e1","employee_id":"a1","conversation_id":"c1","data":{"x":1}}`)
 	out := trimSSEEnvelope(in)
 
 	var obj map[string]any
@@ -17,8 +17,8 @@ func TestTrimSSEEnvelope_StripsConversationIDAndAgentID(t *testing.T) {
 	if _, ok := obj["conversation_id"]; ok {
 		t.Errorf("conversation_id should be stripped, got %s", out)
 	}
-	if _, ok := obj["agent_id"]; ok {
-		t.Errorf("agent_id should be stripped, got %s", out)
+	if _, ok := obj["employee_id"]; ok {
+		t.Errorf("employee_id should be stripped, got %s", out)
 	}
 	if obj["event_id"] != "e1" {
 		t.Errorf("event_id missing or wrong: %s", out)
@@ -54,9 +54,9 @@ func TestTrimSSEEnvelope_NonObjectReturnsOriginal(t *testing.T) {
 }
 
 func TestTrimSSEEnvelope_PreservesOtherFields(t *testing.T) {
-	in := json.RawMessage(`{"conversation_id":"c1","agent_id":"a1","timestamp":"2025-01-01T00:00:00Z","sequence_number":42,"event_type":"msg","data":{"content":"hi"}}`)
+	in := json.RawMessage(`{"conversation_id":"c1","employee_id":"a1","timestamp":"2025-01-01T00:00:00Z","sequence_number":42,"event_type":"msg","data":{"content":"hi"}}`)
 	out := trimSSEEnvelope(in)
-	if strings.Contains(string(out), "conversation_id") || strings.Contains(string(out), "agent_id") {
+	if strings.Contains(string(out), "conversation_id") || strings.Contains(string(out), "employee_id") {
 		t.Errorf("stripped fields still present: %s", out)
 	}
 	for _, field := range []string{"timestamp", "sequence_number", "event_type", "data"} {

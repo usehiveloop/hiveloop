@@ -106,12 +106,12 @@ type Config struct {
 	DaytonaAPIKey string `env:"HIVY_DAYTONA_API_KEY"`
 	DaytonaTarget string `env:"HIVY_DAYTONA_TARGET"`
 
-	// Cloud agent sandbox runtime.
-	CloudAgentsSandboxBaseImagePrefix string `env:"HIVY_CLOUD_AGENTS_SANDBOX_BASE_IMAGE_PREFIX" envDefault:"hivy-bridge-1-0-0-small-v1"` // provider template/image for cloud agent sandboxes
-	CloudAgentsSandboxRuntimeVersion  string `env:"HIVY_CLOUD_AGENTS_SANDBOX_RUNTIME_VERSION,required"`                                  // usehivy/hivy release tag installed into user templates (e.g. v1.0.0)
-	CloudAgentsSandboxHost            string `env:"HIVY_CLOUD_AGENTS_SANDBOX_HOST"`                                                      // public control-plane host reachable from cloud agent sandboxes
-	APIWebhookBaseURL                 string `env:"HIVY_API_WEBHOOK_BASE_URL" envDefault:"https://api.usehivy.com"`                      // public API base URL for provider webhook callbacks
-	ProxyHost                         string `env:"HIVY_PROXY_HOST" envDefault:"proxy.usehivy.com"`                                      // LLM proxy hostname (proxy.usehivy.com)
+	// Specialist sandbox runtime.
+	SpecialistSandboxBaseImagePrefix string `env:"HIVY_SPECIALIST_SANDBOX_BASE_IMAGE_PREFIX" envDefault:"hivy-bridge-1-0-0-small-v1"` // provider template/image for specialist sandboxes
+	SpecialistSandboxRuntimeVersion  string `env:"HIVY_SPECIALIST_SANDBOX_RUNTIME_VERSION,required"`                                  // usehivy/hivy release tag installed into user templates (e.g. v1.0.0)
+	SpecialistSandboxHost            string `env:"HIVY_SPECIALIST_SANDBOX_HOST"`                                                      // public control-plane host reachable from specialist sandboxes
+	APIWebhookBaseURL                string `env:"HIVY_API_WEBHOOK_BASE_URL" envDefault:"https://api.usehivy.com"`                    // public API base URL for provider webhook callbacks
+	ProxyHost                        string `env:"HIVY_PROXY_HOST" envDefault:"proxy.usehivy.com"`                                    // LLM proxy hostname (proxy.usehivy.com)
 
 	// Employee sandbox runtime — ghcr.io/usehivy/employee-sandbox image.
 	EmployeeSandboxBaseImagePrefix string `env:"HIVY_EMPLOYEE_SANDBOX_BASE_IMAGE_PREFIX" envDefault:"hivy-employee-sandbox-0-0-3-small-v1"`
@@ -152,7 +152,7 @@ type Config struct {
 	PublicAssetsUseACL    bool          `env:"HIVY_PUBLIC_ASSETS_USE_ACL" envDefault:"false"`
 
 	// Sandbox defaults
-	CloudAgentSandboxGracePeriodMins int           `env:"HIVY_CLOUD_AGENT_SANDBOX_GRACE_PERIOD_MINS" envDefault:"5"`
+	SpecialistSandboxGracePeriodMins int           `env:"HIVY_SPECIALIST_SANDBOX_GRACE_PERIOD_MINS" envDefault:"5"`
 	SandboxResourceCheckInterval     time.Duration `env:"HIVY_SANDBOX_RESOURCE_CHECK_INTERVAL" envDefault:"30m"`
 
 	// Asynq worker

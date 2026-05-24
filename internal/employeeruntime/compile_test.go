@@ -14,7 +14,7 @@ import (
 func TestBuildPromptFragments_UsesTypedFields(t *testing.T) {
 	orgID := uuid.New()
 	description := managedEmployeeDescription
-	agent := &model.Agent{
+	agent := &model.Employee{
 		ID:             uuid.New(),
 		OrgID:          &orgID,
 		Name:           "Aria",
@@ -52,7 +52,7 @@ func TestBuildPromptFragments_UpgradesDefaultManagedIdentityPrompt(t *testing.T)
 		{name: "current default", identityPrompt: employeeprompts.EngineeringIdentityPrompt},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			agent := &model.Agent{
+			agent := &model.Employee{
 				ID:             uuid.New(),
 				OrgID:          &orgID,
 				Name:           "Higu",
@@ -77,7 +77,7 @@ func TestBuildPromptFragments_PreservesCustomIdentityPrompt(t *testing.T) {
 	orgID := uuid.New()
 	description := "Coordinates engineering work."
 	custom := "Use the team's incident voice."
-	agent := &model.Agent{
+	agent := &model.Employee{
 		ID:             uuid.New(),
 		OrgID:          &orgID,
 		Name:           "Higu",
@@ -97,7 +97,7 @@ func TestBuildPromptFragments_PreservesCustomIdentityPrompt(t *testing.T) {
 
 func TestBuildEmployeeMCPServer_DisabledWithoutRuntimeToken(t *testing.T) {
 	orgID := uuid.New()
-	agent := &model.Agent{ID: uuid.New(), OrgID: &orgID}
+	agent := &model.Employee{ID: uuid.New(), OrgID: &orgID}
 
 	if got := buildEmployeeMCPServer(context.Background(), CompileDeps{}, agent); got != nil {
 		t.Fatalf("expected no MCP server without DB/config/token, got %#v", got)

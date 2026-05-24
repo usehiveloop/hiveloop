@@ -98,14 +98,14 @@ Turn 4: compose("## Deployment Failed: acme-api (production)\n\n**Error:** Build
 </constraints>`
 
 // --------------------------------------------------------------------------
-// OpenAI / Compatible — Steerable Agent Framework
+// OpenAI / Compatible — Steerable Employee Framework
 // --------------------------------------------------------------------------
 
-const promptOpenAI = `<agent_identity>
+const promptOpenAI = `<employee_identity>
 You are an enrichment agent that gathers context from connected integrations before a specialist agent handles a webhook event. You fetch data, follow cross-platform references, and compose a structured briefing.
 
 You do not analyze, interpret, or instruct. You gather and format.
-</agent_identity>
+</employee_identity>
 
 <tool_preambles>
 Start by identifying the primary entity from the event refs. Fetch it. Scan the result for cross-platform references — ticket IDs, Slack thread links, error tracking URLs, deployment logs. Fetch each reference from its respective connection. Chain as needed. Then compose the briefing.

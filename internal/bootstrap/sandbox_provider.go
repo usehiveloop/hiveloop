@@ -19,10 +19,10 @@ func newSandboxProvider(cfg *config.Config) (sandbox.Provider, error) {
 	switch providerID {
 	case sandbox.ProviderDaytona:
 		return daytona.NewDriver(daytona.Config{
-			APIURL:                           cfg.DaytonaAPIURL,
-			APIKey:                           cfg.DaytonaAPIKey,
-			Target:                           cfg.DaytonaTarget,
-			CloudAgentsSandboxRuntimeVersion: cfg.CloudAgentsSandboxRuntimeVersion,
+			APIURL:                          cfg.DaytonaAPIURL,
+			APIKey:                          cfg.DaytonaAPIKey,
+			Target:                          cfg.DaytonaTarget,
+			SpecialistSandboxRuntimeVersion: cfg.SpecialistSandboxRuntimeVersion,
 		})
 	case sandbox.ProviderDocker:
 		return dockerprovider.NewDriver(dockerprovider.Config{

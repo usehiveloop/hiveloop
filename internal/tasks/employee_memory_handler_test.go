@@ -38,14 +38,14 @@ func TestEmployeeMemoryRetainHandler_CallsHindsight(t *testing.T) {
 	agentID := uuid.New()
 	sandboxID := uuid.New()
 	db := openTasksMemoryTestDB(t)
-	agent := model.Agent{ID: agentID, OrgID: &orgID, Name: "Aria", IsEmployee: true}
+	agent := model.Employee{ID: agentID, OrgID: &orgID, Name: "Aria", IsEmployee: true}
 	if err := db.Create(&model.Org{ID: orgID, Name: "mem-org-" + uuid.NewString()[:8], Active: true}).Error; err != nil {
 		t.Fatalf("create org: %v", err)
 	}
 	if err := db.Create(&agent).Error; err != nil {
 		t.Fatalf("create agent: %v", err)
 	}
-	if err := db.Create(&model.Sandbox{ID: sandboxID, OrgID: &orgID, AgentID: &agentID, ExternalID: "sb", BridgeURL: "http://bridge", EncryptedBridgeAPIKey: []byte("x"), Status: "running"}).Error; err != nil {
+	if err := db.Create(&model.Sandbox{ID: sandboxID, OrgID: &orgID, EmployeeID: &agentID, ExternalID: "sb", BridgeURL: "http://bridge", EncryptedBridgeAPIKey: []byte("x"), Status: "running"}).Error; err != nil {
 		t.Fatalf("create sandbox: %v", err)
 	}
 	for _, event := range []model.EmployeeMemoryEvent{
@@ -60,7 +60,7 @@ func TestEmployeeMemoryRetainHandler_CallsHindsight(t *testing.T) {
 
 	enq := &enqueue.MockClient{}
 	handler := NewEmployeeMemoryRetainHandler(db, hindsight.NewClient(srv.URL), enq)
-	task, err := NewEmployeeMemoryRetainTask(EmployeeMemoryRetainPayload{AgentID: agentID, SandboxID: sandboxID, SessionID: "S1"})
+	task, err := NewEmployeeMemoryRetainTask(EmployeeMemoryRetainPayload{EmployeeID: agentID, SandboxID: sandboxID, SessionID: "S1"})
 	if err != nil {
 		t.Fatalf("task: %v", err)
 	}
@@ -72,7 +72,7 @@ func TestEmployeeMemoryRetainHandler_CallsHindsight(t *testing.T) {
 	}
 	var count int64
 	if err := db.Model(&model.EmployeeMemoryEvent{}).
-		Where("agent_id = ? AND sandbox_id = ? AND session_id = ? AND retained_at IS NOT NULL", agentID, sandboxID, "S1").
+		Where("employee_id = ? AND sandbox_id = ? AND session_id = ? AND retained_at IS NOT NULL", agentID, sandboxID, "S1").
 		Count(&count).Error; err != nil {
 		t.Fatalf("count retained: %v", err)
 	}
@@ -80,7 +80,7 @@ func TestEmployeeMemoryRetainHandler_CallsHindsight(t *testing.T) {
 		t.Fatalf("retained event count = %d", count)
 	}
 	enq.AssertEnqueued(t, TypeEmployeeMemoryRefresh)
-	var refreshedAgent model.Agent
+	var refreshedAgent model.Employee
 	if err := db.First(&refreshedAgent, "id = ?", agentID).Error; err != nil {
 		t.Fatalf("load agent: %v", err)
 	}
@@ -100,7 +100,7 @@ func TestEmployeeMemoryRefreshHandler_TracksSuccessAndFailure(t *testing.T) {
 	if err := db.Create(&model.Org{ID: orgID, Name: "refresh-org-" + uuid.NewString()[:8], Active: true}).Error; err != nil {
 		t.Fatalf("create org: %v", err)
 	}
-	agent := model.Agent{ID: agentID, OrgID: &orgID, Name: "Aria", IsEmployee: true, Status: "active", Model: employeeruntime.DefaultEmployeeModel}
+	agent := model.Employee{ID: agentID, OrgID: &orgID, Name: "Aria", IsEmployee: true, Status: "active", Model: employeeruntime.DefaultEmployeeModel}
 	if err := db.Create(&agent).Error; err != nil {
 		t.Fatalf("create agent: %v", err)
 	}
@@ -126,7 +126,7 @@ func TestEmployeeMemoryRefreshHandler_TracksSuccessAndFailure(t *testing.T) {
 		}
 	}))
 	defer bridge.Close()
-	if err := db.Create(&model.Sandbox{ID: sandboxID, OrgID: &orgID, AgentID: &agentID, ExternalID: "sb", BridgeURL: bridge.URL, EncryptedBridgeAPIKey: encryptedSecret, Status: "running"}).Error; err != nil {
+	if err := db.Create(&model.Sandbox{ID: sandboxID, OrgID: &orgID, EmployeeID: &agentID, ExternalID: "sb", BridgeURL: bridge.URL, EncryptedBridgeAPIKey: encryptedSecret, Status: "running"}).Error; err != nil {
 		t.Fatalf("create sandbox: %v", err)
 	}
 
@@ -135,14 +135,14 @@ func TestEmployeeMemoryRefreshHandler_TracksSuccessAndFailure(t *testing.T) {
 		EncKey: encKey,
 		Cfg:    &config.Config{},
 	})
-	task, err := NewEmployeeMemoryRefreshTask(EmployeeMemoryRefreshPayload{AgentID: agentID, SandboxID: sandboxID, Reason: "test"})
+	task, err := NewEmployeeMemoryRefreshTask(EmployeeMemoryRefreshPayload{EmployeeID: agentID, SandboxID: sandboxID, Reason: "test"})
 	if err != nil {
 		t.Fatalf("task: %v", err)
 	}
 	if err := handler.Handle(context.Background(), task); err != nil {
 		t.Fatalf("refresh success: %v", err)
 	}
-	var updated model.Agent
+	var updated model.Employee
 	if err := db.First(&updated, "id = ?", agentID).Error; err != nil {
 		t.Fatalf("load updated agent: %v", err)
 	}

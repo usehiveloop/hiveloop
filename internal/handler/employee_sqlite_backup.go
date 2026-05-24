@@ -115,7 +115,7 @@ func employeeSQLiteBackupKey(orgID, agentID uuid.UUID, upgradeID *uuid.UUID) str
 	return fmt.Sprintf("employee-sqlite-backups/%s/%s/latest.db.gz", orgID, agentID)
 }
 
-func (h *EmployeeSQLiteBackupHandler) parseAndVerifyUpgradeID(w http.ResponseWriter, r *http.Request, agent *model.Agent) (*uuid.UUID, bool) {
+func (h *EmployeeSQLiteBackupHandler) parseAndVerifyUpgradeID(w http.ResponseWriter, r *http.Request, agent *model.Employee) (*uuid.UUID, bool) {
 	raw := r.URL.Query().Get("upgrade_id")
 	if raw == "" {
 		return nil, true
@@ -127,7 +127,7 @@ func (h *EmployeeSQLiteBackupHandler) parseAndVerifyUpgradeID(w http.ResponseWri
 	}
 	var count int64
 	err = h.db.WithContext(r.Context()).Model(&model.EmployeeSandboxUpgrade{}).
-		Where("id = ? AND org_id = ? AND agent_id = ?", upgradeID, *agent.OrgID, agent.ID).
+		Where("id = ? AND org_id = ? AND employee_id = ?", upgradeID, *agent.OrgID, agent.ID).
 		Count(&count).Error
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to verify upgrade"})
@@ -140,8 +140,8 @@ func (h *EmployeeSQLiteBackupHandler) parseAndVerifyUpgradeID(w http.ResponseWri
 	return &upgradeID, true
 }
 
-func (h *EmployeeSQLiteBackupHandler) authenticateEmployeeBridge(w http.ResponseWriter, r *http.Request, employeeID uuid.UUID, bearer string) (*model.Agent, *model.Sandbox, bool) {
-	var agent model.Agent
+func (h *EmployeeSQLiteBackupHandler) authenticateEmployeeBridge(w http.ResponseWriter, r *http.Request, employeeID uuid.UUID, bearer string) (*model.Employee, *model.Sandbox, bool) {
+	var agent model.Employee
 	if err := h.db.Where("id = ? AND status <> ?", employeeID, "archived").First(&agent).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			writeJSON(w, http.StatusNotFound, map[string]string{"error": "employee not found"})
@@ -157,7 +157,7 @@ func (h *EmployeeSQLiteBackupHandler) authenticateEmployeeBridge(w http.Response
 
 	var sandbox model.Sandbox
 	if err := h.db.
-		Where("agent_id = ? AND status NOT IN (?, ?)", employeeID, "archived", "error").
+		Where("employee_id = ? AND status NOT IN (?, ?)", employeeID, "archived", "error").
 		Order("created_at DESC").
 		First(&sandbox).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -170,7 +170,7 @@ func (h *EmployeeSQLiteBackupHandler) authenticateEmployeeBridge(w http.Response
 
 	wantKey, err := h.encKey.DecryptString(sandbox.EncryptedBridgeAPIKey)
 	if err != nil {
-		logging.FromContext(r.Context()).ErrorContext(r.Context(), "decrypt bridge api key", "agent_id", employeeID, "error", err)
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "decrypt bridge api key", "employee_id", employeeID, "error", err)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to verify credentials"})
 		return nil, nil, false
 	}

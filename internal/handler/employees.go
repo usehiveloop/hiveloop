@@ -10,11 +10,12 @@ import (
 	"github.com/usehivy/hivy/internal/model"
 	"github.com/usehivy/hivy/internal/registry"
 	"github.com/usehivy/hivy/internal/sandbox"
+	"github.com/usehivy/hivy/internal/specialists"
 )
 
 const (
 	employeeHarness           = "employee-sandbox"
-	employeeCloudAgentHarness = "open_code"
+	employeeSpecialistHarness = "open_code"
 	hivyEmployeeName          = "Hivy"
 	hivyEmployeeDescription   = "Hivy is the organization's managed AI employee."
 	hivyEmployeeAvatarURL     = "/assets/hivy-avatar.png"
@@ -27,12 +28,30 @@ type EmployeeHandler struct {
 	orchestrator *sandbox.Orchestrator
 	compileDeps  employeeruntime.CompileDeps
 	registry     *registry.Registry
+	specialists  *specialists.Catalog
 	enqueuer     enqueue.TaskEnqueuer
 	taskCleaner  enqueue.TaskCleaner
 }
 
-func NewEmployeeHandler(db *gorm.DB, orchestrator *sandbox.Orchestrator, compileDeps employeeruntime.CompileDeps, reg *registry.Registry) *EmployeeHandler {
-	return &EmployeeHandler{db: db, orchestrator: orchestrator, compileDeps: compileDeps, registry: reg}
+func NewEmployeeHandler(db *gorm.DB, orchestrator *sandbox.Orchestrator, compileDeps employeeruntime.CompileDeps, reg *registry.Registry, catalog ...*specialists.Catalog) *EmployeeHandler {
+	return &EmployeeHandler{
+		db:           db,
+		orchestrator: orchestrator,
+		compileDeps:  compileDeps,
+		registry:     reg,
+		specialists:  specialistCatalogFromArgs(catalog...),
+	}
+}
+
+func specialistCatalogFromArgs(catalog ...*specialists.Catalog) *specialists.Catalog {
+	if len(catalog) > 0 && catalog[0] != nil {
+		return catalog[0]
+	}
+	loaded, err := specialists.Load("global/specialists")
+	if err == nil {
+		return loaded
+	}
+	return specialists.EmptyCatalog()
 }
 
 func (h *EmployeeHandler) SetEnqueuer(enq enqueue.TaskEnqueuer) {

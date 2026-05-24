@@ -151,13 +151,13 @@ func (r *Retainer) processStream(ctx context.Context, convID string) {
 // retainConversation builds the full transcript and retains it to Hindsight.
 func (r *Retainer) retainConversation(ctx context.Context, convID uuid.UUID) {
 
-	var conv model.AgentConversation
-	if err := r.db.Preload("Agent").
+	var conv model.EmployeeConversation
+	if err := r.db.Preload("Employee").
 		Where("id = ?", convID).First(&conv).Error; err != nil {
 		return
 	}
 
-	agent := conv.Agent
+	agent := conv.Employee
 
 	if agent.OrgID == nil {
 		return
@@ -166,7 +166,7 @@ func (r *Retainer) retainConversation(ctx context.Context, convID uuid.UUID) {
 	bankID := OrgBankID(*agent.OrgID)
 	if err := r.ensureOrgBankConfigured(ctx, &agent); err != nil {
 		logging.FromContext(ctx).ErrorContext(ctx, "hindsight retainer: failed to ensure org bank",
-			"agent_id", agent.ID, "org_id", agent.OrgID, "error", err)
+			"employee_id", agent.ID, "org_id", agent.OrgID, "error", err)
 		return
 	}
 
@@ -197,7 +197,7 @@ func (r *Retainer) retainConversation(ctx context.Context, convID uuid.UUID) {
 			DocumentID:        "conv-" + convID.String(),
 			Tags:              tags,
 			Timestamp:         conv.CreatedAt.Format(time.RFC3339),
-			Metadata:          map[string]string{"conversation_id": convID.String(), "agent_id": agent.ID.String()},
+			Metadata:          map[string]string{"conversation_id": convID.String(), "employee_id": agent.ID.String()},
 			ObservationScopes: observationScopes,
 		}},
 		Async: true,

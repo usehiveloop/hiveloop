@@ -19,9 +19,9 @@ func (h *EmployeeSandboxUpgradeHandler) scheduleOldSandboxRetirement(
 		return fmt.Errorf("task enqueuer not configured")
 	}
 	task, opts, err := NewEmployeeSandboxRetireTask(EmployeeSandboxRetirePayload{
-		UpgradeID: upgrade.ID,
-		AgentID:   upgrade.AgentID,
-		SandboxID: oldSandbox.ID,
+		UpgradeID:  upgrade.ID,
+		EmployeeID: upgrade.EmployeeID,
+		SandboxID:  oldSandbox.ID,
 	})
 	if err != nil {
 		return err

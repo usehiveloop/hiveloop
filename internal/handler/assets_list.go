@@ -71,7 +71,7 @@ func (h *UploadsHandler) ListAssets(w http.ResponseWriter, r *http.Request) {
 
 	q := h.db.
 		Table("conversation_assets AS ca").
-		Select("ca.*, ac.agent_id AS agent_id_join").
+		Select("ca.*, ac.employee_id AS employee_id_join").
 		Joins("JOIN employee_sessions AS ac ON ac.id = ca.conversation_id").
 		Where("ca.org_id = ?", org.ID)
 
@@ -89,7 +89,7 @@ func (h *UploadsHandler) ListAssets(w http.ResponseWriter, r *http.Request) {
 			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid employee_id"})
 			return
 		}
-		q = q.Where("ac.agent_id = ?", employeeID)
+		q = q.Where("ac.employee_id = ?", employeeID)
 	}
 	if v, ok := r.URL.Query()["path"]; ok && len(v) > 0 {
 		// Path is a labelled folder — exact match. Empty value matches root.
@@ -107,7 +107,7 @@ func (h *UploadsHandler) ListAssets(w http.ResponseWriter, r *http.Request) {
 
 	type row struct {
 		model.ConversationAsset
-		AgentIDJoin uuid.UUID `gorm:"column:agent_id_join"`
+		AgentIDJoin uuid.UUID `gorm:"column:employee_id_join"`
 	}
 	var rows []row
 	if err := q.Order("ca.created_at DESC").Limit(limit + 1).Scan(&rows).Error; err != nil {

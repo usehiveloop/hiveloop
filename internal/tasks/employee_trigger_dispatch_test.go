@@ -13,7 +13,7 @@ import (
 
 func TestEmployeeTriggerCompileMessage_UsesCatalogRefsAndOmitsRawPayload(t *testing.T) {
 	triggerID := uuid.New()
-	trigger := model.AgentTrigger{
+	trigger := model.EmployeeTrigger{
 		ID:           triggerID,
 		TriggerType:  "webhook",
 		Instructions: "Summarize the issue and decide whether to create a task.",
@@ -87,7 +87,7 @@ func TestEmployeeTriggerCompileMessage_UsesCatalogRefsAndOmitsRawPayload(t *test
 }
 
 func TestEmployeeTriggerCompileMessage_HTTPIncludesSubmittedBody(t *testing.T) {
-	trigger := model.AgentTrigger{
+	trigger := model.EmployeeTrigger{
 		ID:           uuid.New(),
 		TriggerType:  "http",
 		Instructions: "Handle this external alert.",
@@ -120,7 +120,7 @@ func TestTriggerConditionsMatch(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	trigger := model.AgentTrigger{Conditions: model.RawJSON(conditions)}
+	trigger := model.EmployeeTrigger{Conditions: model.RawJSON(conditions)}
 
 	ok, _ := triggerConditionsMatch(trigger, map[string]any{
 		"repository": map[string]any{"full_name": "usehivy/hivy"},

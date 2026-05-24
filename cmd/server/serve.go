@@ -115,7 +115,7 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 
 	var specialistTaskHandler *handler.SpecialistTaskHandler
 	if orchestrator != nil && agentPusher != nil {
-		specialistTaskHandler = handler.NewSpecialistTaskHandler(database, sandboxEncKey, orchestrator, agentPusher)
+		specialistTaskHandler = handler.NewSpecialistTaskHandler(database, sandboxEncKey, orchestrator, agentPusher, deps.Specialists)
 	}
 	incomingWebhookHandler := handler.NewIncomingWebhookHandler(database, enqueuer)
 	httpTriggerHandler := handler.NewHTTPTriggerHandler(database, enqueuer)
@@ -138,7 +138,7 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 			Cfg:        cfg,
 			Nango:      nangoClient,
 			Hindsight:  hindsightClient,
-		}, reg)
+		}, reg, deps.Specialists)
 		if deps.S3Client != nil {
 			employeeHandler.SetEnqueuer(enqueuer)
 		}

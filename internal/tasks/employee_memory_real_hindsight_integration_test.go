@@ -35,11 +35,11 @@ func TestRealHindsightEmployeeMemoryCheckpointFlow(t *testing.T) {
 	if err := db.Create(&model.Org{ID: orgID, Name: "real-memory-" + uuid.NewString()[:8], Active: true}).Error; err != nil {
 		t.Fatalf("create org: %v", err)
 	}
-	agent := model.Agent{ID: agentID, OrgID: &orgID, Name: "Aria", IsEmployee: true, Status: "active"}
+	agent := model.Employee{ID: agentID, OrgID: &orgID, Name: "Aria", IsEmployee: true, Status: "active"}
 	if err := db.Create(&agent).Error; err != nil {
 		t.Fatalf("create agent: %v", err)
 	}
-	if err := db.Create(&model.Sandbox{ID: sandboxID, OrgID: &orgID, AgentID: &agentID, ExternalID: "real-hindsight-sb", BridgeURL: "http://bridge", EncryptedBridgeAPIKey: []byte("x"), Status: "running"}).Error; err != nil {
+	if err := db.Create(&model.Sandbox{ID: sandboxID, OrgID: &orgID, EmployeeID: &agentID, ExternalID: "real-hindsight-sb", BridgeURL: "http://bridge", EncryptedBridgeAPIKey: []byte("x"), Status: "running"}).Error; err != nil {
 		t.Fatalf("create sandbox: %v", err)
 	}
 
@@ -62,7 +62,7 @@ func TestRealHindsightEmployeeMemoryCheckpointFlow(t *testing.T) {
 	}
 
 	itemPreview, ok := buildEmployeeRetainItem(&agent, EmployeeMemoryRetainPayload{
-		AgentID: agentID, SandboxID: sandboxID, SessionID: sessionID, SourceEvent: "agent.message.sent",
+		EmployeeID: agentID, SandboxID: sandboxID, SessionID: sessionID, SourceEvent: "agent.message.sent",
 	}, seededEvents)
 	if !ok {
 		t.Fatal("expected retain item preview")
@@ -77,7 +77,7 @@ func TestRealHindsightEmployeeMemoryCheckpointFlow(t *testing.T) {
 	}
 	handler := NewEmployeeMemoryRetainHandler(db, client, nil)
 	task, err := NewEmployeeMemoryRetainTask(EmployeeMemoryRetainPayload{
-		AgentID:     agentID,
+		EmployeeID:  agentID,
 		SandboxID:   sandboxID,
 		SessionID:   sessionID,
 		Reason:      "real_hindsight_test",
@@ -92,7 +92,7 @@ func TestRealHindsightEmployeeMemoryCheckpointFlow(t *testing.T) {
 
 	var retainedCount int64
 	if err := db.Model(&model.EmployeeMemoryEvent{}).
-		Where("agent_id = ? AND sandbox_id = ? AND session_id = ? AND retained_at IS NOT NULL", agentID, sandboxID, sessionID).
+		Where("employee_id = ? AND sandbox_id = ? AND session_id = ? AND retained_at IS NOT NULL", agentID, sandboxID, sessionID).
 		Count(&retainedCount).Error; err != nil {
 		t.Fatalf("count retained events: %v", err)
 	}
@@ -133,11 +133,11 @@ func TestRealHindsightEmployeeMemoryProductionWorkload(t *testing.T) {
 	if err := db.Create(&model.Org{ID: orgID, Name: "prod-memory-" + uuid.NewString()[:8], Active: true}).Error; err != nil {
 		t.Fatalf("create org: %v", err)
 	}
-	agent := model.Agent{ID: agentID, OrgID: &orgID, Name: "Aria", IsEmployee: true, Status: "active"}
+	agent := model.Employee{ID: agentID, OrgID: &orgID, Name: "Aria", IsEmployee: true, Status: "active"}
 	if err := db.Create(&agent).Error; err != nil {
 		t.Fatalf("create agent: %v", err)
 	}
-	if err := db.Create(&model.Sandbox{ID: sandboxID, OrgID: &orgID, AgentID: &agentID, ExternalID: "production-workload-sb", BridgeURL: "http://bridge", EncryptedBridgeAPIKey: []byte("x"), Status: "running"}).Error; err != nil {
+	if err := db.Create(&model.Sandbox{ID: sandboxID, OrgID: &orgID, EmployeeID: &agentID, ExternalID: "production-workload-sb", BridgeURL: "http://bridge", EncryptedBridgeAPIKey: []byte("x"), Status: "running"}).Error; err != nil {
 		t.Fatalf("create sandbox: %v", err)
 	}
 
@@ -148,7 +148,7 @@ func TestRealHindsightEmployeeMemoryProductionWorkload(t *testing.T) {
 		sessionID := "slack-C123-prod-" + uuid.NewString()
 		events := session.toEvents(t, orgID, agentID, sandboxID, sessionID, i)
 		if _, ok := buildEmployeeRetainItem(&agent, EmployeeMemoryRetainPayload{
-			AgentID: agentID, SandboxID: sandboxID, SessionID: sessionID, SourceEvent: "agent.message.sent",
+			EmployeeID: agentID, SandboxID: sandboxID, SessionID: sessionID, SourceEvent: "agent.message.sent",
 		}, events); ok {
 			expectedRetained += len(events)
 		}
@@ -170,7 +170,7 @@ func TestRealHindsightEmployeeMemoryProductionWorkload(t *testing.T) {
 	handler := NewEmployeeMemoryRetainHandler(db, client, nil)
 	for _, sessionID := range distinctProductionSessionIDs(t, db, agentID, sandboxID) {
 		task, err := NewEmployeeMemoryRetainTask(EmployeeMemoryRetainPayload{
-			AgentID:     agentID,
+			EmployeeID:  agentID,
 			SandboxID:   sandboxID,
 			SessionID:   sessionID,
 			Reason:      "production_workload_test",
@@ -185,7 +185,7 @@ func TestRealHindsightEmployeeMemoryProductionWorkload(t *testing.T) {
 	}
 	var retainedCount int64
 	if err := db.Model(&model.EmployeeMemoryEvent{}).
-		Where("agent_id = ? AND sandbox_id = ? AND retained_at IS NOT NULL", agentID, sandboxID).
+		Where("employee_id = ? AND sandbox_id = ? AND retained_at IS NOT NULL", agentID, sandboxID).
 		Count(&retainedCount).Error; err != nil {
 		t.Fatalf("count retained: %v", err)
 	}

@@ -11,10 +11,10 @@ import (
 	"github.com/usehivy/hivy/internal/model"
 )
 
-func (h *EmployeeTriggerDispatchHandler) findOrCreateTriggerConversation(ctx context.Context, agent *model.Agent, sb *model.Sandbox, triggerID uuid.UUID, resourceKey, conversationID string) (*model.AgentConversation, error) {
-	var conv model.AgentConversation
+func (h *EmployeeTriggerDispatchHandler) findOrCreateTriggerConversation(ctx context.Context, agent *model.Employee, sb *model.Sandbox, triggerID uuid.UUID, resourceKey, conversationID string) (*model.EmployeeConversation, error) {
+	var conv model.EmployeeConversation
 	err := h.db.WithContext(ctx).
-		Where("org_id = ? AND agent_id = ? AND source = ? AND source_id = ? AND source_resource_key = ? AND status = ?",
+		Where("org_id = ? AND employee_id = ? AND source = ? AND source_id = ? AND source_resource_key = ? AND status = ?",
 			*agent.OrgID, agent.ID, triggerConversationSource, triggerID, resourceKey, "active").
 		First(&conv).Error
 	if err == nil {
@@ -24,9 +24,9 @@ func (h *EmployeeTriggerDispatchHandler) findOrCreateTriggerConversation(ctx con
 		return nil, fmt.Errorf("load trigger conversation: %w", err)
 	}
 
-	conv = model.AgentConversation{
+	conv = model.EmployeeConversation{
 		OrgID:                 *agent.OrgID,
-		AgentID:               agent.ID,
+		EmployeeID:            agent.ID,
 		SandboxID:             sb.ID,
 		RuntimeConversationID: conversationID,
 		Source:                triggerConversationSource,

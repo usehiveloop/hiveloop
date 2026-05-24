@@ -7,15 +7,15 @@ import (
 )
 
 type EmployeeSchedule struct {
-	ID        uuid.UUID `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
-	OrgID     uuid.UUID `gorm:"type:uuid;not null;index"`
-	Org       Org       `gorm:"foreignKey:OrgID;constraint:OnDelete:CASCADE"`
-	AgentID   uuid.UUID `gorm:"type:uuid;not null;uniqueIndex:idx_employee_schedule_agent_bridge"`
-	Agent     Agent     `gorm:"foreignKey:AgentID;constraint:OnDelete:CASCADE"`
-	SandboxID uuid.UUID `gorm:"type:uuid;not null;index"`
-	Sandbox   Sandbox   `gorm:"foreignKey:SandboxID;constraint:OnDelete:CASCADE"`
+	ID         uuid.UUID `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
+	OrgID      uuid.UUID `gorm:"type:uuid;not null;index"`
+	Org        Org       `gorm:"foreignKey:OrgID;constraint:OnDelete:CASCADE"`
+	EmployeeID uuid.UUID `gorm:"type:uuid;not null;uniqueIndex:idx_employee_schedule_employee_bridge"`
+	Employee   Employee  `gorm:"foreignKey:EmployeeID;constraint:OnDelete:CASCADE"`
+	SandboxID  uuid.UUID `gorm:"type:uuid;not null;index"`
+	Sandbox    Sandbox   `gorm:"foreignKey:SandboxID;constraint:OnDelete:CASCADE"`
 
-	BridgeJobID     string `gorm:"not null;size:255;uniqueIndex:idx_employee_schedule_agent_bridge"`
+	BridgeJobID     string `gorm:"not null;size:255;uniqueIndex:idx_employee_schedule_employee_bridge"`
 	Status          string `gorm:"not null;default:'active';size:64;index"`
 	Channel         string `gorm:"not null;default:'';size:255"`
 	Description     string `gorm:"type:text;not null;default:''"`
@@ -42,8 +42,8 @@ type EmployeeScheduleRun struct {
 	ID         uuid.UUID        `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
 	OrgID      uuid.UUID        `gorm:"type:uuid;not null;index"`
 	Org        Org              `gorm:"foreignKey:OrgID;constraint:OnDelete:CASCADE"`
-	AgentID    uuid.UUID        `gorm:"type:uuid;not null;index"`
-	Agent      Agent            `gorm:"foreignKey:AgentID;constraint:OnDelete:CASCADE"`
+	EmployeeID uuid.UUID        `gorm:"type:uuid;not null;index"`
+	Employee   Employee         `gorm:"foreignKey:EmployeeID;constraint:OnDelete:CASCADE"`
 	ScheduleID uuid.UUID        `gorm:"type:uuid;not null;uniqueIndex:idx_employee_schedule_run_key"`
 	Schedule   EmployeeSchedule `gorm:"foreignKey:ScheduleID;constraint:OnDelete:CASCADE"`
 	SandboxID  uuid.UUID        `gorm:"type:uuid;not null;index"`

@@ -60,7 +60,7 @@ func TestPusher_NeedsTokenRotation(t *testing.T) {
 					CredentialID: cred.ID,
 					JTI:          uuid.NewString(),
 					ExpiresAt:    now.Add(*tc.expiresIn),
-					Meta:         model.JSON{"agent_id": agentID.String(), "type": "agent_proxy"},
+					Meta:         model.JSON{"employee_id": agentID.String(), "type": "employee_proxy"},
 					RevokedAt:    revokedAt,
 				}
 				if err := db.Create(&tok).Error; err != nil {

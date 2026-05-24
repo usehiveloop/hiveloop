@@ -17,7 +17,7 @@ import (
 )
 
 // TestPusherDeadFeatures_NotEmittedOnWire pushes an agent whose JSONB
-// AgentConfig still carries legacy fields (immortal, history_strip,
+// RuntimeConfig still carries legacy fields (immortal, history_strip,
 // tool_requirements, verifier) and asserts none of them survive onto the
 // wire — guards against regressions that silently re-emit dropped fields.
 func TestPusherDeadFeatures_NotEmittedOnWire(t *testing.T) {
@@ -75,23 +75,23 @@ func TestPusherDeadFeatures_NotEmittedOnWire(t *testing.T) {
 		"subagent_timeout_background_secs": 1800,
 	}
 
-	agent := model.Agent{
+	agent := model.Employee{
 		ID: uuid.New(), OrgID: &org.ID, CredentialID: &cred.ID,
-		Name:         "Dead Features Agent-" + uuid.New().String()[:8],
+		Name:         "Dead Features Employee-" + uuid.New().String()[:8],
 		Model:        "claude-sonnet-4-5",
 		SystemPrompt: "test", Status: "active",
 		Tools: model.JSON{}, McpServers: model.JSON{}, Skills: model.JSON{},
-		Integrations: model.JSON{}, AgentConfig: legacyConfig, Permissions: model.JSON{},
+		Integrations: model.JSON{}, RuntimeConfig: legacyConfig, Permissions: model.JSON{},
 	}
 	if err := db.Create(&agent).Error; err != nil {
 		t.Fatalf("create agent: %v", err)
 	}
-	t.Cleanup(func() { db.Where("id = ?", agent.ID).Delete(&model.Agent{}) })
+	t.Cleanup(func() { db.Where("id = ?", agent.ID).Delete(&model.Employee{}) })
 
 	cfg := &config.Config{ProxyHost: "proxy.dead.test", MCPBaseURL: "https://mcp.dead.test"}
 	pusher := NewPusher(db, nil, signingKey, cfg, nil)
 
-	def := pusher.buildAgentDefinition(t.Context(), &agent, nil, &cred, "ptok_dead", uuid.New().String())
+	def := pusher.buildSpecialistDefinition(t.Context(), &agent, nil, &cred, "ptok_dead", uuid.New().String())
 
 	var captured []byte
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

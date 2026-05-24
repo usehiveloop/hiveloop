@@ -10,7 +10,7 @@ import (
 )
 
 type EmployeeMemoryRetainPayload struct {
-	AgentID     uuid.UUID `json:"agent_id"`
+	EmployeeID  uuid.UUID `json:"employee_id"`
 	SandboxID   uuid.UUID `json:"sandbox_id"`
 	SessionID   string    `json:"session_id"`
 	Reason      string    `json:"reason,omitempty"`
@@ -32,9 +32,9 @@ func NewEmployeeMemoryRetainTask(payload EmployeeMemoryRetainPayload) (*asynq.Ta
 }
 
 type EmployeeMemoryRefreshPayload struct {
-	AgentID   uuid.UUID `json:"agent_id"`
-	SandboxID uuid.UUID `json:"sandbox_id,omitempty"`
-	Reason    string    `json:"reason,omitempty"`
+	EmployeeID uuid.UUID `json:"employee_id"`
+	SandboxID  uuid.UUID `json:"sandbox_id,omitempty"`
+	Reason     string    `json:"reason,omitempty"`
 }
 
 func NewEmployeeMemoryRefreshTask(payload EmployeeMemoryRefreshPayload) (*asynq.Task, error) {
