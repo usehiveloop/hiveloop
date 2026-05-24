@@ -1,0 +1,205 @@
+package docker
+
+import (
+	"context"
+	"fmt"
+	"io"
+	"net/http"
+	"strings"
+	"testing"
+	"time"
+
+	"github.com/docker/docker/api/types/build"
+	"github.com/docker/docker/api/types/image"
+	"github.com/usehivy/hivy/internal/sandbox"
+)
+
+func TestDockerDriverLifecycleEndpointExecAndResources(t *testing.T) {
+	ctx := context.Background()
+	driver := newIntegrationDriver(t, ctx)
+	imageRef := buildIntegrationImage(t, ctx, driver, "runtime", integrationRuntimeDockerfile())
+
+	info, err := driver.CreateSandbox(ctx, sandbox.CreateSandboxOpts{
+		Name:        "hivy-docker-integration",
+		TemplateRef: imageRef,
+		EnvVars:     map[string]string{"HIVY_DOCKER_TEST": "ok"},
+		Labels:      map[string]string{"test": "docker-driver"},
+		CPU:         1,
+		Memory:      1,
+	})
+	if err != nil {
+		t.Fatalf("CreateSandbox: %v", err)
+	}
+	t.Cleanup(func() { _ = driver.DeleteSandbox(context.Background(), info.ExternalID) })
+
+	url, err := driver.GetEndpoint(ctx, info.ExternalID, 8080)
+	if err != nil {
+		t.Fatalf("GetEndpoint: %v", err)
+	}
+	assertHTTPBody(t, ctx, url, "ok")
+
+	output, err := driver.ExecuteCommand(ctx, info.ExternalID, "printf '%s' \"$HIVY_DOCKER_TEST\"")
+	if err != nil {
+		t.Fatalf("ExecuteCommand env: %v output=%q", err, output)
+	}
+	if output != "ok" {
+		t.Fatalf("env output = %q, want ok", output)
+	}
+
+	if output, err = driver.ExecuteCommand(ctx, info.ExternalID, "echo persisted > /tmp/hivy-state"); err != nil {
+		t.Fatalf("ExecuteCommand write state: %v output=%q", err, output)
+	}
+	if err := driver.StopSandbox(ctx, info.ExternalID); err != nil {
+		t.Fatalf("StopSandbox: %v", err)
+	}
+	status, err := driver.GetStatus(ctx, info.ExternalID)
+	if err != nil {
+		t.Fatalf("GetStatus stopped: %v", err)
+	}
+	if status != sandbox.StatusStopped {
+		t.Fatalf("status after stop = %s, want %s", status, sandbox.StatusStopped)
+	}
+	if err := driver.StartSandbox(ctx, info.ExternalID); err != nil {
+		t.Fatalf("StartSandbox: %v", err)
+	}
+	output, err = driver.ExecuteCommand(ctx, info.ExternalID, "cat /tmp/hivy-state")
+	if err != nil {
+		t.Fatalf("ExecuteCommand read state: %v output=%q", err, output)
+	}
+	if strings.TrimSpace(output) != "persisted" {
+		t.Fatalf("persisted state = %q, want persisted", output)
+	}
+
+	usage, err := driver.GetResourceUsage(ctx, info.ExternalID)
+	if err != nil {
+		t.Fatalf("GetResourceUsage: %v", err)
+	}
+	if usage.MemoryLimitBytes != bytesPerGiB {
+		t.Fatalf("memory limit = %d, want %d", usage.MemoryLimitBytes, bytesPerGiB)
+	}
+	if usage.CPUQuota == "" {
+		t.Fatalf("CPUQuota should be populated for a CPU-limited container")
+	}
+}
+
+func TestDockerDriverBuildTemplateCreatesLocalImage(t *testing.T) {
+	ctx := context.Background()
+	driver := newIntegrationDriver(t, ctx)
+	baseRef := buildIntegrationImage(t, ctx, driver, "template-base", integrationRuntimeDockerfile())
+
+	templateRef, err := driver.BuildTemplateWithLogs(ctx, sandbox.TemplateBuildRequest{
+		Name:          fmt.Sprintf("integration-%d", time.Now().UnixNano()),
+		BaseImage:     baseRef,
+		BuildCommands: []string{"echo built > /template-marker"},
+	}, func(string) {})
+	if err != nil {
+		t.Fatalf("BuildTemplateWithLogs: %v", err)
+	}
+	t.Cleanup(func() { _ = driver.DeleteTemplate(context.Background(), templateRef) })
+
+	status, err := driver.GetTemplateStatus(ctx, templateRef)
+	if err != nil {
+		t.Fatalf("GetTemplateStatus: %v", err)
+	}
+	if status.State != "ready" {
+		t.Fatalf("template status = %q, want ready", status.State)
+	}
+
+	info, err := driver.CreateSandbox(ctx, sandbox.CreateSandboxOpts{
+		Name:        "hivy-docker-template-integration",
+		TemplateRef: templateRef,
+	})
+	if err != nil {
+		t.Fatalf("CreateSandbox from template: %v", err)
+	}
+	t.Cleanup(func() { _ = driver.DeleteSandbox(context.Background(), info.ExternalID) })
+
+	output, err := driver.ExecuteCommand(ctx, info.ExternalID, "cat /template-marker")
+	if err != nil {
+		t.Fatalf("ExecuteCommand template marker: %v output=%q", err, output)
+	}
+	if strings.TrimSpace(output) != "built" {
+		t.Fatalf("template marker = %q, want built", output)
+	}
+}
+
+func newIntegrationDriver(t *testing.T, ctx context.Context) *Driver {
+	t.Helper()
+
+	driver, err := NewDriver(Config{
+		PublicHost:           "127.0.0.1",
+		ContainerLabelPrefix: "hivytest",
+	})
+	if err != nil {
+		t.Fatalf("NewDriver: %v", err)
+	}
+	if err := driver.Validate(ctx); err != nil {
+		t.Fatalf("Validate: %v", err)
+	}
+	return driver
+}
+
+func buildIntegrationImage(t *testing.T, ctx context.Context, driver *Driver, name string, dockerfile string) string {
+	t.Helper()
+
+	ref := fmt.Sprintf("hivy-docker-test-%s:%d", name, time.Now().UnixNano())
+	buildCtx, err := dockerfileContext(dockerfile)
+	if err != nil {
+		t.Fatalf("dockerfileContext: %v", err)
+	}
+	response, err := driver.cli.ImageBuild(ctx, buildCtx, build.ImageBuildOptions{
+		Tags:       []string{ref},
+		Dockerfile: "Dockerfile",
+		Remove:     true,
+		PullParent: true,
+	})
+	if err != nil {
+		t.Fatalf("ImageBuild %s: %v", ref, err)
+	}
+	defer response.Body.Close()
+	if err := streamBuildLogs(response.Body, func(line string) { t.Log(line) }); err != nil {
+		t.Fatalf("ImageBuild stream %s: %v", ref, err)
+	}
+	t.Cleanup(func() {
+		_, _ = driver.cli.ImageRemove(context.Background(), ref, image.RemoveOptions{Force: true, PruneChildren: false})
+	})
+	return ref
+}
+
+func integrationRuntimeDockerfile() string {
+	return `FROM busybox:1.36
+RUN mkdir -p /www && echo ok > /www/index.html
+EXPOSE 8080
+CMD ["httpd", "-f", "-p", "8080", "-h", "/www"]
+`
+}
+
+func assertHTTPBody(t *testing.T, ctx context.Context, url string, want string) {
+	t.Helper()
+
+	client := &http.Client{Timeout: time.Second}
+	deadline := time.Now().Add(20 * time.Second)
+	var lastErr error
+	for time.Now().Before(deadline) {
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+		if err != nil {
+			t.Fatalf("NewRequest: %v", err)
+		}
+		resp, err := client.Do(req)
+		if err == nil {
+			body, readErr := io.ReadAll(resp.Body)
+			_ = resp.Body.Close()
+			if readErr != nil {
+				t.Fatalf("ReadAll: %v", readErr)
+			}
+			if resp.StatusCode == http.StatusOK && strings.TrimSpace(string(body)) == want {
+				return
+			}
+			lastErr = fmt.Errorf("status=%d body=%q", resp.StatusCode, strings.TrimSpace(string(body)))
+		} else {
+			lastErr = err
+		}
+		time.Sleep(250 * time.Millisecond)
+	}
+	t.Fatalf("GET %s did not return %q: %v", url, want, lastErr)
+}

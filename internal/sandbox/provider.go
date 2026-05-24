@@ -8,7 +8,10 @@ import (
 
 var ErrSandboxNotFound = errors.New("sandbox not found upstream")
 
-const ProviderDaytona = "daytona"
+const (
+	ProviderDaytona = "daytona"
+	ProviderDocker  = "docker"
+)
 
 // SandboxStatus represents the state of a sandbox.
 type SandboxStatus string
@@ -29,6 +32,9 @@ type CreateSandboxOpts struct {
 	TemplateRef string            // provider template/image reference
 	EnvVars     map[string]string // environment variables (e.g. BRIDGE_* config)
 	Labels      map[string]string // metadata labels (org_id, sandbox_id, agent_id)
+	CPU         int               // CPU cores (0 = provider default)
+	Memory      int               // memory in GB (0 = provider default)
+	Disk        int               // disk in GB (0 = provider default)
 }
 
 // SandboxInfo is returned after creating a sandbox.

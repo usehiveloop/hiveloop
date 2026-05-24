@@ -78,6 +78,7 @@ func (o *Orchestrator) createSandbox(ctx context.Context, org *model.Org, agent 
 	setUploadBearer(envVars, bridgeAPIKey)
 
 	templateRef := o.resolveTemplateRef(agent)
+	cpu, memory, disk := o.resolveTemplateResources(agent)
 	name := o.buildSandboxName(agent)
 
 	labels := map[string]string{
@@ -93,6 +94,9 @@ func (o *Orchestrator) createSandbox(ctx context.Context, org *model.Org, agent 
 		TemplateRef: templateRef,
 		EnvVars:     envVars,
 		Labels:      labels,
+		CPU:         cpu,
+		Memory:      memory,
+		Disk:        disk,
 	})
 	if err != nil {
 		o.db.Where("id = ?", sb.ID).Delete(&model.Sandbox{})
@@ -191,6 +195,23 @@ func (o *Orchestrator) resolveTemplateRef(agent *model.Agent) string {
 		}
 	}
 	return o.cfg.BridgeBaseDedicatedImagePrefix
+}
+
+func (o *Orchestrator) resolveTemplateResources(agent *model.Agent) (int, int, int) {
+	if agent == nil || agent.SandboxTemplateID == nil {
+		return 0, 0, 0
+	}
+	var tmpl model.SandboxTemplate
+	if err := o.db.Where("id = ?", *agent.SandboxTemplateID).First(&tmpl).Error; err != nil {
+		return 0, 0, 0
+	}
+	if tmpl.ExternalID == nil || tmpl.BuildStatus != "ready" {
+		return 0, 0, 0
+	}
+	if sz, ok := model.TemplateSizes[tmpl.Size]; ok {
+		return sz.CPU, sz.Memory, sz.Disk
+	}
+	return 0, 0, 0
 }
 
 func (o *Orchestrator) buildSandboxName(agent *model.Agent) string {

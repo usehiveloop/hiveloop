@@ -100,11 +100,14 @@ type Config struct {
 	TursoGroup    string `env:"TURSO_GROUP" envDefault:"default"`
 
 	// Sandbox provider (global — one provider for the whole platform)
-	SandboxEncryptionKey string `env:"SANDBOX_ENCRYPTION_KEY"`                   // base64-encoded 32-byte key for encrypting sandbox secrets (Bridge API keys)
-	SandboxProviderID    string `env:"SANDBOX_PROVIDER_ID" envDefault:"daytona"` // startup-time sandbox provider adapter
-	SandboxProviderURL   string `env:"SANDBOX_PROVIDER_URL"`                     // provider API URL
-	SandboxProviderKey   string `env:"SANDBOX_PROVIDER_KEY"`                     // API key for the sandbox provider
-	SandboxTarget        string `env:"SANDBOX_TARGET"`                           // provider-specific target/region
+	SandboxEncryptionKey              string `env:"SANDBOX_ENCRYPTION_KEY"`                   // base64-encoded 32-byte key for encrypting sandbox secrets (Bridge API keys)
+	SandboxProviderID                 string `env:"SANDBOX_PROVIDER_ID" envDefault:"daytona"` // startup-time sandbox provider adapter
+	SandboxProviderURL                string `env:"SANDBOX_PROVIDER_URL"`                     // provider API URL
+	SandboxProviderKey                string `env:"SANDBOX_PROVIDER_KEY"`                     // API key for the sandbox provider
+	SandboxTarget                     string `env:"SANDBOX_TARGET"`                           // provider-specific target/region
+	SandboxDockerHost                 string `env:"SANDBOX_DOCKER_HOST"`
+	SandboxDockerPublicHost           string `env:"SANDBOX_DOCKER_PUBLIC_HOST"`
+	SandboxDockerContainerLabelPrefix string `env:"SANDBOX_DOCKER_CONTAINER_LABEL_PREFIX" envDefault:"hivy"`
 
 	// Bridge (agent runtime in sandboxes)
 	BridgeBaseImagePrefix          string `env:"BRIDGE_BASE_IMAGE_PREFIX" envDefault:"hivy-bridge-1-0-0-small-v1"`           // provider template for shared/pool sandboxes
