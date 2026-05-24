@@ -31,15 +31,15 @@ until docker compose exec -T redis redis-cli ping 2>/dev/null | grep -q PONG; do
 echo "  ✓ Redis"
 
 if [[ "$TARGET" == "nango" || "$TARGET" == "integrations" || "$TARGET" == "all" ]]; then
-    until curl -fsS "http://localhost:${NANGO_PORT:-13003}/health" >/dev/null 2>&1; do sleep 1; done
+    until curl -fsS "http://localhost:${HIVY_NANGO_PORT:-13003}/health" >/dev/null 2>&1; do sleep 1; done
     echo "  ✓ Nango"
 fi
 
 echo ""
 echo "==> Verifying env vars..."
 
-: "${NANGO_ENDPOINT:?NANGO_ENDPOINT must be set}"
-: "${NANGO_SECRET_KEY:?NANGO_SECRET_KEY must be set}"
+: "${HIVY_NANGO_ENDPOINT:?HIVY_NANGO_ENDPOINT must be set}"
+: "${HIVY_NANGO_SECRET_KEY:?HIVY_NANGO_SECRET_KEY must be set}"
 : "${OPENROUTER_API_KEY:?OPENROUTER_API_KEY must be set}"
 : "${FIREWORKS_API_KEY:?FIREWORKS_API_KEY must be set}"
 

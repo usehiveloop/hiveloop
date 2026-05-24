@@ -24,7 +24,7 @@ const testDBURL = "postgres://hivy:localdev@localhost:5433/hivy_test?sslmode=dis
 func ConnectTestDB(t *testing.T) *gorm.DB {
 	t.Helper()
 
-	dsn := os.Getenv("DATABASE_URL")
+	dsn := os.Getenv("HIVY_DATABASE_URL")
 	if dsn == "" {
 		dsn = testDBURL
 	}

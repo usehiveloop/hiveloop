@@ -9,9 +9,9 @@ import {
 } from "@/lib/auth/session"
 import { log } from "@/lib/logger"
 
-const API_URL = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL as string
+const HIVY_API_URL = process.env.HIVY_API_URL ?? process.env.NEXT_PUBLIC_HIVY_API_URL as string
 
-log.info({ api_url: API_URL }, "proxy route initialized")
+log.info({ api_url: HIVY_API_URL }, "proxy route initialized")
 
 // Paths whose successful responses contain tokens that should be persisted.
 const AUTH_PATHS = new Set([
@@ -51,7 +51,7 @@ function captureRefreshFailure(
 async function refreshTokens(refreshToken: string): Promise<SessionData | null> {
   let res: Response
   try {
-    res = await fetch(`${API_URL}/auth/refresh`, {
+    res = await fetch(`${HIVY_API_URL}/auth/refresh`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ refresh_token: refreshToken }),
@@ -163,7 +163,7 @@ async function handler(
 
   reqLog.info("proxy request started")
 
-  const url = new URL(`${API_URL}/${apiPath}`)
+  const url = new URL(`${HIVY_API_URL}/${apiPath}`)
   req.nextUrl.searchParams.forEach((value, key) =>
     url.searchParams.append(key, value)
   )

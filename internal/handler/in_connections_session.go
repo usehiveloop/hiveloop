@@ -44,7 +44,7 @@ func (h *InConnectionHandler) CreateConnectSession(w http.ResponseWriter, r *htt
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to find integration"})
 		return
 	}
-	nk := inNangoKey(integ.UniqueKey)
+	nk := nangoProviderConfigKey(integ.UniqueKey)
 	nangoReq := nango.CreateConnectSessionRequest{
 		EndUser: nango.ConnectSessionEndUser{
 			ID: user.ID.String(),
@@ -96,7 +96,7 @@ func (h *InConnectionHandler) CreateReconnectSession(w http.ResponseWriter, r *h
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to find connection"})
 		return
 	}
-	nk := inNangoKey(conn.InIntegration.UniqueKey)
+	nk := nangoProviderConfigKey(conn.InIntegration.UniqueKey)
 
 	sess, err := h.nango.CreateReconnectSession(r.Context(), nango.CreateReconnectSessionRequest{
 		ConnectionID:  conn.NangoConnectionID,

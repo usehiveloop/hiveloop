@@ -61,7 +61,7 @@ func BuildServer(
 			return nil, fmt.Errorf("loading connection %s: %w", scope.ConnectionID, err)
 		}
 		provider = conn.InIntegration.Provider
-		providerCfgKey = fmt.Sprintf("in_%s", conn.InIntegration.UniqueKey)
+		providerCfgKey = conn.InIntegration.UniqueKey
 		nangoConnID = conn.NangoConnectionID
 
 		if providerDef, ok := cat.GetProvider(provider); ok && !providerDef.ShouldPushToMCP() {

@@ -32,7 +32,7 @@ func (h *InIntegrationHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	nk := inNangoKey(integ.UniqueKey)
+	nk := nangoProviderConfigKey(integ.UniqueKey)
 	if err := h.nango.DeleteIntegration(r.Context(), nk); err != nil {
 		logging.FromContext(r.Context()).ErrorContext(r.Context(), "nango in-integration deletion failed", "error", err, "integration_id", integ.ID)
 		writeJSON(w, http.StatusBadGateway, map[string]string{"error": "failed to delete integration from Nango: " + err.Error()})

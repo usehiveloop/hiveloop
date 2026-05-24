@@ -19,7 +19,7 @@ func (o *Orchestrator) resolveBuildOpts(tmpl *model.SandboxTemplate, templateNam
 	opts := TemplateBuildRequest{
 		Name:          templateName,
 		BuildCommands: cmds,
-		BaseImage:     fmt.Sprintf("ghcr.io/usehivy/sandbox-bridge:%s", o.cfg.BridgeBinaryVersion),
+		BaseImage:     fmt.Sprintf("ghcr.io/usehivy/sandbox-bridge:%s", o.cfg.CloudAgentsSandboxRuntimeVersion),
 	}
 
 	if sz, ok := model.TemplateSizes[tmpl.Size]; ok {

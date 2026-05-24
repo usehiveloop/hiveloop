@@ -17,12 +17,12 @@ func TestSearchKnowledgeBase_LiveSlackCollection(t *testing.T) {
 	}
 	collection := requiredSearchEnv(t, "HIVY_E2E_KB_COLLECTION")
 	orgID := requiredSearchEnv(t, "HIVY_E2E_KB_ORG_ID")
-	llmURL := requiredSearchEnv(t, "LLM_API_URL")
-	llmKey := requiredSearchEnv(t, "LLM_API_KEY")
-	llmModel := requiredSearchEnv(t, "LLM_MODEL")
-	qdrantHost := requiredSearchEnv(t, "QDRANT_HOST")
-	qdrantPort := searchEnvInt("QDRANT_PORT", 6334)
-	dim := searchEnvInt("LLM_EMBEDDING_DIM", 3072)
+	llmURL := requiredSearchEnv(t, "HIVY_LLM_API_URL")
+	llmKey := requiredSearchEnv(t, "HIVY_LLM_API_KEY")
+	llmModel := requiredSearchEnv(t, "HIVY_LLM_MODEL")
+	qdrantHost := requiredSearchEnv(t, "HIVY_QDRANT_HOST")
+	qdrantPort := searchEnvInt("HIVY_QDRANT_PORT", 6334)
+	dim := searchEnvInt("HIVY_LLM_EMBEDDING_DIM", 3072)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
@@ -30,8 +30,8 @@ func TestSearchKnowledgeBase_LiveSlackCollection(t *testing.T) {
 	qd, err := qdrant.New(qdrant.Config{
 		Host:                   qdrantHost,
 		Port:                   qdrantPort,
-		UseTLS:                 searchEnvBool("QDRANT_USE_TLS"),
-		APIKey:                 os.Getenv("QDRANT_API_KEY"),
+		UseTLS:                 searchEnvBool("HIVY_QDRANT_USE_TLS"),
+		APIKey:                 os.Getenv("HIVY_QDRANT_API_KEY"),
 		SkipCompatibilityCheck: true,
 	})
 	if err != nil {

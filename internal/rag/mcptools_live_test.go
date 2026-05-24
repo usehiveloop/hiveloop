@@ -13,17 +13,17 @@ import (
 
 func liveKnowledgeQdrantClient(t *testing.T) *qdrant.Client {
 	t.Helper()
-	host := os.Getenv("QDRANT_HOST")
+	host := os.Getenv("HIVY_QDRANT_HOST")
 	if host == "" {
-		t.Skip("QDRANT_HOST not set; run `make test-services-up` and set QDRANT_HOST=localhost")
+		t.Skip("HIVY_QDRANT_HOST not set; run `make test-services-up` and set HIVY_QDRANT_HOST=localhost")
 	}
-	port, _ := strconv.Atoi(os.Getenv("QDRANT_PORT"))
-	useTLS, _ := strconv.ParseBool(os.Getenv("QDRANT_USE_TLS"))
+	port, _ := strconv.Atoi(os.Getenv("HIVY_QDRANT_PORT"))
+	useTLS, _ := strconv.ParseBool(os.Getenv("HIVY_QDRANT_USE_TLS"))
 	c, err := qdrant.New(qdrant.Config{
 		Host:                   host,
 		Port:                   port,
 		UseTLS:                 useTLS,
-		APIKey:                 os.Getenv("QDRANT_API_KEY"),
+		APIKey:                 os.Getenv("HIVY_QDRANT_API_KEY"),
 		SkipCompatibilityCheck: true,
 	})
 	if err != nil {

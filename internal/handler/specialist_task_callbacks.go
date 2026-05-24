@@ -47,12 +47,12 @@ func cloudAgentCallbackPayloadFrom(task model.CloudAgentTask, event model.Conver
 	}
 }
 
-type employeeCallbackSandboxRuntime interface {
+type employeeCallbackSandboxCloudAgents interface {
 	NeedsURLRefresh(sb *model.Sandbox) bool
 	RefreshEmployeeSandboxURL(ctx context.Context, sb *model.Sandbox) error
 }
 
-func dispatchCloudAgentCallback(ctx context.Context, db *gorm.DB, encKey *crypto.SymmetricKey, runtime employeeCallbackSandboxRuntime, task model.CloudAgentTask, event model.ConversationEvent) error {
+func dispatchCloudAgentCallback(ctx context.Context, db *gorm.DB, encKey *crypto.SymmetricKey, runtime employeeCallbackSandboxCloudAgents, task model.CloudAgentTask, event model.ConversationEvent) error {
 	if encKey == nil {
 		return fmt.Errorf("encryption key is not configured")
 	}
@@ -98,7 +98,7 @@ func dispatchCloudAgentCallback(ctx context.Context, db *gorm.DB, encKey *crypto
 	return nil
 }
 
-func refreshEmployeeSandboxURLForCallback(ctx context.Context, runtime employeeCallbackSandboxRuntime, sb *model.Sandbox) error {
+func refreshEmployeeSandboxURLForCallback(ctx context.Context, runtime employeeCallbackSandboxCloudAgents, sb *model.Sandbox) error {
 	if runtime.NeedsURLRefresh(sb) {
 		if err := runtime.RefreshEmployeeSandboxURL(ctx, sb); err != nil {
 			return fmt.Errorf("refresh employee sandbox URL for callback: %w", err)

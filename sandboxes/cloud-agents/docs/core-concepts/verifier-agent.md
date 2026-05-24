@@ -85,7 +85,7 @@ Attach to any agent via `config.verifier`:
 | `api_key` | Yes | string | API key. Supports `${ENV_VAR}` substitution — the variable is resolved at conversation-start time from bridge's process environment. | — |
 | `base_url` | No | string | Override the upstream URL. Required when `provider = open_ai` points at anything other than OpenAI's own endpoint. For Gemini, currently required (the OpenAI-compatible endpoint is used). | OpenAI default |
 
-> **Wire-format note:** `provider` is `"open_ai"` (with an underscore), matching the main agent's `ProviderType::OpenAI` wire format. The natural `"openai"` is **not** accepted — bridge's serde rename keeps both enums consistent. See [the OpenAI variant in `crates/core/src/provider.rs`](https://github.com/usehivy/hivy/blob/main/sandboxes/runtime/crates/core/src/provider.rs) for the source of truth.
+> **Wire-format note:** `provider` is `"open_ai"` (with an underscore), matching the main agent's `ProviderType::OpenAI` wire format. The natural `"openai"` is **not** accepted — bridge's serde rename keeps both enums consistent. See [the OpenAI variant in `crates/core/src/provider.rs`](https://github.com/usehivy/hivy/blob/main/sandboxes/cloud-agents/crates/core/src/provider.rs) for the source of truth.
 
 ---
 

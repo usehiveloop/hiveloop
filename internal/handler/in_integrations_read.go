@@ -71,7 +71,7 @@ func (h *InIntegrationHandler) Get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	nk := inNangoKey(integ.UniqueKey)
+	nk := nangoProviderConfigKey(integ.UniqueKey)
 	integResp, err := h.nango.GetIntegration(r.Context(), nk)
 	if err != nil {
 		logging.FromContext(r.Context()).WarnContext(r.Context(), "failed to fetch nango in-integration", "error", err, "integration_id", integ.ID)

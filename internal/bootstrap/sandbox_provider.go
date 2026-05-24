@@ -19,10 +19,10 @@ func newSandboxProvider(cfg *config.Config) (sandbox.Provider, error) {
 	switch providerID {
 	case sandbox.ProviderDaytona:
 		return daytona.NewDriver(daytona.Config{
-			APIURL:              cfg.SandboxProviderURL,
-			APIKey:              cfg.SandboxProviderKey,
-			Target:              cfg.SandboxTarget,
-			BridgeBinaryVersion: cfg.BridgeBinaryVersion,
+			APIURL:                           cfg.DaytonaAPIURL,
+			APIKey:                           cfg.DaytonaAPIKey,
+			Target:                           cfg.DaytonaTarget,
+			CloudAgentsSandboxRuntimeVersion: cfg.CloudAgentsSandboxRuntimeVersion,
 		})
 	case sandbox.ProviderDocker:
 		return dockerprovider.NewDriver(dockerprovider.Config{
@@ -31,6 +31,6 @@ func newSandboxProvider(cfg *config.Config) (sandbox.Provider, error) {
 			ContainerLabelPrefix: cfg.SandboxDockerContainerLabelPrefix,
 		})
 	default:
-		return nil, fmt.Errorf("unsupported SANDBOX_PROVIDER_ID %q", providerID)
+		return nil, fmt.Errorf("unsupported HIVY_SANDBOX_PROVIDER_ID %q", providerID)
 	}
 }

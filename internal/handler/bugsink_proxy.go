@@ -114,7 +114,7 @@ func (h *BugsinkProxyHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	}
 	eventCtx.ConnectionID = conn.ID
 
-	resp, err := h.nango.RawProxyRequest(ctx, r.Method, inNangoKey(conn.InIntegration.UniqueKey), conn.NangoConnectionID, forwardPath, r.URL.RawQuery, proxyRequestBody(r), r.Header.Get("Content-Type"))
+	resp, err := h.nango.RawProxyRequest(ctx, r.Method, nangoProviderConfigKey(conn.InIntegration.UniqueKey), conn.NangoConnectionID, forwardPath, r.URL.RawQuery, proxyRequestBody(r), r.Header.Get("Content-Type"))
 	if err != nil {
 		logging.FromContext(ctx).ErrorContext(ctx, "bugsink-proxy: nango proxy failed",
 			"agent_id", agentID,

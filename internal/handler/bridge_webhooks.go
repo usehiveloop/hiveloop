@@ -31,7 +31,7 @@ type BridgeWebhookHandler struct {
 	encKey                  *crypto.SymmetricKey
 	eventBus                EventPublisher       // nil-safe: if nil, events go directly to Postgres
 	enqueuer                enqueue.TaskEnqueuer // nil-safe: if nil, conversation naming is skipped
-	employeeCallbackRuntime employeeCallbackSandboxRuntime
+	employeeCallbackRuntime employeeCallbackSandboxCloudAgents
 }
 
 // EventPublisher is the interface for publishing events to the streaming bus.
@@ -46,7 +46,7 @@ func NewBridgeWebhookHandler(db *gorm.DB, encKey *crypto.SymmetricKey, eventBus 
 
 // NewBridgeWebhookHandlerWithEmployeeRuntime creates a webhook handler that can
 // refresh and wake employee runtimes before forwarding cloud-agent callbacks.
-func NewBridgeWebhookHandlerWithEmployeeRuntime(db *gorm.DB, encKey *crypto.SymmetricKey, eventBus EventPublisher, enqueuer enqueue.TaskEnqueuer, runtime employeeCallbackSandboxRuntime) *BridgeWebhookHandler {
+func NewBridgeWebhookHandlerWithEmployeeRuntime(db *gorm.DB, encKey *crypto.SymmetricKey, eventBus EventPublisher, enqueuer enqueue.TaskEnqueuer, runtime employeeCallbackSandboxCloudAgents) *BridgeWebhookHandler {
 	h := NewBridgeWebhookHandler(db, encKey, eventBus, enqueuer)
 	h.employeeCallbackRuntime = runtime
 	return h

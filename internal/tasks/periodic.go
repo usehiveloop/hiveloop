@@ -45,7 +45,7 @@ func PeriodicTaskConfigs(cfg *config.Config, ragSched *scheduler.Deps) []*asynq.
 	}
 
 	// Sandbox tasks only if orchestrator is configured
-	if cfg.SandboxProviderKey != "" && cfg.SandboxEncryptionKey != "" {
+	if cfg.SandboxEncryptionKey != "" {
 		configs = append(configs, &asynq.PeriodicTaskConfig{
 			Cronspec: "@every 30s",
 			Task:     asynq.NewTask(TypeSandboxHealthCheck, nil),

@@ -15,7 +15,7 @@ const (
 	baseImage = "node:22-trixie-slim"
 	workDir   = "/work"
 
-	// ACP harness versions must match sandboxes/runtime/docker/Dockerfile so
+	// ACP harness versions must match sandboxes/cloud-agents/docker/Dockerfile so
 	// bridge dispatches to a known-compatible binary.
 	claudeACPVersion = "0.31.4"
 	openCodeVersion  = "1.14.32"
@@ -69,7 +69,7 @@ var devToolPackages = []string{
 
 var sizes = model.TemplateSizes
 
-// snapshotName must match BridgeBaseImagePrefix in internal/config/config.go.
+// snapshotName must match HIVY_CLOUD_AGENTS_SANDBOX_BASE_IMAGE_PREFIX in runtime config.
 // The trailing -v1 is the runtime-contract revision; bump it when the image's
 // startup contract changes, not when the bridge binary version bumps.
 func snapshotName(version, size string) string {

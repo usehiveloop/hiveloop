@@ -10,15 +10,6 @@ import (
 )
 
 func (o *Orchestrator) createSandbox(ctx context.Context, org *model.Org, agent *model.Agent, extraEnv map[string]string) (*model.Sandbox, error) {
-	var storageURL, authToken string
-	if o.turso != nil {
-		var err error
-		storageURL, authToken, err = o.turso.EnsureStorage(ctx, org.ID)
-		if err != nil {
-			logging.Capture(ctx, fmt.Errorf("turso storage provisioning: %w", err))
-		}
-	}
-
 	gitIdentity, err := o.loadAgentGitIdentity(ctx, agent)
 	if err != nil {
 		return nil, fmt.Errorf("loading sandbox git identity: %w", err)
@@ -54,16 +45,12 @@ func (o *Orchestrator) createSandbox(ctx context.Context, org *model.Org, agent 
 		return nil, fmt.Errorf("loading owning employee: %w", err)
 	}
 
-	webhookURL := fmt.Sprintf("https://%s/internal/webhooks/bridge/%s", o.cfg.BridgeHost, sb.ID)
+	webhookURL := fmt.Sprintf("https://%s/internal/webhooks/bridge/%s", o.cfg.CloudAgentsSandboxHost, sb.ID)
 	envVars := baseEnvVars(o.cfg, bridgeAPIKey, sb.ID, webhookURL)
 	setOrgEnvVars(envVars, org.ID)
 	setAgentEnvVars(envVars, agent, o.cfg)
 	setDriveEndpoint(envVars, sb.ID, o.cfg)
 	setAssetsUploadURL(envVars, o.cfg)
-	if storageURL != "" {
-		envVars["BRIDGE_STORAGE_URL"] = storageURL
-		envVars["BRIDGE_STORAGE_AUTH_TOKEN"] = authToken
-	}
 
 	if owningEmployee != nil {
 		o.mergeUserEnvVars(ctx, envVars, owningEmployee.EncryptedEnvVars)
@@ -194,7 +181,7 @@ func (o *Orchestrator) resolveTemplateRef(agent *model.Agent) string {
 			}
 		}
 	}
-	return o.cfg.BridgeBaseCloudAgentImagePrefix
+	return o.cfg.CloudAgentsSandboxBaseImagePrefix
 }
 
 func (o *Orchestrator) resolveTemplateResources(agent *model.Agent) (int, int, int) {

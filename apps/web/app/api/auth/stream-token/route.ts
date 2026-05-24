@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import * as Sentry from "@sentry/nextjs"
 import { getSessionFromHeader, createSessionCookie, type SessionData } from "@/lib/auth/session"
 
-const API_URL = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL as string
+const HIVY_API_URL = process.env.HIVY_API_URL ?? process.env.NEXT_PUBLIC_HIVY_API_URL as string
 
 /** Minimum remaining lifetime (ms) before we refresh. */
 const MIN_TTL = 5 * 60 * 1000 // 5 minutes
@@ -22,7 +22,7 @@ function captureRefreshFailure(
 async function refreshTokens(refreshToken: string): Promise<SessionData | null> {
   let res: Response
   try {
-    res = await fetch(`${API_URL}/auth/refresh`, {
+    res = await fetch(`${HIVY_API_URL}/auth/refresh`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ refresh_token: refreshToken }),

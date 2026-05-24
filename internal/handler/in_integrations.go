@@ -116,8 +116,8 @@ func toInIntegrationAvailableResponse(integ model.InIntegration) inIntegrationAv
 	}
 }
 
-func inNangoKey(uniqueKey string) string {
-	return "in_" + uniqueKey
+func nangoProviderConfigKey(uniqueKey string) string {
+	return uniqueKey
 }
 
 // nangoProviderName maps our internal provider key to the Nango catalog

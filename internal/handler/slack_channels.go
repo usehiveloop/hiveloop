@@ -266,7 +266,7 @@ func (h *SlackChannelHandler) loadSlackBotToken(ctx context.Context, orgID uuid.
 		First(&conn).Error; err != nil {
 		return "", fmt.Errorf("active Slack connection required: %w", err)
 	}
-	nangoConn, err := h.nango.GetConnection(ctx, conn.NangoConnectionID, inNangoKey(conn.InIntegration.UniqueKey))
+	nangoConn, err := h.nango.GetConnection(ctx, conn.NangoConnectionID, nangoProviderConfigKey(conn.InIntegration.UniqueKey))
 	if err != nil {
 		return "", fmt.Errorf("load Slack connection credentials: %w", err)
 	}

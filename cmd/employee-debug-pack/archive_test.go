@@ -52,21 +52,21 @@ func TestExtractTarGzRejectsPathTraversal(t *testing.T) {
 func TestLoadEnvFileDoesNotOverrideExistingValues(t *testing.T) {
 	tmp := t.TempDir()
 	envPath := filepath.Join(tmp, ".env")
-	content := "SANDBOX_PROVIDER_KEY=from-file\nSANDBOX_PROVIDER_URL='https://example.test'\n"
+	content := "HIVY_DAYTONA_API_KEY=from-file\nHIVY_DAYTONA_API_URL='https://example.test'\n"
 	if err := os.WriteFile(envPath, []byte(content), 0o600); err != nil {
 		t.Fatalf("write env file: %v", err)
 	}
 
-	t.Setenv("SANDBOX_PROVIDER_KEY", "from-env")
+	t.Setenv("HIVY_DAYTONA_API_KEY", "from-env")
 	if err := loadEnvFile(envPath); err != nil {
 		t.Fatalf("loadEnvFile returned error: %v", err)
 	}
 
-	if got := os.Getenv("SANDBOX_PROVIDER_KEY"); got != "from-env" {
-		t.Fatalf("SANDBOX_PROVIDER_KEY overridden: %q", got)
+	if got := os.Getenv("HIVY_DAYTONA_API_KEY"); got != "from-env" {
+		t.Fatalf("HIVY_DAYTONA_API_KEY overridden: %q", got)
 	}
-	if got := os.Getenv("SANDBOX_PROVIDER_URL"); got != "https://example.test" {
-		t.Fatalf("SANDBOX_PROVIDER_URL = %q", got)
+	if got := os.Getenv("HIVY_DAYTONA_API_URL"); got != "https://example.test" {
+		t.Fatalf("HIVY_DAYTONA_API_URL = %q", got)
 	}
 }
 

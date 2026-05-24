@@ -10,36 +10,36 @@ permissions:
   contents: read
 
 env:
-  ENVIRONMENT: development
-  PORT: 8080
-  LOG_LEVEL: info
-  LOG_FORMAT: json
+  HIVY_ENVIRONMENT: development
+  HIVY_PORT: 8080
+  HIVY_LOG_LEVEL: info
+  HIVY_LOG_FORMAT: json
   POSTGRES_USER: hivy
   POSTGRES_PASSWORD: localdev
   POSTGRES_DB: hivy
   POSTGRES_PORT: 5433
-  DB_HOST: localhost
-  DB_PORT: 5433
-  DB_USER: hivy
-  DB_PASSWORD: localdev
-  DB_NAME: hivy
-  DB_SSLMODE: disable
-  KMS_TYPE: aead
-  KMS_KEY: OEx8eTY9N8RbDN6nM9Xwq3qP0c0w4uQ3Yl5o2l5P5Y8=
-  REDIS_ADDR: localhost:6379
-  REDIS_DB: 0
-  REDIS_CACHE_TTL: 30m
-  MEM_CACHE_TTL: 5m
-  MEM_CACHE_MAX_SIZE: 10000
-  QDRANT_HOST: localhost
-  QDRANT_PORT: 6334
-  JWT_SIGNING_KEY: local-dev-signing-key-for-tests-only
-  CORS_ORIGINS: http://localhost:3000
-  # AUTH_RSA_PRIVATE_KEY is generated per-job (see "Generate auth RSA key" steps)
-  AUTH_ISSUER: hivy
-  AUTH_AUDIENCE: https://api.usehivy.com
-  NANGO_ENDPOINT: http://localhost:13003
-  NANGO_SECRET_KEY: 00000000-0000-4000-8000-000000000001
+  HIVY_DB_HOST: localhost
+  HIVY_DB_PORT: 5433
+  HIVY_DB_USER: hivy
+  HIVY_DB_PASSWORD: localdev
+  HIVY_DB_NAME: hivy
+  HIVY_DB_SSLMODE: disable
+  HIVY_KMS_TYPE: aead
+  HIVY_KMS_KEY: OEx8eTY9N8RbDN6nM9Xwq3qP0c0w4uQ3Yl5o2l5P5Y8=
+  HIVY_REDIS_ADDR: localhost:6379
+  HIVY_REDIS_DB: 0
+  HIVY_REDIS_CACHE_TTL: 30m
+  HIVY_MEM_CACHE_TTL: 5m
+  HIVY_MEM_CACHE_MAX_SIZE: 10000
+  HIVY_QDRANT_HOST: localhost
+  HIVY_QDRANT_PORT: 6334
+  HIVY_JWT_SIGNING_KEY: local-dev-signing-key-for-tests-only
+  HIVY_CORS_ORIGINS: http://localhost:3000
+  # HIVY_AUTH_RSA_PRIVATE_KEY is generated per-job (see "Generate auth RSA key" steps)
+  HIVY_AUTH_ISSUER: hivy
+  HIVY_AUTH_AUDIENCE: https://api.usehivy.com
+  HIVY_NANGO_ENDPOINT: http://localhost:13003
+  HIVY_NANGO_SECRET_KEY: 00000000-0000-4000-8000-000000000001
   OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
   FIREWORKS_API_KEY: ${{ secrets.FIREWORKS_API_KEY }}
 
@@ -55,7 +55,7 @@ jobs:
       - name: Generate auth RSA key
         run: |
           openssl genrsa 2048 2>/dev/null | base64 | tr -d '\n' > /tmp/auth_key_b64
-          echo "AUTH_RSA_PRIVATE_KEY=$(cat /tmp/auth_key_b64)" >> $GITHUB_ENV
+          echo "HIVY_AUTH_RSA_PRIVATE_KEY=$(cat /tmp/auth_key_b64)" >> $GITHUB_ENV
       - name: start infrastructure
         run: make test-setup
         timeout-minutes: 5
@@ -77,7 +77,7 @@ jobs:
       - name: Generate auth RSA key
         run: |
           openssl genrsa 2048 2>/dev/null | base64 | tr -d '\n' > /tmp/auth_key_b64
-          echo "AUTH_RSA_PRIVATE_KEY=$(cat /tmp/auth_key_b64)" >> $GITHUB_ENV
+          echo "HIVY_AUTH_RSA_PRIVATE_KEY=$(cat /tmp/auth_key_b64)" >> $GITHUB_ENV
       - name: start infrastructure
         run: make test-setup-nango
         timeout-minutes: 8
@@ -99,7 +99,7 @@ jobs:
       - name: Generate auth RSA key
         run: |
           openssl genrsa 2048 2>/dev/null | base64 | tr -d '\n' > /tmp/auth_key_b64
-          echo "AUTH_RSA_PRIVATE_KEY=$(cat /tmp/auth_key_b64)" >> $GITHUB_ENV
+          echo "HIVY_AUTH_RSA_PRIVATE_KEY=$(cat /tmp/auth_key_b64)" >> $GITHUB_ENV
       - name: start infrastructure
         run: make test-setup
         timeout-minutes: 5
@@ -121,7 +121,7 @@ jobs:
       - name: Generate auth RSA key
         run: |
           openssl genrsa 2048 2>/dev/null | base64 | tr -d '\n' > /tmp/auth_key_b64
-          echo "AUTH_RSA_PRIVATE_KEY=$(cat /tmp/auth_key_b64)" >> $GITHUB_ENV
+          echo "HIVY_AUTH_RSA_PRIVATE_KEY=$(cat /tmp/auth_key_b64)" >> $GITHUB_ENV
       - name: start infrastructure
         run: make test-setup
         timeout-minutes: 5
@@ -151,7 +151,7 @@ jobs:
       - name: Generate auth RSA key
         run: |
           openssl genrsa 2048 2>/dev/null | base64 | tr -d '\n' > /tmp/auth_key_b64
-          echo "AUTH_RSA_PRIVATE_KEY=$(cat /tmp/auth_key_b64)" >> $GITHUB_ENV
+          echo "HIVY_AUTH_RSA_PRIVATE_KEY=$(cat /tmp/auth_key_b64)" >> $GITHUB_ENV
       - name: start infrastructure
         run: make test-setup
         timeout-minutes: 5
@@ -187,7 +187,7 @@ jobs:
       - name: Generate auth RSA key
         run: |
           openssl genrsa 2048 2>/dev/null | base64 | tr -d '\n' > /tmp/auth_key_b64
-          echo "AUTH_RSA_PRIVATE_KEY=$(cat /tmp/auth_key_b64)" >> $GITHUB_ENV
+          echo "HIVY_AUTH_RSA_PRIVATE_KEY=$(cat /tmp/auth_key_b64)" >> $GITHUB_ENV
       - name: start infrastructure
         run: make test-setup
         timeout-minutes: 5
@@ -211,8 +211,8 @@ jobs:
     runs-on: ubuntu-latest
     env:
       HINDSIGHT_IMAGE: ghcr.io/vectorize-io/hindsight:latest
-      HINDSIGHT_API_URL: http://localhost:8888
-      HINDSIGHT_INTEGRATION: "1"
+      HIVY_HINDSIGHT_API_URL: http://localhost:8888
+      HIVY_HINDSIGHT_INTEGRATION: "1"
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-go@v6
@@ -221,33 +221,48 @@ jobs:
           cache: true
       - name: Generate Hindsight env file
         run: |
-          cat > .env.hindsight <<EOF
+          cat > .env <<EOF
           HINDSIGHT_API_EMBEDDINGS_LOCAL_FORCE_CPU=true
           HINDSIGHT_API_EMBEDDINGS_PROVIDER=local
+          HINDSIGHT_API_EMBEDDINGS_OPENAI_API_KEY=dummy
+          HINDSIGHT_API_EMBEDDINGS_OPENAI_MODEL=text-embedding-3-small
           HINDSIGHT_API_HOST=0.0.0.0
+          HINDSIGHT_API_LLM_API_KEY=dummy
+          HINDSIGHT_API_LLM_BASE_URL=http://localhost
           HINDSIGHT_API_LLM_MODEL=openai/gpt-oss-20b
           HINDSIGHT_API_LLM_PROVIDER=none
+          HINDSIGHT_API_CONSOLIDATION_LLM_API_KEY=dummy
+          HINDSIGHT_API_CONSOLIDATION_LLM_MODEL=openai/gpt-oss-20b
+          HINDSIGHT_API_CONSOLIDATION_LLM_PROVIDER=none
+          HINDSIGHT_API_REFLECT_LLM_API_KEY=dummy
+          HINDSIGHT_API_REFLECT_LLM_MODEL=openai/gpt-oss-20b
+          HINDSIGHT_API_REFLECT_LLM_PROVIDER=none
+          HINDSIGHT_API_RETAIN_LLM_API_KEY=dummy
+          HINDSIGHT_API_RETAIN_LLM_MODEL=openai/gpt-oss-20b
+          HINDSIGHT_API_RETAIN_LLM_PROVIDER=none
           HINDSIGHT_API_LOG_FORMAT=json
           HINDSIGHT_API_LOG_LEVEL=info
           HINDSIGHT_API_PORT=8888
           HINDSIGHT_API_RERANKER_PROVIDER=rrf
+          HINDSIGHT_API_RERANKER_ZEROENTROPY_API_KEY=dummy
+          HINDSIGHT_API_RERANKER_ZEROENTROPY_MODEL=zerank-2
           HINDSIGHT_API_RUN_MIGRATIONS_ON_STARTUP=true
           HINDSIGHT_API_WORKERS=1
           HINDSIGHT_API_WORKER_ENABLED=false
           EOF
       - name: start Hindsight
-        run: docker compose --profile hindsight up -d hindsight
+        run: docker compose up -d hindsight
         timeout-minutes: 5
       - name: wait for Hindsight
         run: |
           for i in $(seq 1 60); do
-            if curl -fsS "$HINDSIGHT_API_URL/health" >/dev/null 2>&1 || curl -fsS "$HINDSIGHT_API_URL" >/dev/null 2>&1; then
+            if curl -fsS "$HIVY_HINDSIGHT_API_URL/health" >/dev/null 2>&1 || curl -fsS "$HIVY_HINDSIGHT_API_URL" >/dev/null 2>&1; then
               echo "Hindsight is ready"
               exit 0
             fi
             sleep 2
           done
-          docker compose --profile hindsight logs --tail=200 hindsight
+          docker compose logs --tail=200 hindsight
           exit 1
         timeout-minutes: 3
       - name: run real Hindsight tests
@@ -270,7 +285,7 @@ jobs:
       - name: Generate auth RSA key
         run: |
           openssl genrsa 2048 2>/dev/null | base64 | tr -d '\n' > /tmp/auth_key_b64
-          echo "AUTH_RSA_PRIVATE_KEY=$(cat /tmp/auth_key_b64)" >> $GITHUB_ENV
+          echo "HIVY_AUTH_RSA_PRIVATE_KEY=$(cat /tmp/auth_key_b64)" >> $GITHUB_ENV
       - name: start infrastructure
         run: make test-setup
         timeout-minutes: 5

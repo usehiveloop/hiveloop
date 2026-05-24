@@ -14,7 +14,7 @@ import (
 
 func TestControlPlaneOutboundChannels_EmitsEmployeeWebhookSpec(t *testing.T) {
 	sandboxID := uuid.New()
-	channels := ControlPlaneOutboundChannels(&config.Config{BridgeHost: "api.hivy.test"}, sandboxID)
+	channels := ControlPlaneOutboundChannels(&config.Config{CloudAgentsSandboxHost: "api.hivy.test"}, sandboxID)
 	if len(channels) != 1 {
 		t.Fatalf("channels = %#v", channels)
 	}

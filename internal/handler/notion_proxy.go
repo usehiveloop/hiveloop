@@ -196,7 +196,7 @@ func (h *NotionProxyHandler) resolveNotionConnection(ctx context.Context, employ
 	if conn.NangoConnectionID == "" {
 		return model.InConnection{}, "", fmt.Errorf("notion connection missing nango connection id")
 	}
-	return conn, inNangoKey(conn.InIntegration.UniqueKey), nil
+	return conn, nangoProviderConfigKey(conn.InIntegration.UniqueKey), nil
 }
 
 func (h *NotionProxyHandler) captureProxyFailure(ctx context.Context, eventCtx notionProxyContext, status int, reason string) {

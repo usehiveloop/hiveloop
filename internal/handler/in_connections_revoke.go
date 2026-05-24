@@ -46,7 +46,7 @@ func (h *InConnectionHandler) Revoke(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to revoke connection"})
 		return
 	}
-	nk := inNangoKey(conn.InIntegration.UniqueKey)
+	nk := nangoProviderConfigKey(conn.InIntegration.UniqueKey)
 	if err := h.nango.DeleteConnection(r.Context(), conn.NangoConnectionID, nk); err != nil {
 		logging.FromContext(r.Context()).ErrorContext(r.Context(), "nango: delete connection failed, proceeding with local revocation",
 			"error", err, "connection_id", connID, "nango_connection_id", conn.NangoConnectionID)

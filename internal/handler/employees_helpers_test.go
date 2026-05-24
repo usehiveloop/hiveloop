@@ -218,10 +218,10 @@ func newEmployeeHarness(t *testing.T) *employeeHarness {
 
 	cfg := &config.Config{
 		EmployeeSandboxBaseImagePrefix: "hivy-employee-sandbox-test-small-v1",
-		BridgeHost:                     "cp.hivy.test",
+		CloudAgentsSandboxHost:         "cp.hivy.test",
 		ProxyHost:                      "proxy.hivy.test",
 	}
-	orch := sandbox.NewOrchestrator(db, provider, nil, encKey, cfg)
+	orch := sandbox.NewOrchestrator(db, provider, encKey, cfg)
 	nangoSrv := httptest.NewServer(newNangoConnMock(&nangoConnMockConfig{}))
 	t.Cleanup(nangoSrv.Close)
 

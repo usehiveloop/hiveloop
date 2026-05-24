@@ -36,7 +36,7 @@ export function useConnectIntegration() {
 
       const nango = new Nango({
         connectSessionToken: token,
-        host: process.env.NEXT_PUBLIC_CONNECTIONS_HOST,
+        host: process.env.NEXT_PUBLIC_HIVY_CONNECTIONS_HOST,
       })
 
       const authOptions: Record<string, unknown> = {}

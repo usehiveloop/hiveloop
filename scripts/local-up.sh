@@ -131,35 +131,35 @@ ensure_secret() {
 
 write_backend_env() {
   cat > "$RUN_DIR/backend.env" <<EOF
-ENVIRONMENT=development
-PORT=$BACKEND_PORT
-LOG_LEVEL=info
-LOG_FORMAT=text
-DB_HOST=localhost
-DB_PORT=$PG_PORT
-DB_USER=hivy
-DB_PASSWORD=localdev
-DB_NAME=hivy
-DB_SSLMODE=disable
-KMS_TYPE=aead
-REDIS_ADDR=localhost:$REDIS_PORT
-REDIS_CACHE_TTL=30m
-MEM_CACHE_TTL=5m
-MEM_CACHE_MAX_SIZE=10000
-JWT_SIGNING_KEY=local-dev-signing-key
-CORS_ORIGINS=http://localhost:$FRONTEND_PORT
-AUTO_CONFIRM_EMAIL=true
-PLATFORM_ADMIN_EMAILS=agent-test@example.com
-AUTH_ISSUER=hivy
-AUTH_AUDIENCE=http://localhost:$BACKEND_PORT
-FRONTEND_URL=http://localhost:$FRONTEND_PORT
-NANGO_ENDPOINT=http://localhost:$FAKE_NANGO_PORT
-NANGO_SECRET_KEY=fake-nango-secret
-SANDBOX_PROVIDER_ID=daytona
-BRIDGE_BINARY_VERSION=v1.0.1
+HIVY_ENVIRONMENT=development
+HIVY_PORT=$BACKEND_PORT
+HIVY_LOG_LEVEL=info
+HIVY_LOG_FORMAT=text
+HIVY_DB_HOST=localhost
+HIVY_DB_PORT=$PG_PORT
+HIVY_DB_USER=hivy
+HIVY_DB_PASSWORD=localdev
+HIVY_DB_NAME=hivy
+HIVY_DB_SSLMODE=disable
+HIVY_KMS_TYPE=aead
+HIVY_REDIS_ADDR=localhost:$REDIS_PORT
+HIVY_REDIS_CACHE_TTL=30m
+HIVY_MEM_CACHE_TTL=5m
+HIVY_MEM_CACHE_MAX_SIZE=10000
+HIVY_JWT_SIGNING_KEY=local-dev-signing-key
+HIVY_CORS_ORIGINS=http://localhost:$FRONTEND_PORT
+HIVY_AUTO_CONFIRM_EMAIL=true
+HIVY_PLATFORM_ADMIN_EMAILS=agent-test@example.com
+HIVY_AUTH_ISSUER=hivy
+HIVY_AUTH_AUDIENCE=http://localhost:$BACKEND_PORT
+HIVY_FRONTEND_URL=http://localhost:$FRONTEND_PORT
+HIVY_NANGO_ENDPOINT=http://localhost:$FAKE_NANGO_PORT
+HIVY_NANGO_SECRET_KEY=fake-nango-secret
+HIVY_SANDBOX_PROVIDER_ID=daytona
+HIVY_CLOUD_AGENTS_SANDBOX_RUNTIME_VERSION=v1.0.1
 EOF
-  ensure_secret AUTH_RSA_PRIVATE_KEY auth-rsa.key gen_rsa
-  ensure_secret KMS_KEY              kms.key      gen_aes
+  ensure_secret HIVY_AUTH_RSA_PRIVATE_KEY auth-rsa.key gen_rsa
+  ensure_secret HIVY_KMS_KEY              kms.key      gen_aes
 }
 
 start_backend() {
@@ -208,10 +208,10 @@ free_next_lock() {
 
 write_web_env() {
   cat > "$RUN_DIR/web.env" <<EOF
-NEXT_PUBLIC_API_URL=http://localhost:$BACKEND_PORT
-API_URL=http://localhost:$BACKEND_PORT
-NEXT_PUBLIC_CONNECTIONS_HOST=http://localhost:$FAKE_NANGO_PORT
-SESSION_SECRET=dev-session-secret-32chars-padding
+NEXT_PUBLIC_HIVY_API_URL=http://localhost:$BACKEND_PORT
+HIVY_API_URL=http://localhost:$BACKEND_PORT
+NEXT_PUBLIC_HIVY_CONNECTIONS_HOST=http://localhost:$FAKE_NANGO_PORT
+HIVY_SESSION_SECRET=dev-session-secret-32chars-padding
 EOF
 }
 

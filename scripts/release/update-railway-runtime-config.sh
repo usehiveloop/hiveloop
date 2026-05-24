@@ -25,15 +25,13 @@ if [[ -n "${RAILWAY_PROJECT_ID:-}" ]]; then
   railway link --project "${RAILWAY_PROJECT_ID}" >/dev/null
 fi
 
-bridge_binary_version="$(jq -r '.runtimeConfig.BRIDGE_BINARY_VERSION' "${manifest}")"
-bridge_base_image_prefix="$(jq -r '.runtimeConfig.BRIDGE_BASE_IMAGE_PREFIX' "${manifest}")"
-bridge_base_cloud_agent_image_prefix="$(jq -r '.runtimeConfig.BRIDGE_BASE_CLOUD_AGENT_IMAGE_PREFIX' "${manifest}")"
-employee_sandbox_base_image_prefix="$(jq -r '.runtimeConfig.EMPLOYEE_SANDBOX_BASE_IMAGE_PREFIX' "${manifest}")"
+cloud_agents_sandbox_runtime_version="$(jq -r '.runtimeConfig.HIVY_CLOUD_AGENTS_SANDBOX_RUNTIME_VERSION' "${manifest}")"
+cloud_agents_sandbox_base_image_prefix="$(jq -r '.runtimeConfig.HIVY_CLOUD_AGENTS_SANDBOX_BASE_IMAGE_PREFIX' "${manifest}")"
+employee_sandbox_base_image_prefix="$(jq -r '.runtimeConfig.HIVY_EMPLOYEE_SANDBOX_BASE_IMAGE_PREFIX' "${manifest}")"
 
 for value in \
-  "${bridge_binary_version}" \
-  "${bridge_base_image_prefix}" \
-  "${bridge_base_cloud_agent_image_prefix}" \
+  "${cloud_agents_sandbox_runtime_version}" \
+  "${cloud_agents_sandbox_base_image_prefix}" \
   "${employee_sandbox_base_image_prefix}"
 do
   if [[ -z "${value}" || "${value}" == "null" ]]; then
@@ -51,10 +49,9 @@ fi
 for service in "${service_list[@]}"; do
   echo "Updating Railway runtime config on ${service}..."
   railway variable set \
-    "BRIDGE_BINARY_VERSION=${bridge_binary_version}" \
-    "BRIDGE_BASE_IMAGE_PREFIX=${bridge_base_image_prefix}" \
-    "BRIDGE_BASE_CLOUD_AGENT_IMAGE_PREFIX=${bridge_base_cloud_agent_image_prefix}" \
-    "EMPLOYEE_SANDBOX_BASE_IMAGE_PREFIX=${employee_sandbox_base_image_prefix}" \
+    "HIVY_CLOUD_AGENTS_SANDBOX_RUNTIME_VERSION=${cloud_agents_sandbox_runtime_version}" \
+    "HIVY_CLOUD_AGENTS_SANDBOX_BASE_IMAGE_PREFIX=${cloud_agents_sandbox_base_image_prefix}" \
+    "HIVY_EMPLOYEE_SANDBOX_BASE_IMAGE_PREFIX=${employee_sandbox_base_image_prefix}" \
     --environment "${environment}" \
     --service "${service}"
 done

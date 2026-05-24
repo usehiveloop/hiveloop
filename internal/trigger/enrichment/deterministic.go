@@ -87,7 +87,7 @@ func (enricher *DeterministicEnricher) Enrich(ctx context.Context, input Determi
 		return "", nil
 	}
 
-	providerCfgKey := "in_" + inConn.InIntegration.UniqueKey
+	providerCfgKey := inConn.InIntegration.UniqueKey
 	nangoConnID := inConn.NangoConnectionID
 	providerName := inConn.InIntegration.Provider
 

@@ -176,7 +176,7 @@ func (h *GitCredentialsHandler) resolveGitHubTokenConnection(ctx context.Context
 		First(&conn).Error; err != nil {
 		return gitHubTokenConnection{}, err
 	}
-	providerConfigKey := inNangoKey(conn.InIntegration.UniqueKey)
+	providerConfigKey := nangoProviderConfigKey(conn.InIntegration.UniqueKey)
 	return gitHubTokenConnection{
 		conn:              conn,
 		providerConfigKey: providerConfigKey,

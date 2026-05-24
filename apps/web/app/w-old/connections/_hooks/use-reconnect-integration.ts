@@ -24,7 +24,7 @@ export function useReconnectIntegration() {
 
       const nango = new Nango({
         connectSessionToken: token,
-        host: process.env.NEXT_PUBLIC_CONNECTIONS_HOST,
+        host: process.env.NEXT_PUBLIC_HIVY_CONNECTIONS_HOST,
       })
 
       await nango.reconnect(providerConfigKey)

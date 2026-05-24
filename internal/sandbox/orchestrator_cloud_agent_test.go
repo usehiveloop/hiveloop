@@ -26,7 +26,6 @@ func TestCreateCloudAgentSandbox(t *testing.T) {
 	}
 	t.Cleanup(func() {
 		db.Where("id = ?", sb.ID).Delete(&model.Sandbox{})
-		db.Where("org_id = ?", org.ID).Delete(&model.WorkspaceStorage{})
 	})
 
 	if sb.AgentID == nil || *sb.AgentID != agent.ID {
@@ -87,7 +86,6 @@ func TestCreateCloudAgentSandbox_InheritsEmployeeEnvWithSubagentOverrides(t *tes
 	}
 	t.Cleanup(func() {
 		db.Where("id = ?", sb.ID).Delete(&model.Sandbox{})
-		db.Where("org_id = ?", org.ID).Delete(&model.WorkspaceStorage{})
 	})
 
 	env := provider.createCalls[len(provider.createCalls)-1].EnvVars
@@ -144,7 +142,6 @@ func TestCreateCloudAgentSandbox_InheritsEmployeeResourcesForRepositoryClone(t *
 	}
 	t.Cleanup(func() {
 		db.Where("id = ?", sb.ID).Delete(&model.Sandbox{})
-		db.Where("org_id = ?", org.ID).Delete(&model.WorkspaceStorage{})
 	})
 
 	assertCommandContains(t, commands, "git clone --depth=1 https://github.com/octo-org/api.git /home/daytona/repos/api")
@@ -169,7 +166,6 @@ func TestCreateCloudAgentSandbox_InheritsGitIdentityFromEmployee(t *testing.T) {
 	}
 	t.Cleanup(func() {
 		db.Where("id = ?", sb.ID).Delete(&model.Sandbox{})
-		db.Where("org_id = ?", org.ID).Delete(&model.WorkspaceStorage{})
 	})
 
 	env := provider.createCalls[len(provider.createCalls)-1].EnvVars

@@ -12,7 +12,7 @@
 //	go run ./cmd/verify-devbox -snapshot hivy-dev-box-medium-v0.17.2 -keep
 //	go run ./cmd/verify-devbox -cleanup <sandbox-id>
 //
-// Requires SANDBOX_PROVIDER_KEY, SANDBOX_PROVIDER_URL, and SANDBOX_TARGET in
+// Requires HIVY_DAYTONA_API_KEY, HIVY_DAYTONA_API_URL, and HIVY_DAYTONA_TARGET in
 // the environment (load .env via the verify-devbox make target).
 package main
 
@@ -41,9 +41,9 @@ func mustEnv(name string) string {
 
 func newClient(ctx context.Context) (*daytona.Client, error) {
 	return daytona.NewClientWithConfig(&types.DaytonaConfig{
-		APIKey: mustEnv("SANDBOX_PROVIDER_KEY"),
-		APIUrl: mustEnv("SANDBOX_PROVIDER_URL"),
-		Target: os.Getenv("SANDBOX_TARGET"),
+		APIKey: mustEnv("HIVY_DAYTONA_API_KEY"),
+		APIUrl: mustEnv("HIVY_DAYTONA_API_URL"),
+		Target: os.Getenv("HIVY_DAYTONA_TARGET"),
 	})
 }
 

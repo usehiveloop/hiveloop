@@ -51,7 +51,7 @@ func (h *InIntegrationHandler) Update(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		nk := inNangoKey(integ.UniqueKey)
+		nk := nangoProviderConfigKey(integ.UniqueKey)
 		nangoReq := nango.UpdateIntegrationRequest{
 			Credentials: req.Credentials,
 		}

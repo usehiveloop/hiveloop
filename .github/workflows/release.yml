@@ -125,20 +125,20 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           key: bridge-release-${{ matrix.target }}
-          workspaces: sandboxes/runtime -> target
+          workspaces: sandboxes/cloud-agents -> target
 
       - name: build release binary
-        working-directory: sandboxes/runtime
+        working-directory: sandboxes/cloud-agents
         run: cargo build --release --locked -p bridge --target ${{ matrix.target }}
 
       - name: package artifact
-        working-directory: sandboxes/runtime
+        working-directory: sandboxes/cloud-agents
         shell: bash
         run: |
           bin="target/${{ matrix.target }}/release/bridge"
           archive="bridge-${{ needs.prepare.outputs.tag }}-${{ matrix.target }}.tar.gz"
           tar czf "$archive" -C "$(dirname "$bin")" "$(basename "$bin")"
-          echo "ARCHIVE=sandboxes/runtime/$archive" >> "$GITHUB_ENV"
+          echo "ARCHIVE=sandboxes/cloud-agents/$archive" >> "$GITHUB_ENV"
 
       - name: upload release asset
         env:
@@ -166,10 +166,10 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           key: sandbox-bridge-image
-          workspaces: sandboxes/runtime -> target
+          workspaces: sandboxes/cloud-agents -> target
 
       - name: build bridge binary
-        working-directory: sandboxes/runtime
+        working-directory: sandboxes/cloud-agents
         run: cargo build --release --locked -p bridge
 
       - name: build and push sandbox bridge image
@@ -180,7 +180,7 @@ jobs:
           go run ./cmd/buildtemplates bridge \
             -version="${{ needs.prepare.outputs.tag }}" \
             -bridge-version="${{ needs.prepare.outputs.tag }}" \
-            -bridge-binary=sandboxes/runtime/target/release/bridge \
+            -bridge-binary=sandboxes/cloud-agents/target/release/bridge \
             -size=all \
             -register-snapshots=false \
             -latest=${{ needs.prepare.outputs.prerelease != 'true' }}

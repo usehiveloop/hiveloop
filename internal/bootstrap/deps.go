@@ -30,7 +30,6 @@ import (
 	"github.com/usehivy/hivy/internal/spider"
 	"github.com/usehivy/hivy/internal/storage"
 	"github.com/usehivy/hivy/internal/streaming"
-	"github.com/usehivy/hivy/internal/turso"
 
 	sentryobs "github.com/usehivy/hivy/internal/observability/sentry"
 )
@@ -63,7 +62,7 @@ type Deps struct {
 	BillingRegistry *billing.Registry           // always non-nil; may have zero providers
 	Credits         *billing.CreditsService     // credit ledger service
 	Subscriptions   *subscription.Service       // wraps registry+credits with the renewal worker
-	S3Client        *storage.S3Client           // nil if AWS_S3_BUCKET_NAME not set
+	S3Client        *storage.S3Client           // nil if HIVY_AWS_S3_BUCKET_NAME not set
 }
 
 // New initializes all shared dependencies. The caller is responsible for
@@ -110,7 +109,7 @@ func New(ctx context.Context) (*Deps, error) {
 	case "awskms":
 		kms, err = crypto.NewAWSKMSWrapper(ctx, cfg.KMSKey, cfg.AWSRegion)
 	default:
-		return nil, fmt.Errorf("unsupported KMS_TYPE: %q (supported: aead, awskms)", cfg.KMSType)
+		return nil, fmt.Errorf("unsupported HIVY_KMS_TYPE: %q (supported: aead, awskms)", cfg.KMSType)
 	}
 	if err != nil {
 		return nil, fmt.Errorf("creating %s KMS wrapper: %w", cfg.KMSType, err)
@@ -121,7 +120,7 @@ func New(ctx context.Context) (*Deps, error) {
 	if cfg.RedisURL != "" {
 		redisOpts, err = redis.ParseURL(cfg.RedisURL)
 		if err != nil {
-			return nil, fmt.Errorf("parsing REDIS_URL: %w", err)
+			return nil, fmt.Errorf("parsing HIVY_REDIS_URL: %w", err)
 		}
 	} else {
 		redisOpts = &redis.Options{
@@ -181,7 +180,7 @@ func New(ctx context.Context) (*Deps, error) {
 	logging.FromContext(ctx).InfoContext(ctx, "provider registry ready", "providers", reg.ProviderCount(), "models", reg.ModelCount())
 
 	if cfg.NangoEndpoint == "" || cfg.NangoSecretKey == "" {
-		return nil, fmt.Errorf("NANGO_ENDPOINT and NANGO_SECRET_KEY are required")
+		return nil, fmt.Errorf("HIVY_NANGO_ENDPOINT and HIVY_NANGO_SECRET_KEY are required")
 	}
 	nangoClient := nango.NewClient(cfg.NangoEndpoint, cfg.NangoSecretKey)
 	if err := nangoClient.FetchProviders(ctx); err != nil {
@@ -207,13 +206,13 @@ func New(ctx context.Context) (*Deps, error) {
 	if cfg.SandboxEncryptionKey != "" {
 		sandboxEncKey, err = crypto.NewSymmetricKey(cfg.SandboxEncryptionKey)
 		if err != nil {
-			return nil, fmt.Errorf("invalid SANDBOX_ENCRYPTION_KEY: %w", err)
+			return nil, fmt.Errorf("invalid HIVY_SANDBOX_ENCRYPTION_KEY: %w", err)
 		}
 	}
 
 	var orchestrator *sandbox.Orchestrator
 	var agentPusher *sandbox.Pusher
-	if cfg.SandboxProviderKey != "" && sandboxEncKey != nil {
+	if sandboxEncKey != nil {
 		sandboxProvider, err := newSandboxProvider(cfg)
 		if err != nil {
 			return nil, fmt.Errorf("creating sandbox provider: %w", err)
@@ -222,14 +221,7 @@ func New(ctx context.Context) (*Deps, error) {
 			return nil, fmt.Errorf("validating sandbox provider %q: %w", sandboxProvider.ID(), err)
 		}
 
-		var tursoProvisioner *turso.Provisioner
-		if cfg.TursoAPIToken != "" && cfg.TursoOrgSlug != "" {
-			tursoClient := turso.NewClient(cfg.TursoAPIToken, cfg.TursoOrgSlug)
-			tursoProvisioner = turso.NewProvisioner(tursoClient, cfg.TursoGroup, database)
-			logging.FromContext(ctx).InfoContext(ctx, "turso provisioner ready")
-		}
-
-		orchestrator = sandbox.NewOrchestrator(database, sandboxProvider, tursoProvisioner, sandboxEncKey, cfg)
+		orchestrator = sandbox.NewOrchestrator(database, sandboxProvider, sandboxEncKey, cfg)
 		agentPusher = sandbox.NewPusher(database, orchestrator, signingKey, cfg, credentialPicker)
 		logging.FromContext(ctx).InfoContext(ctx, "sandbox orchestrator ready")
 	}

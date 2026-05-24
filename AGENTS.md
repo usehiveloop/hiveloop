@@ -2,7 +2,7 @@
 
 These instructions are for coding agents. Follow them strictly.
 
-Hivy is a Go-first platform with a Go API/worker, Next.js web app, Rust sandbox runtimes, local integration simulators, and Docker/native infrastructure.
+Hivy is a Go-first platform with a Go API/worker, Next.js web app, Rust cloud agent sandboxes, local integration simulators, and Docker/native infrastructure.
 
 ## List of services and what they do
 
@@ -18,7 +18,7 @@ Hivy is a Go-first platform with a Go API/worker, Next.js web app, Rust sandbox 
 - MinIO: local S3-compatible storage for RAG, drive, uploads, and tests.
 - Qdrant: vector database for RAG ingestion/search.
 - Hindsight: optional agent memory service.
-- `sandboxes/runtime`: Rust bridge/runtime workspace.
+- `sandboxes/cloud-agents`: Rust bridge/runtime workspace.
 - `sandboxes/employee`: Rust employee sandbox runtime workspace.
 - `global/skills`: global skill definitions seeded during backend bootstrap.
 
@@ -77,7 +77,7 @@ RAG infrastructure: `make test-services-up`, `make test-services-down`.
 
 Frontend checks are mandatory for frontend changes: `cd apps/web && pnpm typecheck && pnpm build`.
 
-Rust sandbox checks are mandatory when sandbox runtime files change: `make sandbox-runtime-test`, `make sandbox-runtime-fmt-check`, `make sandbox-runtime-clippy`, `make sandbox-employee-test`, `make sandbox-employee-fmt-check`.
+Rust sandbox checks are mandatory when cloud agent sandbox files change: `make sandbox-cloud-agents-test`, `make sandbox-cloud-agents-fmt-check`, `make sandbox-cloud-agents-clippy`, `make sandbox-employee-test`, `make sandbox-employee-fmt-check`.
 
 ## Linting and absolute code quality rules
 

@@ -20,10 +20,10 @@ import (
 const signedURLTTLSeconds = 3600
 
 type Config struct {
-	APIURL              string
-	APIKey              string
-	Target              string
-	BridgeBinaryVersion string
+	APIURL                           string
+	APIKey                           string
+	Target                           string
+	CloudAgentsSandboxRuntimeVersion string
 }
 
 // Driver talks to Daytona exclusively through the official Go SDKs:
@@ -37,11 +37,11 @@ type Config struct {
 // any future endpoint should be added by extending this struct rather than
 // reaching back to raw http.
 type Driver struct {
-	sdk                 *daytonasdk.Client
-	apiClient           *apiclient.APIClient
-	apiURL              string
-	apiKey              string
-	bridgeBinaryVersion string
+	sdk                              *daytonasdk.Client
+	apiClient                        *apiclient.APIClient
+	apiURL                           string
+	apiKey                           string
+	cloudAgentsSandboxRuntimeVersion string
 }
 
 func (d *Driver) ID() string { return sandbox.ProviderDaytona }
@@ -57,8 +57,8 @@ func (d *Driver) Validate(context.Context) error {
 	if strings.TrimSpace(d.apiKey) == "" {
 		return fmt.Errorf("daytona: APIKey is required")
 	}
-	if strings.TrimSpace(d.bridgeBinaryVersion) == "" {
-		return fmt.Errorf("daytona: BridgeBinaryVersion is required")
+	if strings.TrimSpace(d.cloudAgentsSandboxRuntimeVersion) == "" {
+		return fmt.Errorf("daytona: CloudAgentsSandboxRuntimeVersion is required")
 	}
 	return nil
 }
@@ -68,8 +68,8 @@ func NewDriver(cfg Config) (*Driver, error) {
 	apiURL := strings.TrimSpace(cfg.APIURL)
 	target := strings.TrimSpace(cfg.Target)
 
-	if cfg.BridgeBinaryVersion == "" {
-		return nil, fmt.Errorf("daytona: BridgeBinaryVersion is required")
+	if cfg.CloudAgentsSandboxRuntimeVersion == "" {
+		return nil, fmt.Errorf("daytona: CloudAgentsSandboxRuntimeVersion is required")
 	}
 	if apiKey == "" {
 		return nil, fmt.Errorf("daytona: APIKey is required")
@@ -90,11 +90,11 @@ func NewDriver(cfg Config) (*Driver, error) {
 	}
 
 	return &Driver{
-		sdk:                 sdkClient,
-		apiClient:           apiClient,
-		apiURL:              apiURL,
-		apiKey:              apiKey,
-		bridgeBinaryVersion: cfg.BridgeBinaryVersion,
+		sdk:                              sdkClient,
+		apiClient:                        apiClient,
+		apiURL:                           apiURL,
+		apiKey:                           apiKey,
+		cloudAgentsSandboxRuntimeVersion: cfg.CloudAgentsSandboxRuntimeVersion,
 	}, nil
 }
 

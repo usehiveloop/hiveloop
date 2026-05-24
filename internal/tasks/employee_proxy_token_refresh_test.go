@@ -220,7 +220,7 @@ func newEmployeeProxyTokenRefreshFixture(t *testing.T, envStatus int) *employeeP
 	}
 	enqueuer := &enqueue.MockClient{}
 	provider := &employeeUpgradeProvider{endpoint: server.URL}
-	orch := sandbox.NewOrchestrator(db, provider, nil, encKey, cfg)
+	orch := sandbox.NewOrchestrator(db, provider, encKey, cfg)
 	compileDeps := employeeruntime.CompileDeps{
 		DB:         db,
 		EncKey:     encKey,

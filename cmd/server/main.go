@@ -142,11 +142,11 @@ type logConfig struct {
 // loadConfigForLogging reads log level/format from env vars so we can
 // initialize structured logging before the full bootstrap runs.
 func loadConfigForLogging() (*logConfig, error) {
-	level := os.Getenv("LOG_LEVEL")
+	level := os.Getenv("HIVY_LOG_LEVEL")
 	if level == "" {
 		level = "info"
 	}
-	format := os.Getenv("LOG_FORMAT")
+	format := os.Getenv("HIVY_LOG_FORMAT")
 	if format == "" {
 		format = "text"
 	}

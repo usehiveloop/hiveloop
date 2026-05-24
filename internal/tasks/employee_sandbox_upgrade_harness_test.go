@@ -40,7 +40,7 @@ func newEmployeeUpgradeFixture(t *testing.T) *employeeUpgradeFixture {
 	kms := testTasksKMS(t)
 	cfg := &config.Config{
 		EmployeeSandboxBaseImagePrefix: "employee-runtime-test-v2",
-		BridgeHost:                     "cp.hivy.test",
+		CloudAgentsSandboxHost:         "cp.hivy.test",
 		ProxyHost:                      "proxy.hivy.test",
 	}
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -78,7 +78,7 @@ func newEmployeeUpgradeFixture(t *testing.T) *employeeUpgradeFixture {
 
 	provider := &employeeUpgradeProvider{endpoint: server.URL}
 	enqueuer := &enqueue.MockClient{}
-	orch := sandbox.NewOrchestrator(db, provider, nil, encKey, cfg)
+	orch := sandbox.NewOrchestrator(db, provider, encKey, cfg)
 	org := model.Org{Name: "upgrade-org-" + uuid.NewString()[:8], Active: true}
 	if err := db.Create(&org).Error; err != nil {
 		t.Fatalf("create org: %v", err)

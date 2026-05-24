@@ -26,14 +26,14 @@ export default withSentryConfig(nextConfig, {
   // For all available options, see:
   // https://www.npmjs.com/package/@sentry/webpack-plugin#options
 
-  url: process.env.SENTRY_URL ?? "https://sentry.usehivy.com/",
+  url: process.env.HIVY_SENTRY_URL ?? "https://sentry.usehivy.com/",
 
   // Bugsink accepts Sentry-compatible source map uploads, but it does not use
   // Sentry org/project values for matching. Debug IDs injected into source maps
   // are the important part.
-  org: process.env.SENTRY_ORG ?? "bugsinkhasnoorgs",
+  org: process.env.HIVY_SENTRY_ORG ?? "bugsinkhasnoorgs",
 
-  project: process.env.SENTRY_PROJECT ?? "ignoredfornow",
+  project: process.env.HIVY_SENTRY_PROJECT ?? "ignoredfornow",
 
   telemetry: true,
 

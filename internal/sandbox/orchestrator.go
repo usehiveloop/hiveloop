@@ -13,7 +13,6 @@ import (
 	"github.com/usehivy/hivy/internal/crypto"
 	"github.com/usehivy/hivy/internal/logging"
 	"github.com/usehivy/hivy/internal/model"
-	"github.com/usehivy/hivy/internal/turso"
 )
 
 // Orchestrator manages sandbox lifecycle — creating, starting, stopping sandboxes
@@ -21,16 +20,14 @@ import (
 type Orchestrator struct {
 	db       *gorm.DB
 	provider Provider
-	turso    *turso.Provisioner
 	encKey   *crypto.SymmetricKey
 	cfg      *config.Config
 }
 
-func NewOrchestrator(db *gorm.DB, provider Provider, turso *turso.Provisioner, encKey *crypto.SymmetricKey, cfg *config.Config) *Orchestrator {
+func NewOrchestrator(db *gorm.DB, provider Provider, encKey *crypto.SymmetricKey, cfg *config.Config) *Orchestrator {
 	return &Orchestrator{
 		db:       db,
 		provider: provider,
-		turso:    turso,
 		encKey:   encKey,
 		cfg:      cfg,
 	}

@@ -11,7 +11,7 @@ export type SessionData = {
 }
 
 // ---------------------------------------------------------------------------
-// Key derivation — HKDF from SESSION_SECRET → AES-256-GCM key
+// Key derivation — HKDF from HIVY_SESSION_SECRET → AES-256-GCM key
 // ---------------------------------------------------------------------------
 
 let cachedKey: CryptoKey | null = null
@@ -19,10 +19,10 @@ let cachedKey: CryptoKey | null = null
 async function getKey(): Promise<CryptoKey> {
   if (cachedKey) return cachedKey
 
-  const secret = process.env.SESSION_SECRET
+  const secret = process.env.HIVY_SESSION_SECRET
   if (!secret) {
-    log.error("SESSION_SECRET env var is not set")
-    throw new Error("SESSION_SECRET env var is required")
+    log.error("HIVY_SESSION_SECRET env var is not set")
+    throw new Error("HIVY_SESSION_SECRET env var is required")
   }
 
   const raw = new TextEncoder().encode(secret)

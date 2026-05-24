@@ -15,10 +15,10 @@ import (
 )
 
 func TestRealHindsightRetainRecallOrgTeam(t *testing.T) {
-	if os.Getenv("HINDSIGHT_INTEGRATION") != "1" {
-		t.Skip("set HINDSIGHT_INTEGRATION=1 and HINDSIGHT_API_URL to run against a real Hindsight service")
+	if os.Getenv("HIVY_HINDSIGHT_INTEGRATION") != "1" {
+		t.Skip("set HIVY_HINDSIGHT_INTEGRATION=1 and HIVY_HINDSIGHT_API_URL to run against a real Hindsight service")
 	}
-	baseURL := os.Getenv("HINDSIGHT_API_URL")
+	baseURL := os.Getenv("HIVY_HINDSIGHT_API_URL")
 	if baseURL == "" {
 		baseURL = "http://localhost:8888"
 	}
@@ -77,10 +77,10 @@ func TestRealHindsightRetainRecallOrgTeam(t *testing.T) {
 }
 
 func TestRealHindsightForgetDocument(t *testing.T) {
-	if os.Getenv("HINDSIGHT_INTEGRATION") != "1" {
-		t.Skip("set HINDSIGHT_INTEGRATION=1 and HINDSIGHT_API_URL to run against a real Hindsight service")
+	if os.Getenv("HIVY_HINDSIGHT_INTEGRATION") != "1" {
+		t.Skip("set HIVY_HINDSIGHT_INTEGRATION=1 and HIVY_HINDSIGHT_API_URL to run against a real Hindsight service")
 	}
-	baseURL := os.Getenv("HINDSIGHT_API_URL")
+	baseURL := os.Getenv("HIVY_HINDSIGHT_API_URL")
 	if baseURL == "" {
 		baseURL = "http://localhost:8888"
 	}
@@ -151,10 +151,10 @@ func TestRealHindsightForgetDocument(t *testing.T) {
 }
 
 func TestRealHindsightMemoryRetainToolReturnsDocumentID(t *testing.T) {
-	if os.Getenv("HINDSIGHT_INTEGRATION") != "1" {
-		t.Skip("set HINDSIGHT_INTEGRATION=1 and HINDSIGHT_API_URL to run against a real Hindsight service")
+	if os.Getenv("HIVY_HINDSIGHT_INTEGRATION") != "1" {
+		t.Skip("set HIVY_HINDSIGHT_INTEGRATION=1 and HIVY_HINDSIGHT_API_URL to run against a real Hindsight service")
 	}
-	baseURL := os.Getenv("HINDSIGHT_API_URL")
+	baseURL := os.Getenv("HIVY_HINDSIGHT_API_URL")
 	if baseURL == "" {
 		baseURL = "http://localhost:8888"
 	}

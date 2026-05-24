@@ -64,7 +64,7 @@ func (h *InIntegrationHandler) Create(w http.ResponseWriter, r *http.Request) {
 	integID := uuid.New()
 	uniqueKey := fmt.Sprintf("%s-%s", req.Provider, integID.String()[:8])
 
-	nk := inNangoKey(uniqueKey)
+	nk := nangoProviderConfigKey(uniqueKey)
 	nangoReq := nango.CreateIntegrationRequest{
 		UniqueKey:   nk,
 		Provider:    nangoProviderName(req.Provider),

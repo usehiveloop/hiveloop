@@ -24,7 +24,7 @@ const (
 
 func newPresigner(t *testing.T, ttl time.Duration) *storage.S3Presigner {
 	t.Helper()
-	endpoint := os.Getenv("PUBLIC_ASSETS_S3_ENDPOINT")
+	endpoint := os.Getenv("HIVY_PUBLIC_ASSETS_S3_ENDPOINT")
 	if endpoint == "" {
 		endpoint = testMinioEndpoint
 	}

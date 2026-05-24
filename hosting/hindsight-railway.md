@@ -85,6 +85,23 @@ The API is never exposed publicly. Security is provided by Railway's private net
 | `HINDSIGHT_API_LLM_API_KEY` | `<OPENROUTER_API_KEY>` |
 | `HINDSIGHT_API_LLM_MODEL` | `google/gemini-2.5-flash` |
 
+### Task-Specific LLMs
+
+Production also configures separate OpenRouter-backed models for Hindsight's
+background memory operations:
+
+| Variable | Value |
+|----------|-------|
+| `HINDSIGHT_API_CONSOLIDATION_LLM_PROVIDER` | `openrouter` |
+| `HINDSIGHT_API_CONSOLIDATION_LLM_API_KEY` | `<OPENROUTER_API_KEY>` |
+| `HINDSIGHT_API_CONSOLIDATION_LLM_MODEL` | `openai/gpt-oss-20b` |
+| `HINDSIGHT_API_REFLECT_LLM_PROVIDER` | `openrouter` |
+| `HINDSIGHT_API_REFLECT_LLM_API_KEY` | `<OPENROUTER_API_KEY>` |
+| `HINDSIGHT_API_REFLECT_LLM_MODEL` | `openai/gpt-oss-20b` |
+| `HINDSIGHT_API_RETAIN_LLM_PROVIDER` | `openrouter` |
+| `HINDSIGHT_API_RETAIN_LLM_API_KEY` | `<OPENROUTER_API_KEY>` |
+| `HINDSIGHT_API_RETAIN_LLM_MODEL` | `openai/gpt-oss-20b` |
+
 ### Embeddings (OpenAI)
 
 | Variable | Value |
@@ -107,7 +124,7 @@ The API is never exposed publicly. Security is provided by Railway's private net
 |----------|-------|-------|
 | `HINDSIGHT_API_HOST` | `0.0.0.0` | Bind to all interfaces |
 | `HINDSIGHT_API_PORT` | `8888` | API port |
-| `HINDSIGHT_API_WORKERS` | `1` | Single worker (2 causes crash loop in combined image) |
+| `HINDSIGHT_API_WORKERS` | `2` | Matches current production |
 | `HINDSIGHT_API_WORKER_ENABLED` | `true` | Internal background worker for consolidation |
 | `HINDSIGHT_API_LOG_LEVEL` | `info` | |
 | `HINDSIGHT_API_LOG_FORMAT` | `json` | Structured logging for Railway |
@@ -207,6 +224,15 @@ railway variable set \
   HINDSIGHT_API_LLM_BASE_URL=https://openrouter.ai/api/v1 \
   HINDSIGHT_API_LLM_API_KEY=<openrouter-key> \
   HINDSIGHT_API_LLM_MODEL=google/gemini-2.5-flash \
+  HINDSIGHT_API_CONSOLIDATION_LLM_PROVIDER=openrouter \
+  HINDSIGHT_API_CONSOLIDATION_LLM_API_KEY=<openrouter-key> \
+  HINDSIGHT_API_CONSOLIDATION_LLM_MODEL=openai/gpt-oss-20b \
+  HINDSIGHT_API_REFLECT_LLM_PROVIDER=openrouter \
+  HINDSIGHT_API_REFLECT_LLM_API_KEY=<openrouter-key> \
+  HINDSIGHT_API_REFLECT_LLM_MODEL=openai/gpt-oss-20b \
+  HINDSIGHT_API_RETAIN_LLM_PROVIDER=openrouter \
+  HINDSIGHT_API_RETAIN_LLM_API_KEY=<openrouter-key> \
+  HINDSIGHT_API_RETAIN_LLM_MODEL=openai/gpt-oss-20b \
   HINDSIGHT_API_EMBEDDINGS_PROVIDER=openai \
   HINDSIGHT_API_EMBEDDINGS_OPENAI_API_KEY=<openai-key> \
   HINDSIGHT_API_EMBEDDINGS_OPENAI_MODEL=text-embedding-3-small \
@@ -215,7 +241,7 @@ railway variable set \
   HINDSIGHT_API_RERANKER_ZEROENTROPY_MODEL=zerank-2 \
   HINDSIGHT_API_HOST=0.0.0.0 \
   HINDSIGHT_API_PORT=8888 \
-  HINDSIGHT_API_WORKERS=1 \
+  HINDSIGHT_API_WORKERS=2 \
   HINDSIGHT_API_WORKER_ENABLED=true \
   HINDSIGHT_API_LOG_LEVEL=info \
   HINDSIGHT_API_LOG_FORMAT=json
@@ -309,14 +335,6 @@ railway redeploy --service hindsight --yes
 ```bash
 railway variable set HINDSIGHT_API_EMBEDDINGS_OPENAI_API_KEY=<new-key>
 ```
-
-### Workers > 1 causes instability
-
-**Symptom:** Setting `HINDSIGHT_API_WORKERS=2` causes child processes to die repeatedly.
-
-**Cause:** Multiple uvicorn workers in the combined image compete for resources or ports.
-
-**Fix:** Keep `HINDSIGHT_API_WORKERS=1`. For higher throughput, deploy the API and CP as separate Railway services using `ghcr.io/vectorize-io/hindsight-api:latest-slim` and `ghcr.io/vectorize-io/hindsight-control-plane:latest`.
 
 ## Smoke Test
 

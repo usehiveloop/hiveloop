@@ -33,7 +33,7 @@ type SpecialistTaskHandlerHooks struct {
 	StopSandbox             func(ctx context.Context, sb *model.Sandbox) error
 	DeleteSandbox           func(ctx context.Context, sb *model.Sandbox) error
 	TaskDriveUploadURL      func(employeeID uuid.UUID, taskID uuid.UUID) string
-	EmployeeCallbackRuntime employeeCallbackSandboxRuntime
+	EmployeeCallbackRuntime employeeCallbackSandboxCloudAgents
 }
 
 type SpecialistTaskHandler struct {

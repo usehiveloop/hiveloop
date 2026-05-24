@@ -5,11 +5,11 @@
 import * as Sentry from "@sentry/nextjs";
 
 const tracesSampleRate = Number(
-  process.env.NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE ?? "0.01",
+  process.env.NEXT_PUBLIC_HIVY_SENTRY_TRACES_SAMPLE_RATE ?? "0.01",
 );
 
 Sentry.init({
-  dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
+  dsn: process.env.NEXT_PUBLIC_HIVY_SENTRY_DSN,
 
   tracesSampleRate: Number.isFinite(tracesSampleRate) ? tracesSampleRate : 0.01,
   enableLogs: false,

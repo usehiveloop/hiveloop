@@ -32,9 +32,9 @@ func main() {
 	defer cancel()
 
 	client, err := daytona.NewClientWithConfig(&types.DaytonaConfig{
-		APIKey: os.Getenv("SANDBOX_PROVIDER_KEY"),
-		APIUrl: os.Getenv("SANDBOX_PROVIDER_URL"),
-		Target: os.Getenv("SANDBOX_TARGET"),
+		APIKey: os.Getenv("HIVY_DAYTONA_API_KEY"),
+		APIUrl: os.Getenv("HIVY_DAYTONA_API_URL"),
+		Target: os.Getenv("HIVY_DAYTONA_TARGET"),
 	})
 	if err != nil {
 		log.Fatalf("client: %v", err)

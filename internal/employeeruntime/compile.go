@@ -244,8 +244,8 @@ func Compile(ctx context.Context, deps CompileDeps, agent *model.Agent) (*Employ
 
 func ControlPlaneOutboundChannels(cfg *config.Config, sandboxID uuid.UUID) []any {
 	bridgeHost := "api.usehivy.com"
-	if cfg != nil && strings.TrimSpace(cfg.BridgeHost) != "" {
-		bridgeHost = strings.TrimRight(strings.TrimSpace(cfg.BridgeHost), "/")
+	if cfg != nil && strings.TrimSpace(cfg.CloudAgentsSandboxHost) != "" {
+		bridgeHost = strings.TrimRight(strings.TrimSpace(cfg.CloudAgentsSandboxHost), "/")
 	}
 	return []any{
 		map[string]any{

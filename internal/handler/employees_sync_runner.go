@@ -165,7 +165,7 @@ func addControlPlaneRuntimeEnv(ctx context.Context, db *gorm.DB, env map[string]
 	if env == nil || cfg == nil || agent == nil || agent.ID == uuid.Nil || runtimeSecret == "" {
 		return
 	}
-	bridgeHost := strings.TrimSpace(cfg.BridgeHost)
+	bridgeHost := strings.TrimSpace(cfg.CloudAgentsSandboxHost)
 	if bridgeHost == "" {
 		return
 	}

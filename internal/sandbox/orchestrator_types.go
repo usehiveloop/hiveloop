@@ -34,7 +34,7 @@ func baseEnvVars(cfg *config.Config, bridgeAPIKey string, sandboxID uuid.UUID, w
 		employeeruntime.EmployeeEnvUploadBearer: bridgeAPIKey,
 		"BRIDGE_LISTEN_ADDR":                    fmt.Sprintf("0.0.0.0:%d", BridgePort),
 		"BRIDGE_LOG_FORMAT":                     "json",
-		"BRIDGE_WEB_URL":                        fmt.Sprintf("https://%s/spider", cfg.BridgeHost),
+		"BRIDGE_WEB_URL":                        fmt.Sprintf("https://%s/spider", cfg.CloudAgentsSandboxHost),
 		employeeruntime.EmployeeEnvSandboxID:    sandboxID.String(),
 		// HOME=/work so bridge.db survives provider stop/start; the harnesses
 		// read their config from CLAUDE_CONFIG_DIR / OPENCODE_CONFIG_DIR.
@@ -80,21 +80,21 @@ func setAgentEnvVars(envVars map[string]string, agent *model.Agent, cfg *config.
 		return
 	}
 	envVars[employeeruntime.EmployeeEnvHivyEmployeeID] = agent.ID.String()
-	envVars[employeeruntime.EmployeeEnvGitCredentialsURL] = fmt.Sprintf("https://%s/internal/git-credentials/%s", cfg.BridgeHost, agent.ID)
-	envVars[employeeruntime.EmployeeEnvBugsinkURL] = fmt.Sprintf("https://%s/internal/bugsink-proxy/%s", cfg.BridgeHost, agent.ID)
+	envVars[employeeruntime.EmployeeEnvGitCredentialsURL] = fmt.Sprintf("https://%s/internal/git-credentials/%s", cfg.CloudAgentsSandboxHost, agent.ID)
+	envVars[employeeruntime.EmployeeEnvBugsinkURL] = fmt.Sprintf("https://%s/internal/bugsink-proxy/%s", cfg.CloudAgentsSandboxHost, agent.ID)
 	envVars[employeeruntime.EmployeeEnvBugsinkToken] = envVars["BRIDGE_CONTROL_PLANE_API_KEY"]
-	envVars[employeeruntime.EmployeeEnvLinearURL] = fmt.Sprintf("https://%s/internal/linear-proxy/%s", cfg.BridgeHost, agent.ID)
+	envVars[employeeruntime.EmployeeEnvLinearURL] = fmt.Sprintf("https://%s/internal/linear-proxy/%s", cfg.CloudAgentsSandboxHost, agent.ID)
 	envVars[employeeruntime.EmployeeEnvLinearToken] = envVars["BRIDGE_CONTROL_PLANE_API_KEY"]
-	envVars[employeeruntime.EmployeeEnvNotionAPIURL] = fmt.Sprintf("https://%s/internal/notion-proxy/%s", cfg.BridgeHost, agent.ID)
+	envVars[employeeruntime.EmployeeEnvNotionAPIURL] = fmt.Sprintf("https://%s/internal/notion-proxy/%s", cfg.CloudAgentsSandboxHost, agent.ID)
 	envVars[employeeruntime.EmployeeEnvNotionToken] = envVars["BRIDGE_CONTROL_PLANE_API_KEY"]
-	envVars["HIVY_RAILWAY_API_URL"] = fmt.Sprintf("https://%s/internal/railway-proxy/%s", cfg.BridgeHost, agent.ID)
+	envVars["HIVY_RAILWAY_API_URL"] = fmt.Sprintf("https://%s/internal/railway-proxy/%s", cfg.CloudAgentsSandboxHost, agent.ID)
 	envVars["HIVY_RAILWAY_API_KEY"] = envVars["BRIDGE_CONTROL_PLANE_API_KEY"]
 	envVars["HIVY_VERCEL_API_KEY"] = envVars["BRIDGE_CONTROL_PLANE_API_KEY"]
 	envVars[employeeruntime.EmployeeEnvGitHubNoKeyring] = "1"
 }
 
 func setDriveEndpoint(envVars map[string]string, sandboxID uuid.UUID, cfg *config.Config) {
-	envVars["HIVY_DRIVE_ENDPOINT"] = fmt.Sprintf("https://%s/internal/sandbox-drive/%s", cfg.BridgeHost, sandboxID)
+	envVars["HIVY_DRIVE_ENDPOINT"] = fmt.Sprintf("https://%s/internal/sandbox-drive/%s", cfg.CloudAgentsSandboxHost, sandboxID)
 }
 
 // setAssetsUploadURL exposes the conversation-asset endpoint base. The
@@ -106,14 +106,14 @@ func setDriveEndpoint(envVars map[string]string, sandboxID uuid.UUID, cfg *confi
 // Auth uses the same bridge API key already exported as
 // BRIDGE_CONTROL_PLANE_API_KEY.
 func setAssetsUploadURL(envVars map[string]string, cfg *config.Config) {
-	envVars["HIVY_ASSETS_UPLOAD_URL"] = fmt.Sprintf("https://%s/internal/conversations", cfg.BridgeHost)
-	envVars["HIVY_EMPLOYEE_ASSETS_UPLOAD_URL"] = fmt.Sprintf("https://%s/internal/employees", cfg.BridgeHost)
+	envVars["HIVY_ASSETS_UPLOAD_URL"] = fmt.Sprintf("https://%s/internal/conversations", cfg.CloudAgentsSandboxHost)
+	envVars["HIVY_EMPLOYEE_ASSETS_UPLOAD_URL"] = fmt.Sprintf("https://%s/internal/employees", cfg.CloudAgentsSandboxHost)
 }
 
 func employeeDriveUploadURL(cfg *config.Config, employeeID uuid.UUID, folder string) string {
 	bridgeHost := "api.usehivy.com"
-	if cfg != nil && strings.TrimSpace(cfg.BridgeHost) != "" {
-		bridgeHost = strings.TrimRight(strings.TrimSpace(cfg.BridgeHost), "/")
+	if cfg != nil && strings.TrimSpace(cfg.CloudAgentsSandboxHost) != "" {
+		bridgeHost = strings.TrimRight(strings.TrimSpace(cfg.CloudAgentsSandboxHost), "/")
 	}
 	base := fmt.Sprintf("https://%s/internal/employees/%s/assets", bridgeHost, employeeID)
 	folder = strings.Trim(strings.TrimSpace(folder), "/")

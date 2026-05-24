@@ -53,7 +53,7 @@ rustc --version
 
 ```bash
 git clone https://github.com/usehivy/hivy.git
-cd hivy/sandboxes/runtime
+cd hivy/sandboxes/cloud-agents
 ```
 
 ---

@@ -133,8 +133,8 @@ func employeeSandboxEnvVars(cfg *config.Config, runtimeSecret string, sb *model.
 	bridgeHost := "api.usehivy.com"
 	proxyHost := "proxy.usehivy.com"
 	if cfg != nil {
-		if cfg.BridgeHost != "" {
-			bridgeHost = cfg.BridgeHost
+		if cfg.CloudAgentsSandboxHost != "" {
+			bridgeHost = cfg.CloudAgentsSandboxHost
 		}
 		if cfg.ProxyHost != "" {
 			proxyHost = cfg.ProxyHost

@@ -15,10 +15,10 @@ func TestRealNangoCreateIntegrationRequiresConcreteOAuthCredentials(t *testing.T
 	if os.Getenv("RUN_REAL_NANGO_TESTS") != "1" {
 		t.Skip("set RUN_REAL_NANGO_TESTS=1 to run against docker-compose Nango")
 	}
-	endpoint := os.Getenv("NANGO_ENDPOINT")
-	secret := os.Getenv("NANGO_SECRET_KEY")
+	endpoint := os.Getenv("HIVY_NANGO_ENDPOINT")
+	secret := os.Getenv("HIVY_NANGO_SECRET_KEY")
 	if endpoint == "" || secret == "" {
-		t.Fatal("NANGO_ENDPOINT and NANGO_SECRET_KEY are required")
+		t.Fatal("HIVY_NANGO_ENDPOINT and HIVY_NANGO_SECRET_KEY are required")
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)

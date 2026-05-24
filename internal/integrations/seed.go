@@ -142,7 +142,7 @@ func enabled(m Manifest) bool {
 }
 
 func nangoKey(uniqueKey string) string {
-	return "in_" + uniqueKey
+	return uniqueKey
 }
 
 func nangoProvider(m Manifest) string {

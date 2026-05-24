@@ -56,9 +56,9 @@ jobs:
     name: promote sandbox release
     runs-on: ubuntu-latest
     env:
-      SANDBOX_PROVIDER_KEY: ${{ secrets.SANDBOX_PROVIDER_KEY }}
-      SANDBOX_PROVIDER_URL: ${{ secrets.SANDBOX_PROVIDER_URL || vars.SANDBOX_PROVIDER_URL }}
-      SANDBOX_TARGET: ${{ secrets.SANDBOX_TARGET || vars.SANDBOX_TARGET }}
+      HIVY_DAYTONA_API_KEY: ${{ secrets.HIVY_DAYTONA_API_KEY }}
+      HIVY_DAYTONA_API_URL: ${{ secrets.HIVY_DAYTONA_API_URL || vars.HIVY_DAYTONA_API_URL }}
+      HIVY_DAYTONA_TARGET: ${{ secrets.HIVY_DAYTONA_TARGET || vars.HIVY_DAYTONA_TARGET }}
     steps:
       - uses: actions/checkout@v6
         with:

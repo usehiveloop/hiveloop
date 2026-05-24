@@ -37,8 +37,7 @@ EXCLUDE_DIRS=(
   -path './cmd/fake-nango' -o
   -path './cmd/fetchactions-graphql' -o
   -path './cmd/fetchactions-oas2' -o
-  -path './cmd/fetchactions-oas3' -o
-  -path './skills/upload'
+  -path './cmd/fetchactions-oas3'
 )
 
 PATTERN='(\bslog\.(Info|Warn|Error|Debug)\(|\blogger\.(Info|Warn|Error|Debug)\(|\blog\.(Print|Printf|Println|Fatal|Fatalf|Fatalln)\(|\bfmt\.(Print|Printf|Println)\()'

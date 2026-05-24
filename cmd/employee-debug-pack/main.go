@@ -44,13 +44,13 @@ func main() {
 	if err := loadEnvFile(*envFile); err != nil {
 		log.Fatalf("load env file: %v", err)
 	}
-	apiKey := strings.TrimSpace(os.Getenv("SANDBOX_PROVIDER_KEY"))
-	apiURL := strings.TrimSpace(os.Getenv("SANDBOX_PROVIDER_URL"))
+	apiKey := strings.TrimSpace(os.Getenv("HIVY_DAYTONA_API_KEY"))
+	apiURL := strings.TrimSpace(os.Getenv("HIVY_DAYTONA_API_URL"))
 	if apiKey == "" {
-		log.Fatal("SANDBOX_PROVIDER_KEY is required; export it or provide an env file with -env-file")
+		log.Fatal("HIVY_DAYTONA_API_KEY is required; export it or provide an env file with -env-file")
 	}
 	if apiURL == "" {
-		log.Fatal("SANDBOX_PROVIDER_URL is required; export it or provide an env file with -env-file")
+		log.Fatal("HIVY_DAYTONA_API_URL is required; export it or provide an env file with -env-file")
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), *timeout)
@@ -176,7 +176,7 @@ func downloadFile(ctx context.Context, client *toolbox.APIClient, remotePath str
 func toolboxClient(apiURL, apiKey, sandboxID string) (*toolbox.APIClient, error) {
 	parsed, err := url.Parse(apiURL)
 	if err != nil {
-		return nil, fmt.Errorf("parsing SANDBOX_PROVIDER_URL %q: %w", apiURL, err)
+		return nil, fmt.Errorf("parsing HIVY_DAYTONA_API_URL %q: %w", apiURL, err)
 	}
 	basePath := strings.TrimRight(parsed.Path, "/") + "/toolbox/" + sandboxID + "/toolbox"
 	cfg := toolbox.NewConfiguration()

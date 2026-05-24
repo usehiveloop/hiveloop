@@ -109,7 +109,7 @@ func newSQLiteBackupHarnessWithStreamer(t *testing.T, maxBytes int64, isEmployee
 
 func newRealS3Client(t *testing.T) *storage.S3Client {
 	t.Helper()
-	endpoint := os.Getenv("PUBLIC_ASSETS_S3_ENDPOINT")
+	endpoint := os.Getenv("HIVY_PUBLIC_ASSETS_S3_ENDPOINT")
 	if endpoint == "" {
 		endpoint = testMinioEndpoint
 	}

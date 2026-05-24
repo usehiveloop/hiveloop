@@ -1,14 +1,15 @@
-.PHONY: build test test-e2e lint check-file-length vet check up down dev clean fetch-actions generate docker-build docker-run test-clean test-clean-auth test-clean-nango test-clean-proxy test-clean-connect test-clean-integrations test-auth test-nango test-real-nango test-proxy test-connect test-integrations test-connections test-sandbox-docker test-setup test-setup-nango openapi generate-auth-keys upload-skills generate-bridge-client generate-employee-bridge-client build-employee-sandbox-templates employee-env-doctor employee-debug-pack test-services-up test-services-down ragtest-slack-live ragtest-kb-search-live seed-test local-up local-down local-reset local-status login-test asynq-peek
-.PHONY: sandbox-runtime-build sandbox-runtime-test sandbox-runtime-fmt-check sandbox-runtime-clippy sandbox-runtime-openapi sandbox-employee-build sandbox-employee-test sandbox-employee-fmt-check sandbox-employee-openapi employee-openapi sandbox-employee-image sandbox-employee-image-test
+.PHONY: build test test-e2e lint check-file-length vet check up down dev clean fetch-actions generate docker-build docker-run test-clean test-clean-auth test-clean-nango test-clean-proxy test-clean-connect test-clean-integrations test-auth test-nango test-real-nango test-proxy test-connect test-integrations test-connections test-sandbox-docker test-setup test-setup-nango openapi generate-auth-keys generate-bridge-client generate-employee-bridge-client build-employee-sandbox-templates employee-env-doctor employee-debug-pack test-services-up test-services-down ragtest-slack-live ragtest-kb-search-live seed-test local-up local-down local-reset local-status login-test asynq-peek
+.PHONY: sandbox-cloud-agents-build sandbox-cloud-agents-test sandbox-cloud-agents-fmt-check sandbox-cloud-agents-clippy sandbox-cloud-agents-openapi sandbox-employee-build sandbox-employee-test sandbox-employee-fmt-check sandbox-employee-openapi employee-openapi sandbox-employee-image sandbox-employee-image-test
 
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 COMMIT  ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo unknown)
 IMAGE   ?= usehivy/hivy
-SANDBOX_RUNTIME_DIR ?= sandboxes/runtime
+SANDBOX_CLOUD_AGENTS_DIR ?= sandboxes/cloud-agents
 SANDBOX_EMPLOYEE_DIR ?= sandboxes/employee
 GO_BIN ?= $(shell if command -v go >/dev/null 2>&1; then command -v go; elif [ -x /opt/homebrew/bin/go ]; then echo /opt/homebrew/bin/go; elif [ -x /usr/local/go/bin/go ]; then echo /usr/local/go/bin/go; else echo go; fi)
+DEV_COMPOSE_SERVICES ?= postgres redis nango qdrant minio minio-setup hindsight api worker web
 
-# Generate base64-encoded RSA private key for AUTH_RSA_PRIVATE_KEY env var
+# Generate base64-encoded RSA private key for HIVY_AUTH_RSA_PRIVATE_KEY env var
 generate-auth-keys:
 	@openssl genrsa 2048 2>/dev/null | base64 | tr -d '\n' && echo
 
@@ -44,23 +45,23 @@ openapi:
 # Build + push base sandbox images to GHCR and register Daytona snapshots
 # (one per size: small, medium, large, xlarge) pointing at the GHCR image.
 # Requires GHCR_USERNAME, GHCR_PAT (PAT with write:packages),
-# SANDBOX_PROVIDER_KEY, SANDBOX_PROVIDER_URL, SANDBOX_TARGET.
+# HIVY_DAYTONA_API_KEY, HIVY_DAYTONA_API_URL, HIVY_DAYTONA_TARGET.
 # Usage: make build-templates VERSION=1.0.1 BRIDGE_VERSION=v1.0.0
 #        make build-templates VERSION=1.0.1 BRIDGE_VERSION=v1.0.0 SIZE=small
-#        make build-templates VERSION=1.0.1 BRIDGE_VERSION=v1.0.0 BRIDGE_BINARY=sandboxes/runtime/target/release/bridge
+#        make build-templates VERSION=1.0.1 BRIDGE_VERSION=v1.0.0 BRIDGE_BINARY=sandboxes/cloud-agents/target/release/bridge
 # VERSION drives the GHCR image tag and Daytona snapshot name. Bump it on every
 # rebuild — Daytona freezes the snapshot's mirrored image at create time, so
 # reusing a VERSION leaves the old bytes in the control-plane registry.
 # BRIDGE_VERSION is the monorepo release tag installed into the image, either
 # from ghcr.io/usehivy/hivy release assets or from BRIDGE_BINARY when
-# building the runtime bridge directly from sandboxes/runtime.
+# building the cloud agent bridge directly from sandboxes/cloud-agents.
 build-templates:
 	@test -n "$(VERSION)" || (echo "error: VERSION is required (e.g. make build-templates VERSION=1.0.1 BRIDGE_VERSION=v1.0.0)" && exit 1)
 	@test -n "$(BRIDGE_VERSION)" || (echo "error: BRIDGE_VERSION is required (e.g. make build-templates VERSION=1.0.1 BRIDGE_VERSION=v1.0.0)" && exit 1)
 	env $$(grep -v '^\s*\#' .env | grep -v '^\s*$$' | xargs) go run ./cmd/buildtemplates bridge -version=$(VERSION) -bridge-version=$(BRIDGE_VERSION) -size=$(or $(SIZE),all) $(if $(BRIDGE_BINARY),-bridge-binary=$(BRIDGE_BINARY),)
 
 # Register Daytona snapshots from a usehivy/employee-sandbox image already published.
-# Requires SANDBOX_PROVIDER_KEY, SANDBOX_PROVIDER_URL, SANDBOX_TARGET.
+# Requires HIVY_DAYTONA_API_KEY, HIVY_DAYTONA_API_URL, HIVY_DAYTONA_TARGET.
 # Usage: make build-employee-sandbox-templates EMPLOYEE_SANDBOX_VERSION=v0.0.1
 #        make build-employee-sandbox-templates EMPLOYEE_SANDBOX_VERSION=v0.0.1 SIZE=small
 build-employee-sandbox-templates:
@@ -97,10 +98,6 @@ employee-debug-pack:
 	if [ "$(DEBUG_SENSITIVE)" = "1" ]; then flags="$$flags --sensitive"; fi; \
 	go run ./cmd/employee-debug-pack $$flags
 
-# Upload skill definitions to Hivy API (reads HIVY_SKILLS_API_KEY from .env)
-upload-skills:
-	env $$(grep -v '^\s*\#' .env | grep -v '^\s*$$' | xargs) go run ./global/skills/upload
-
 # Generate Bridge Go client from OpenAPI spec.
 # Bridge emits OpenAPI 3.1 schemas oapi-codegen can't handle:
 #   1. {oneOf: [{type:null}, {$ref}]} for nullable refs → collapse to the $ref
@@ -130,21 +127,21 @@ generate-employee-bridge-client:
 		--config=internal/employeebridge/oapi-codegen.yaml $(SANDBOX_EMPLOYEE_DIR)/openapi.generated.json
 	rm $(SANDBOX_EMPLOYEE_DIR)/openapi.generated.json
 
-sandbox-runtime-build:
-	cd $(SANDBOX_RUNTIME_DIR) && cargo build --release -p bridge
+sandbox-cloud-agents-build:
+	cd $(SANDBOX_CLOUD_AGENTS_DIR) && cargo build --release -p bridge
 
-sandbox-runtime-test:
-	cd $(SANDBOX_RUNTIME_DIR) && cargo test --workspace --exclude bridge-e2e --exclude storage-e2e
+sandbox-cloud-agents-test:
+	cd $(SANDBOX_CLOUD_AGENTS_DIR) && cargo test --workspace --exclude storage-e2e
 
-sandbox-runtime-fmt-check:
-	cd $(SANDBOX_RUNTIME_DIR) && cargo fmt --all -- --check
+sandbox-cloud-agents-fmt-check:
+	cd $(SANDBOX_CLOUD_AGENTS_DIR) && cargo fmt --all -- --check
 
-sandbox-runtime-clippy:
-	cd $(SANDBOX_RUNTIME_DIR) && cargo clippy --workspace -- -D warnings
+sandbox-cloud-agents-clippy:
+	cd $(SANDBOX_CLOUD_AGENTS_DIR) && cargo clippy --workspace -- -D warnings
 
-sandbox-runtime-openapi:
-	$(MAKE) -C $(SANDBOX_RUNTIME_DIR) openapi
-	cp $(SANDBOX_RUNTIME_DIR)/openapi.json openapi/bridge.json
+sandbox-cloud-agents-openapi:
+	$(MAKE) -C $(SANDBOX_CLOUD_AGENTS_DIR) openapi
+	cp $(SANDBOX_CLOUD_AGENTS_DIR)/openapi.json openapi/bridge.json
 	$(MAKE) generate-bridge-client
 
 sandbox-employee-build:
@@ -193,7 +190,7 @@ test-setup:
 	@echo "  ✓ Redis"
 	@until curl -fsS http://localhost:9000/minio/health/ready >/dev/null 2>&1; do sleep 1; done
 	@echo "  ✓ MinIO"
-	@until curl -fsS http://localhost:$${QDRANT_HTTP_PORT:-6333}/readyz >/dev/null 2>&1; do sleep 1; done
+	@until curl -fsS http://localhost:$${HIVY_QDRANT_HTTP_PORT:-6333}/readyz >/dev/null 2>&1; do sleep 1; done
 	@echo "  ✓ Qdrant"
 	docker compose run --rm minio-setup
 	@echo ""
@@ -212,7 +209,7 @@ test-setup-nango:
 	@echo "  ✓ Postgres"
 	@until docker compose exec -T redis redis-cli ping 2>/dev/null | grep -q PONG; do sleep 1; done
 	@echo "  ✓ Redis"
-	@until curl -fsS http://localhost:$${NANGO_PORT:-13003}/health >/dev/null 2>&1; do sleep 1; done
+	@until curl -fsS http://localhost:$${HIVY_NANGO_PORT:-13003}/health >/dev/null 2>&1; do sleep 1; done
 	@echo "  ✓ Nango"
 
 # --- Targeted test commands (no teardown, assumes stack is running) ---
@@ -228,11 +225,11 @@ test-nango:
 	go test ./e2e/... -v -race -count=1 -timeout=5m -run "TestE2E_Integration"
 
 test-real-nango:
-	@secret=$$(docker compose exec -T postgres psql -U $${POSTGRES_USER:-hivy} -d nango -Atc "SELECT secret_key FROM nango._nango_environments WHERE name='prod' LIMIT 1"); \
+	@secret=$$(docker compose exec -T postgres sh -lc 'psql -U "$$POSTGRES_USER" -d nango -Atc "SELECT secret_key FROM nango._nango_environments WHERE name='\''prod'\'' LIMIT 1"'); \
 	if [ -z "$$secret" ]; then echo "Nango secret not found; run make test-setup-nango"; exit 1; fi; \
 	RUN_REAL_NANGO_TESTS=1 \
-	NANGO_ENDPOINT=http://localhost:$${NANGO_PORT:-13003} \
-	NANGO_SECRET_KEY=$$secret \
+	HIVY_NANGO_ENDPOINT=http://localhost:$${HIVY_NANGO_PORT:-13003} \
+	HIVY_NANGO_SECRET_KEY=$$secret \
 	go test ./internal/nango -v -count=1 -run TestRealNango
 
 # LLM proxy e2e tests (OpenRouter, Fireworks, streaming, tool calls)
@@ -275,26 +272,13 @@ vet:
 # Run all checks: vet, lint, file-length, log-budget, test, build
 check: vet lint check-file-length check-log-budget test build
 
-# Start local development stack (infra only, no proxy)
+# Start the complete local development stack through docker compose.
 up:
-	docker compose up -d postgres redis mailpit
+	docker compose up -d --build $(DEV_COMPOSE_SERVICES)
 
-# Start dev infra, wait for healthy, then run server with hot reload (air)
-dev: up
-	@echo ""
-	@echo "Waiting for services..."
-	@until docker compose exec -T postgres pg_isready -U hivy -q 2>/dev/null; do sleep 1; done
-	@echo "  ✓ Postgres"
-	@until docker compose exec -T redis redis-cli ping 2>/dev/null | grep -q PONG; do sleep 1; done
-	@echo "  ✓ Redis"
-	@echo ""
-	@echo "========================================"
-	@echo "  Starting Hivy (hot reload, debug)"
-	@echo "========================================"
-	@echo "  Postgres:  localhost:5433"
-	@echo "  Redis:     localhost:6379"
-	@echo ""
-	env $$(grep -v '^\s*\#' .env | grep -v '^\s*$$' | xargs) air
+# Start the complete local development stack through docker compose and stream logs.
+dev:
+	docker compose up --build $(DEV_COMPOSE_SERVICES)
 
 # Clean slate: tear down, rebuild, run all tests
 test-clean:
@@ -340,11 +324,26 @@ docker-build:
 # Run Docker image locally (connects to host docker-compose infra)
 docker-run:
 	docker run --rm --network host \
-		-e DATABASE_URL=postgres://hivy:localdev@localhost:5433/hivy?sslmode=disable \
-		-e KMS_TYPE=aead \
-		-e KMS_KEY=$${KMS_KEY} \
-		-e REDIS_ADDR=localhost:6379 \
-		-e JWT_SIGNING_KEY=local-dev-signing-key \
+		-e HIVY_ENVIRONMENT=development \
+		-e HIVY_PORT=8080 \
+		-e HIVY_LOG_LEVEL=info \
+		-e HIVY_LOG_FORMAT=text \
+		-e HIVY_DB_HOST=localhost \
+		-e HIVY_DB_PORT=5433 \
+		-e HIVY_DB_USER=hivy \
+		-e HIVY_DB_PASSWORD=localdev \
+		-e HIVY_DB_NAME=hivy \
+		-e HIVY_DB_SSLMODE=disable \
+		-e HIVY_KMS_TYPE=aead \
+		-e HIVY_KMS_KEY=$${HIVY_KMS_KEY} \
+		-e HIVY_REDIS_ADDR=localhost:6379 \
+		-e HIVY_REDIS_CACHE_TTL=30m \
+		-e HIVY_MEM_CACHE_TTL=5m \
+		-e HIVY_MEM_CACHE_MAX_SIZE=10000 \
+		-e HIVY_JWT_SIGNING_KEY=local-dev-signing-key \
+		-e HIVY_AUTH_RSA_PRIVATE_KEY=$${HIVY_AUTH_RSA_PRIVATE_KEY} \
+		-e HIVY_FRONTEND_URL=http://localhost:30112 \
+		-e HIVY_CLOUD_AGENTS_SANDBOX_RUNTIME_VERSION=dev \
 		$(IMAGE):latest
 
 # --- RAG test-service targets (Phase 0) ---
@@ -353,14 +352,14 @@ docker-run:
 # postgres (metadata) + redis (locks) + minio (object storage) + qdrant
 # (vector search). Creates the hivy-rag-test bucket as a side effect.
 test-services-up:
-	POSTGRES_PASSWORD=$${POSTGRES_PASSWORD:-localdev} docker compose up -d postgres redis minio qdrant
-	@until curl -fsS http://localhost:$${QDRANT_HTTP_PORT:-6333}/readyz >/dev/null 2>&1; do sleep 1; done
-	POSTGRES_PASSWORD=$${POSTGRES_PASSWORD:-localdev} docker compose run --rm minio-setup
+	HIVY_DB_PASSWORD=$${HIVY_DB_PASSWORD:-localdev} docker compose up -d postgres redis minio qdrant
+	@until curl -fsS http://localhost:$${HIVY_QDRANT_HTTP_PORT:-6333}/readyz >/dev/null 2>&1; do sleep 1; done
+	HIVY_DB_PASSWORD=$${HIVY_DB_PASSWORD:-localdev} docker compose run --rm minio-setup
 
 # Stop those services (keeps data volumes). Use `make down` for a full
 # teardown.
 test-services-down:
-	POSTGRES_PASSWORD=$${POSTGRES_PASSWORD:-localdev} docker compose stop postgres redis minio qdrant
+	HIVY_DB_PASSWORD=$${HIVY_DB_PASSWORD:-localdev} docker compose stop postgres redis minio qdrant
 
 # Run the real Slack bot-token RAG ingestion test against local Postgres/Qdrant.
 # Requires read-only Slack bot token and embedding env. By default it loads
@@ -372,9 +371,9 @@ ragtest-slack-live:
 	set +a; \
 	HIVY_E2E_SLACK_RAG=1 \
 	HIVY_E2E_KEEP_SLACK_RAG=$${HIVY_E2E_KEEP_SLACK_RAG:-1} \
-	QDRANT_HOST=$${QDRANT_HOST:-localhost} \
-	QDRANT_PORT=$${QDRANT_PORT:-6334} \
-	DATABASE_URL=$${DATABASE_URL:-postgres://hivy:localdev@localhost:5433/hivy_test?sslmode=disable} \
+	HIVY_QDRANT_HOST=$${HIVY_QDRANT_HOST:-localhost} \
+	HIVY_QDRANT_PORT=$${HIVY_QDRANT_PORT:-6334} \
+	HIVY_DATABASE_URL=$${HIVY_DATABASE_URL:-postgres://hivy:localdev@localhost:5433/hivy_test?sslmode=disable} \
 	go test ./internal/rag/connectors/slack -run TestSlackBotProfileRAGIngestion_Live -count=1 -v
 
 # Run live semantic KB search against an existing local Qdrant collection.
@@ -384,15 +383,15 @@ ragtest-kb-search-live:
 	[ ! -f .env.rag ] || . ./.env.rag; \
 	set +a; \
 	HIVY_E2E_KB_SEARCH=1 \
-	QDRANT_HOST=$${QDRANT_HOST:-localhost} \
-	QDRANT_PORT=$${QDRANT_PORT:-6334} \
+	HIVY_QDRANT_HOST=$${HIVY_QDRANT_HOST:-localhost} \
+	HIVY_QDRANT_PORT=$${HIVY_QDRANT_PORT:-6334} \
 	go test ./internal/rag -run TestSearchKnowledgeBase_LiveSlackCollection -count=1 -v
 
 seed-test:
-	@PORT=$${DB_PORT:-$$(test -s /tmp/agent-test/pg.port && cat /tmp/agent-test/pg.port || echo 5432)}; \
-	PGPASSWORD=$${POSTGRES_PASSWORD:-localdev} psql -q \
-		-h $${DB_HOST:-localhost} -p $$PORT \
-		-U $${DB_USER:-hivy} -d $${DB_NAME:-hivy} \
+	@PG_PORT=$${HIVY_DB_PORT:-$$(test -s /tmp/agent-test/pg.port && cat /tmp/agent-test/pg.port || echo 5432)}; \
+	PGPASSWORD=$${HIVY_DB_PASSWORD:-localdev} psql -q \
+		-h $${HIVY_DB_HOST:-localhost} -p $$PG_PORT \
+		-U $${HIVY_DB_USER:-hivy} -d $${HIVY_DB_NAME:-hivy} \
 		-f scripts/seed-test-data.sql
 
 # --- Local test stack ---

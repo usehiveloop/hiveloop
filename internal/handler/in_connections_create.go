@@ -74,7 +74,7 @@ func (h *InConnectionHandler) Create(w http.ResponseWriter, r *http.Request) {
 		meta = model.JSON{}
 	}
 	if integ.Provider == "bugsink" {
-		nangoResp, err := h.nango.GetConnection(r.Context(), req.NangoConnectionID, inNangoKey(integ.UniqueKey))
+		nangoResp, err := h.nango.GetConnection(r.Context(), req.NangoConnectionID, nangoProviderConfigKey(integ.UniqueKey))
 		if err != nil {
 			logging.FromContext(r.Context()).WarnContext(r.Context(), "nango: get bugsink connection failed while enriching metadata",
 				"error", err, "nango_connection_id", req.NangoConnectionID)

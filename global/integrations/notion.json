@@ -9,8 +9,8 @@
   "supports_rag_source": true,
   "credentials": {
     "type": "OAUTH2",
-    "client_id_env": "NANGO_NOTION_CLIENT_ID",
-    "client_secret_env": "NANGO_NOTION_CLIENT_SECRET",
-    "webhook_secret_env": "NANGO_NOTION_WEBHOOK_SECRET"
+    "client_id_env": "HIVY_NANGO_NOTION_CLIENT_ID",
+    "client_secret_env": "HIVY_NANGO_NOTION_CLIENT_SECRET",
+    "webhook_secret_env": "HIVY_NANGO_NOTION_WEBHOOK_SECRET"
   }
 }

@@ -229,11 +229,11 @@ func assertManifestMatchesProvider(t *testing.T, manifest Manifest, provider nan
 
 func realNangoClient(t *testing.T, ctx context.Context) *nango.Client {
 	t.Helper()
-	endpoint := os.Getenv("NANGO_ENDPOINT")
+	endpoint := os.Getenv("HIVY_NANGO_ENDPOINT")
 	if endpoint == "" {
 		endpoint = "http://localhost:13003"
 	}
-	secret := os.Getenv("NANGO_SECRET_KEY")
+	secret := os.Getenv("HIVY_NANGO_SECRET_KEY")
 	if secret == "" {
 		secret = "00000000-0000-4000-8000-000000000001"
 	}
@@ -249,7 +249,7 @@ func realNangoClient(t *testing.T, ctx context.Context) *nango.Client {
 
 func connectIntegrationTestDB(t *testing.T) *gorm.DB {
 	t.Helper()
-	dsn := os.Getenv("DATABASE_URL")
+	dsn := os.Getenv("HIVY_DATABASE_URL")
 	if dsn == "" {
 		dsn = testDBURL
 	}

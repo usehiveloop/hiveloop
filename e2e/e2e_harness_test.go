@@ -73,7 +73,7 @@ func newHarness(t *testing.T) *testHarness {
 
 	proxy.AllowLoopback = true
 
-	dsn := envOr("DATABASE_URL", testDBURL)
+	dsn := envOr("HIVY_DATABASE_URL", testDBURL)
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		t.Fatalf("cannot connect to Postgres: %v", err)
@@ -89,7 +89,7 @@ func newHarness(t *testing.T) *testHarness {
 	}
 	t.Cleanup(func() { sqlDB.Close() })
 
-	rc := redis.NewClient(&redis.Options{Addr: envOr("REDIS_ADDR", testRedisAddr)})
+	rc := redis.NewClient(&redis.Options{Addr: envOr("HIVY_REDIS_ADDR", testRedisAddr)})
 	if err := rc.Ping(context.Background()).Err(); err != nil {
 		t.Fatalf("Redis not reachable: %v", err)
 	}

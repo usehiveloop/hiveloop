@@ -30,6 +30,7 @@ func (d *Driver) CreateSandbox(ctx context.Context, opts sandbox.CreateSandboxOp
 		Privileged:   false,
 		SecurityOpt:  []string{"no-new-privileges"},
 		Resources:    resourceLimits(opts.CPU, opts.Memory),
+		ExtraHosts:   []string{"host.docker.internal:host-gateway"},
 	}
 	cfg := &container.Config{
 		Image:        opts.TemplateRef,

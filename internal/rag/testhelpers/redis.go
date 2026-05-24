@@ -16,7 +16,7 @@ const testRedisAddr = "localhost:6379"
 const testRedisDB = 11
 
 func RedisAddr() string {
-	if v := os.Getenv("REDIS_ADDR"); v != "" {
+	if v := os.Getenv("HIVY_REDIS_ADDR"); v != "" {
 		return v
 	}
 	return testRedisAddr

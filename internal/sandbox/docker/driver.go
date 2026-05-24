@@ -46,7 +46,7 @@ func (d *Driver) ID() string { return sandbox.ProviderDocker }
 
 func (d *Driver) Validate(ctx context.Context) error {
 	if d.publicHost == "" {
-		return fmt.Errorf("SANDBOX_DOCKER_PUBLIC_HOST is required for docker sandbox provider")
+		return fmt.Errorf("HIVY_SANDBOX_DOCKER_PUBLIC_HOST is required for docker sandbox provider")
 	}
 	if _, err := d.cli.Ping(ctx); err != nil {
 		return fmt.Errorf("ping docker daemon: %w", err)

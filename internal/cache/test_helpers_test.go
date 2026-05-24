@@ -24,7 +24,7 @@ const (
 
 func connectTestDB(t *testing.T) *gorm.DB {
 	t.Helper()
-	dsn := os.Getenv("DATABASE_URL")
+	dsn := os.Getenv("HIVY_DATABASE_URL")
 	if dsn == "" {
 		dsn = testDBURL
 	}
@@ -44,7 +44,7 @@ func connectTestDB(t *testing.T) *gorm.DB {
 
 func connectTestRedis(t *testing.T) *redis.Client {
 	t.Helper()
-	addr := os.Getenv("REDIS_ADDR")
+	addr := os.Getenv("HIVY_REDIS_ADDR")
 	if addr == "" {
 		addr = testRedisAddr
 	}

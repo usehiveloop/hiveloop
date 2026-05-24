@@ -16,6 +16,7 @@ strix_runs/
 .claude/
 .env.*
 # Always commit *.example template files, even though they match .env.*
+!.env.example
 !.env.*.example
 
 fetchactions-graphql
@@ -64,17 +65,14 @@ node_modules/.pnpm-workspace-state-v1.json
 .DS_Store
 **/.DS_Store
 
-# compiled output of global-skills/upload (build artefact)
-/upload
-
 # codedb local index snapshot (generated)
 codedb.snapshot
 **/codedb.snapshot
 
 # Imported sandbox workspaces
-sandboxes/runtime/target/
-sandboxes/runtime/.lsp-servers/
-sandboxes/runtime/.bridge-attachments/
+sandboxes/cloud-agents/target/
+sandboxes/cloud-agents/.lsp-servers/
+sandboxes/cloud-agents/.bridge-attachments/
 sandboxes/employee/target/
 sandboxes/employee/logs/
 sandboxes/employee/workspace/

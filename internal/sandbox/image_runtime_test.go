@@ -24,7 +24,6 @@ func TestImageRuntimeContract(t *testing.T) {
 	}
 	t.Cleanup(func() {
 		db.Where("id = ?", sb.ID).Delete(&model.Sandbox{})
-		db.Where("org_id = ?", org.ID).Delete(&model.WorkspaceStorage{})
 	})
 
 	if BridgePort != 25434 {
@@ -79,9 +78,9 @@ func TestImageRuntimeContract(t *testing.T) {
 	}
 
 	want := "hivy-bridge-1-0-0-small-v1"
-	if orch.cfg.BridgeBaseCloudAgentImagePrefix != want {
-		t.Errorf("cfg.BridgeBaseCloudAgentImagePrefix = %q, want %q",
-			orch.cfg.BridgeBaseCloudAgentImagePrefix, want)
+	if orch.cfg.CloudAgentsSandboxBaseImagePrefix != want {
+		t.Errorf("cfg.CloudAgentsSandboxBaseImagePrefix = %q, want %q",
+			orch.cfg.CloudAgentsSandboxBaseImagePrefix, want)
 	}
 
 	got2 := orch.resolveTemplateRef(&agent)
@@ -100,12 +99,8 @@ func TestConfigImagePrefixDefault(t *testing.T) {
 	}
 
 	want := "hivy-bridge-1-0-0-small-v1"
-	if cfg.BridgeBaseCloudAgentImagePrefix != want {
-		t.Errorf("BridgeBaseCloudAgentImagePrefix default = %q, want %q",
-			cfg.BridgeBaseCloudAgentImagePrefix, want)
-	}
-	if cfg.BridgeBaseImagePrefix != want {
-		t.Errorf("BridgeBaseImagePrefix default = %q, want %q",
-			cfg.BridgeBaseImagePrefix, want)
+	if cfg.CloudAgentsSandboxBaseImagePrefix != want {
+		t.Errorf("CloudAgentsSandboxBaseImagePrefix default = %q, want %q",
+			cfg.CloudAgentsSandboxBaseImagePrefix, want)
 	}
 }

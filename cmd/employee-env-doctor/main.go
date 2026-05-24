@@ -51,17 +51,17 @@ func main() {
 	if err := loadEnvFile(*envFile); err != nil {
 		log.Fatalf("load env file: %v", err)
 	}
-	if strings.TrimSpace(os.Getenv("SANDBOX_PROVIDER_KEY")) == "" {
-		log.Fatal("SANDBOX_PROVIDER_KEY is required; export it or provide an env file with -env-file")
+	if strings.TrimSpace(os.Getenv("HIVY_DAYTONA_API_KEY")) == "" {
+		log.Fatal("HIVY_DAYTONA_API_KEY is required; export it or provide an env file with -env-file")
 	}
-	if strings.TrimSpace(os.Getenv("SANDBOX_PROVIDER_URL")) == "" {
-		log.Fatal("SANDBOX_PROVIDER_URL is required; export it or provide an env file with -env-file")
+	if strings.TrimSpace(os.Getenv("HIVY_DAYTONA_API_URL")) == "" {
+		log.Fatal("HIVY_DAYTONA_API_URL is required; export it or provide an env file with -env-file")
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 
-	result, err := executeToolboxCommand(ctx, os.Getenv("SANDBOX_PROVIDER_URL"), os.Getenv("SANDBOX_PROVIDER_KEY"), *sandboxID, employeeEnvKeysCommand(*pid))
+	result, err := executeToolboxCommand(ctx, os.Getenv("HIVY_DAYTONA_API_URL"), os.Getenv("HIVY_DAYTONA_API_KEY"), *sandboxID, employeeEnvKeysCommand(*pid))
 	if err != nil {
 		log.Fatalf("exec env probe: %v", err)
 	}
@@ -111,7 +111,7 @@ func executeToolboxCommand(ctx context.Context, apiURL, apiKey, sandboxID, comma
 func toolboxClient(apiURL, apiKey, sandboxID string) (*toolbox.APIClient, error) {
 	parsed, err := url.Parse(apiURL)
 	if err != nil {
-		return nil, fmt.Errorf("parsing SANDBOX_PROVIDER_URL %q: %w", apiURL, err)
+		return nil, fmt.Errorf("parsing HIVY_DAYTONA_API_URL %q: %w", apiURL, err)
 	}
 	basePath := strings.TrimRight(parsed.Path, "/") + "/toolbox/" + sandboxID + "/toolbox"
 	cfg := toolbox.NewConfiguration()

@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -53,7 +52,7 @@ func (h *InConnectionHandler) ListResources(w http.ResponseWriter, r *http.Reque
 	}
 
 	provider := conn.InIntegration.Provider
-	nangoProviderConfigKey := fmt.Sprintf("in_%s", conn.InIntegration.UniqueKey)
+	nangoProviderConfigKey := conn.InIntegration.UniqueKey
 
 	result, err := h.discovery.Discover(r.Context(), provider, resourceType, nangoProviderConfigKey, conn.NangoConnectionID)
 	if err != nil {

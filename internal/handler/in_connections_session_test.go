@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
 
 	"github.com/go-chi/chi/v5"
@@ -57,8 +56,8 @@ func TestInConnectionHandler_CreateConnectSession_Success(t *testing.T) {
 		t.Fatal("expected token in response")
 	}
 	pck, ok := resp["provider_config_key"].(string)
-	if !ok || !strings.HasPrefix(pck, "in_") {
-		t.Fatalf("expected provider_config_key with in_ prefix, got %v", resp["provider_config_key"])
+	if !ok || pck != integ.UniqueKey {
+		t.Fatalf("expected provider_config_key %q, got %v", integ.UniqueKey, resp["provider_config_key"])
 	}
 
 	mockCfg.mu.Lock()

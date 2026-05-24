@@ -2,7 +2,6 @@ package sandbox
 
 import (
 	"encoding/base64"
-	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -15,7 +14,6 @@ import (
 	"github.com/usehivy/hivy/internal/config"
 	"github.com/usehivy/hivy/internal/crypto"
 	"github.com/usehivy/hivy/internal/model"
-	"github.com/usehivy/hivy/internal/turso"
 )
 
 const testDBURL = "postgres://hivy:localdev@localhost:5433/hivy_test?sslmode=disable" // #nosec G101 -- local test DB fixture
@@ -54,28 +52,6 @@ func testEncKey(t *testing.T) *crypto.SymmetricKey {
 	return sk
 }
 
-func mockTursoServer(t *testing.T) *httptest.Server {
-	t.Helper()
-	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch {
-		case r.Method == http.MethodPost && r.URL.Path != "" && r.URL.Path[len(r.URL.Path)-9:] == "databases":
-			var body struct{ Name, Group string }
-			_ = json.NewDecoder(r.Body).Decode(&body)
-			w.WriteHeader(200)
-			_ = json.NewEncoder(w).Encode(map[string]any{
-				"database": map[string]any{"Name": body.Name, "DbId": "db-" + body.Name, "Hostname": body.Name + ".turso.io"},
-			})
-		case r.Method == http.MethodPost:
-			w.WriteHeader(200)
-			_ = json.NewEncoder(w).Encode(map[string]string{"jwt": "mock-turso-jwt"})
-		case r.Method == http.MethodDelete:
-			w.WriteHeader(200)
-		default:
-			w.WriteHeader(404)
-		}
-	}))
-}
-
 func setupOrchestrator(t *testing.T) (*Orchestrator, *mockProvider, *gorm.DB) {
 	t.Helper()
 	db := setupTestDB(t)
@@ -92,21 +68,14 @@ func setupOrchestrator(t *testing.T) (*Orchestrator, *mockProvider, *gorm.DB) {
 
 	provider := newMockProvider()
 	provider.endpointOverride = bridgeSrv.URL
-	tursoSrv := mockTursoServer(t)
-	t.Cleanup(tursoSrv.Close)
-
-	tursoClient := turso.NewClient("token", "org")
-	tursoClient.SetBaseURL(tursoSrv.URL)
-	tursoProvisioner := turso.NewProvisioner(tursoClient, "default", db)
 
 	cfg := &config.Config{
-		BridgeBaseImagePrefix:            "hivy-bridge-1-0-0-small-v1",
-		BridgeBaseCloudAgentImagePrefix:  "hivy-bridge-1-0-0-small-v1",
-		BridgeHost:                       "test.usehivy.com",
-		CloudAgentSandboxGracePeriodMins: 5,
+		CloudAgentsSandboxBaseImagePrefix: "hivy-bridge-1-0-0-small-v1",
+		CloudAgentsSandboxHost:            "test.usehivy.com",
+		CloudAgentSandboxGracePeriodMins:  5,
 	}
 
-	orch := NewOrchestrator(db, provider, tursoProvisioner, testEncKey(t), cfg)
+	orch := NewOrchestrator(db, provider, testEncKey(t), cfg)
 	return orch, provider, db
 }
 

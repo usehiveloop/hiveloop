@@ -9,8 +9,8 @@ import (
 
 func TestNewSandboxProviderDefaultsToDaytona(t *testing.T) {
 	provider, err := newSandboxProvider(&config.Config{
-		SandboxProviderKey:  "test-key",
-		BridgeBinaryVersion: "v1.0.0",
+		DaytonaAPIKey:                    "test-key",
+		CloudAgentsSandboxRuntimeVersion: "v1.0.0",
 	})
 	if err != nil {
 		t.Fatalf("newSandboxProvider: %v", err)
@@ -22,9 +22,9 @@ func TestNewSandboxProviderDefaultsToDaytona(t *testing.T) {
 
 func TestNewSandboxProviderRejectsUnknownProvider(t *testing.T) {
 	_, err := newSandboxProvider(&config.Config{
-		SandboxProviderID:   "unknown",
-		SandboxProviderKey:  "test-key",
-		BridgeBinaryVersion: "v1.0.0",
+		SandboxProviderID:                "unknown",
+		DaytonaAPIKey:                    "test-key",
+		CloudAgentsSandboxRuntimeVersion: "v1.0.0",
 	})
 	if err == nil {
 		t.Fatal("expected unsupported provider error")

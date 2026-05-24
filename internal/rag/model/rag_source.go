@@ -163,7 +163,7 @@ func (s *RAGSource) NangoProviderConfigKey() string {
 	if s.InConnection == nil || s.InConnection.InIntegration.UniqueKey == "" {
 		return ""
 	}
-	return "in_" + s.InConnection.InIntegration.UniqueKey
+	return s.InConnection.InIntegration.UniqueKey
 }
 
 // Config returns `{}` when the map is nil/empty so the column's

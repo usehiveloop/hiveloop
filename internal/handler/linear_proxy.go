@@ -188,7 +188,7 @@ func (h *LinearProxyHandler) resolveLinearConnection(ctx context.Context, employ
 	if conn.NangoConnectionID == "" {
 		return model.InConnection{}, "", fmt.Errorf("linear connection missing nango connection id")
 	}
-	return conn, inNangoKey(conn.InIntegration.UniqueKey), nil
+	return conn, nangoProviderConfigKey(conn.InIntegration.UniqueKey), nil
 }
 
 func (h *LinearProxyHandler) captureProxyFailure(ctx context.Context, eventCtx linearProxyContext, status int, reason string) {

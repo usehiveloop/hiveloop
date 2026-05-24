@@ -1,4 +1,4 @@
-// Required env: SANDBOX_PROVIDER_KEY, SANDBOX_PROVIDER_URL, SANDBOX_TARGET.
+// Required env: HIVY_DAYTONA_API_KEY, HIVY_DAYTONA_API_URL, HIVY_DAYTONA_TARGET.
 // Bridge target additionally needs GHCR_USERNAME and GHCR_PAT.
 //
 // Usage:

@@ -121,7 +121,6 @@ func AutoMigrate(db *gorm.DB) (err error) {
 		&SandboxTemplate{},
 		&Employee{},
 		&Sandbox{},
-		&WorkspaceStorage{},
 		&AgentConversation{},
 		&ConversationEvent{},
 		&ConversationAsset{},

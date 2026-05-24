@@ -25,11 +25,11 @@ func buildRagDeps(
 	kms *crypto.KeyWrapper,
 ) *ragtasks.Deps {
 	if cfg.QdrantHost == "" {
-		slog.Warn("rag worker: QDRANT_HOST not set — rag:* handlers disabled")
+		slog.Warn("rag worker: HIVY_QDRANT_HOST not set — rag:* handlers disabled")
 		return nil
 	}
 	if cfg.LLMAPIURL == "" || cfg.LLMAPIKey == "" || cfg.LLMModel == "" {
-		slog.Warn("rag worker: LLM_API_URL/LLM_API_KEY/LLM_MODEL not set — rag:* handlers disabled")
+		slog.Warn("rag worker: HIVY_LLM_API_URL/HIVY_LLM_API_KEY/HIVY_LLM_MODEL not set — rag:* handlers disabled")
 		return nil
 	}
 	qd, err := qdrant.New(qdrant.Config{

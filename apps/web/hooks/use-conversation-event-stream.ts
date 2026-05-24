@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { fetchEventSource } from "@microsoft/fetch-event-source"
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL as string
+const HIVY_API_URL = process.env.NEXT_PUBLIC_HIVY_API_URL as string
 
 interface StreamToken {
   access_token: string
@@ -55,7 +55,7 @@ export function useConversationEventStream(
     if (!conversationId || !token) return
 
     const ctrl = new AbortController()
-    const url = `${API_URL}/v1/conversations/${conversationId}/stream`
+    const url = `${HIVY_API_URL}/v1/conversations/${conversationId}/stream`
 
     fetchEventSource(url, {
       signal: ctrl.signal,

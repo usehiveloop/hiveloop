@@ -35,10 +35,9 @@ cat >"${out}" <<EOF
     "darwinArm64": "bridge-${RELEASE_TAG}-aarch64-apple-darwin.tar.gz"
   },
   "runtimeConfig": {
-    "BRIDGE_BINARY_VERSION": "${RELEASE_TAG}",
-    "BRIDGE_BASE_IMAGE_PREFIX": "hivy-bridge-${RELEASE_DASHED}-small-v1",
-    "BRIDGE_BASE_CLOUD_AGENT_IMAGE_PREFIX": "hivy-bridge-${RELEASE_DASHED}-small-v1",
-    "EMPLOYEE_SANDBOX_BASE_IMAGE_PREFIX": "hivy-employee-sandbox-${RELEASE_DASHED}-small-v1"
+    "HIVY_CLOUD_AGENTS_SANDBOX_RUNTIME_VERSION": "${RELEASE_TAG}",
+    "HIVY_CLOUD_AGENTS_SANDBOX_BASE_IMAGE_PREFIX": "hivy-bridge-${RELEASE_DASHED}-small-v1",
+    "HIVY_EMPLOYEE_SANDBOX_BASE_IMAGE_PREFIX": "hivy-employee-sandbox-${RELEASE_DASHED}-small-v1"
   },
   "snapshots": {
     "runtime": {

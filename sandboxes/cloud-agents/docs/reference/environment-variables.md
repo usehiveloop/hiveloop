@@ -180,7 +180,7 @@ export BRIDGE_ALLOW_STDIO_MCP_FROM_API="true"
 
 ### `BRIDGE_STANDALONE_AGENT`
 
-Enable the environment system reminder. When true, every conversation automatically receives a `<system-reminder>` block describing the sandbox runtime: pre-installed tools (Node.js, Go, Rust, Python, databases, browsers, etc.), and live resource usage (memory, CPU, disk) read from cgroup files so the agent sees actual sandbox limits — not the host machine's.
+Enable the environment system reminder. When true, every conversation automatically receives a `<system-reminder>` block describing the cloud agent sandbox: pre-installed tools (Node.js, Go, Rust, Python, databases, browsers, etc.), and live resource usage (memory, CPU, disk) read from cgroup files so the agent sees actual sandbox limits — not the host machine's.
 
 Intended for standalone agents running in a Daytona dev-box sandbox.
 

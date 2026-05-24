@@ -44,16 +44,16 @@ services:
     image: postgres:17-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-hivy}
-      POSTGRES_USER: ${POSTGRES_USER:-hivy}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      POSTGRES_DB: ${HIVY_DB_NAME:-hivy}
+      POSTGRES_USER: ${HIVY_DB_USER:-hivy}
+      POSTGRES_PASSWORD: ${HIVY_DB_PASSWORD:?HIVY_DB_PASSWORD is required}
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./postgres/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
     networks:
       - hivy
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-hivy}"]
+      test: ["CMD-SHELL", "pg_isready -U ${HIVY_DB_USER:-hivy}"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -88,21 +88,21 @@ services:
       - path: .env
         required: true
     environment:
-      ENVIRONMENT: production
-      PORT: "8080"
-      MCP_PORT: "8081"
-      DB_HOST: postgres
-      DB_PORT: "5432"
-      DB_USER: ${POSTGRES_USER:-hivy}
-      DB_PASSWORD: ${POSTGRES_PASSWORD}
-      DB_NAME: ${POSTGRES_DB:-hivy}
-      DB_SSLMODE: disable
-      REDIS_ADDR: redis:6379
-      REDIS_PASSWORD: ${REDIS_PASSWORD}
-      FRONTEND_URL: https://${APP_DOMAIN}
-      MCP_BASE_URL: https://${MCP_DOMAIN}
-      NANGO_ENDPOINT: https://${NANGO_DOMAIN}
-      CORS_ORIGINS: https://${APP_DOMAIN},https://${CONNECT_DOMAIN}
+      HIVY_ENVIRONMENT: production
+      HIVY_PORT: "8080"
+      HIVY_MCP_PORT: "8081"
+      HIVY_DB_HOST: postgres
+      HIVY_DB_PORT: "5432"
+      HIVY_DB_USER: ${HIVY_DB_USER:-hivy}
+      HIVY_DB_PASSWORD: ${HIVY_DB_PASSWORD}
+      HIVY_DB_NAME: ${HIVY_DB_NAME:-hivy}
+      HIVY_DB_SSLMODE: disable
+      HIVY_REDIS_ADDR: redis:6379
+      HIVY_REDIS_PASSWORD: ${REDIS_PASSWORD}
+      HIVY_FRONTEND_URL: https://${APP_DOMAIN}
+      HIVY_MCP_BASE_URL: https://${MCP_DOMAIN}
+      HIVY_NANGO_ENDPOINT: https://${NANGO_DOMAIN}
+      HIVY_CORS_ORIGINS: https://${APP_DOMAIN},https://${CONNECT_DOMAIN}
     depends_on:
       postgres:
         condition: service_healthy
@@ -119,7 +119,7 @@ services:
 
   # ── Web (Next.js dashboard) ──────────────────────────────────────────────
   #
-  # NEXT_PUBLIC_* vars are baked at build time. If using GHCR images, they
+  # NEXT_PUBLIC_HIVY_* vars are baked at build time. If using GHCR images, they
   # must be built with the correct URLs. Alternatively, uncomment the build
   # section below to build locally on the VPS.
   web:
@@ -128,8 +128,8 @@ services:
     #   context: ../apps/web
     #   dockerfile: Dockerfile
     #   args:
-    #     NEXT_PUBLIC_API_URL: https://${API_DOMAIN}
-    #     NEXT_PUBLIC_CONNECT_URL: https://${CONNECT_DOMAIN}
+    #     NEXT_PUBLIC_HIVY_API_URL: https://${API_DOMAIN}
+    #     NEXT_PUBLIC_HIVY_CONNECTIONS_HOST: https://${NANGO_DOMAIN}
     restart: unless-stopped
     environment:
       NODE_ENV: production
@@ -178,8 +178,8 @@ services:
       SERVER_PORT: "3003"
       NANGO_DB_HOST: postgres
       NANGO_DB_PORT: "5432"
-      NANGO_DB_USER: ${POSTGRES_USER:-hivy}
-      NANGO_DB_PASSWORD: ${POSTGRES_PASSWORD}
+      NANGO_DB_USER: ${HIVY_DB_USER:-hivy}
+      NANGO_DB_PASSWORD: ${HIVY_DB_PASSWORD}
       NANGO_DB_NAME: nango
       NANGO_DB_SSL: "false"
       NANGO_ENCRYPTION_KEY: ${NANGO_ENCRYPTION_KEY}

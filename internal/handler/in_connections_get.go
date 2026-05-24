@@ -37,7 +37,7 @@ func (h *InConnectionHandler) Get(w http.ResponseWriter, r *http.Request) {
 	}
 	resp := h.toInConnectionResponse(conn)
 
-	nk := inNangoKey(conn.InIntegration.UniqueKey)
+	nk := nangoProviderConfigKey(conn.InIntegration.UniqueKey)
 	nangoResp, err := h.nango.GetConnection(r.Context(), conn.NangoConnectionID, nk)
 	if err != nil {
 		logging.FromContext(r.Context()).WarnContext(r.Context(), "nango: get connection failed, returning without provider_config",
