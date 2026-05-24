@@ -22,7 +22,7 @@ export const changelogAnnouncements: ChangelogAnnouncement[] = [
     title: "Skills moved into the main workspace",
     date: "2026-05-20",
     summary:
-      "Skills now have a dedicated workspace page for browsing, creating, installing, and removing Hivy capabilities.",
+      "Skills now have a cloud agent workspace page for browsing, creating, installing, and removing Hivy capabilities.",
   },
 ]
 

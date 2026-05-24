@@ -37,7 +37,7 @@ cat >"${out}" <<EOF
   "runtimeConfig": {
     "BRIDGE_BINARY_VERSION": "${RELEASE_TAG}",
     "BRIDGE_BASE_IMAGE_PREFIX": "hivy-bridge-${RELEASE_DASHED}-small-v1",
-    "BRIDGE_BASE_DEDICATED_IMAGE_PREFIX": "hivy-bridge-${RELEASE_DASHED}-small-v1",
+    "BRIDGE_BASE_CLOUD_AGENT_IMAGE_PREFIX": "hivy-bridge-${RELEASE_DASHED}-small-v1",
     "EMPLOYEE_SANDBOX_BASE_IMAGE_PREFIX": "hivy-employee-sandbox-${RELEASE_DASHED}-small-v1"
   },
   "snapshots": {

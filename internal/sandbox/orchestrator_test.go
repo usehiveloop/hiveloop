@@ -100,10 +100,10 @@ func setupOrchestrator(t *testing.T) (*Orchestrator, *mockProvider, *gorm.DB) {
 	tursoProvisioner := turso.NewProvisioner(tursoClient, "default", db)
 
 	cfg := &config.Config{
-		BridgeBaseImagePrefix:           "hivy-bridge-1-0-0-small-v1",
-		BridgeBaseDedicatedImagePrefix:  "hivy-bridge-1-0-0-small-v1",
-		BridgeHost:                      "test.usehivy.com",
-		DedicatedSandboxGracePeriodMins: 5,
+		BridgeBaseImagePrefix:            "hivy-bridge-1-0-0-small-v1",
+		BridgeBaseCloudAgentImagePrefix:  "hivy-bridge-1-0-0-small-v1",
+		BridgeHost:                       "test.usehivy.com",
+		CloudAgentSandboxGracePeriodMins: 5,
 	}
 
 	orch := NewOrchestrator(db, provider, tursoProvisioner, testEncKey(t), cfg)

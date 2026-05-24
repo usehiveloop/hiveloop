@@ -8,7 +8,7 @@ import (
 	"github.com/usehivy/hivy/internal/model"
 )
 
-func TestCreateDedicatedSandbox(t *testing.T) {
+func TestCreateCloudAgentSandbox(t *testing.T) {
 	orch, provider, db := setupOrchestrator(t)
 	orch.cfg.Environment = "production"
 	orch.cfg.SentryDSN = "https://backend@example.com/2"
@@ -20,9 +20,9 @@ func TestCreateDedicatedSandbox(t *testing.T) {
 	agent := createTestAgent(t, db, org.ID, cred.ID)
 
 	ctx := context.Background()
-	sb, err := orch.CreateDedicatedSandbox(ctx, &agent)
+	sb, err := orch.CreateCloudAgentSandbox(ctx, &agent)
 	if err != nil {
-		t.Fatalf("CreateDedicatedSandbox: %v", err)
+		t.Fatalf("CreateCloudAgentSandbox: %v", err)
 	}
 	t.Cleanup(func() {
 		db.Where("id = ?", sb.ID).Delete(&model.Sandbox{})
@@ -59,7 +59,7 @@ func TestCreateDedicatedSandbox(t *testing.T) {
 	}
 }
 
-func TestCreateDedicatedSandbox_InheritsEmployeeEnvWithSubagentOverrides(t *testing.T) {
+func TestCreateCloudAgentSandbox_InheritsEmployeeEnvWithSubagentOverrides(t *testing.T) {
 	orch, provider, db := setupOrchestrator(t)
 	org := createTestOrg(t, db)
 	cred := createTestCred(t, db, org.ID)
@@ -81,9 +81,9 @@ func TestCreateDedicatedSandbox_InheritsEmployeeEnvWithSubagentOverrides(t *test
 	if err := db.Save(&subagent).Error; err != nil {
 		t.Fatalf("save subagent: %v", err)
 	}
-	sb, err := orch.CreateDedicatedSandbox(context.Background(), &subagent)
+	sb, err := orch.CreateCloudAgentSandbox(context.Background(), &subagent)
 	if err != nil {
-		t.Fatalf("CreateDedicatedSandbox: %v", err)
+		t.Fatalf("CreateCloudAgentSandbox: %v", err)
 	}
 	t.Cleanup(func() {
 		db.Where("id = ?", sb.ID).Delete(&model.Sandbox{})
@@ -105,7 +105,7 @@ func TestCreateDedicatedSandbox_InheritsEmployeeEnvWithSubagentOverrides(t *test
 	}
 }
 
-func TestCreateDedicatedSandbox_InheritsEmployeeResourcesForRepositoryClone(t *testing.T) {
+func TestCreateCloudAgentSandbox_InheritsEmployeeResourcesForRepositoryClone(t *testing.T) {
 	orch, provider, db := setupOrchestrator(t)
 	org := createTestOrg(t, db)
 	cred := createTestCred(t, db, org.ID)
@@ -138,9 +138,9 @@ func TestCreateDedicatedSandbox_InheritsEmployeeResourcesForRepositoryClone(t *t
 		return "", nil
 	}
 
-	sb, err := orch.CreateDedicatedSandbox(context.Background(), &subagent)
+	sb, err := orch.CreateCloudAgentSandbox(context.Background(), &subagent)
 	if err != nil {
-		t.Fatalf("CreateDedicatedSandbox: %v", err)
+		t.Fatalf("CreateCloudAgentSandbox: %v", err)
 	}
 	t.Cleanup(func() {
 		db.Where("id = ?", sb.ID).Delete(&model.Sandbox{})
@@ -151,7 +151,7 @@ func TestCreateDedicatedSandbox_InheritsEmployeeResourcesForRepositoryClone(t *t
 	assertCommandContains(t, commands, "git clone --depth=1 https://github.com/octo-org/worker.git /home/daytona/repos/worker")
 }
 
-func TestCreateDedicatedSandbox_InheritsGitIdentityFromEmployee(t *testing.T) {
+func TestCreateCloudAgentSandbox_InheritsGitIdentityFromEmployee(t *testing.T) {
 	orch, provider, db := setupOrchestrator(t)
 	org := createTestOrg(t, db)
 	cred := createTestCred(t, db, org.ID)
@@ -163,9 +163,9 @@ func TestCreateDedicatedSandbox_InheritsGitIdentityFromEmployee(t *testing.T) {
 	}
 	subagent := createTestAgent(t, db, org.ID, cred.ID)
 
-	sb, err := orch.CreateDedicatedSandbox(context.Background(), &subagent)
+	sb, err := orch.CreateCloudAgentSandbox(context.Background(), &subagent)
 	if err != nil {
-		t.Fatalf("CreateDedicatedSandbox: %v", err)
+		t.Fatalf("CreateCloudAgentSandbox: %v", err)
 	}
 	t.Cleanup(func() {
 		db.Where("id = ?", sb.ID).Delete(&model.Sandbox{})

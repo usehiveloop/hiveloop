@@ -342,8 +342,8 @@ var templateMeta = map[TemplateSlug]TemplateMeta{
 	TmplBillingSandboxChanged: {
 		Slug:        "billing-sandbox-changed",
 		Name:        "Billing — Sandbox add-on updated",
-		Subject:     "Dedicated sandbox {{action}} for {{agentName}}",
-		Description: "Fires when the dedicated sandbox add-on is enabled or removed for an agent. Vars: firstName, agentName, action, monthlyCost.",
+		Subject:     "Cloud Agent sandbox {{action}} for {{agentName}}",
+		Description: "Fires when the cloud agent sandbox add-on is enabled or removed for an agent. Vars: firstName, agentName, action, monthlyCost.",
 		Variables:   []string{"action", "agentName", "firstName", "monthlyCost"},
 	},
 	TmplBillingSubscriptionActive: {

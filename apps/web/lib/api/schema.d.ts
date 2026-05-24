@@ -6094,7 +6094,7 @@ export interface paths {
         };
         /**
          * Get an index-attempt with per-doc errors
-         * @description Returns the attempt's status / counts / window plus the first page of per-doc failure rows. The dedicated errors page can be used to walk later pages if needed.
+         * @description Returns the attempt's status / counts / window plus the first page of per-doc failure rows. The cloud agent errors page can be used to walk later pages if needed.
          */
         get: {
             parameters: {

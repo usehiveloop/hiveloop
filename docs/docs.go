@@ -4982,7 +4982,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Returns the attempt's status / counts / window plus the first page of per-doc failure rows. The dedicated errors page can be used to walk later pages if needed.",
+                "description": "Returns the attempt's status / counts / window plus the first page of per-doc failure rows. The cloud agent errors page can be used to walk later pages if needed.",
                 "produces": [
                     "application/json"
                 ],

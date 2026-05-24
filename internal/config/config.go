@@ -110,9 +110,9 @@ type Config struct {
 	SandboxDockerContainerLabelPrefix string `env:"SANDBOX_DOCKER_CONTAINER_LABEL_PREFIX" envDefault:"hivy"`
 
 	// Bridge (agent runtime in sandboxes)
-	BridgeBaseImagePrefix          string `env:"BRIDGE_BASE_IMAGE_PREFIX" envDefault:"hivy-bridge-1-0-0-small-v1"`           // provider template for shared/pool sandboxes
-	BridgeBaseDedicatedImagePrefix string `env:"BRIDGE_BASE_DEDICATED_IMAGE_PREFIX" envDefault:"hivy-bridge-1-0-0-small-v1"` // provider template for dedicated agent sandboxes
-	BridgeBinaryVersion            string `env:"BRIDGE_BINARY_VERSION,required"`                                             // usehivy/hivy release tag installed into user templates (e.g. v1.0.0)
+	BridgeBaseImagePrefix           string `env:"BRIDGE_BASE_IMAGE_PREFIX" envDefault:"hivy-bridge-1-0-0-small-v1"`             // provider template for shared/pool sandboxes
+	BridgeBaseCloudAgentImagePrefix string `env:"BRIDGE_BASE_CLOUD_AGENT_IMAGE_PREFIX" envDefault:"hivy-bridge-1-0-0-small-v1"` // provider template for cloud agent sandboxes
+	BridgeBinaryVersion             string `env:"BRIDGE_BINARY_VERSION,required"`                                               // usehivy/hivy release tag installed into user templates (e.g. v1.0.0)
 
 	BridgeHost        string `env:"BRIDGE_HOST"`                                               // legacy runtime host setting
 	APIWebhookBaseURL string `env:"API_WEBHOOK_BASE_URL" envDefault:"https://api.usehivy.com"` // public API base URL for provider webhook callbacks
@@ -157,8 +157,8 @@ type Config struct {
 	PublicAssetsUseACL    bool          `env:"PUBLIC_ASSETS_USE_ACL" envDefault:"false"`
 
 	// Sandbox defaults
-	DedicatedSandboxGracePeriodMins int           `env:"DEDICATED_SANDBOX_GRACE_PERIOD_MINS" envDefault:"5"`
-	SandboxResourceCheckInterval    time.Duration `env:"SANDBOX_RESOURCE_CHECK_INTERVAL" envDefault:"30m"`
+	CloudAgentSandboxGracePeriodMins int           `env:"CLOUD_AGENT_SANDBOX_GRACE_PERIOD_MINS" envDefault:"5"`
+	SandboxResourceCheckInterval     time.Duration `env:"SANDBOX_RESOURCE_CHECK_INTERVAL" envDefault:"30m"`
 
 	// Asynq worker
 	WorkerHealthPort     int           `env:"WORKER_HEALTH_PORT" envDefault:"8090"`

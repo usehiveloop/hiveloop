@@ -13,7 +13,7 @@ Bridge ships two subagent tools:
 
 Both tools support a `run_in_background` flag. When set, the call returns immediately with a `task_id` and the subagent runs asynchronously; its final output is automatically injected into the parent's next user turn as a `[Background Agent Task Completed]` message. There is no separate join/wait tool — the parent simply keeps working and picks up the result whenever it arrives.
 
-Fan-out is achieved by the LLM emitting multiple `sub_agent` tool_use blocks in a single assistant turn. The runtime executes them in parallel. No dedicated "parallel agent" tool is needed.
+Fan-out is achieved by the LLM emitting multiple `sub_agent` tool_use blocks in a single assistant turn. The runtime executes them in parallel. No cloud agent "parallel agent" tool is needed.
 
 ---
 

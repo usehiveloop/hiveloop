@@ -170,6 +170,63 @@ func TestSeedGlobalIntegrations_RealNangoRequiredMissingEnvFails(t *testing.T) {
 	}
 }
 
+func TestGlobalIntegrationManifestsMatchRealNangoProviders(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	client := realNangoClient(t, ctx)
+	manifests, err := loadManifests("global/integrations")
+	if err != nil {
+		t.Fatalf("load global manifests: %v", err)
+	}
+	if len(manifests) == 0 {
+		t.Fatal("expected global integration manifests")
+	}
+	for _, manifest := range manifests {
+		provider, ok := client.GetProvider(nangoProvider(manifest))
+		if !ok {
+			t.Fatalf("%s references missing Nango provider %q", manifest.SourcePath, nangoProvider(manifest))
+		}
+		assertManifestMatchesProvider(t, manifest, provider)
+	}
+}
+
+func assertManifestMatchesProvider(t *testing.T, manifest Manifest, provider nango.Provider) {
+	t.Helper()
+	switch provider.AuthMode {
+	case "OAUTH1", "OAUTH2", "TBA":
+		if manifest.Credentials == nil {
+			t.Fatalf("%s: %s requires credentials", manifest.SourcePath, provider.AuthMode)
+		}
+		if manifest.Credentials.ClientIDEnv == "" || manifest.Credentials.ClientSecretEnv == "" {
+			t.Fatalf("%s: %s requires client_id_env and client_secret_env", manifest.SourcePath, provider.AuthMode)
+		}
+		if provider.WebhookUserDefinedSecret && manifest.Credentials.WebhookSecretEnv == "" {
+			t.Fatalf("%s: provider %s requires webhook_secret_env", manifest.SourcePath, provider.Name)
+		}
+	case "APP":
+		if manifest.Credentials == nil {
+			t.Fatalf("%s: APP auth requires credentials", manifest.SourcePath)
+		}
+		creds := manifest.Credentials
+		if creds.Type != "APP" || creds.AppIDEnv == "" || creds.PrivateKeyEnv == "" {
+			t.Fatalf("%s: APP auth requires app_id_env and private_key_env", manifest.SourcePath)
+		}
+		if provider.Name == "github-app" && creds.AppLinkEnv == "" {
+			t.Fatalf("%s: github-app requires app_link_env", manifest.SourcePath)
+		}
+	case "CUSTOM":
+		if provider.Name == "github-app-oauth" {
+			if manifest.Credentials == nil {
+				t.Fatalf("%s: github-app-oauth requires APP credentials", manifest.SourcePath)
+			}
+			creds := manifest.Credentials
+			if creds.Type != "APP" || creds.AppIDEnv == "" || creds.AppLinkEnv == "" || creds.PrivateKeyEnv == "" {
+				t.Fatalf("%s: github-app-oauth requires APP app_id_env, app_link_env, and private_key_env", manifest.SourcePath)
+			}
+		}
+	}
+}
+
 func realNangoClient(t *testing.T, ctx context.Context) *nango.Client {
 	t.Helper()
 	endpoint := os.Getenv("NANGO_ENDPOINT")

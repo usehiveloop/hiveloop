@@ -3,7 +3,7 @@ Hivy Security / Reliability Fixes TODO
 P0
 
 1. Narrow API keys can escalate to "all".
-   - Problem: /v1/api-keys accepts API-key auth without requiring an admin/JWT or a dedicated scope, and APIKeyHandler.Create accepts "all".
+   - Problem: /v1/api-keys accepts API-key auth without requiring an admin/JWT or a specific scope, and APIKeyHandler.Create accepts "all".
    - Fix: require JWT org admin or an explicit high-trust scope for API key management. Prevent API keys from minting broader scopes than they already have.
    - Key files: cmd/server/serve_routes_v1.go, internal/handler/api_keys.go, internal/model/api_key.go, internal/middleware/apikeyauth.go
 
@@ -69,10 +69,10 @@ P1
     - Fix: derive delivery_id from provider delivery header/event ID/payload ID where available. Store/dedupe dispatches at DB level where provider IDs exist.
     - Key files: internal/handler/nango_webhooks_dispatch.go, internal/handler/incoming_webhooks.go, internal/tasks/payloads_trigger.go
 
-14. Failed dedicated sandbox setup/clone can leave live provider sandboxes running.
+14. Failed cloud agent sandbox setup/clone can leave live provider sandboxes running.
     - Problem: provider auto-stop/archive is disabled, but setup/clone failure only marks DB status error. Lifecycle only cleans running/stopped rows.
     - Fix: delete or stop provider sandbox on setup/clone failure, or include error rows in cleanup with strong retry semantics.
-    - Key files: internal/sandbox/orchestrator_create_dedicated.go, internal/sandbox/orchestrator_helpers.go, internal/sandbox/orchestrator_lifecycle.go
+    - Key files: internal/sandbox/orchestrator_create_cloud_agent.go, internal/sandbox/orchestrator_helpers.go, internal/sandbox/orchestrator_lifecycle.go
 
 15. Subagent task upload bearer is not restricted to the task folder.
     - Problem: a task-scoped upload URL is issued, but auth accepts any sandbox for the employee and allows writes/deletes/moves outside the task folder.
@@ -124,7 +124,7 @@ P2
 24. Setup command failure can persist platform secrets into visible sandbox errors.
     - Problem: setup errors can include provider command output and are stored/returned as error_message while secrets are in env.
     - Fix: redact known secret env names and suppress raw command output in user-visible errors.
-    - Key files: internal/sandbox/orchestrator_types.go, internal/sandbox/daytona/driver_lifecycle.go, internal/sandbox/orchestrator_helpers.go, internal/sandbox/orchestrator_create_dedicated.go, internal/handler/sandboxes.go
+    - Key files: internal/sandbox/orchestrator_types.go, internal/sandbox/daytona/driver_lifecycle.go, internal/sandbox/orchestrator_helpers.go, internal/sandbox/orchestrator_create_cloud_agent.go, internal/handler/sandboxes.go
 
 25. Git author env overrides bypass GitHub identity enforcement.
     - Problem: user env can set GIT_AUTHOR_NAME, GIT_AUTHOR_EMAIL, GIT_COMMITTER_NAME, or GIT_COMMITTER_EMAIL, overriding system git config.

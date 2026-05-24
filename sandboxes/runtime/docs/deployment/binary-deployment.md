@@ -134,7 +134,7 @@ sudo systemctl status bridge
 
 ## User Setup
 
-Create a dedicated user:
+Create a cloud agent user:
 
 ```bash
 sudo useradd -r -s /bin/false bridge

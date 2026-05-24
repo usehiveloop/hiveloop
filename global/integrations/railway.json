@@ -6,5 +6,11 @@
   "display_name": "Railway",
   "enabled": true,
   "required": false,
-  "supports_rag_source": false
+  "supports_rag_source": false,
+  "credentials": {
+    "type": "OAUTH2",
+    "client_id_env": "NANGO_RAILWAY_CLIENT_ID",
+    "client_secret_env": "NANGO_RAILWAY_CLIENT_SECRET",
+    "scopes": "openid,offline_access,email,profile,workspace:admin"
+  }
 }

@@ -11,6 +11,6 @@
     "type": "OAUTH2",
     "client_id_env": "NANGO_SLACK_CLIENT_ID",
     "client_secret_env": "NANGO_SLACK_CLIENT_SECRET",
-    "scopes": "channels:read,chat:write,users:read"
+    "scopes": "app_mentions:read,assistant:write,channels:history,channels:join,channels:manage,channels:read,chat:write,commands,files:read,files:write,groups:history,groups:read,im:history,im:read,im:write,mpim:history,mpim:read,search:read.files,search:read.mpim,search:read.private,search:read.public,search:read.users,team:read,users.profile:read,users:read,users:read.email,users:write"
   }
 }

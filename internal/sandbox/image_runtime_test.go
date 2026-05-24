@@ -18,9 +18,9 @@ func TestImageRuntimeContract(t *testing.T) {
 	agent := createTestAgent(t, db, org.ID, cred.ID)
 
 	ctx := context.Background()
-	sb, err := orch.CreateDedicatedSandbox(ctx, &agent)
+	sb, err := orch.CreateCloudAgentSandbox(ctx, &agent)
 	if err != nil {
-		t.Fatalf("CreateDedicatedSandbox: %v", err)
+		t.Fatalf("CreateCloudAgentSandbox: %v", err)
 	}
 	t.Cleanup(func() {
 		db.Where("id = ?", sb.ID).Delete(&model.Sandbox{})
@@ -79,9 +79,9 @@ func TestImageRuntimeContract(t *testing.T) {
 	}
 
 	want := "hivy-bridge-1-0-0-small-v1"
-	if orch.cfg.BridgeBaseDedicatedImagePrefix != want {
-		t.Errorf("cfg.BridgeBaseDedicatedImagePrefix = %q, want %q",
-			orch.cfg.BridgeBaseDedicatedImagePrefix, want)
+	if orch.cfg.BridgeBaseCloudAgentImagePrefix != want {
+		t.Errorf("cfg.BridgeBaseCloudAgentImagePrefix = %q, want %q",
+			orch.cfg.BridgeBaseCloudAgentImagePrefix, want)
 	}
 
 	got2 := orch.resolveTemplateRef(&agent)
@@ -90,7 +90,7 @@ func TestImageRuntimeContract(t *testing.T) {
 	}
 }
 
-// TestConfigImagePrefixDefault locks the env-default for the dedicated
+// TestConfigImagePrefixDefault locks the env-default for the cloud agent
 // image prefix. caarlos0/env keeps populating defaults even when required
 // fields error out, so the err itself is fine to ignore here.
 func TestConfigImagePrefixDefault(t *testing.T) {
@@ -100,9 +100,9 @@ func TestConfigImagePrefixDefault(t *testing.T) {
 	}
 
 	want := "hivy-bridge-1-0-0-small-v1"
-	if cfg.BridgeBaseDedicatedImagePrefix != want {
-		t.Errorf("BridgeBaseDedicatedImagePrefix default = %q, want %q",
-			cfg.BridgeBaseDedicatedImagePrefix, want)
+	if cfg.BridgeBaseCloudAgentImagePrefix != want {
+		t.Errorf("BridgeBaseCloudAgentImagePrefix default = %q, want %q",
+			cfg.BridgeBaseCloudAgentImagePrefix, want)
 	}
 	if cfg.BridgeBaseImagePrefix != want {
 		t.Errorf("BridgeBaseImagePrefix default = %q, want %q",

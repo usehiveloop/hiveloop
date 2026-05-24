@@ -112,7 +112,7 @@ type conversationMessagesResponse struct {
 
 // Create handles POST /v1/employees/{id}/sessions.
 // @Summary Create an employee session
-// @Description Creates a new session for Hivy by spinning up a dedicated sandbox.
+// @Description Creates a new session for Hivy by spinning up a cloud agent sandbox.
 // @Tags conversations
 // @Produce json
 // @Param id path string true "Employee ID"
@@ -165,14 +165,14 @@ func (h *ConversationHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
 
-	sb, err := h.orchestrator.CreateDedicatedSandbox(ctx, &agent)
+	sb, err := h.orchestrator.CreateCloudAgentSandbox(ctx, &agent)
 	if err != nil {
-		logging.FromContext(r.Context()).ErrorContext(r.Context(), "failed to create dedicated sandbox", "agent_id", agent.ID, "error", err)
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "failed to create cloud agent sandbox", "agent_id", agent.ID, "error", err)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to provision sandbox"})
 		return
 	}
 	if err := h.pusher.PushAgentToSandbox(ctx, &agent, sb); err != nil {
-		logging.FromContext(r.Context()).ErrorContext(r.Context(), "failed to push agent to dedicated sandbox", "agent_id", agent.ID, "sandbox_id", sb.ID, "error", err)
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "failed to push agent to cloud agent sandbox", "agent_id", agent.ID, "sandbox_id", sb.ID, "error", err)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to initialize agent in sandbox"})
 		return
 	}

@@ -194,7 +194,7 @@ func (o *Orchestrator) resolveTemplateRef(agent *model.Agent) string {
 			}
 		}
 	}
-	return o.cfg.BridgeBaseDedicatedImagePrefix
+	return o.cfg.BridgeBaseCloudAgentImagePrefix
 }
 
 func (o *Orchestrator) resolveTemplateResources(agent *model.Agent) (int, int, int) {
@@ -218,7 +218,7 @@ func (o *Orchestrator) buildSandboxName(agent *model.Agent) string {
 	ts := time.Now().Unix()
 	if agent != nil {
 		safeName := sanitizeName(agent.Name)
-		return fmt.Sprintf("hivy-ded-%s-%s-%d", safeName, shortID(agent.ID), ts)
+		return fmt.Sprintf("hivy-cloud-agent-%s-%s-%d", safeName, shortID(agent.ID), ts)
 	}
-	return fmt.Sprintf("hivy-ded-%d", ts)
+	return fmt.Sprintf("hivy-cloud-agent-%d", ts)
 }

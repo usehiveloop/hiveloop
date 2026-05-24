@@ -257,7 +257,7 @@ jobs:
         if: always()
         run: docker compose down -v --remove-orphans 2>/dev/null || true
 
-  # Remaining e2e tests not already covered by the dedicated e2e jobs
+  # Remaining e2e tests not already covered by the cloud agent e2e jobs
   # (test-auth, test-nango, test-proxy, test-connect).
   test-e2e-core:
     runs-on: ubuntu-latest

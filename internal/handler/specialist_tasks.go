@@ -27,7 +27,7 @@ type SpecialistBridgeClient interface {
 }
 
 type SpecialistTaskHandlerHooks struct {
-	CreateDedicatedSandbox  func(ctx context.Context, agent *model.Agent, extraEnv map[string]string) (*model.Sandbox, error)
+	CreateCloudAgentSandbox func(ctx context.Context, agent *model.Agent, extraEnv map[string]string) (*model.Sandbox, error)
 	PushAgentToSandbox      func(ctx context.Context, agent *model.Agent, sb *model.Sandbox) error
 	GetBridgeClient         func(ctx context.Context, sb *model.Sandbox) (SpecialistBridgeClient, error)
 	StopSandbox             func(ctx context.Context, sb *model.Sandbox) error
@@ -45,7 +45,7 @@ type SpecialistTaskHandler struct {
 func NewSpecialistTaskHandler(db *gorm.DB, encKey *crypto.SymmetricKey, orchestrator *sandbox.Orchestrator, pusher *sandbox.Pusher) *SpecialistTaskHandler {
 	hooks := SpecialistTaskHandlerHooks{}
 	if orchestrator != nil {
-		hooks.CreateDedicatedSandbox = orchestrator.CreateDedicatedSandboxWithEnv
+		hooks.CreateCloudAgentSandbox = orchestrator.CreateCloudAgentSandboxWithEnv
 		hooks.GetBridgeClient = func(ctx context.Context, sb *model.Sandbox) (SpecialistBridgeClient, error) {
 			return orchestrator.GetBridgeClient(ctx, sb)
 		}

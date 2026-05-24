@@ -38,7 +38,7 @@ type Employee struct {
 
 	// Sandbox setup
 	SandboxTools     pq.StringArray `gorm:"type:text[];default:'{}'"` // enabled sandbox tools (e.g. "chrome")
-	SetupCommands    pq.StringArray `gorm:"type:text[];default:'{}'"` // shell commands run on dedicated sandbox creation
+	SetupCommands    pq.StringArray `gorm:"type:text[];default:'{}'"` // shell commands run on cloud agent sandbox creation
 	EncryptedEnvVars []byte         `gorm:"type:bytea"`               // AES-256-GCM encrypted JSON map of env vars
 
 	Status        string `gorm:"not null;default:'active'"` // draft, active, archived
@@ -62,7 +62,7 @@ func (Employee) TableName() string { return "employees" }
 
 type Agent = Employee
 
-// SandboxToolDefinition describes a tool/service that can be enabled in a dedicated sandbox.
+// SandboxToolDefinition describes a tool/service that can be enabled in a cloud agent sandbox.
 type SandboxToolDefinition struct {
 	ID          string `json:"id"`
 	Name        string `json:"name"`

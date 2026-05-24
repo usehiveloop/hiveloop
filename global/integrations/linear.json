@@ -11,6 +11,6 @@
     "type": "OAUTH2",
     "client_id_env": "NANGO_LINEAR_CLIENT_ID",
     "client_secret_env": "NANGO_LINEAR_CLIENT_SECRET",
-    "scopes": "read,write"
+    "webhook_secret_env": "NANGO_LINEAR_WEBHOOK_SECRET"
   }
 }

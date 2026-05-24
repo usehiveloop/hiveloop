@@ -23,7 +23,7 @@ func (h *SpecialistTaskHandler) CreateTask(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	if h.hooks.CreateDedicatedSandbox == nil || h.hooks.PushAgentToSandbox == nil || h.hooks.GetBridgeClient == nil {
+	if h.hooks.CreateCloudAgentSandbox == nil || h.hooks.PushAgentToSandbox == nil || h.hooks.GetBridgeClient == nil {
 		captureCloudAgentFailure(r.Context(), "create_task", errors.New("sandbox orchestrator hook is not configured"), cloudAgentSentryContext{
 			Operation:  "configuration",
 			OrgID:      uuidValue(employee.OrgID),
@@ -65,11 +65,11 @@ func (h *SpecialistTaskHandler) CreateTask(w http.ResponseWriter, r *http.Reques
 		extraEnv["HIVY_DRIVE_UPLOAD_URL"] = h.hooks.TaskDriveUploadURL(employee.ID, taskID)
 	}
 
-	sb, err := h.hooks.CreateDedicatedSandbox(ctx, &cloudAgent, extraEnv)
+	sb, err := h.hooks.CreateCloudAgentSandbox(ctx, &cloudAgent, extraEnv)
 	if err != nil {
 		logging.FromContext(ctx).ErrorContext(ctx, "failed to create sandbox for specialist", "agent_id", agentID, "error", err)
 		captureCloudAgentFailure(ctx, "create_task", err, cloudAgentSentryContext{
-			Operation:    "create_dedicated_sandbox",
+			Operation:    "create_cloud_agent_sandbox",
 			OrgID:        uuidValue(employee.OrgID),
 			EmployeeID:   employee.ID,
 			CloudAgentID: agentID,

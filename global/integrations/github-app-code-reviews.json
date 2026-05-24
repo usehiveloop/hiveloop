@@ -2,7 +2,7 @@
   "version": 1,
   "id": "github-app-code-reviews",
   "provider": "github-app-code-reviews",
-  "nango_provider": "github-app-oauth",
+  "nango_provider": "github-app",
   "unique_key": "github-app-code-reviews",
   "display_name": "GitHub Code Reviews",
   "enabled": true,

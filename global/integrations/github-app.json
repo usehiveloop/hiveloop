@@ -2,7 +2,7 @@
   "version": 1,
   "id": "github-app",
   "provider": "github-app",
-  "nango_provider": "github-app-oauth",
+  "nango_provider": "github-app",
   "unique_key": "github-app",
   "display_name": "GitHub",
   "enabled": true,

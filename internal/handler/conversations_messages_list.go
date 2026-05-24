@@ -146,7 +146,7 @@ func aggregateMessages(events []model.ConversationEvent) ([]conversationMessageR
 			// Todo writes (and reads) carry the todo list in
 			// raw_output.metadata.todos. We surface the latest one at the top
 			// of the response and skip emitting a tool group, since the
-			// dedicated UI strip renders them outside the chat history.
+			// cloud agent UI strip renders them outside the chat history.
 			if todos := extractTodos(data["raw_output"]); todos != nil {
 				latestTodos = todos
 				continue

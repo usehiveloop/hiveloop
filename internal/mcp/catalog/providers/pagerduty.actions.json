@@ -2810,7 +2810,7 @@
     },
     "delete_external_data_cache_var_data_on_global_orch": {
       "display_name": "Delete Data for an External Data Cache Variable on a Global Event Orchestration",
-      "description": "Delete data for an `external_data` type Cache Variable on a Global Event Orchestration Use External Data type Cache Variables to store string, number, or boolean values via a dedicated API endpoint...",
+      "description": "Delete data for an `external_data` type Cache Variable on a Global Event Orchestration Use External Data type Cache Variables to store string, number, or boolean values via a cloud agent API endpoint...",
       "access": "write",
       "resource_type": "",
       "parameters": {
@@ -2844,7 +2844,7 @@
     },
     "delete_external_data_cache_var_data_on_service_orch": {
       "display_name": "Delete Data for an External Data Cache Variable on a Service Event Orchestration",
-      "description": "Delete Data for an `external_data` type Cache Variable on a Service Event Orchestration. Use External Data type Cache Variables to store string, number, or boolean values via a dedicated API endpoi...",
+      "description": "Delete Data for an `external_data` type Cache Variable on a Service Event Orchestration. Use External Data type Cache Variables to store string, number, or boolean values via a cloud agent API endpoi...",
       "access": "write",
       "resource_type": "",
       "parameters": {
@@ -6080,7 +6080,7 @@
     },
     "get_external_data_cache_var_data_on_global_orch": {
       "display_name": "Get Data for an External Data Cache Variable on a Global Event Orchestration",
-      "description": "Get the data for an `external_data` type Cache Variable on a Global Orchestration. Use External Data type Cache Variables to store string, number, or boolean values via a dedicated API endpoint. Th...",
+      "description": "Get the data for an `external_data` type Cache Variable on a Global Orchestration. Use External Data type Cache Variables to store string, number, or boolean values via a cloud agent API endpoint. Th...",
       "access": "read",
       "resource_type": "",
       "parameters": {
@@ -6114,7 +6114,7 @@
     },
     "get_external_data_cache_var_data_on_service_orch": {
       "display_name": "Get Data for an External Data Cache Variable on a Service Event Orchestration",
-      "description": "Get the data for an `external_data` type Cache Variable for a Service Event Orchestration. Use External Data type Cache Variables to store string, number, or boolean values via a dedicated API endp...",
+      "description": "Get the data for an `external_data` type Cache Variable for a Service Event Orchestration. Use External Data type Cache Variables to store string, number, or boolean values via a cloud agent API endp...",
       "access": "read",
       "resource_type": "",
       "parameters": {
@@ -13307,7 +13307,7 @@
     },
     "update_external_data_cache_var_data_on_global_orch": {
       "display_name": "Update Data for an External Data Cache Variable on a Global Event Orchestration",
-      "description": "Update data for an `external_data` type Cache Variable on a Global Event Orchestration Use External Data type Cache Variables to store string, number, or boolean values via a dedicated API endpoint...",
+      "description": "Update data for an `external_data` type Cache Variable on a Global Event Orchestration Use External Data type Cache Variables to store string, number, or boolean values via a cloud agent API endpoint...",
       "access": "write",
       "resource_type": "",
       "parameters": {
@@ -13341,7 +13341,7 @@
     },
     "update_external_data_cache_var_data_on_service_orch": {
       "display_name": "Update Data for an External Data Cache Variable on a Service Event Orchestration",
-      "description": "Update the data for an `external_data` type Cache Variable on a Service Event Orchestration. Use External Data type Cache Variables to store string, number, or boolean values via a dedicated API en...",
+      "description": "Update the data for an `external_data` type Cache Variable on a Service Event Orchestration. Use External Data type Cache Variables to store string, number, or boolean values via a cloud agent API en...",
       "access": "write",
       "resource_type": "",
       "parameters": {
