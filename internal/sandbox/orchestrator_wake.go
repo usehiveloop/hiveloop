@@ -17,8 +17,8 @@ func (o *Orchestrator) WakeSandbox(ctx context.Context, sb *model.Sandbox) (*mod
 		return nil, fmt.Errorf("starting sandbox %s: %w", sb.ID, err)
 	}
 
-	if err := o.refreshBridgeURL(ctx, sb); err != nil {
-		return nil, fmt.Errorf("refreshing bridge URL after wake: %w", err)
+	if err := o.RefreshEmployeeSandboxURL(ctx, sb); err != nil {
+		return nil, fmt.Errorf("refreshing runtime URL after wake: %w", err)
 	}
 
 	now := time.Now()
@@ -32,12 +32,12 @@ func (o *Orchestrator) WakeSandbox(ctx context.Context, sb *model.Sandbox) (*mod
 	sb.LastActiveAt = &now
 	sb.StoppedAt = nil
 
-	if err := o.waitForBridgeHealthy(ctx, sb); err != nil {
+	if err := o.waitForEmployeeRuntimeLive(ctx, sb); err != nil {
 		o.db.Model(sb).Updates(map[string]any{
 			"status":        "error",
-			"error_message": fmt.Sprintf("bridge not healthy after wake: %v", err),
+			"error_message": fmt.Sprintf("runtime not healthy after wake: %v", err),
 		})
-		return nil, fmt.Errorf("bridge not healthy after wake: %w", err)
+		return nil, fmt.Errorf("runtime not healthy after wake: %w", err)
 	}
 
 	logging.FromContext(ctx).InfoContext(ctx, "sandbox woken", "sandbox_id", sb.ID, "external_id", sb.ExternalID)

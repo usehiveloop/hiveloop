@@ -15,11 +15,14 @@ type EmployeeMemoryEvent struct {
 	SandboxID  uuid.UUID `gorm:"type:uuid;not null;index"`
 	Sandbox    Sandbox   `gorm:"foreignKey:SandboxID;constraint:OnDelete:CASCADE"`
 
-	SessionID string    `gorm:"not null;index:idx_employee_memory_scope;size:255"`
-	EventType string    `gorm:"not null;index;size:128"`
-	Source    string    `gorm:"not null;default:'manual';size:128"`
-	Payload   RawJSON   `gorm:"type:jsonb;not null;default:'{}'"`
-	EventAt   time.Time `gorm:"not null;index"`
+	SessionID        string     `gorm:"not null;index:idx_employee_memory_scope;size:255"`
+	EventType        string     `gorm:"not null;index;size:128"`
+	Source           string     `gorm:"not null;default:'manual';size:128"`
+	Mode             string     `gorm:"not null;default:'employee';index;size:64"`
+	SpecialistSlug   string     `gorm:"not null;default:'';index;size:128"`
+	SpecialistTaskID *uuid.UUID `gorm:"type:uuid;index"`
+	Payload          RawJSON    `gorm:"type:jsonb;not null;default:'{}'"`
+	EventAt          time.Time  `gorm:"not null;index"`
 
 	RetainedAt *time.Time `gorm:"index"`
 	CreatedAt  time.Time

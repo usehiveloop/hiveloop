@@ -45,7 +45,7 @@ func (o *Orchestrator) createSandbox(ctx context.Context, org *model.Org, agent 
 		return nil, fmt.Errorf("loading owning employee: %w", err)
 	}
 
-	webhookURL := fmt.Sprintf("https://%s/internal/webhooks/bridge/%s", o.cfg.SpecialistSandboxHost, sb.ID)
+	webhookURL := fmt.Sprintf("https://%s/internal/webhooks/employee/%s", o.cfg.SpecialistSandboxHost, sb.ID)
 	envVars := baseEnvVars(o.cfg, bridgeAPIKey, sb.ID, webhookURL)
 	setOrgEnvVars(envVars, org.ID)
 	setAgentEnvVars(envVars, agent, o.cfg)
@@ -118,9 +118,9 @@ func (o *Orchestrator) createSandbox(ctx context.Context, org *model.Org, agent 
 	sb.Status = "running"
 	sb.LastActiveAt = &now
 
-	// Older templates may not have the harness config dirs; create them so
-	// the harnesses don't crash on first read.
-	if _, execErr := o.provider.ExecuteCommand(ctx, info.ExternalID, "mkdir -p /work/.claude /work/.opencode"); execErr != nil {
+	// Older templates may not have the harness config dir; create it so the
+	// runtime does not crash on first read.
+	if _, execErr := o.provider.ExecuteCommand(ctx, info.ExternalID, "mkdir -p /work/.opencode"); execErr != nil {
 		logging.Capture(ctx, fmt.Errorf("create bridge config dirs sandbox %s: %w", sb.ID, execErr))
 	}
 
@@ -181,7 +181,7 @@ func (o *Orchestrator) resolveTemplateRef(agent *model.Employee) string {
 			}
 		}
 	}
-	return o.cfg.SpecialistSandboxBaseImagePrefix
+	return o.cfg.SandboxesRuntimeSpecialistImagePrefix
 }
 
 func (o *Orchestrator) resolveTemplateResources(agent *model.Employee) (int, int, int) {

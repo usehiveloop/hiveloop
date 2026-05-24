@@ -140,10 +140,29 @@ func (h *EmployeeOutboundWebhookHandler) storeAndMaybeEnqueue(ctx context.Contex
 	}
 	sessionID := stringValue(payload, "session_id")
 	source := employeeEventSource(payload)
+	specialistTask, taskFound := h.specialistTaskForSandbox(ctx, sb.ID)
+	if taskFound {
+		sessionID = specialistTask.EmployeeSessionID
+		payload["mode"] = "specialist"
+		payload["specialist_slug"] = specialistTask.SpecialistSlug
+		payload["specialist_task_id"] = specialistTask.ID.String()
+		if enriched, err := json.Marshal(payload); err == nil {
+			event.Payload = enriched
+		}
+	} else if _, ok := payload["mode"]; !ok {
+		payload["mode"] = "employee"
+	}
 	stored, ok := employeeMemoryEventFromOutbound(sb, event, payload, sessionID)
 	if !ok {
 		captureEmployeeWebhookIngest(ctx, "drop_missing_sandbox_owner", sb, event, sessionID, source, fmt.Errorf("employee sandbox missing org_id or employee_id"))
 		return
+	}
+	if taskFound {
+		stored.Mode = "specialist"
+		stored.SpecialistSlug = specialistTask.SpecialistSlug
+		stored.SpecialistTaskID = &specialistTask.ID
+	} else {
+		stored.Mode = "employee"
 	}
 	if h.writer != nil {
 		h.writer.Write(ctx, stored)
@@ -190,6 +209,17 @@ func (h *EmployeeOutboundWebhookHandler) storeAndMaybeEnqueue(ctx context.Contex
 	}
 }
 
+func (h *EmployeeOutboundWebhookHandler) specialistTaskForSandbox(ctx context.Context, sandboxID uuid.UUID) (*model.SpecialistTask, bool) {
+	var task model.SpecialistTask
+	if err := h.db.WithContext(ctx).
+		Where("sandbox_id = ?", sandboxID).
+		Order("created_at DESC").
+		First(&task).Error; err != nil {
+		return nil, false
+	}
+	return &task, true
+}
+
 func employeeMemoryEventFromOutbound(sb *model.Sandbox, event *employeeOutboundEvent, payload map[string]any, sessionID string) (model.EmployeeMemoryEvent, bool) {
 	if sb.OrgID == nil || sb.EmployeeID == nil {
 		return model.EmployeeMemoryEvent{}, false
@@ -201,9 +231,17 @@ func employeeMemoryEventFromOutbound(sb *model.Sandbox, event *employeeOutboundE
 		SessionID:  sessionID,
 		EventType:  event.EventType,
 		Source:     employeeEventSource(payload),
+		Mode:       stringValueDefault(payload, "mode", "employee"),
 		Payload:    model.RawJSON(event.Payload),
 		EventAt:    event.At.UTC(),
 	}, true
+}
+
+func stringValueDefault(payload map[string]any, key, fallback string) string {
+	if value := stringValue(payload, key); value != "" {
+		return value
+	}
+	return fallback
 }
 
 func employeeEventSource(payload map[string]any) string {

@@ -149,10 +149,6 @@ func setupV1Routes(
 					r.Get("/employees", employeeHandler.List)
 					r.Get("/employees/{id}", employeeHandler.Get)
 					r.Get("/employees/{id}/sessions", employeeHandler.ListSessions)
-					if conversationHandler != nil {
-						r.Post("/employees/{id}/sessions", conversationHandler.CreateEmployeeSession)
-						r.Get("/employees/{id}/sessions/{convID}", conversationHandler.Get)
-					}
 					r.Get("/employees/{id}/specialists", employeeHandler.ListSpecialists)
 					r.Post("/employees/{id}/specialists/{slug}", employeeHandler.EnableSpecialist)
 					r.Delete("/employees/{id}/specialists/{slug}", employeeHandler.DisableSpecialist)
@@ -172,21 +168,6 @@ func setupV1Routes(
 				}
 				if systemTaskHandler != nil {
 					r.Post("/system/tasks/{taskName}", systemTaskHandler.Run)
-				}
-				if conversationHandler != nil {
-					r.Route("/conversations/{convID}", func(r chi.Router) {
-						r.Get("/", conversationHandler.Get)
-						r.Delete("/", conversationHandler.End)
-						r.Get("/messages", conversationHandler.ListMessages)
-						r.Post("/messages", conversationHandler.SendMessage)
-						r.Get("/stream", conversationHandler.Stream)
-						r.Get("/history", conversationHandler.History)
-						r.Post("/abort", conversationHandler.Abort)
-						r.Get("/approvals", conversationHandler.ListApprovals)
-						r.Post("/approvals/{requestID}", conversationHandler.ResolveApproval)
-						r.Get("/events", conversationHandler.ListEvents)
-						r.Get("/assets", conversationHandler.ListAssets)
-					})
 				}
 				r.Route("/sandboxes", func(r chi.Router) {
 					sandboxHandler := handler.NewSandboxHandler(database, orchestrator)

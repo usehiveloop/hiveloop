@@ -20,6 +20,7 @@ use tokio::process::Command;
 use tracing::{error, info, warn};
 
 struct McpEntry {
+    server_name: String,
     _service: RunningService<RoleClient, ()>,
     peer: Peer<RoleClient>,
     tool_names: Vec<(String, String)>,
@@ -193,7 +194,7 @@ impl McpRegistry {
                         "Tool '{prefixed_name}' is not loaded yet. Call load_tools first."
                     );
                 }
-                let arguments = match args {
+                let mut arguments = match args {
                     serde_json::Value::Object(map) => map,
                     serde_json::Value::Null => JsonObject::new(),
                     other => {
@@ -202,6 +203,12 @@ impl McpRegistry {
                         map
                     }
                 };
+                if entry.server_name == "hivy" {
+                    arguments.insert(
+                        "_hivy_session_id".to_string(),
+                        serde_json::Value::String(session_id.to_string()),
+                    );
+                }
                 let result = entry
                     .peer
                     .call_tool(CallToolRequestParams::new(raw.clone()).with_arguments(arguments))
@@ -259,6 +266,7 @@ async fn connect_specs(specs: &[McpSpec]) -> (Vec<McpEntry>, Arc<DashSet<String>
                 }
                 info!(server = %server_name, tool_count = tool_names.len(), loaded = default_loaded.len(), "MCP server connected");
                 entries.push(McpEntry {
+                    server_name: server_name.clone(),
                     _service: service,
                     peer,
                     tool_names,

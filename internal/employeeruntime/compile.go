@@ -15,6 +15,7 @@ import (
 	"github.com/usehivy/hivy/internal/hindsight"
 	"github.com/usehivy/hivy/internal/model"
 	"github.com/usehivy/hivy/internal/nango"
+	"github.com/usehivy/hivy/internal/specialists"
 	"github.com/usehivy/hivy/internal/token"
 )
 
@@ -235,6 +236,45 @@ func Compile(ctx context.Context, deps CompileDeps, agent *model.Employee) (*Emp
 		McpServers:        mcpServers,
 		Skills:            skills,
 		OutboundChannels:  []any{},
+	}, nil
+}
+
+func CompileSpecialist(ctx context.Context, deps CompileDeps, employee *model.Employee, def specialists.Definition) (*EmployeeDefinition, error) {
+	if employee == nil || employee.OrgID == nil {
+		return nil, fmt.Errorf("specialist runtime compile: employee must have org_id")
+	}
+	skills, err := buildSkills(ctx, deps.DB, employee.ID)
+	if err != nil {
+		return nil, err
+	}
+	mcpServers := jsonArray(employee.McpServers)
+	if ourMCP := buildEmployeeMCPServer(ctx, deps, employee); ourMCP != nil {
+		mcpServers = upsertHivyMCPServer(mcpServers, ourMCP)
+	}
+	fragments := buildPromptSections(ctx, deps.DB, employee, def.Description)
+	modelID := strings.TrimSpace(employee.Model)
+	if modelID == "" {
+		modelID = DefaultEmployeeSubagentModel
+	}
+	return &EmployeeDefinition{
+		Agent: AgentMeta{
+			Name:        def.Name,
+			Description: def.Description,
+		},
+		Mode: "specialist",
+		SpecialistProfile: &SpecialistProfile{
+			Name:        def.Name,
+			Description: def.Description,
+		},
+		SystemPrompt:     buildSpecialistSystemPrompt(fragments, def),
+		Model:            proxyModel(deps.Cfg, modelID),
+		MultimodalModel:  ptrModel(proxyModel(deps.Cfg, DefaultEmployeeMultimodalModel)),
+		Limits:           defaultLimits(),
+		Context:          map[string]any{"memory": buildMemoryContext(ctx, deps, employee)},
+		Tools:            defaultTools(),
+		McpServers:       mcpServers,
+		Skills:           skills,
+		OutboundChannels: []any{},
 	}, nil
 }
 

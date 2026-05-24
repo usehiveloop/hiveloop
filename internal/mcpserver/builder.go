@@ -27,6 +27,10 @@ type WebToolsFunc func(server *mcp.Server, token *model.Token)
 // KnowledgeToolsFunc registers org-scoped knowledge-base search tools.
 type KnowledgeToolsFunc func(server *mcp.Server, token *model.Token)
 
+// SpecialistToolsFunc registers runtime specialist task tools for employee
+// proxy tokens. Kept as a callback to avoid package cycles.
+type SpecialistToolsFunc func(server *mcp.Server, token *model.Token)
+
 // BuildServer creates an MCP server with tools registered from token scopes.
 // Each scope's connection+actions are turned into MCP tools via the catalog.
 // If addMemoryTools is non-nil, it is called to register memory tools on the
@@ -44,6 +48,7 @@ func BuildServer(
 	addMemoryTools MemoryToolsFunc,
 	addWebTools WebToolsFunc,
 	addKnowledgeTools KnowledgeToolsFunc,
+	addSpecialistTools SpecialistToolsFunc,
 ) (*mcp.Server, error) {
 	server := mcp.NewServer(&mcp.Implementation{
 		Name:    "hivy",
@@ -176,6 +181,10 @@ func BuildServer(
 
 	if addKnowledgeTools != nil {
 		addKnowledgeTools(server, token)
+	}
+
+	if addSpecialistTools != nil {
+		addSpecialistTools(server, token)
 	}
 
 	return server, nil

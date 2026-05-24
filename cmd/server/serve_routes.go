@@ -27,7 +27,6 @@ func setupPublicRoutes(
 	actionsCatalog *catalog.Catalog,
 	orgInviteHandler *handler.OrgInviteHandler,
 	plansHandler *handler.PlansHandler,
-	bridgeWebhookHandler *handler.BridgeWebhookHandler,
 	employeeOutboundWebhookHandler *handler.EmployeeOutboundWebhookHandler,
 	nangoWebhookHandler *handler.NangoWebhookHandler,
 	incomingWebhookHandler *handler.IncomingWebhookHandler,
@@ -35,7 +34,6 @@ func setupPublicRoutes(
 	sandboxEncKey *crypto.SymmetricKey,
 	uploadsHandler *handler.UploadsHandler,
 	sqliteBackupHandler *handler.EmployeeSQLiteBackupHandler,
-	specialistTaskHandler *handler.SpecialistTaskHandler,
 ) {
 	r.Get("/healthz", healthz)
 	r.Get("/readyz", readyz(database, redisClient))
@@ -64,7 +62,6 @@ func setupPublicRoutes(
 	r.Get("/v1/plans", plansHandler.List)
 
 	// Webhook receivers (HMAC-verified, no auth middleware)
-	r.Post("/internal/webhooks/bridge/{sandboxID}", bridgeWebhookHandler.Handle)
 	r.Post("/internal/webhooks/employee/{sandboxID}", employeeOutboundWebhookHandler.Handle)
 	r.Post("/internal/webhooks/employee/{sandboxID}/batch", employeeOutboundWebhookHandler.HandleBatch)
 	r.Post("/internal/webhooks/nango", nangoWebhookHandler.Handle)
@@ -109,14 +106,6 @@ func setupPublicRoutes(
 		r.Post("/internal/employees/{employeeID}/sqlite-backup/confirm", sqliteBackupHandler.Confirm)
 	}
 
-	if specialistTaskHandler != nil {
-		r.Get("/internal/employees/{employeeID}/specialists/", specialistTaskHandler.ListSpecialistRuntimes)
-		r.Get("/internal/employees/{employeeID}/specialists/{specialistSlug}/tasks", specialistTaskHandler.ListTasks)
-		r.Get("/internal/employees/{employeeID}/specialists/{specialistSlug}/tasks/{taskID}", specialistTaskHandler.GetTask)
-		r.Post("/internal/employees/{employeeID}/specialists/{specialistSlug}/tasks", specialistTaskHandler.CreateTask)
-		r.Post("/internal/employees/{employeeID}/specialists/{specialistSlug}/tasks/{taskID}/message", specialistTaskHandler.SendTaskMessage)
-		r.Post("/internal/employees/{employeeID}/specialists/{specialistSlug}/tasks/{taskID}", specialistTaskHandler.TerminateTask)
-	}
 }
 
 func setupAuthRoutes(

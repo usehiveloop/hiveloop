@@ -12,11 +12,28 @@ import (
 	"github.com/daytonaio/daytona/libs/sdk-go/pkg/types"
 )
 
-const sandboxRuntimeImageRepo = "ghcr.io/usehivy/hivy-sandboxes-runtime"
+type runtimeVariant struct {
+	imageRepo      string
+	snapshotPrefix string
+	displayName    string
+}
 
-func runSandboxRuntime(ctx context.Context, args []string) {
+var (
+	runtimeEmployeeVariant = runtimeVariant{
+		imageRepo:      "ghcr.io/usehivy/hivy-sandboxes-runtime",
+		snapshotPrefix: "hivy-sandboxes-runtime",
+		displayName:    "usehivy/hivy-sandboxes-runtime",
+	}
+	runtimeSpecialistVariant = runtimeVariant{
+		imageRepo:      "ghcr.io/usehivy/hivy-sandboxes-runtime-specialist",
+		snapshotPrefix: "hivy-sandboxes-runtime-specialist",
+		displayName:    "usehivy/hivy-sandboxes-runtime-specialist",
+	}
+)
+
+func runSandboxRuntime(ctx context.Context, args []string, variant runtimeVariant) {
 	fs := flag.NewFlagSet("sandbox-runtime", flag.ExitOnError)
-	version := fs.String("version", "", "Tag of usehivy/hivy-sandboxes-runtime already published to GHCR (required, e.g. v0.0.1)")
+	version := fs.String("version", "", "Tag of "+variant.displayName+" already published to GHCR (required, e.g. v0.0.1)")
 	size := fs.String("size", "all", "Snapshot sizes to register (small, medium, large, xlarge, all)")
 	if err := fs.Parse(args); err != nil {
 		os.Exit(2)
@@ -30,16 +47,16 @@ func runSandboxRuntime(ctx context.Context, args []string) {
 		fmt.Fprintln(os.Stderr, "error:", err)
 		os.Exit(1)
 	}
-	if err := registerSandboxRuntimeSnapshots(ctx, *version, targetSizes); err != nil {
+	if err := registerSandboxRuntimeSnapshots(ctx, *version, targetSizes, variant); err != nil {
 		log.Fatalf("error: %v", err)
 	}
 	log.Println("Done.")
 }
 
-func registerSandboxRuntimeSnapshots(ctx context.Context, version string, targetSizes []string) error {
+func registerSandboxRuntimeSnapshots(ctx context.Context, version string, targetSizes []string, variant runtimeVariant) error {
 	cleanVersion := strings.TrimPrefix(version, "v")
 	dashedVersion := strings.ReplaceAll(cleanVersion, ".", "-")
-	imageRef := fmt.Sprintf("%s:%s", sandboxRuntimeImageRepo, version)
+	imageRef := fmt.Sprintf("%s:%s", variant.imageRepo, version)
 
 	client, err := daytona.NewClientWithConfig(&types.DaytonaConfig{
 		APIKey: os.Getenv("HIVY_DAYTONA_API_KEY"),
@@ -56,7 +73,7 @@ func registerSandboxRuntimeSnapshots(ctx context.Context, version string, target
 		if !ok {
 			return fmt.Errorf("unknown size: %s", sizeName)
 		}
-		name := sandboxRuntimeSnapshotName(dashedVersion, size.Name)
+		name := sandboxRuntimeSnapshotName(variant.snapshotPrefix, dashedVersion, size.Name)
 		log.Printf("Registering Daytona snapshot %q from %s (cpu=%d, mem=%dGB, disk=%dGB)...",
 			name, imageRef, size.CPU, size.Memory, size.Disk)
 
@@ -92,6 +109,6 @@ func registerSandboxRuntimeSnapshots(ctx context.Context, version string, target
 	return nil
 }
 
-func sandboxRuntimeSnapshotName(dashedVersion, size string) string {
-	return fmt.Sprintf("hivy-sandboxes-runtime-%s-%s-v1", dashedVersion, size)
+func sandboxRuntimeSnapshotName(prefix, dashedVersion, size string) string {
+	return fmt.Sprintf("%s-%s-%s-v1", prefix, dashedVersion, size)
 }

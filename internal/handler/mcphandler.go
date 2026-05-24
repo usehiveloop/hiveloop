@@ -22,15 +22,16 @@ import (
 
 // MCPHandler handles MCP protocol requests for scoped proxy tokens.
 type MCPHandler struct {
-	db             *gorm.DB
-	signingKey     []byte
-	catalog        *catalog.Catalog
-	nango          *nango.Client
-	counter        *counter.Counter
-	memoryTools    mcpserver.MemoryToolsFunc
-	webTools       mcpserver.WebToolsFunc
-	knowledgeTools mcpserver.KnowledgeToolsFunc
-	ServerCache    *mcpserver.ServerCache
+	db              *gorm.DB
+	signingKey      []byte
+	catalog         *catalog.Catalog
+	nango           *nango.Client
+	counter         *counter.Counter
+	memoryTools     mcpserver.MemoryToolsFunc
+	webTools        mcpserver.WebToolsFunc
+	knowledgeTools  mcpserver.KnowledgeToolsFunc
+	specialistTools mcpserver.SpecialistToolsFunc
+	ServerCache     *mcpserver.ServerCache
 }
 
 // NewMCPHandler creates a new MCP handler.
@@ -59,6 +60,10 @@ func (h *MCPHandler) SetWebTools(fn mcpserver.WebToolsFunc) {
 // SetKnowledgeTools sets the callback for registering knowledge-base tools.
 func (h *MCPHandler) SetKnowledgeTools(fn mcpserver.KnowledgeToolsFunc) {
 	h.knowledgeTools = fn
+}
+
+func (h *MCPHandler) SetSpecialistTools(fn mcpserver.SpecialistToolsFunc) {
+	h.specialistTools = fn
 }
 
 // StreamableHTTPHandler returns an HTTP handler for the MCP Streamable HTTP transport.
@@ -96,7 +101,7 @@ func (h *MCPHandler) serverFactory(r *http.Request) *mcp.Server {
 			return nil, time.Time{}, err
 		}
 
-		srv, err := mcpserver.BuildServer(ctx, &token, scopes, h.catalog, h.nango, h.db, h.counter, h.memoryTools, h.webTools, h.knowledgeTools)
+		srv, err := mcpserver.BuildServer(ctx, &token, scopes, h.catalog, h.nango, h.db, h.counter, h.memoryTools, h.webTools, h.knowledgeTools, h.specialistTools)
 		if err != nil {
 			return nil, time.Time{}, err
 		}

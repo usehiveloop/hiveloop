@@ -11,12 +11,13 @@ import (
 	"github.com/usehivy/hivy/internal/bridge"
 	"github.com/usehivy/hivy/internal/config"
 	"github.com/usehivy/hivy/internal/crypto"
+	"github.com/usehivy/hivy/internal/employeeruntime"
 	"github.com/usehivy/hivy/internal/logging"
 	"github.com/usehivy/hivy/internal/model"
 )
 
 // Orchestrator manages sandbox lifecycle — creating, starting, stopping sandboxes
-// and providing BridgeClients to talk to them.
+// and providing runtime clients to talk to them.
 type Orchestrator struct {
 	db       *gorm.DB
 	provider Provider
@@ -35,6 +36,26 @@ func NewOrchestrator(db *gorm.DB, provider Provider, encKey *crypto.SymmetricKey
 
 func (o *Orchestrator) ProviderID() string {
 	return o.providerID()
+}
+
+func (o *Orchestrator) GetRuntimeClient(ctx context.Context, sb *model.Sandbox) (*employeeruntime.Client, error) {
+	if err := o.ensureSandboxProvider(sb); err != nil {
+		return nil, err
+	}
+	apiKey, err := o.encKey.DecryptString(sb.EncryptedBridgeAPIKey)
+	if err != nil {
+		return nil, fmt.Errorf("decrypting runtime api key: %w", err)
+	}
+	if _, err := o.EnsureSandboxActive(ctx, sb); err != nil {
+		return nil, fmt.Errorf("ensuring sandbox active: %w", err)
+	}
+	if o.needsURLRefresh(sb) {
+		if err := o.RefreshEmployeeSandboxURL(ctx, sb); err != nil {
+			return nil, fmt.Errorf("refreshing runtime URL: %w", err)
+		}
+	}
+	o.touchLastActive(sb)
+	return employeeruntime.NewClient(sb.BridgeURL, apiKey), nil
 }
 
 func (o *Orchestrator) CreateSpecialistSandbox(ctx context.Context, agent *model.Employee) (*model.Sandbox, error) {

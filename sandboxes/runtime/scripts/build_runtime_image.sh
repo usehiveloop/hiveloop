@@ -7,6 +7,7 @@ DOCKER_BIN="${DOCKER_BIN:-$(command -v docker)}"
 IMAGE="${HIVY_SANDBOXES_RUNTIME_IMAGE:-hivy-sandboxes-runtime:runtime}"
 BINARY="${HIVY_SANDBOXES_RUNTIME_BINARY:-$ROOT/target/release/hivy-sandboxes-runtime}"
 PLATFORM="${HIVY_SANDBOXES_RUNTIME_PLATFORM:-}"
+PROFILE="${HIVY_SANDBOXES_RUNTIME_PROFILE:-employee}"
 TMP_CONTEXT="$(mktemp -d)"
 trap 'rm -rf "$TMP_CONTEXT"' EXIT
 
@@ -47,8 +48,9 @@ fi
 
 "$DOCKER_BIN" build \
   "${build_args[@]}" \
+  --build-arg "RUNTIME_IMAGE_PROFILE=$PROFILE" \
   -f "$TMP_CONTEXT/Dockerfile.runtime" \
   -t "$IMAGE" \
   "$TMP_CONTEXT"
 
-echo "built runtime image: $IMAGE"
+echo "built runtime image: $IMAGE (profile=$PROFILE)"

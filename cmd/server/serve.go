@@ -23,6 +23,7 @@ import (
 	"github.com/usehivy/hivy/internal/middleware"
 	sentryobs "github.com/usehivy/hivy/internal/observability/sentry"
 	"github.com/usehivy/hivy/internal/proxy"
+	"github.com/usehivy/hivy/internal/specialisttasks"
 	"github.com/usehivy/hivy/internal/spider"
 	"github.com/usehivy/hivy/internal/storage"
 )
@@ -64,6 +65,20 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 	}
 	if deps.SpiderClient != nil {
 		mcpHandler.SetWebTools(spider.NewWebToolsFunc(deps.SpiderClient))
+	}
+	runtimeCompileDeps := employeeruntime.CompileDeps{
+		DB:         database,
+		Picker:     credentials.NewPickerWithRegistry(database, reg),
+		KMS:        deps.KMS,
+		EncKey:     sandboxEncKey,
+		SigningKey: signingKey,
+		Cfg:        cfg,
+		Nango:      nangoClient,
+		Hindsight:  hindsightClient,
+	}
+	if orchestrator != nil {
+		specialistService := specialisttasks.NewService(database, orchestrator, runtimeCompileDeps, deps.Specialists)
+		mcpHandler.SetSpecialistTools(specialisttasks.NewToolsFunc(specialistService))
 	}
 	credHandler := handler.NewCredentialHandler(database, deps.KMS, cacheManager, ctr)
 	tokenHandler := handler.NewTokenHandler(database, signingKey, cacheManager, ctr, actionsCatalog, cfg.MCPBaseURL, mcpHandler.ServerCache)
@@ -108,15 +123,10 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 		conversationHandler.SetCredits(deps.Credits)
 	}
 
-	bridgeWebhookHandler := handler.NewBridgeWebhookHandler(database, sandboxEncKey, eventBus, enqueuer)
 	employeeEventWriter := handler.NewEmployeeEventWriter(ctx, database, 20000)
 	employeeOutboundWebhookHandler := handler.NewEmployeeOutboundWebhookHandler(database, sandboxEncKey, enqueuer, employeeEventWriter)
 	nangoWebhookHandler := handler.NewNangoWebhookHandler(database, cfg.NangoSecretKey, sandboxEncKey, enqueuer)
 
-	var specialistTaskHandler *handler.SpecialistTaskHandler
-	if orchestrator != nil && agentPusher != nil {
-		specialistTaskHandler = handler.NewSpecialistTaskHandler(database, sandboxEncKey, orchestrator, agentPusher, deps.Specialists)
-	}
 	incomingWebhookHandler := handler.NewIncomingWebhookHandler(database, enqueuer)
 	httpTriggerHandler := handler.NewHTTPTriggerHandler(database, enqueuer)
 
@@ -129,16 +139,7 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 
 	var employeeHandler *handler.EmployeeHandler
 	if orchestrator != nil {
-		employeeHandler = handler.NewEmployeeHandler(database, orchestrator, employeeruntime.CompileDeps{
-			DB:         database,
-			Picker:     credentials.NewPickerWithRegistry(database, reg),
-			KMS:        deps.KMS,
-			EncKey:     sandboxEncKey,
-			SigningKey: signingKey,
-			Cfg:        cfg,
-			Nango:      nangoClient,
-			Hindsight:  hindsightClient,
-		}, reg, deps.Specialists)
+		employeeHandler = handler.NewEmployeeHandler(database, orchestrator, runtimeCompileDeps, reg, deps.Specialists)
 		if deps.S3Client != nil {
 			employeeHandler.SetEnqueuer(enqueuer)
 		}
@@ -198,7 +199,7 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 
 	rsaPub := rsaKey.Public().(*rsa.PublicKey)
 
-	setupPublicRoutes(r, cfg, database, redisClient, providerHandler, integrationHandler, actionsCatalog, orgInviteHandler, plansHandler, bridgeWebhookHandler, employeeOutboundWebhookHandler, nangoWebhookHandler, incomingWebhookHandler, nangoClient, sandboxEncKey, uploadsHandler, sqliteBackupHandler, specialistTaskHandler)
+	setupPublicRoutes(r, cfg, database, redisClient, providerHandler, integrationHandler, actionsCatalog, orgInviteHandler, plansHandler, employeeOutboundWebhookHandler, nangoWebhookHandler, incomingWebhookHandler, nangoClient, sandboxEncKey, uploadsHandler, sqliteBackupHandler)
 
 	r.Post("/incoming/triggers/{triggerID}", httpTriggerHandler.Handle)
 	setupAuthRoutes(r, ctx, cfg, rsaPub, authHandler, oauthHandler)

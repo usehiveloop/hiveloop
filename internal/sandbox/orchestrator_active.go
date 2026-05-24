@@ -23,7 +23,7 @@ func (o *Orchestrator) EnsureSandboxActive(ctx context.Context, sb *model.Sandbo
 		return o.UnarchiveSandbox(ctx, sb)
 
 	case string(StatusCreating), string(StatusStarting):
-		if err := o.waitForBridgeHealthy(ctx, sb); err != nil {
+		if err := o.waitForEmployeeRuntimeLive(ctx, sb); err != nil {
 			return nil, fmt.Errorf("waiting for in-flight sandbox: %w", err)
 		}
 		now := time.Now()

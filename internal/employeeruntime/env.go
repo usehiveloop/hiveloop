@@ -21,6 +21,7 @@ const (
 	EmployeeEnvWorkspaceRoot              = "WORKSPACE_ROOT"
 	EmployeeEnvDBPath                     = "DB_PATH"
 	EmployeeEnvRuntimeBindAddr            = "RUNTIME_BIND_ADDR"
+	EmployeeEnvRuntimeMode                = "HIVY_RUNTIME_MODE"
 	EmployeeEnvSandboxID                  = "HIVY_SANDBOX_ID"
 	EmployeeEnvOrgID                      = "HIVY_ORG_ID"
 	EmployeeEnvHivyEmployeeID             = "HIVY_EMPLOYEE_ID"
@@ -100,6 +101,7 @@ var employeeEnvCatalog = []EmployeeEnvSpec{
 	{Key: EmployeeEnvWorkspaceRoot, Source: EmployeeEnvSourceControlPlaneInjected},
 	{Key: EmployeeEnvDBPath, Source: EmployeeEnvSourceControlPlaneInjected},
 	{Key: EmployeeEnvRuntimeBindAddr, Source: EmployeeEnvSourceControlPlaneInjected},
+	{Key: EmployeeEnvRuntimeMode, Source: EmployeeEnvSourceControlPlaneInjected},
 	{Key: EmployeeEnvSandboxID, Source: EmployeeEnvSourceControlPlaneInjected},
 	{Key: EmployeeEnvOrgID, Source: EmployeeEnvSourceControlPlaneInjected},
 	{Key: EmployeeEnvHivyEmployeeID, Source: EmployeeEnvSourceControlPlaneInjected},

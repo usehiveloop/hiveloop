@@ -5,6 +5,7 @@ ENV NVM_DIR=/usr/local/nvm
 ARG JUST_VERSION=1.38.0
 ARG VERSION=dev
 ARG COMMIT=unknown
+ARG RUNTIME_IMAGE_PROFILE=employee
 
 LABEL org.opencontainers.image.source="https://github.com/usehivy/hivy"
 LABEL org.opencontainers.image.version="${VERSION}"
@@ -61,6 +62,7 @@ RUN apt-get update \
     | tar -xz -C /usr/local/bin just \
   && git lfs install --system \
   && npm install -g pnpm@10 \
+  && if [ "$RUNTIME_IMAGE_PROFILE" = "specialist" ]; then npm install -g opencode-ai@1.14.32; fi \
   && mkdir -p "$NVM_DIR" \
   && curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | PROFILE=/dev/null bash \
   && printf '%s\n' 'export NVM_DIR="/usr/local/nvm"' '[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"' >/etc/profile.d/nvm.sh \
@@ -85,6 +87,7 @@ ENV WORKSPACE_ROOT=/workspace
 ENV RUNTIME_BIND_ADDR=0.0.0.0:7080
 ENV HIVY_SANDBOXES_RUNTIME_VERSION=${VERSION}
 ENV HIVY_SANDBOXES_RUNTIME_COMMIT=${COMMIT}
+ENV HIVY_SANDBOXES_RUNTIME_IMAGE_PROFILE=${RUNTIME_IMAGE_PROFILE}
 
 EXPOSE 7080
 

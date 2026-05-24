@@ -27,6 +27,7 @@ func TestEmployeeEnvCatalogGolden(t *testing.T) {
 		EmployeeEnvWorkspaceRoot,
 		EmployeeEnvDBPath,
 		EmployeeEnvRuntimeBindAddr,
+		EmployeeEnvRuntimeMode,
 		EmployeeEnvSandboxID,
 		EmployeeEnvOrgID,
 		EmployeeEnvHivyEmployeeID,

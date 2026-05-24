@@ -1,10 +1,9 @@
-.PHONY: build test test-e2e test-handler-sharded lint check-file-length vet check up down dev dev-nango dev-nango-secret clean fetch-actions generate docker-build docker-run migrate-up migrate-status migrate-version test-clean test-clean-auth test-clean-nango test-clean-proxy test-clean-connect test-clean-integrations test-auth test-nango test-real-nango test-proxy test-connect test-integrations test-connections test-sandbox-docker test-setup test-setup-nango openapi generate-auth-keys generate-bridge-client generate-sandbox-runtime-client build-sandbox-runtime-templates employee-env-doctor employee-debug-pack test-services-up test-services-down ragtest-slack-live ragtest-kb-search-live seed-test local-up local-down local-reset local-status login-test asynq-peek
-.PHONY: sandbox-specialists-build sandbox-specialists-test sandbox-specialists-fmt-check sandbox-specialists-clippy sandbox-specialists-openapi sandbox-runtime-build sandbox-runtime-test sandbox-runtime-fmt-check sandbox-runtime-openapi runtime-openapi sandbox-runtime-image sandbox-runtime-image-test
+.PHONY: build test test-e2e test-handler-sharded lint check-file-length vet check up down dev dev-nango dev-nango-secret clean fetch-actions generate docker-build docker-run migrate-up migrate-status migrate-version test-clean test-clean-auth test-clean-nango test-clean-proxy test-clean-connect test-clean-integrations test-auth test-nango test-real-nango test-proxy test-connect test-integrations test-connections test-sandbox-docker test-setup test-setup-nango openapi generate-auth-keys generate-bridge-client generate-sandbox-runtime-client build-sandbox-runtime-templates build-sandbox-runtime-specialist-templates employee-env-doctor employee-debug-pack test-services-up test-services-down ragtest-slack-live ragtest-kb-search-live seed-test local-up local-down local-reset local-status login-test asynq-peek
+.PHONY: sandbox-runtime-build sandbox-runtime-test sandbox-runtime-fmt-check sandbox-runtime-clippy sandbox-runtime-openapi runtime-openapi sandbox-runtime-image sandbox-runtime-specialist-image sandbox-runtime-image-test
 
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 COMMIT  ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo unknown)
 IMAGE   ?= usehivy/hivy
-SANDBOX_SPECIALISTS_DIR ?= sandboxes/specialists
 SANDBOX_RUNTIME_DIR ?= sandboxes/runtime
 GO_BIN ?= $(shell if command -v go >/dev/null 2>&1; then command -v go; elif [ -x /opt/homebrew/bin/go ]; then echo /opt/homebrew/bin/go; elif [ -x /usr/local/go/bin/go ]; then echo /usr/local/go/bin/go; else echo go; fi)
 DEV_COMPOSE_SERVICES ?= postgres redis nango qdrant minio minio-setup hindsight api worker web
@@ -48,31 +47,17 @@ openapi:
 	"
 	@echo "✓ docs/openapi.json updated"
 
-# Build + push base sandbox images to GHCR and register Daytona snapshots
-# (one per size: small, medium, large, xlarge) pointing at the GHCR image.
-# Requires GHCR_USERNAME, GHCR_PAT (PAT with write:packages),
-# HIVY_DAYTONA_API_KEY, HIVY_DAYTONA_API_URL, HIVY_DAYTONA_TARGET.
-# Usage: make build-templates VERSION=1.0.1 BRIDGE_VERSION=v1.0.0
-#        make build-templates VERSION=1.0.1 BRIDGE_VERSION=v1.0.0 SIZE=small
-#        make build-templates VERSION=1.0.1 BRIDGE_VERSION=v1.0.0 BRIDGE_BINARY=sandboxes/specialists/target/release/bridge
-# VERSION drives the GHCR image tag and Daytona snapshot name. Bump it on every
-# rebuild — Daytona freezes the snapshot's mirrored image at create time, so
-# reusing a VERSION leaves the old bytes in the control-plane registry.
-# BRIDGE_VERSION is the monorepo release tag installed into the image, either
-# from ghcr.io/usehivy/hivy release assets or from BRIDGE_BINARY when
-# building the specialist bridge directly from sandboxes/specialists.
-build-templates:
-	@test -n "$(VERSION)" || (echo "error: VERSION is required (e.g. make build-templates VERSION=1.0.1 BRIDGE_VERSION=v1.0.0)" && exit 1)
-	@test -n "$(BRIDGE_VERSION)" || (echo "error: BRIDGE_VERSION is required (e.g. make build-templates VERSION=1.0.1 BRIDGE_VERSION=v1.0.0)" && exit 1)
-	env $$(grep -v '^\s*\#' .env | grep -v '^\s*$$' | xargs) go run ./cmd/buildtemplates bridge -version=$(VERSION) -bridge-version=$(BRIDGE_VERSION) -size=$(or $(SIZE),all) $(if $(BRIDGE_BINARY),-bridge-binary=$(BRIDGE_BINARY),)
-
-# Register Daytona snapshots from a usehivy/hivy-sandboxes-runtime image already published.
+# Register Daytona snapshots from runtime images already published.
 # Requires HIVY_DAYTONA_API_KEY, HIVY_DAYTONA_API_URL, HIVY_DAYTONA_TARGET.
 # Usage: make build-sandbox-runtime-templates SANDBOX_RUNTIME_VERSION=v0.0.1
 #        make build-sandbox-runtime-templates SANDBOX_RUNTIME_VERSION=v0.0.1 SIZE=small
 build-sandbox-runtime-templates:
 	@test -n "$(SANDBOX_RUNTIME_VERSION)" || (echo "error: SANDBOX_RUNTIME_VERSION is required (e.g. make build-sandbox-runtime-templates SANDBOX_RUNTIME_VERSION=v0.0.1)" && exit 1)
 	env $$(grep -v '^\s*\#' .env | grep -v '^\s*$$' | xargs) go run ./cmd/buildtemplates sandbox-runtime -version=$(SANDBOX_RUNTIME_VERSION) -size=$(or $(SIZE),all)
+
+build-sandbox-runtime-specialist-templates:
+	@test -n "$(SANDBOX_RUNTIME_VERSION)" || (echo "error: SANDBOX_RUNTIME_VERSION is required (e.g. make build-sandbox-runtime-specialist-templates SANDBOX_RUNTIME_VERSION=v0.0.1)" && exit 1)
+	env $$(grep -v '^\s*\#' .env | grep -v '^\s*$$' | xargs) go run ./cmd/buildtemplates sandbox-runtime-specialist -version=$(SANDBOX_RUNTIME_VERSION) -size=$(or $(SIZE),all)
 
 # Inspect a running employee sandbox's process env using the redacted doctor.
 # Usage: make employee-env-doctor SANDBOX_ID=48a54bb8-cd44-4454-845d-3be611f9090b
@@ -133,23 +118,6 @@ generate-sandbox-runtime-client:
 		--config=internal/sandboxruntime/oapi-codegen.yaml $(SANDBOX_RUNTIME_DIR)/openapi.generated.json
 	rm $(SANDBOX_RUNTIME_DIR)/openapi.generated.json
 
-sandbox-specialists-build:
-	cd $(SANDBOX_SPECIALISTS_DIR) && cargo build --release -p bridge
-
-sandbox-specialists-test:
-	cd $(SANDBOX_SPECIALISTS_DIR) && cargo test --workspace --exclude storage-e2e
-
-sandbox-specialists-fmt-check:
-	cd $(SANDBOX_SPECIALISTS_DIR) && cargo fmt --all -- --check
-
-sandbox-specialists-clippy:
-	cd $(SANDBOX_SPECIALISTS_DIR) && cargo clippy --workspace -- -D warnings
-
-sandbox-specialists-openapi:
-	$(MAKE) -C $(SANDBOX_SPECIALISTS_DIR) openapi
-	cp $(SANDBOX_SPECIALISTS_DIR)/openapi.json openapi/bridge.json
-	$(MAKE) generate-bridge-client
-
 sandbox-runtime-build:
 	cd $(SANDBOX_RUNTIME_DIR) && cargo build --workspace --all-targets --locked
 
@@ -159,11 +127,17 @@ sandbox-runtime-test:
 sandbox-runtime-fmt-check:
 	cd $(SANDBOX_RUNTIME_DIR) && cargo fmt --all --check
 
+sandbox-runtime-clippy:
+	cd $(SANDBOX_RUNTIME_DIR) && cargo clippy --workspace --locked -- -D warnings
+
 sandbox-runtime-openapi runtime-openapi:
 	$(MAKE) -C $(SANDBOX_RUNTIME_DIR) openapi
 
 sandbox-runtime-image:
 	cd $(SANDBOX_RUNTIME_DIR) && cargo build --release --locked -p hivy-sandboxes-runtime && scripts/build_runtime_image.sh
+
+sandbox-runtime-specialist-image:
+	cd $(SANDBOX_RUNTIME_DIR) && cargo build --release --locked -p hivy-sandboxes-runtime && HIVY_SANDBOXES_RUNTIME_PROFILE=specialist HIVY_SANDBOXES_RUNTIME_IMAGE=hivy-sandboxes-runtime-specialist:runtime scripts/build_runtime_image.sh
 
 sandbox-runtime-image-test:
 	cd $(SANDBOX_RUNTIME_DIR) && scripts/test_runtime_image.sh

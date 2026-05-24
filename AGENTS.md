@@ -18,8 +18,7 @@ Hivy is a Go-first platform with a Go API/worker, Next.js web app, Rust speciali
 - MinIO: local S3-compatible storage for RAG, drive, uploads, and tests.
 - Qdrant: vector database for RAG ingestion/search.
 - Hindsight: optional agent memory service.
-- `sandboxes/specialists`: Rust bridge/runtime workspace.
-- `sandboxes/runtime`: Rust employee sandbox runtime workspace.
+- `sandboxes/runtime`: Rust sandbox runtime workspace for employee and specialist modes.
 - `global/skills`: global skill definitions seeded during backend bootstrap.
 
 Local ports: fake-nango `13004`, backend API `18080`, frontend `31112`, Redis `6379`, Postgres discovered at `/tmp/agent-test/pg.port` with many tests defaulting to `5433`.
@@ -77,7 +76,7 @@ RAG infrastructure: `make test-services-up`, `make test-services-down`.
 
 Frontend checks are mandatory for frontend changes: `cd apps/web && pnpm typecheck && pnpm build`.
 
-Rust sandbox checks are mandatory when specialist sandbox files change: `make sandbox-specialists-test`, `make sandbox-specialists-fmt-check`, `make sandbox-specialists-clippy`, `make sandbox-employee-test`, `make sandbox-employee-fmt-check`.
+Rust sandbox checks are mandatory when runtime sandbox files change: `make sandbox-runtime-test`, `make sandbox-runtime-fmt-check`, `make sandbox-runtime-clippy`.
 
 ## Linting and absolute code quality rules
 

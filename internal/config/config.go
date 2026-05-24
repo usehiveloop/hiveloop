@@ -106,15 +106,15 @@ type Config struct {
 	DaytonaAPIKey string `env:"HIVY_DAYTONA_API_KEY"`
 	DaytonaTarget string `env:"HIVY_DAYTONA_TARGET"`
 
-	// Specialist sandbox runtime.
-	SpecialistSandboxBaseImagePrefix string `env:"HIVY_SPECIALIST_SANDBOX_BASE_IMAGE_PREFIX" envDefault:"hivy-bridge-1-0-0-small-v1"` // provider template/image for specialist sandboxes
-	SpecialistSandboxRuntimeVersion  string `env:"HIVY_SPECIALIST_SANDBOX_RUNTIME_VERSION,required"`                                  // usehivy/hivy release tag installed into user templates (e.g. v1.0.0)
-	SpecialistSandboxHost            string `env:"HIVY_SPECIALIST_SANDBOX_HOST"`                                                      // public control-plane host reachable from specialist sandboxes
-	APIWebhookBaseURL                string `env:"HIVY_API_WEBHOOK_BASE_URL" envDefault:"https://api.usehivy.com"`                    // public API base URL for provider webhook callbacks
-	ProxyHost                        string `env:"HIVY_PROXY_HOST" envDefault:"proxy.usehivy.com"`                                    // LLM proxy hostname (proxy.usehivy.com)
+	// Runtime sandbox control-plane endpoints.
+	SpecialistSandboxRuntimeVersion string `env:"HIVY_SPECIALIST_SANDBOX_RUNTIME_VERSION,required"`               // usehivy/hivy release tag installed into user templates (e.g. v1.0.0)
+	SpecialistSandboxHost           string `env:"HIVY_SPECIALIST_SANDBOX_HOST"`                                   // public control-plane host reachable from runtime sandboxes
+	APIWebhookBaseURL               string `env:"HIVY_API_WEBHOOK_BASE_URL" envDefault:"https://api.usehivy.com"` // public API base URL for provider webhook callbacks
+	ProxyHost                       string `env:"HIVY_PROXY_HOST" envDefault:"proxy.usehivy.com"`                 // LLM proxy hostname (proxy.usehivy.com)
 
 	// Employee sandbox runtime — ghcr.io/usehivy/hivy-sandboxes-runtime image.
-	SandboxesRuntimeBaseImagePrefix string `env:"HIVY_SANDBOXES_RUNTIME_BASE_IMAGE_PREFIX" envDefault:"hivy-sandboxes-runtime-0-0-3-small-v1"`
+	SandboxesRuntimeBaseImagePrefix       string `env:"HIVY_SANDBOXES_RUNTIME_BASE_IMAGE_PREFIX" envDefault:"hivy-sandboxes-runtime-0-0-3-small-v1"`
+	SandboxesRuntimeSpecialistImagePrefix string `env:"HIVY_SANDBOXES_RUNTIME_SPECIALIST_IMAGE_PREFIX" envDefault:"hivy-sandboxes-runtime-specialist-0-0-3-small-v1"`
 
 	// Hindsight (agent memory)
 	HindsightAPIURL string `env:"HIVY_HINDSIGHT_API_URL"` // e.g. http://hindsight.railway.internal:8888 — empty = memory disabled

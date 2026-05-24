@@ -10,6 +10,7 @@ import (
 	"github.com/usehivy/hivy/internal/employeeprompts"
 	"github.com/usehivy/hivy/internal/model"
 	runtimeapi "github.com/usehivy/hivy/internal/sandboxruntime"
+	"github.com/usehivy/hivy/internal/specialists"
 )
 
 type PromptSections struct {
@@ -107,6 +108,34 @@ func buildEmployeeSystemPrompt(fragments PromptSections) SystemPromptConfig {
 		unloadedMCPToolsPromptSegment(),
 	}
 
+	return SystemPromptConfig{
+		CacheableSegments: &cacheable,
+		DynamicSegments:   &dynamic,
+	}
+}
+
+func buildSpecialistSystemPrompt(fragments PromptSections, def specialists.Definition) SystemPromptConfig {
+	cacheable := []SystemPromptSegment{
+		staticPromptSegment("", employeeBaseSystemPrompt),
+		staticPromptSegment("Specialist assignment", strings.TrimSpace(def.SystemPrompt)),
+	}
+	for _, fragment := range []PromptSection{
+		fragments.Identity,
+		fragments.Company,
+		fragments.OperatingPrinciples,
+	} {
+		if strings.TrimSpace(fragment.Content) == "" {
+			continue
+		}
+		cacheable = append(cacheable, staticPromptSegment(fragment.Title, fragment.Content))
+	}
+	dynamic := []SystemPromptSegment{
+		dynamicContextPromptSegment(),
+		memoryContextPromptSegment(),
+		skillCatalogPromptSegment(),
+		loadedMCPToolsPromptSegment(),
+		unloadedMCPToolsPromptSegment(),
+	}
 	return SystemPromptConfig{
 		CacheableSegments: &cacheable,
 		DynamicSegments:   &dynamic,

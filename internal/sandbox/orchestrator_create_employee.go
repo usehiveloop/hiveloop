@@ -129,6 +129,113 @@ func (o *Orchestrator) CreateEmployeeSandbox(ctx context.Context, agent *model.E
 	return &sb, nil
 }
 
+func (o *Orchestrator) CreateSpecialistRuntimeSandbox(ctx context.Context, agent *model.Employee, secrets *employeeruntime.StartupSecrets) (*model.Sandbox, error) {
+	if agent == nil || agent.OrgID == nil {
+		return nil, fmt.Errorf("CreateSpecialistRuntimeSandbox: agent must have org_id")
+	}
+	if secrets == nil || secrets.ProxyToken == "" {
+		return nil, fmt.Errorf("CreateSpecialistRuntimeSandbox: proxy token is required")
+	}
+	orgID := *agent.OrgID
+
+	gitIdentity, err := o.loadAgentGitIdentity(ctx, agent)
+	if err != nil {
+		return nil, fmt.Errorf("loading specialist runtime git identity: %w", err)
+	}
+	runtimeSecret, err := generateRandomHex(32)
+	if err != nil {
+		return nil, fmt.Errorf("generating runtime secret: %w", err)
+	}
+	encryptedSecret, err := o.encKey.EncryptString(runtimeSecret)
+	if err != nil {
+		return nil, fmt.Errorf("encrypting runtime secret: %w", err)
+	}
+
+	snapshotID := o.cfg.SandboxesRuntimeSpecialistImagePrefix
+	sb := model.Sandbox{
+		OrgID:                 &orgID,
+		EmployeeID:            &agent.ID,
+		SnapshotID:            &snapshotID,
+		ProviderID:            o.provider.ID(),
+		EncryptedBridgeAPIKey: encryptedSecret,
+		Status:                "creating",
+	}
+	if err := o.db.Create(&sb).Error; err != nil {
+		return nil, fmt.Errorf("saving specialist runtime sandbox: %w", err)
+	}
+
+	bugsinkDashboardURL := employeeruntime.BugsinkDashboardBaseURL(ctx, o.db, orgID, *agent)
+	envVars := employeeSandboxEnvVars(o.cfg, runtimeSecret, &sb, orgID, agent, secrets, gitIdentity, bugsinkDashboardURL)
+	envVars[employeeruntime.EmployeeEnvRuntimeMode] = "specialist"
+	labels := map[string]string{
+		"org_id":      orgID.String(),
+		"sandbox_id":  sb.ID.String(),
+		"employee_id": agent.ID.String(),
+		"harness":     "runtime-specialist",
+		"mode":        "specialist",
+	}
+
+	info, err := o.provider.CreateSandbox(ctx, CreateSandboxOpts{
+		Name:        buildSpecialistRuntimeSandboxName(agent),
+		TemplateRef: snapshotID,
+		EnvVars:     envVars,
+		Labels:      labels,
+	})
+	if err != nil {
+		if delErr := o.db.Where("id = ?", sb.ID).Delete(&model.Sandbox{}).Error; delErr != nil {
+			logging.FromContext(ctx).ErrorContext(ctx, "delete orphaned specialist runtime sandbox row after provider create failure",
+				"error", delErr, "sandbox_id", sb.ID)
+		}
+		return nil, fmt.Errorf("provider create: %w", err)
+	}
+
+	sandboxURL, err := o.provider.GetEndpoint(ctx, info.ExternalID, EmployeeSandboxPort)
+	if err != nil {
+		o.markSandboxError(ctx, &sb, map[string]any{
+			"external_id":   info.ExternalID,
+			"status":        "error",
+			"error_message": "get endpoint failed",
+		})
+		return nil, fmt.Errorf("getting specialist runtime endpoint: %w", err)
+	}
+
+	now := time.Now()
+	expiresAt := now.Add(bridgeURLTTL)
+	if err := o.db.Model(&sb).Updates(map[string]any{
+		"external_id":           info.ExternalID,
+		"bridge_url":            sandboxURL,
+		"bridge_url_expires_at": expiresAt,
+		"status":                "running",
+		"last_active_at":        now,
+	}).Error; err != nil {
+		return nil, fmt.Errorf("updating specialist runtime sandbox: %w", err)
+	}
+	sb.ExternalID = info.ExternalID
+	sb.BridgeURL = sandboxURL
+	sb.BridgeURLExpiresAt = &expiresAt
+	sb.Status = "running"
+	sb.LastActiveAt = &now
+
+	if err := o.waitForEmployeeRuntimeLive(ctx, &sb); err != nil {
+		o.markSandboxError(ctx, &sb, map[string]any{
+			"status":        "error",
+			"error_message": "specialist runtime not live",
+		})
+		return nil, fmt.Errorf("waiting for specialist runtime: %w", err)
+	}
+	if err := o.cloneEmployeeSelectedRepositories(ctx, &sb, agent); err != nil {
+		o.markSandboxError(ctx, &sb, map[string]any{
+			"status":        "error",
+			"error_message": fmt.Sprintf("repository cloning failed: %v", err),
+		})
+		return nil, fmt.Errorf("cloning specialist runtime repositories: %w", err)
+	}
+	disableProviderLifecycle(ctx, o.provider, &sb, info.ExternalID)
+	logging.FromContext(ctx).InfoContext(ctx, "specialist runtime sandbox created",
+		"sandbox_id", sb.ID, "external_id", info.ExternalID, "employee_id", agent.ID)
+	return &sb, nil
+}
+
 func employeeSandboxEnvVars(cfg *config.Config, runtimeSecret string, sb *model.Sandbox, orgID uuid.UUID, agent *model.Employee, secrets *employeeruntime.StartupSecrets, gitIdentity *employeeGitIdentity, bugsinkDashboardURL string) map[string]string {
 	bridgeHost := "api.usehivy.com"
 	proxyHost := "proxy.usehivy.com"
@@ -157,6 +264,7 @@ func employeeSandboxEnvVars(cfg *config.Config, runtimeSecret string, sb *model.
 		employeeruntime.EmployeeEnvWorkspaceRoot:            "/workspace",
 		employeeruntime.EmployeeEnvDBPath:                   "/app/data/hivy-sandboxes-runtime.db",
 		employeeruntime.EmployeeEnvRuntimeBindAddr:          fmt.Sprintf("0.0.0.0:%d", EmployeeSandboxPort),
+		employeeruntime.EmployeeEnvRuntimeMode:              "employee",
 		employeeruntime.EmployeeEnvSandboxID:                sb.ID.String(),
 		employeeruntime.EmployeeEnvOrgID:                    orgID.String(),
 		employeeruntime.EmployeeEnvHivyEmployeeID:           agent.ID.String(),
@@ -183,6 +291,10 @@ func employeeSandboxEnvVars(cfg *config.Config, runtimeSecret string, sb *model.
 
 func buildEmployeeSandboxName(agent *model.Employee) string {
 	return fmt.Sprintf("hivy-employee-%s-%s-%d", sanitizeName(agent.Name), shortID(agent.ID), time.Now().Unix())
+}
+
+func buildSpecialistRuntimeSandboxName(agent *model.Employee) string {
+	return fmt.Sprintf("hivy-specialist-%s-%s-%d", sanitizeName(agent.Name), shortID(agent.ID), time.Now().Unix())
 }
 
 func (o *Orchestrator) waitForEmployeeRuntimeLive(ctx context.Context, sb *model.Sandbox) error {

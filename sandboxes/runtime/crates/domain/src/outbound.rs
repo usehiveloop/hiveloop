@@ -12,12 +12,25 @@ pub struct OutboundEvent {
 
 impl OutboundEvent {
     pub fn new(event_type: impl Into<String>, payload: serde_json::Value) -> Self {
+        let payload = with_runtime_mode(payload);
         Self {
             event_type: event_type.into(),
             payload,
             at: Utc::now(),
         }
     }
+}
+
+fn with_runtime_mode(mut payload: serde_json::Value) -> serde_json::Value {
+    let mode = std::env::var("HIVY_RUNTIME_MODE")
+        .ok()
+        .filter(|value| !value.trim().is_empty())
+        .unwrap_or_else(|| "employee".to_string());
+    if let Some(obj) = payload.as_object_mut() {
+        obj.entry("mode".to_string())
+            .or_insert_with(|| serde_json::Value::String(mode));
+    }
+    payload
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

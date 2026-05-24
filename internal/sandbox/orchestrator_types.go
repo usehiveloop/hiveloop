@@ -36,10 +36,8 @@ func baseEnvVars(cfg *config.Config, bridgeAPIKey string, sandboxID uuid.UUID, w
 		"BRIDGE_LOG_FORMAT":                     "json",
 		"BRIDGE_WEB_URL":                        fmt.Sprintf("https://%s/spider", cfg.SpecialistSandboxHost),
 		employeeruntime.EmployeeEnvSandboxID:    sandboxID.String(),
-		// HOME=/work so bridge.db survives provider stop/start; the harnesses
-		// read their config from CLAUDE_CONFIG_DIR / OPENCODE_CONFIG_DIR.
+		// HOME=/work so bridge.db survives provider stop/start.
 		employeeruntime.EmployeeEnvHome: "/work",
-		"CLAUDE_CONFIG_DIR":             "/work/.claude",
 		"OPENCODE_CONFIG_DIR":           "/work/.opencode",
 		"NO_BROWSER":                    "1",
 		// SQLite persistence for bridge conversation/session state. /work is

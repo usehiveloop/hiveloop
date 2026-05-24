@@ -11,10 +11,10 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
-	"github.com/usehivy/hivy/internal/testdb"
 	"github.com/usehivy/hivy/internal/config"
 	"github.com/usehivy/hivy/internal/crypto"
 	"github.com/usehivy/hivy/internal/model"
+	"github.com/usehivy/hivy/internal/testdb"
 )
 
 const testDBURL = "postgres://hivy:localdev@localhost:15432/hivy_test?sslmode=disable" // #nosec G101 -- local test DB fixture
@@ -69,9 +69,9 @@ func setupOrchestrator(t *testing.T) (*Orchestrator, *mockProvider, *gorm.DB) {
 	provider.endpointOverride = bridgeSrv.URL
 
 	cfg := &config.Config{
-		SpecialistSandboxBaseImagePrefix: "hivy-bridge-1-0-0-small-v1",
-		SpecialistSandboxHost:            "test.usehivy.com",
-		SpecialistSandboxGracePeriodMins: 5,
+		SandboxesRuntimeSpecialistImagePrefix: "hivy-sandboxes-runtime-specialist-test-small-v1",
+		SpecialistSandboxHost:                 "test.usehivy.com",
+		SpecialistSandboxGracePeriodMins:      5,
 	}
 
 	orch := NewOrchestrator(db, provider, testEncKey(t), cfg)
