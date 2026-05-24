@@ -12,7 +12,7 @@ import (
 	"github.com/usehivy/hivy/internal/model"
 )
 
-const compileTestDBURL = "postgres://hivy:localdev@localhost:5433/hivy_test?sslmode=disable" // #nosec G101 -- test fixture, not a real secret
+const compileTestDBURL = "postgres://hivy:localdev@localhost:15432/hivy_test?sslmode=disable" // #nosec G101 -- test fixture, not a real secret
 
 func containsString(values []string, want string) bool {
 	for _, value := range values {

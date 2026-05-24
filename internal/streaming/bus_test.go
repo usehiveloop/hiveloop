@@ -3,6 +3,7 @@ package streaming
 import (
 	"context"
 	"encoding/json"
+	"os"
 	"testing"
 	"time"
 
@@ -11,7 +12,11 @@ import (
 
 func setupTestRedis(t *testing.T) *redis.Client {
 	t.Helper()
-	client := redis.NewClient(&redis.Options{Addr: "localhost:6379", DB: 15})
+	addr := os.Getenv("HIVY_REDIS_ADDR")
+	if addr == "" {
+		addr = "localhost:16379"
+	}
+	client := redis.NewClient(&redis.Options{Addr: addr, DB: 15})
 	if err := client.Ping(context.Background()).Err(); err != nil {
 		t.Skipf("Redis not available: %v", err)
 	}

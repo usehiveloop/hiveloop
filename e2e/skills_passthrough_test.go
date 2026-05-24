@@ -101,11 +101,11 @@ func TestSkillsPassthrough_NewWireShape(t *testing.T) {
 	t.Cleanup(func() { h.db.Where("id = ?", sb.ID).Delete(&model.Sandbox{}) })
 
 	cfg := &config.Config{
-		ProxyHost:  "proxy.test",
-		MCPBaseURL: "https://mcp.test",
-		BridgeHost: "bridge.test",
+		ProxyHost:             "proxy.test",
+		MCPBaseURL:            "https://mcp.test",
+		SpecialistSandboxHost: "bridge.test",
 	}
-	orch := sandbox.NewOrchestrator(h.db, nil, nil, encKey, cfg)
+	orch := sandbox.NewOrchestrator(h.db, &e2eSandboxProvider{endpoint: fb.URL}, encKey, cfg)
 	pusher := sandbox.NewPusher(h.db, orch, h.signingKey, cfg, nil)
 
 	if err := pusher.PushSpecialistToSandbox(t.Context(), &agent, &sb); err != nil {

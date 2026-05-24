@@ -21,7 +21,7 @@ func connectFailedEventsTestDB(t *testing.T) *gorm.DB {
 	dsn := os.Getenv("DATABASE_URL")
 	if dsn == "" {
 		//nolint:gosec // local-dev DSN, mirrors other integration tests
-		dsn = "postgres://hivy:localdev@localhost:5433/hivy_test?sslmode=disable"
+		dsn = "postgres://hivy:localdev@localhost:15432/hivy_test?sslmode=disable"
 	}
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {

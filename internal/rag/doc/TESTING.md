@@ -5,7 +5,7 @@ subsystem.
 
 Hivy already runs tests against real services (see
 `internal/middleware/integration_test.go`: real Postgres at
-`localhost:5433`, real `model.AutoMigrate`). This is the only pattern we
+`localhost:15432`, real `model.AutoMigrate`). This is the only pattern we
 use.
 
 ## Hard rules

@@ -66,7 +66,6 @@ func AutoMigrate(db *gorm.DB) (err error) {
 		"agent_triggers",
 		"agent_trigger_deliveries",
 		"agent_conversations",
-		"specialist_tasks",
 		"agent_profiles",
 		"teams",
 		"agent_subagents",
@@ -84,6 +83,9 @@ func AutoMigrate(db *gorm.DB) (err error) {
 		return err
 	}
 	if err := dropEmployeeLegacyColumns(db); err != nil {
+		return err
+	}
+	if err := dropLegacyAgentNamedColumns(db); err != nil {
 		return err
 	}
 	if db.Migrator().HasColumn(&EmployeeConversation{}, "bridge_conversation_id") &&
@@ -167,6 +169,7 @@ func dropLegacyAgentStorage(db *gorm.DB) error {
 
 func dropEmployeeLegacyColumns(db *gorm.DB) error {
 	for _, column := range []string{
+		"agent_config",
 		"name",
 		"team_id",
 		"team",
@@ -187,6 +190,50 @@ func dropEmployeeLegacyColumns(db *gorm.DB) error {
 		}
 		if err := db.Migrator().DropColumn("employees", column); err != nil {
 			return err
+		}
+	}
+	return nil
+}
+
+func dropLegacyAgentNamedColumns(db *gorm.DB) error {
+	columns := map[string][]string{
+		"employee_assets":             {"agent_id"},
+		"employee_memory_events":      {"agent_id"},
+		"employee_sandbox_upgrades":   {"agent_id"},
+		"employee_schedule_runs":      {"agent_id"},
+		"employee_schedules":          {"agent_id"},
+		"employee_sessions":           {"agent_id"},
+		"employee_skills":             {"agent_id"},
+		"employee_trigger_deliveries": {"agent_id"},
+		"employee_triggers":           {"agent_id"},
+		"conversation_events":         {"agent_id"},
+		"drive_assets":                {"agent_id"},
+		"hindsight_banks":             {"agent_id"},
+		"in_integrations":             {"agent_id"},
+		"sandboxes":                   {"agent_id"},
+		"specialist_tasks":            {"employee_agent_id"},
+		"tool_usages":                 {"agent_id"},
+	}
+
+	if db.Dialector.Name() == "postgres" {
+		for table, tableColumns := range columns {
+			for _, column := range tableColumns {
+				if err := db.Exec(`ALTER TABLE IF EXISTS "` + table + `" DROP COLUMN IF EXISTS "` + column + `" CASCADE`).Error; err != nil {
+					return err
+				}
+			}
+		}
+		return nil
+	}
+
+	for table, tableColumns := range columns {
+		for _, column := range tableColumns {
+			if !db.Migrator().HasColumn(table, column) {
+				continue
+			}
+			if err := db.Migrator().DropColumn(table, column); err != nil {
+				return err
+			}
 		}
 	}
 	return nil

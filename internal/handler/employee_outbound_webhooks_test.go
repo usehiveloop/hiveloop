@@ -212,7 +212,7 @@ func connectEmployeeSkillSyncTestDB(t *testing.T) *gorm.DB {
 	t.Helper()
 	dsn := os.Getenv("DATABASE_URL")
 	if dsn == "" {
-		dsn = "postgres://hivy:localdev@localhost:5433/hivy_test?sslmode=disable"
+		dsn = "postgres://hivy:localdev@localhost:15432/hivy_test?sslmode=disable"
 	}
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {

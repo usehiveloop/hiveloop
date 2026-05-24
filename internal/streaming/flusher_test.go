@@ -16,7 +16,7 @@ import (
 
 func setupTestDB(t *testing.T) *gorm.DB {
 	t.Helper()
-	dsn := "postgres://hivy:localdev@localhost:5433/hivy?sslmode=disable" // #nosec G101 -- local test DB fixture
+	dsn := "postgres://hivy:localdev@localhost:15432/hivy?sslmode=disable" // #nosec G101 -- local test DB fixture
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{Logger: logger.Discard})
 	if err != nil {
 		t.Skipf("Postgres not available: %v", err)

@@ -97,11 +97,11 @@ func newApprovalsHarness(t *testing.T) *approvalsHarness {
 	})
 
 	cfg := &config.Config{
-		ProxyHost:  "proxy.test",
-		MCPBaseURL: "https://mcp.test",
-		BridgeHost: "bridge.test",
+		ProxyHost:             "proxy.test",
+		MCPBaseURL:            "https://mcp.test",
+		SpecialistSandboxHost: "bridge.test",
 	}
-	orch := sandbox.NewOrchestrator(h.db, nil, nil, encKey, cfg)
+	orch := sandbox.NewOrchestrator(h.db, &e2eSandboxProvider{endpoint: fb.URL}, encKey, cfg)
 	eventBus := streaming.NewEventBus(h.redisClient)
 
 	convHandler := handler.NewConversationHandler(h.db, orch, nil, eventBus)

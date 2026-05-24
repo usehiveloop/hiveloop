@@ -72,27 +72,27 @@ func TestConversationLifecycle_PushSendStreamEnd(t *testing.T) {
 	events := []fakebridge.BridgeEvent{
 		{
 			EventID: "ev1", EventType: "message_received",
-			EmployeeID: fbh.agent.ID.String(), ConversationID: fbh.conv.RuntimeConversationID,
+			AgentID: fbh.agent.ID.String(), ConversationID: fbh.conv.RuntimeConversationID,
 			Timestamp: now, SequenceNumber: 1, Data: json.RawMessage(`{"content":"hi"}`),
 		},
 		{
 			EventID: "ev2", EventType: "response_chunk",
-			EmployeeID: fbh.agent.ID.String(), ConversationID: fbh.conv.RuntimeConversationID,
+			AgentID: fbh.agent.ID.String(), ConversationID: fbh.conv.RuntimeConversationID,
 			Timestamp: now.Add(10 * time.Millisecond), SequenceNumber: 2, Data: json.RawMessage(`{"text":"hello"}`),
 		},
 		{
 			EventID: "ev3", EventType: "response_chunk",
-			EmployeeID: fbh.agent.ID.String(), ConversationID: fbh.conv.RuntimeConversationID,
+			AgentID: fbh.agent.ID.String(), ConversationID: fbh.conv.RuntimeConversationID,
 			Timestamp: now.Add(20 * time.Millisecond), SequenceNumber: 3, Data: json.RawMessage(`{"text":" world"}`),
 		},
 		{
 			EventID: "ev4", EventType: "response_chunk",
-			EmployeeID: fbh.agent.ID.String(), ConversationID: fbh.conv.RuntimeConversationID,
+			AgentID: fbh.agent.ID.String(), ConversationID: fbh.conv.RuntimeConversationID,
 			Timestamp: now.Add(30 * time.Millisecond), SequenceNumber: 4, Data: json.RawMessage(`{"text":"!"}`),
 		},
 		{
 			EventID: "ev5", EventType: "turn_completed",
-			EmployeeID: fbh.agent.ID.String(), ConversationID: fbh.conv.RuntimeConversationID,
+			AgentID: fbh.agent.ID.String(), ConversationID: fbh.conv.RuntimeConversationID,
 			Timestamp: now.Add(40 * time.Millisecond), SequenceNumber: 5, Data: json.RawMessage(`{"stop_reason":"end_turn"}`),
 		},
 	}
@@ -133,7 +133,7 @@ collectLoop:
 	endEvents := []fakebridge.BridgeEvent{
 		{
 			EventID: "ev-end", EventType: "conversation_ended",
-			EmployeeID: fbh.agent.ID.String(), ConversationID: fbh.conv.RuntimeConversationID,
+			AgentID: fbh.agent.ID.String(), ConversationID: fbh.conv.RuntimeConversationID,
 			Timestamp: time.Now(), SequenceNumber: 6, Data: json.RawMessage(`{}`),
 		},
 	}

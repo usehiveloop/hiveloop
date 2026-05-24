@@ -15,7 +15,7 @@ func setRequiredEnv(t *testing.T) {
 	t.Setenv("HIVY_DB_NAME", "db")
 	t.Setenv("HIVY_KMS_TYPE", "aead")
 	t.Setenv("HIVY_KMS_KEY", "dGVzdC1rZXktMzItYnl0ZXMtbG9uZy1lbm91Z2gh")
-	t.Setenv("HIVY_REDIS_ADDR", "localhost:6379")
+	t.Setenv("HIVY_REDIS_ADDR", "localhost:16379")
 	t.Setenv("HIVY_REDIS_DB", "0")
 	t.Setenv("HIVY_REDIS_CACHE_TTL", "30m")
 	// HIVY_REDIS_URL is not set here — HIVY_REDIS_ADDR is used as fallback for local dev

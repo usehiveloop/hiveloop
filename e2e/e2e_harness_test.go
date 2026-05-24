@@ -31,8 +31,8 @@ import (
 )
 
 const (
-	testDBURL      = "postgres://hivy:localdev@localhost:5433/hivy_test?sslmode=disable" //nolint:gosec // G101: local-only test fixture, not a real credential
-	testRedisAddr  = "localhost:6379"
+	testDBURL      = "postgres://hivy:localdev@localhost:15432/hivy_test?sslmode=disable" //nolint:gosec // G101: local-only test fixture, not a real credential
+	testRedisAddr  = "localhost:16379"
 	testSigningKey = "e2e-signing-key-for-tests"
 )
 

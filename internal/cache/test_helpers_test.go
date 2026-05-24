@@ -18,8 +18,8 @@ import (
 )
 
 const (
-	testDBURL     = "postgres://hivy:localdev@localhost:5433/hivy_test?sslmode=disable" // #nosec G101 -- local test DB fixture
-	testRedisAddr = "localhost:6379"
+	testDBURL     = "postgres://hivy:localdev@localhost:15432/hivy_test?sslmode=disable" // #nosec G101 -- local test DB fixture
+	testRedisAddr = "localhost:16379"
 )
 
 func connectTestDB(t *testing.T) *gorm.DB {

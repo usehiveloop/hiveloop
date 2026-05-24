@@ -24,7 +24,7 @@ import (
 // Password is a documented local-dev value; same one CI uses via env.
 //
 //nolint:gosec // G101: hardcoded local-dev DSN, mirrors sibling integration tests
-const testDBURL = "postgres://hivy:localdev@localhost:5433/hivy_test?sslmode=disable"
+const testDBURL = "postgres://hivy:localdev@localhost:15432/hivy_test?sslmode=disable"
 
 // connectTestDB opens a real Postgres connection and runs model.AutoMigrate.
 // It follows the same shape as the sibling helpers but only migrates the core

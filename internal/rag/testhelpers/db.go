@@ -12,8 +12,8 @@ import (
 )
 
 // testDBURL mirrors internal/middleware/integration_test.go:26 — the
-// hivy_test database on the dev Postgres instance at localhost:5433.
-const testDBURL = "postgres://hivy:localdev@localhost:5433/hivy_test?sslmode=disable" // #nosec G101 -- local test DB fixture
+// hivy_test database on the dev Postgres instance at localhost:15432.
+const testDBURL = "postgres://hivy:localdev@localhost:15432/hivy_test?sslmode=disable" // #nosec G101 -- local test DB fixture
 
 // ConnectTestDB opens a real Postgres connection, runs the core and
 // RAG AutoMigrate steps, and registers `t.Cleanup` to close the

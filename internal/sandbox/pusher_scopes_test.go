@@ -12,7 +12,7 @@ import (
 	"github.com/usehivy/hivy/internal/model"
 )
 
-const pusherTestDBURL = "postgres://hivy:localdev@localhost:5433/hivy_test?sslmode=disable" // #nosec G101 -- local test DB fixture
+const pusherTestDBURL = "postgres://hivy:localdev@localhost:15432/hivy_test?sslmode=disable" // #nosec G101 -- local test DB fixture
 
 func TestBuildScopesFromIntegrations(t *testing.T) {
 	scopes := buildScopesFromIntegrations(model.JSON{})

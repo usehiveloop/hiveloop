@@ -1,4 +1,4 @@
-.PHONY: build test test-e2e lint check-file-length vet check up down dev dev-nango dev-nango-secret clean fetch-actions generate docker-build docker-run test-clean test-clean-auth test-clean-nango test-clean-proxy test-clean-connect test-clean-integrations test-auth test-nango test-real-nango test-proxy test-connect test-integrations test-connections test-sandbox-docker test-setup test-setup-nango openapi generate-auth-keys generate-bridge-client generate-employee-bridge-client build-employee-sandbox-templates employee-env-doctor employee-debug-pack test-services-up test-services-down ragtest-slack-live ragtest-kb-search-live seed-test local-up local-down local-reset local-status login-test asynq-peek
+.PHONY: build test test-e2e test-handler-sharded lint check-file-length vet check up down dev dev-nango dev-nango-secret clean fetch-actions generate docker-build docker-run test-clean test-clean-auth test-clean-nango test-clean-proxy test-clean-connect test-clean-integrations test-auth test-nango test-real-nango test-proxy test-connect test-integrations test-connections test-sandbox-docker test-setup test-setup-nango openapi generate-auth-keys generate-bridge-client generate-employee-bridge-client build-employee-sandbox-templates employee-env-doctor employee-debug-pack test-services-up test-services-down ragtest-slack-live ragtest-kb-search-live seed-test local-up local-down local-reset local-status login-test asynq-peek
 .PHONY: sandbox-specialists-build sandbox-specialists-test sandbox-specialists-fmt-check sandbox-specialists-clippy sandbox-specialists-openapi sandbox-employee-build sandbox-employee-test sandbox-employee-fmt-check sandbox-employee-openapi employee-openapi sandbox-employee-image sandbox-employee-image-test
 
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
@@ -9,6 +9,11 @@ SANDBOX_EMPLOYEE_DIR ?= sandboxes/employee
 GO_BIN ?= $(shell if command -v go >/dev/null 2>&1; then command -v go; elif [ -x /opt/homebrew/bin/go ]; then echo /opt/homebrew/bin/go; elif [ -x /usr/local/go/bin/go ]; then echo /usr/local/go/bin/go; else echo go; fi)
 DEV_COMPOSE_SERVICES ?= postgres redis nango qdrant minio minio-setup hindsight api worker web
 NANGO_SECRET_SQL = SELECT secret_key FROM nango._nango_environments WHERE name='\''prod'\'' LIMIT 1
+TEST_DATABASE_URL ?= postgres://hivy:localdev@localhost:$(or $(HIVY_COMPOSE_POSTGRES_PORT),15432)/hivy_test?sslmode=disable
+TEST_REDIS_ADDR ?= localhost:$(or $(HIVY_COMPOSE_REDIS_PORT),16379)
+TEST_ENV = DATABASE_URL="$(TEST_DATABASE_URL)" HIVY_DATABASE_URL="$(TEST_DATABASE_URL)" HIVY_REDIS_ADDR="$(TEST_REDIS_ADDR)"
+HANDLER_TEST_SHARDS ?= 8
+HANDLER_TEST_TIMEOUT ?= 5m
 
 # Generate base64-encoded RSA private key for HIVY_AUTH_RSA_PRIVATE_KEY env var
 generate-auth-keys:
@@ -175,11 +180,15 @@ build:
 
 # Run unit tests with race detection
 test:
-	go test ./internal/... -v -race -count=1
+	$(TEST_ENV) go test ./internal/... -v -race -count=1
 
 # Run e2e tests (requires docker-compose stack running)
 test-e2e:
-	go test ./e2e/... -v -count=1 -timeout=5m
+	$(TEST_ENV) go test ./e2e/... -v -count=1 -timeout=5m
+
+# Run internal/handler tests split across stable parallel shards.
+test-handler-sharded:
+	$(TEST_ENV) HANDLER_TEST_SHARDS="$(HANDLER_TEST_SHARDS)" HANDLER_TEST_TIMEOUT="$(HANDLER_TEST_TIMEOUT)" GO_BIN="$(GO_BIN)" ./scripts/test-handler-sharded.sh
 
 # Start services and wait for healthy (no teardown, no tests)
 test-setup:
@@ -217,13 +226,13 @@ test-setup-nango:
 
 # Auth middleware + org e2e tests
 test-auth:
-	go test ./internal/middleware/... -v -race -count=1 -run "Auth|MultiAuth_JWTPath"
-	go test ./e2e/... -v -race -count=1 -timeout=5m -run "TestOrg"
+	$(TEST_ENV) go test ./internal/middleware/... -v -race -count=1 -run "Auth|MultiAuth_JWTPath"
+	$(TEST_ENV) go test ./e2e/... -v -race -count=1 -timeout=5m -run "TestOrg"
 
 # Nango integration CRUD e2e tests
 test-nango:
 	$(MAKE) test-real-nango
-	go test ./e2e/... -v -race -count=1 -timeout=5m -run "TestE2E_Integration"
+	$(TEST_ENV) go test ./e2e/... -v -race -count=1 -timeout=5m -run "TestE2E_Integration"
 
 test-real-nango:
 	@secret=$$(docker compose exec -T postgres sh -lc 'psql -U "$$POSTGRES_USER" -d nango -Atc "SELECT secret_key FROM nango._nango_environments WHERE name='\''prod'\'' LIMIT 1"'); \
@@ -231,27 +240,27 @@ test-real-nango:
 	RUN_REAL_NANGO_TESTS=1 \
 	HIVY_NANGO_ENDPOINT=http://localhost:$${HIVY_COMPOSE_NANGO_PORT:-23003} \
 	HIVY_NANGO_SECRET_KEY=$$secret \
-	go test ./internal/nango -v -count=1 -run TestRealNango
+	$(TEST_ENV) go test ./internal/nango -v -count=1 -run TestRealNango
 
 # LLM proxy e2e tests (OpenRouter, Fireworks, streaming, tool calls)
 test-proxy:
-	go test ./e2e/... -v -race -count=1 -timeout=5m -run "TestE2E_Proxy|TestE2E_Fireworks"
+	$(TEST_ENV) go test ./e2e/... -v -race -count=1 -timeout=5m -run "TestE2E_Proxy|TestE2E_Fireworks"
 
 # Connect widget API e2e tests
 test-connect:
-	go test ./e2e/... -v -race -count=1 -timeout=5m -run "TestE2E_Connect"
+	$(TEST_ENV) go test ./e2e/... -v -race -count=1 -timeout=5m -run "TestE2E_Connect"
 
 # Connection + scoped token e2e tests
 test-connections:
-	go test ./e2e/... -v -race -count=1 -timeout=5m -run "TestE2E_Connection|TestE2E_ScopedToken"
+	$(TEST_ENV) go test ./e2e/... -v -race -count=1 -timeout=5m -run "TestE2E_Connection|TestE2E_ScopedToken"
 
 # Docker sandbox provider integration tests
 test-sandbox-docker:
-	go test ./internal/sandbox/docker -v -count=1
+	$(TEST_ENV) go test ./internal/sandbox/docker -v -count=1
 
 # All integration e2e tests (nango + connect + proxy)
 test-integrations:
-	go test ./e2e/... -v -race -count=1 -timeout=5m -run "TestE2E_Integration|TestE2E_Connect|TestE2E_Proxy|TestE2E_Fireworks"
+	$(TEST_ENV) go test ./e2e/... -v -race -count=1 -timeout=5m -run "TestE2E_Integration|TestE2E_Connect|TestE2E_Proxy|TestE2E_Fireworks"
 
 # Run linter
 lint:
@@ -351,14 +360,14 @@ docker-run:
 		-e HIVY_LOG_LEVEL=info \
 		-e HIVY_LOG_FORMAT=text \
 		-e HIVY_DB_HOST=localhost \
-		-e HIVY_DB_PORT=5433 \
+		-e HIVY_DB_PORT=15432 \
 		-e HIVY_DB_USER=hivy \
 		-e HIVY_DB_PASSWORD=localdev \
 		-e HIVY_DB_NAME=hivy \
 		-e HIVY_DB_SSLMODE=disable \
 		-e HIVY_KMS_TYPE=aead \
 		-e HIVY_KMS_KEY=$${HIVY_KMS_KEY} \
-		-e HIVY_REDIS_ADDR=localhost:6379 \
+		-e HIVY_REDIS_ADDR=localhost:16379 \
 		-e HIVY_REDIS_CACHE_TTL=30m \
 		-e HIVY_MEM_CACHE_TTL=5m \
 		-e HIVY_MEM_CACHE_MAX_SIZE=10000 \
@@ -395,7 +404,7 @@ ragtest-slack-live:
 	HIVY_E2E_KEEP_SLACK_RAG=$${HIVY_E2E_KEEP_SLACK_RAG:-1} \
 	HIVY_QDRANT_HOST=$${HIVY_QDRANT_HOST:-localhost} \
 	HIVY_QDRANT_PORT=$${HIVY_QDRANT_PORT:-6334} \
-	HIVY_DATABASE_URL=$${HIVY_DATABASE_URL:-postgres://hivy:localdev@localhost:5433/hivy_test?sslmode=disable} \
+	HIVY_DATABASE_URL=$${HIVY_DATABASE_URL:-$(TEST_DATABASE_URL)} \
 	go test ./internal/rag/connectors/slack -run TestSlackBotProfileRAGIngestion_Live -count=1 -v
 
 # Run live semantic KB search against an existing local Qdrant collection.

@@ -9,7 +9,7 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-const testRedisAddr = "localhost:6379"
+const testRedisAddr = "localhost:16379"
 
 // testRedisDB steers test fixtures away from production's default DB 0
 // so developers can run `redis-cli` alongside the suite.

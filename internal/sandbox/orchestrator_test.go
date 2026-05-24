@@ -16,7 +16,7 @@ import (
 	"github.com/usehivy/hivy/internal/model"
 )
 
-const testDBURL = "postgres://hivy:localdev@localhost:5433/hivy_test?sslmode=disable" // #nosec G101 -- local test DB fixture
+const testDBURL = "postgres://hivy:localdev@localhost:15432/hivy_test?sslmode=disable" // #nosec G101 -- local test DB fixture
 
 func setupTestDB(t *testing.T) *gorm.DB {
 	t.Helper()

@@ -78,7 +78,7 @@ func runApprovalRoundtrip(t *testing.T, decision string) {
 	approvalReq := []fakebridge.BridgeEvent{
 		{
 			EventID: "ev-tar1", EventType: "tool_approval_required",
-			EmployeeID: ah.agent.ID.String(), ConversationID: ah.conv.RuntimeConversationID,
+			AgentID: ah.agent.ID.String(), ConversationID: ah.conv.RuntimeConversationID,
 			Timestamp: time.Now(), SequenceNumber: 1,
 			Data: json.RawMessage(`{"request_id":"` + approvalID + `","tool":"bash"}`),
 		},
@@ -111,8 +111,8 @@ func runApprovalRoundtrip(t *testing.T, decision string) {
 		t.Fatalf("fakebridge approvals captured: got %d, want 1", len(cap.Approvals))
 	}
 	gotCall := cap.Approvals[0]
-	if gotCall.EmployeeID != ah.agent.ID.String() {
-		t.Errorf("employee_id: got %q, want %q", gotCall.EmployeeID, ah.agent.ID.String())
+	if gotCall.AgentID != ah.agent.ID.String() {
+		t.Errorf("agent_id: got %q, want %q", gotCall.AgentID, ah.agent.ID.String())
 	}
 	if gotCall.ConversationID != ah.conv.RuntimeConversationID {
 		t.Errorf("conversation_id: got %q, want %q", gotCall.ConversationID, ah.conv.RuntimeConversationID)
@@ -127,19 +127,19 @@ func runApprovalRoundtrip(t *testing.T, decision string) {
 	resolved := []fakebridge.BridgeEvent{
 		{
 			EventID: "ev-resolved", EventType: "tool_approval_resolved",
-			EmployeeID: ah.agent.ID.String(), ConversationID: ah.conv.RuntimeConversationID,
+			AgentID: ah.agent.ID.String(), ConversationID: ah.conv.RuntimeConversationID,
 			Timestamp: time.Now(), SequenceNumber: 2,
 			Data: json.RawMessage(`{"request_id":"` + approvalID + `","decision":"` + decision + `"}`),
 		},
 		{
 			EventID: "ev-result", EventType: "tool_call_completed",
-			EmployeeID: ah.agent.ID.String(), ConversationID: ah.conv.RuntimeConversationID,
+			AgentID: ah.agent.ID.String(), ConversationID: ah.conv.RuntimeConversationID,
 			Timestamp: time.Now(), SequenceNumber: 3,
 			Data: json.RawMessage(`{"output":"ok"}`),
 		},
 		{
 			EventID: "ev-tc", EventType: "turn_completed",
-			EmployeeID: ah.agent.ID.String(), ConversationID: ah.conv.RuntimeConversationID,
+			AgentID: ah.agent.ID.String(), ConversationID: ah.conv.RuntimeConversationID,
 			Timestamp: time.Now(), SequenceNumber: 4,
 			Data: json.RawMessage(`{"stop_reason":"end_turn"}`),
 		},

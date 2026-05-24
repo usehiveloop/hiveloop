@@ -13,7 +13,7 @@ import (
 )
 
 //nolint:gosec // G101: local-dev DSN, mirrors api_keys_test.go testDBURL.
-const internalTestDBURL = "postgres://hivy:localdev@localhost:5433/hivy_test?sslmode=disable"
+const internalTestDBURL = "postgres://hivy:localdev@localhost:15432/hivy_test?sslmode=disable"
 
 func connectInternalTestDB(t *testing.T) *gorm.DB {
 	t.Helper()

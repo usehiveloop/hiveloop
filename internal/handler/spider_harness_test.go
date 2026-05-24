@@ -21,7 +21,7 @@ import (
 	"github.com/usehivy/hivy/internal/spider"
 )
 
-const spiderTestDBURL = "postgres://hivy:localdev@localhost:5433/hivy_test?sslmode=disable" // #nosec G101 -- test fixture, not a real secret
+const spiderTestDBURL = "postgres://hivy:localdev@localhost:15432/hivy_test?sslmode=disable" // #nosec G101 -- test fixture, not a real secret
 
 type spiderTestHarness struct {
 	db          *gorm.DB

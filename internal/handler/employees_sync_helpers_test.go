@@ -6,9 +6,11 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 
 	"github.com/usehivy/hivy/internal/credentials"
 	"github.com/usehivy/hivy/internal/model"
+	"github.com/usehivy/hivy/internal/specialists"
 )
 
 type sidecarStub struct {
@@ -68,22 +70,27 @@ func (h *employeeHarness) seedEmployeeAgent(t *testing.T, m orgWithMember) model
 	}
 
 	credID := cred.ID
+	catalog, err := specialists.Load("global/specialists")
+	if err != nil {
+		t.Fatalf("load specialists: %v", err)
+	}
 	agent := model.Employee{
-		OrgID:         &m.org.ID,
-		Name:          "agent-" + uuid.NewString()[:8],
-		IsEmployee:    true,
-		Harness:       "employee-sandbox",
-		Model:         "deepseek-v4-flash",
-		SystemPrompt:  "you are a test employee",
-		CredentialID:  &credID,
-		Status:        "active",
-		Tools:         model.JSON{},
-		McpServers:    model.JSON{},
-		Skills:        model.JSON{},
-		Integrations:  model.JSON{},
-		Resources:     model.JSON{},
-		RuntimeConfig: model.JSON{},
-		Permissions:   model.JSON{},
+		OrgID:               &m.org.ID,
+		Name:                "agent-" + uuid.NewString()[:8],
+		IsEmployee:          true,
+		Harness:             "employee-sandbox",
+		Model:               "deepseek-v4-flash",
+		SystemPrompt:        "you are a test employee",
+		CredentialID:        &credID,
+		Status:              "active",
+		AttachedSpecialists: pq.StringArray(catalog.AutoAttachSlugs()),
+		Tools:               model.JSON{},
+		McpServers:          model.JSON{},
+		Skills:              model.JSON{},
+		Integrations:        model.JSON{},
+		Resources:           model.JSON{},
+		RuntimeConfig:       model.JSON{},
+		Permissions:         model.JSON{},
 	}
 	if err := h.db.Create(&agent).Error; err != nil {
 		t.Fatalf("create agent: %v", err)

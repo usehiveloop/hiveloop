@@ -15,8 +15,8 @@ import (
 )
 
 const (
-	testDBURL     = "postgres://hivy:localdev@localhost:5433/hivy_test?sslmode=disable" // #nosec G101 -- test fixture, not a real secret
-	testRedisAddr = "localhost:6379"
+	testDBURL     = "postgres://hivy:localdev@localhost:15432/hivy_test?sslmode=disable" // #nosec G101 -- test fixture, not a real secret
+	testRedisAddr = "localhost:16379"
 )
 
 func connectTestDB(t *testing.T) *gorm.DB {
@@ -44,7 +44,11 @@ func connectTestDB(t *testing.T) *gorm.DB {
 
 func connectTestRedis(t *testing.T) *redis.Client {
 	t.Helper()
-	client := redis.NewClient(&redis.Options{Addr: testRedisAddr})
+	addr := os.Getenv("HIVY_REDIS_ADDR")
+	if addr == "" {
+		addr = testRedisAddr
+	}
+	client := redis.NewClient(&redis.Options{Addr: addr})
 	if err := client.Ping(context.Background()).Err(); err != nil {
 		t.Fatalf("Redis not reachable: %v", err)
 	}

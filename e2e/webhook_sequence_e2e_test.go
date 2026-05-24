@@ -35,7 +35,7 @@ func TestWebhookSequence_NoGaps(t *testing.T) {
 		events = append(events, fakebridge.BridgeEvent{
 			EventID:        fmt.Sprintf("ev-%d", i),
 			EventType:      etype,
-			EmployeeID:     wh.agent.ID.String(),
+			AgentID:        wh.agent.ID.String(),
 			ConversationID: wh.conv.RuntimeConversationID,
 			Timestamp:      now.Add(time.Duration(i) * time.Millisecond),
 			SequenceNumber: int64(i),
@@ -85,7 +85,7 @@ func TestWebhookSequence_BadSignatureRejected(t *testing.T) {
 	events := []fakebridge.BridgeEvent{
 		{
 			EventID: "ev1", EventType: "message_received",
-			EmployeeID: wh.agent.ID.String(), ConversationID: wh.conv.RuntimeConversationID,
+			AgentID: wh.agent.ID.String(), ConversationID: wh.conv.RuntimeConversationID,
 			Timestamp: time.Now(), SequenceNumber: 1, Data: json.RawMessage(`{}`),
 		},
 	}
@@ -179,7 +179,7 @@ func TestWebhookSequence_StatusTransitions(t *testing.T) {
 	endEvents := []fakebridge.BridgeEvent{
 		{
 			EventID: "ev-end", EventType: "conversation_ended",
-			EmployeeID: agent.ID.String(), ConversationID: conv1.RuntimeConversationID,
+			AgentID: agent.ID.String(), ConversationID: conv1.RuntimeConversationID,
 			Timestamp: time.Now(), SequenceNumber: 1, Data: json.RawMessage(`{}`),
 		},
 	}
@@ -201,7 +201,7 @@ func TestWebhookSequence_StatusTransitions(t *testing.T) {
 	errEvents := []fakebridge.BridgeEvent{
 		{
 			EventID: "ev-err", EventType: "agent_error",
-			EmployeeID: agent.ID.String(), ConversationID: conv2.RuntimeConversationID,
+			AgentID: agent.ID.String(), ConversationID: conv2.RuntimeConversationID,
 			Timestamp: time.Now(), SequenceNumber: 1, Data: json.RawMessage(`{"error":"boom"}`),
 		},
 	}

@@ -22,7 +22,7 @@ import (
 
 func connectHTTPTriggerTestDB(t *testing.T) *gorm.DB {
 	t.Helper()
-	dsn := "postgres://hivy:localdev@localhost:5433/hivy_test?sslmode=disable" // #nosec G101 -- test fixture, not a real secret
+	dsn := "postgres://hivy:localdev@localhost:15432/hivy_test?sslmode=disable" // #nosec G101 -- test fixture, not a real secret
 	database, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
 		Logger: gormlogger.Discard,
 	})

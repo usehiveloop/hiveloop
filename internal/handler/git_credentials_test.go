@@ -20,7 +20,7 @@ import (
 	"github.com/usehivy/hivy/internal/nango"
 )
 
-const gitCredsTestDBURL = "postgres://hivy:localdev@localhost:5433/hivy_test?sslmode=disable" // #nosec G101 -- test fixture, not a real secret
+const gitCredsTestDBURL = "postgres://hivy:localdev@localhost:15432/hivy_test?sslmode=disable" // #nosec G101 -- test fixture, not a real secret
 
 func testSymmetricKey(t *testing.T) *crypto.SymmetricKey {
 	t.Helper()

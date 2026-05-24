@@ -18,7 +18,7 @@ import (
 	"github.com/usehivy/hivy/internal/nango"
 )
 
-const testDBURL = "postgres://hivy:localdev@localhost:5433/hivy_test?sslmode=disable" // #nosec G101 -- test fixture, not a real secret
+const testDBURL = "postgres://hivy:localdev@localhost:15432/hivy_test?sslmode=disable" // #nosec G101 -- test fixture, not a real secret
 
 func TestSeedGlobalIntegrations_RealNangoCreateUpdateAndSkip(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 45*time.Second)
@@ -231,11 +231,15 @@ func realNangoClient(t *testing.T, ctx context.Context) *nango.Client {
 	t.Helper()
 	endpoint := os.Getenv("HIVY_NANGO_ENDPOINT")
 	if endpoint == "" {
-		endpoint = "http://localhost:13003"
+		endpoint = "http://localhost:23003"
 	}
 	secret := os.Getenv("HIVY_NANGO_SECRET_KEY")
 	if secret == "" {
-		secret = "00000000-0000-4000-8000-000000000001"
+		var err error
+		secret, err = discoverComposeNangoSecret(ctx)
+		if err != nil {
+			t.Fatalf("discover Nango secret: %v", err)
+		}
 	}
 	client := nango.NewClient(endpoint, secret)
 	if err := client.FetchProviders(ctx); err != nil {
@@ -245,6 +249,34 @@ func realNangoClient(t *testing.T, ctx context.Context) *nango.Client {
 		t.Fatalf("real Nango at %s does not expose provider linear", endpoint)
 	}
 	return client
+}
+
+func discoverComposeNangoSecret(ctx context.Context) (string, error) {
+	dsn := os.Getenv("HIVY_NANGO_DATABASE_URL")
+	if dsn == "" {
+		dsn = "postgres://hivy:localdev@localhost:15432/nango?sslmode=disable" // #nosec G101 -- local compose test fixture
+	}
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	if err != nil {
+		return "", err
+	}
+	sqlDB, err := db.DB()
+	if err != nil {
+		return "", err
+	}
+	defer sqlDB.Close()
+
+	var secret string
+	err = db.WithContext(ctx).
+		Raw(`SELECT secret_key FROM nango._nango_environments WHERE name = ? LIMIT 1`, "prod").
+		Scan(&secret).Error
+	if err != nil {
+		return "", err
+	}
+	if secret == "" {
+		return "", fmt.Errorf("no prod Nango secret found in %s", dsn)
+	}
+	return secret, nil
 }
 
 func connectIntegrationTestDB(t *testing.T) *gorm.DB {
