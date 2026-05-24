@@ -1,0 +1,14 @@
+FROM golang:1.25-alpine
+
+RUN apk add --no-cache ca-certificates git tzdata && \
+    go install github.com/air-verse/air@v1.63.0
+
+ENV PATH="/go/bin:${PATH}"
+ENV CGO_ENABLED=0
+
+WORKDIR /workspace
+
+COPY go.mod go.sum ./
+RUN go mod download
+
+CMD ["air", "-c", ".air.api.toml"]

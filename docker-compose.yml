@@ -2,11 +2,11 @@ services:
   api:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.dev
       args:
         VERSION: ${VERSION:-dev}
         COMMIT: ${COMMIT:-local}
-    command: ["/hivy", "serve"]
+    command: ["sh", "-c", "mkdir -p /workspace/tmp && /go/bin/air -c .air.api.toml"]
     env_file:
       - .env
     environment:
@@ -14,24 +14,32 @@ services:
       HIVY_PORT: "8080"
       HIVY_LOG_LEVEL: ${HIVY_LOG_LEVEL:-info}
       HIVY_LOG_FORMAT: ${HIVY_LOG_FORMAT:-text}
-      HIVY_DB_HOST: postgres
-      HIVY_DB_PORT: "5432"
+      HIVY_DATABASE_URL: ${HIVY_DATABASE_URL:-postgres://hivy:localdev@postgres:5432/hivy?sslmode=disable}
+      HIVY_DB_HOST: ${HIVY_DB_HOST:-postgres}
+      HIVY_DB_PORT: ${HIVY_DB_PORT:-5432}
       HIVY_DB_USER: ${HIVY_DB_USER:-hivy}
-      HIVY_DB_PASSWORD: ${HIVY_DB_PASSWORD:?HIVY_DB_PASSWORD is required}
+      HIVY_DB_PASSWORD: ${HIVY_DB_PASSWORD:-localdev}
       HIVY_DB_NAME: ${HIVY_DB_NAME:-hivy}
-      HIVY_DB_SSLMODE: disable
+      HIVY_DB_SSLMODE: ${HIVY_DB_SSLMODE:-disable}
       HIVY_KMS_KEY: ${HIVY_KMS_KEY:?HIVY_KMS_KEY is required}
       HIVY_JWT_SIGNING_KEY: ${HIVY_JWT_SIGNING_KEY:?HIVY_JWT_SIGNING_KEY is required}
       HIVY_AUTH_RSA_PRIVATE_KEY: ${HIVY_AUTH_RSA_PRIVATE_KEY:?HIVY_AUTH_RSA_PRIVATE_KEY is required}
       HIVY_SANDBOX_ENCRYPTION_KEY: ${HIVY_SANDBOX_ENCRYPTION_KEY:?HIVY_SANDBOX_ENCRYPTION_KEY is required}
       HIVY_CLOUD_AGENTS_SANDBOX_RUNTIME_VERSION: ${HIVY_CLOUD_AGENTS_SANDBOX_RUNTIME_VERSION:?HIVY_CLOUD_AGENTS_SANDBOX_RUNTIME_VERSION is required}
-      HIVY_REDIS_ADDR: redis:6379
+      HIVY_REDIS_URL: ${HIVY_REDIS_URL:-}
+      HIVY_REDIS_ADDR: ${HIVY_REDIS_ADDR:-redis:6379}
       HIVY_REDIS_PASSWORD: ${HIVY_REDIS_PASSWORD:-}
-      HIVY_FRONTEND_URL: http://localhost:${HIVY_WEB_PORT:-30112}
-      HIVY_CORS_ORIGINS: http://localhost:${HIVY_WEB_PORT:-30112}
-      HIVY_MCP_BASE_URL: http://localhost:${HIVY_MCP_PORT:-8081}
+      HIVY_REDIS_DB: ${HIVY_REDIS_DB:-0}
+      HIVY_REDIS_CACHE_TTL: ${HIVY_REDIS_CACHE_TTL:-30m}
+      HIVY_MEM_CACHE_TTL: ${HIVY_MEM_CACHE_TTL:-5m}
+      HIVY_MEM_CACHE_MAX_SIZE: ${HIVY_MEM_CACHE_MAX_SIZE:-10000}
+      HIVY_FRONTEND_URL: http://localhost:${HIVY_COMPOSE_WEB_PORT:-30112}
+      HIVY_CORS_ORIGINS: http://localhost:${HIVY_COMPOSE_WEB_PORT:-30112}
+      HIVY_MCP_PORT: ${HIVY_MCP_PORT:-8081}
+      HIVY_MCP_BASE_URL: http://localhost:${HIVY_COMPOSE_MCP_PORT:-8081}
       HIVY_NANGO_ENDPOINT: http://nango:3003
-      HIVY_API_WEBHOOK_BASE_URL: http://host.docker.internal:${HIVY_API_PORT:-8080}
+      HIVY_NANGO_SECRET_KEY: ${HIVY_NANGO_SECRET_KEY:?HIVY_NANGO_SECRET_KEY is required}
+      HIVY_API_WEBHOOK_BASE_URL: http://host.docker.internal:${HIVY_COMPOSE_API_PORT:-8080}
       HIVY_SANDBOX_PROVIDER_ID: docker
       HIVY_SANDBOX_DOCKER_HOST: unix:///var/run/docker.sock
       HIVY_SANDBOX_DOCKER_PUBLIC_HOST: ${HIVY_SANDBOX_DOCKER_PUBLIC_HOST:-host.docker.internal}
@@ -39,11 +47,14 @@ services:
       HIVY_PUBLIC_ASSETS_S3_ENDPOINT: http://minio:9000
       HIVY_PUBLIC_ASSETS_BASE_URL: http://localhost:9000/public-files-test
       HIVY_QDRANT_HOST: qdrant
-      HIVY_QDRANT_PORT: "6334"
+      HIVY_QDRANT_PORT: ${HIVY_QDRANT_PORT:-6334}
     ports:
-      - "${HIVY_API_PORT:-8080}:8080"
-      - "${HIVY_MCP_PORT:-8081}:8081"
+      - "${HIVY_COMPOSE_API_PORT:-8080}:8080"
+      - "${HIVY_COMPOSE_MCP_PORT:-8081}:8081"
     volumes:
+      - .:/workspace
+      - go-mod-cache:/go/pkg/mod
+      - go-build-cache:/root/.cache/go-build
       - /var/run/docker.sock:/var/run/docker.sock
     extra_hosts:
       - "host.docker.internal:host-gateway"
@@ -70,10 +81,11 @@ services:
   worker:
     build:
       context: .
-      dockerfile: Dockerfile.worker
+      dockerfile: Dockerfile.dev
       args:
         VERSION: ${VERSION:-dev}
         COMMIT: ${COMMIT:-local}
+    command: ["sh", "-c", "mkdir -p /workspace/tmp && /go/bin/air -c .air.worker.toml"]
     env_file:
       - .env
     environment:
@@ -81,22 +93,29 @@ services:
       HIVY_PORT: "8080"
       HIVY_LOG_LEVEL: ${HIVY_LOG_LEVEL:-info}
       HIVY_LOG_FORMAT: ${HIVY_LOG_FORMAT:-text}
-      HIVY_DB_HOST: postgres
-      HIVY_DB_PORT: "5432"
+      HIVY_DATABASE_URL: ${HIVY_DATABASE_URL:-postgres://hivy:localdev@postgres:5432/hivy?sslmode=disable}
+      HIVY_DB_HOST: ${HIVY_DB_HOST:-postgres}
+      HIVY_DB_PORT: ${HIVY_DB_PORT:-5432}
       HIVY_DB_USER: ${HIVY_DB_USER:-hivy}
-      HIVY_DB_PASSWORD: ${HIVY_DB_PASSWORD:?HIVY_DB_PASSWORD is required}
+      HIVY_DB_PASSWORD: ${HIVY_DB_PASSWORD:-localdev}
       HIVY_DB_NAME: ${HIVY_DB_NAME:-hivy}
-      HIVY_DB_SSLMODE: disable
+      HIVY_DB_SSLMODE: ${HIVY_DB_SSLMODE:-disable}
       HIVY_KMS_KEY: ${HIVY_KMS_KEY:?HIVY_KMS_KEY is required}
       HIVY_JWT_SIGNING_KEY: ${HIVY_JWT_SIGNING_KEY:?HIVY_JWT_SIGNING_KEY is required}
       HIVY_AUTH_RSA_PRIVATE_KEY: ${HIVY_AUTH_RSA_PRIVATE_KEY:?HIVY_AUTH_RSA_PRIVATE_KEY is required}
       HIVY_SANDBOX_ENCRYPTION_KEY: ${HIVY_SANDBOX_ENCRYPTION_KEY:?HIVY_SANDBOX_ENCRYPTION_KEY is required}
       HIVY_CLOUD_AGENTS_SANDBOX_RUNTIME_VERSION: ${HIVY_CLOUD_AGENTS_SANDBOX_RUNTIME_VERSION:?HIVY_CLOUD_AGENTS_SANDBOX_RUNTIME_VERSION is required}
-      HIVY_REDIS_ADDR: redis:6379
+      HIVY_REDIS_URL: ${HIVY_REDIS_URL:-}
+      HIVY_REDIS_ADDR: ${HIVY_REDIS_ADDR:-redis:6379}
       HIVY_REDIS_PASSWORD: ${HIVY_REDIS_PASSWORD:-}
-      HIVY_FRONTEND_URL: http://localhost:${HIVY_WEB_PORT:-30112}
+      HIVY_REDIS_DB: ${HIVY_REDIS_DB:-0}
+      HIVY_REDIS_CACHE_TTL: ${HIVY_REDIS_CACHE_TTL:-30m}
+      HIVY_MEM_CACHE_TTL: ${HIVY_MEM_CACHE_TTL:-5m}
+      HIVY_MEM_CACHE_MAX_SIZE: ${HIVY_MEM_CACHE_MAX_SIZE:-10000}
+      HIVY_FRONTEND_URL: http://localhost:${HIVY_COMPOSE_WEB_PORT:-30112}
       HIVY_NANGO_ENDPOINT: http://nango:3003
-      HIVY_API_WEBHOOK_BASE_URL: http://host.docker.internal:${HIVY_API_PORT:-8080}
+      HIVY_NANGO_SECRET_KEY: ${HIVY_NANGO_SECRET_KEY:?HIVY_NANGO_SECRET_KEY is required}
+      HIVY_API_WEBHOOK_BASE_URL: http://host.docker.internal:${HIVY_COMPOSE_API_PORT:-8080}
       HIVY_SANDBOX_PROVIDER_ID: docker
       HIVY_SANDBOX_DOCKER_HOST: unix:///var/run/docker.sock
       HIVY_SANDBOX_DOCKER_PUBLIC_HOST: ${HIVY_SANDBOX_DOCKER_PUBLIC_HOST:-host.docker.internal}
@@ -104,10 +123,14 @@ services:
       HIVY_PUBLIC_ASSETS_S3_ENDPOINT: http://minio:9000
       HIVY_PUBLIC_ASSETS_BASE_URL: http://localhost:9000/public-files-test
       HIVY_QDRANT_HOST: qdrant
-      HIVY_QDRANT_PORT: "6334"
+      HIVY_QDRANT_PORT: ${HIVY_QDRANT_PORT:-6334}
+      HIVY_WORKER_HEALTH_PORT: ${HIVY_WORKER_HEALTH_PORT:-8090}
     ports:
-      - "${HIVY_WORKER_HEALTH_PORT:-8090}:8090"
+      - "${HIVY_COMPOSE_WORKER_HEALTH_PORT:-8090}:8090"
     volumes:
+      - .:/workspace
+      - go-mod-cache:/go/pkg/mod
+      - go-build-cache:/root/.cache/go-build
       - /var/run/docker.sock:/var/run/docker.sock
     extra_hosts:
       - "host.docker.internal:host-gateway"
@@ -132,33 +155,39 @@ services:
       start_period: 20s
 
   web:
-    build:
-      context: ./apps/web
-      dockerfile: Dockerfile
-      args:
-        NEXT_PUBLIC_HIVY_API_URL: http://localhost:${HIVY_API_PORT:-8080}
-        NEXT_PUBLIC_HIVY_CONNECTIONS_HOST: http://localhost:${HIVY_NANGO_PORT:-13003}
-        NEXT_PUBLIC_HIVY_SENTRY_DSN: ${NEXT_PUBLIC_HIVY_SENTRY_DSN:-}
-        NEXT_PUBLIC_HIVY_SENTRY_TRACES_SAMPLE_RATE: ${NEXT_PUBLIC_HIVY_SENTRY_TRACES_SAMPLE_RATE:-0}
+    image: node:22-alpine
+    working_dir: /app
+    command: >
+      sh -c "corepack enable &&
+             corepack prepare pnpm@10.18.2 --activate &&
+             pnpm install --frozen-lockfile &&
+             pnpm exec next dev --turbopack -H 0.0.0.0 -p 3000"
     environment:
-      NODE_ENV: production
+      NODE_ENV: development
+      NEXT_TELEMETRY_DISABLED: "1"
+      WATCHPACK_POLLING: "true"
       HOSTNAME: 0.0.0.0
       PORT: "3000"
       HIVY_API_URL: http://api:8080
-      NEXT_PUBLIC_HIVY_API_URL: http://localhost:${HIVY_API_PORT:-8080}
-      NEXT_PUBLIC_HIVY_CONNECTIONS_HOST: http://localhost:${HIVY_NANGO_PORT:-13003}
+      NEXT_PUBLIC_HIVY_API_URL: http://localhost:${HIVY_COMPOSE_API_PORT:-8080}
+      NEXT_PUBLIC_HIVY_CONNECTIONS_HOST: http://localhost:${HIVY_COMPOSE_NANGO_PORT:-23003}
       HIVY_SESSION_SECRET: ${HIVY_SESSION_SECRET:?HIVY_SESSION_SECRET is required}
       HIVY_SENTRY_DSN: ${HIVY_SENTRY_DSN:-}
       NEXT_PUBLIC_HIVY_SENTRY_DSN: ${NEXT_PUBLIC_HIVY_SENTRY_DSN:-}
       HIVY_SENTRY_TRACES_SAMPLE_RATE: ${HIVY_SENTRY_TRACES_SAMPLE_RATE:-0}
       NEXT_PUBLIC_HIVY_SENTRY_TRACES_SAMPLE_RATE: ${NEXT_PUBLIC_HIVY_SENTRY_TRACES_SAMPLE_RATE:-0}
     ports:
-      - "${HIVY_WEB_PORT:-30112}:3000"
+      - "${HIVY_COMPOSE_WEB_PORT:-30112}:3000"
+    volumes:
+      - ./apps/web:/app
+      - web-pnpm-store:/root/.local/share/pnpm/store
+      - web-node-modules:/app/node_modules
+      - web-next-cache:/app/.next
     depends_on:
       api:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/"]
+      test: ["CMD-SHELL", "node -e \"fetch('http://localhost:3000/').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))\""]
       interval: 5s
       timeout: 5s
       retries: 30
@@ -169,9 +198,9 @@ services:
     environment:
       POSTGRES_DB: ${HIVY_DB_NAME:-hivy}
       POSTGRES_USER: ${HIVY_DB_USER:-hivy}
-      POSTGRES_PASSWORD: ${HIVY_DB_PASSWORD:?HIVY_DB_PASSWORD is required}
+      POSTGRES_PASSWORD: ${HIVY_DB_PASSWORD:-localdev}
     ports:
-      - "${HIVY_POSTGRES_PORT:-5433}:5432"
+      - "${HIVY_COMPOSE_POSTGRES_PORT:-15432}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/01-init.sql
@@ -184,7 +213,7 @@ services:
   redis:
     image: redis:7-alpine
     ports:
-      - "6379:6379"
+      - "${HIVY_COMPOSE_REDIS_PORT:-16379}:6379"
     command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
     volumes:
       - redisdata:/data
@@ -199,18 +228,19 @@ services:
   # of the in-process fake/mock.
   nango:
     image: ghcr.io/usehivy/integrations:latest
+    platform: linux/amd64
     environment:
       PORT: "3003"
       SERVER_PORT: "3003"
       NANGO_DB_HOST: postgres
       NANGO_DB_PORT: "5432"
       NANGO_DB_USER: ${HIVY_DB_USER:-hivy}
-      NANGO_DB_PASSWORD: ${HIVY_DB_PASSWORD:?HIVY_DB_PASSWORD is required}
+      NANGO_DB_PASSWORD: ${HIVY_DB_PASSWORD:-localdev}
       NANGO_DB_NAME: nango
       NANGO_DB_SSL: "false"
       NANGO_ENCRYPTION_KEY: ${HIVY_NANGO_ENCRYPTION_KEY:?HIVY_NANGO_ENCRYPTION_KEY is required}
-      NANGO_SERVER_URL: ${HIVY_NANGO_PUBLIC_URL:-http://localhost:13003}
-      NANGO_PUBLIC_SERVER_URL: ${HIVY_NANGO_PUBLIC_URL:-http://localhost:13003}
+      NANGO_SERVER_URL: ${HIVY_NANGO_PUBLIC_URL:-http://localhost:23003}
+      NANGO_PUBLIC_SERVER_URL: ${HIVY_NANGO_PUBLIC_URL:-http://localhost:23003}
       NANGO_SECRET_KEY: ${HIVY_NANGO_SECRET_KEY:-00000000-0000-4000-8000-000000000001}
       NANGO_DASHBOARD_USERNAME: ${HIVY_NANGO_DASHBOARD_USERNAME:-local}
       NANGO_DASHBOARD_PASSWORD: ${HIVY_NANGO_DASHBOARD_PASSWORD:-local}
@@ -219,7 +249,7 @@ services:
       NANGO_LOGS_ENABLED: "false"
       TELEMETRY: "false"
     ports:
-      - "${HIVY_NANGO_PORT:-13003}:3003"
+      - "${HIVY_COMPOSE_NANGO_PORT:-23003}:3003"
     depends_on:
       nango-db-setup:
         condition: service_completed_successfully
@@ -233,7 +263,7 @@ services:
   nango-db-setup:
     image: postgres:17-alpine
     environment:
-      PGPASSWORD: ${HIVY_DB_PASSWORD:?HIVY_DB_PASSWORD is required}
+      PGPASSWORD: ${HIVY_DB_PASSWORD:-localdev}
     depends_on:
       postgres:
         condition: service_healthy
@@ -248,18 +278,18 @@ services:
   qdrant:
     image: qdrant/qdrant:v1.17.1
     ports:
-      - "${HIVY_QDRANT_HTTP_PORT:-6333}:6333"
-      - "${HIVY_QDRANT_PORT:-6334}:6334"
+      - "${HIVY_COMPOSE_QDRANT_HTTP_PORT:-6333}:6333"
+      - "${HIVY_COMPOSE_QDRANT_GRPC_PORT:-6334}:6334"
     volumes:
       - qdrantdata:/qdrant/storage
 
   # --- Hindsight (production-like memory service) ---
   hindsight:
-    image: ${HINDSIGHT_IMAGE:-ghcr.io/vectorize-io/hindsight:latest-slim}
+    image: ${HIVY_COMPOSE_HINDSIGHT_IMAGE:-ghcr.io/vectorize-io/hindsight:latest-slim}
     env_file:
       - .env
     environment:
-      HINDSIGHT_API_DATABASE_URL: postgresql://${HIVY_DB_USER:-hivy}:${HIVY_DB_PASSWORD:?HIVY_DB_PASSWORD is required}@postgres:5432/${HIVY_DB_NAME:-hivy}
+      HINDSIGHT_API_DATABASE_URL: postgresql://${HIVY_DB_USER:-hivy}:${HIVY_DB_PASSWORD:-localdev}@postgres:5432/${HIVY_DB_NAME:-hivy}
       HINDSIGHT_API_DATABASE_SCHEMA: ${HINDSIGHT_API_DATABASE_SCHEMA:-hindsight}
       HINDSIGHT_API_RUN_MIGRATIONS_ON_STARTUP: "true"
       HINDSIGHT_API_HOST: ${HINDSIGHT_API_HOST:-0.0.0.0}
@@ -288,7 +318,7 @@ services:
       HINDSIGHT_API_RERANKER_ZEROENTROPY_API_KEY: ${HINDSIGHT_API_RERANKER_ZEROENTROPY_API_KEY:?HINDSIGHT_API_RERANKER_ZEROENTROPY_API_KEY is required}
       HINDSIGHT_API_RERANKER_ZEROENTROPY_MODEL: ${HINDSIGHT_API_RERANKER_ZEROENTROPY_MODEL:?HINDSIGHT_API_RERANKER_ZEROENTROPY_MODEL is required}
     ports:
-      - "${HINDSIGHT_API_LOCAL_PORT:-8888}:${HINDSIGHT_API_PORT:-8888}"
+      - "${HIVY_COMPOSE_HINDSIGHT_API_PORT:-8888}:${HINDSIGHT_API_PORT:-8888}"
     depends_on:
       postgres:
         condition: service_healthy
@@ -334,3 +364,8 @@ volumes:
   redisdata:
   miniodata:
   qdrantdata:
+  go-mod-cache:
+  go-build-cache:
+  web-node-modules:
+  web-pnpm-store:
+  web-next-cache:

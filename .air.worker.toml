@@ -1,10 +1,10 @@
 root = "."
-tmp_dir = "tmp/air-api"
+tmp_dir = "tmp/air-worker"
 
 [build]
-  cmd = "CGO_ENABLED=0 /usr/local/go/bin/go build -o ./tmp/air-api/hivy ./cmd/server"
-  bin = "./tmp/air-api/hivy"
-  full_bin = "./tmp/air-api/hivy serve"
+  cmd = "CGO_ENABLED=0 /usr/local/go/bin/go build -o ./tmp/air-worker/hivy ./cmd/server"
+  bin = "./tmp/air-worker/hivy"
+  full_bin = "./tmp/air-worker/hivy work"
   include_ext = ["go", "json", "yaml", "yml", "toml"]
   exclude_dir = ["tmp", "bin", "node_modules", "apps", "packages", "docs", "scripts", "docker", "examples", "marketing", "patches", "strix_runs", "certs", "sandboxes", "hosting", "services", "ansible", "venv", ".git", ".next"]
   exclude_regex = ["_test\\.go$"]

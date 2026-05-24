@@ -1,4 +1,4 @@
-.PHONY: build test test-e2e lint check-file-length vet check up down dev clean fetch-actions generate docker-build docker-run test-clean test-clean-auth test-clean-nango test-clean-proxy test-clean-connect test-clean-integrations test-auth test-nango test-real-nango test-proxy test-connect test-integrations test-connections test-sandbox-docker test-setup test-setup-nango openapi generate-auth-keys generate-bridge-client generate-employee-bridge-client build-employee-sandbox-templates employee-env-doctor employee-debug-pack test-services-up test-services-down ragtest-slack-live ragtest-kb-search-live seed-test local-up local-down local-reset local-status login-test asynq-peek
+.PHONY: build test test-e2e lint check-file-length vet check up down dev dev-nango dev-nango-secret clean fetch-actions generate docker-build docker-run test-clean test-clean-auth test-clean-nango test-clean-proxy test-clean-connect test-clean-integrations test-auth test-nango test-real-nango test-proxy test-connect test-integrations test-connections test-sandbox-docker test-setup test-setup-nango openapi generate-auth-keys generate-bridge-client generate-employee-bridge-client build-employee-sandbox-templates employee-env-doctor employee-debug-pack test-services-up test-services-down ragtest-slack-live ragtest-kb-search-live seed-test local-up local-down local-reset local-status login-test asynq-peek
 .PHONY: sandbox-cloud-agents-build sandbox-cloud-agents-test sandbox-cloud-agents-fmt-check sandbox-cloud-agents-clippy sandbox-cloud-agents-openapi sandbox-employee-build sandbox-employee-test sandbox-employee-fmt-check sandbox-employee-openapi employee-openapi sandbox-employee-image sandbox-employee-image-test
 
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
@@ -8,6 +8,7 @@ SANDBOX_CLOUD_AGENTS_DIR ?= sandboxes/cloud-agents
 SANDBOX_EMPLOYEE_DIR ?= sandboxes/employee
 GO_BIN ?= $(shell if command -v go >/dev/null 2>&1; then command -v go; elif [ -x /opt/homebrew/bin/go ]; then echo /opt/homebrew/bin/go; elif [ -x /usr/local/go/bin/go ]; then echo /usr/local/go/bin/go; else echo go; fi)
 DEV_COMPOSE_SERVICES ?= postgres redis nango qdrant minio minio-setup hindsight api worker web
+NANGO_SECRET_SQL = SELECT secret_key FROM nango._nango_environments WHERE name='\''prod'\'' LIMIT 1
 
 # Generate base64-encoded RSA private key for HIVY_AUTH_RSA_PRIVATE_KEY env var
 generate-auth-keys:
@@ -190,7 +191,7 @@ test-setup:
 	@echo "  ✓ Redis"
 	@until curl -fsS http://localhost:9000/minio/health/ready >/dev/null 2>&1; do sleep 1; done
 	@echo "  ✓ MinIO"
-	@until curl -fsS http://localhost:$${HIVY_QDRANT_HTTP_PORT:-6333}/readyz >/dev/null 2>&1; do sleep 1; done
+	@until curl -fsS http://localhost:$${HIVY_COMPOSE_QDRANT_HTTP_PORT:-6333}/readyz >/dev/null 2>&1; do sleep 1; done
 	@echo "  ✓ Qdrant"
 	docker compose run --rm minio-setup
 	@echo ""
@@ -209,7 +210,7 @@ test-setup-nango:
 	@echo "  ✓ Postgres"
 	@until docker compose exec -T redis redis-cli ping 2>/dev/null | grep -q PONG; do sleep 1; done
 	@echo "  ✓ Redis"
-	@until curl -fsS http://localhost:$${HIVY_NANGO_PORT:-13003}/health >/dev/null 2>&1; do sleep 1; done
+	@until curl -fsS http://localhost:$${HIVY_COMPOSE_NANGO_PORT:-23003}/health >/dev/null 2>&1; do sleep 1; done
 	@echo "  ✓ Nango"
 
 # --- Targeted test commands (no teardown, assumes stack is running) ---
@@ -228,7 +229,7 @@ test-real-nango:
 	@secret=$$(docker compose exec -T postgres sh -lc 'psql -U "$$POSTGRES_USER" -d nango -Atc "SELECT secret_key FROM nango._nango_environments WHERE name='\''prod'\'' LIMIT 1"'); \
 	if [ -z "$$secret" ]; then echo "Nango secret not found; run make test-setup-nango"; exit 1; fi; \
 	RUN_REAL_NANGO_TESTS=1 \
-	HIVY_NANGO_ENDPOINT=http://localhost:$${HIVY_NANGO_PORT:-13003} \
+	HIVY_NANGO_ENDPOINT=http://localhost:$${HIVY_COMPOSE_NANGO_PORT:-23003} \
 	HIVY_NANGO_SECRET_KEY=$$secret \
 	go test ./internal/nango -v -count=1 -run TestRealNango
 
@@ -272,13 +273,34 @@ vet:
 # Run all checks: vet, lint, file-length, log-budget, test, build
 check: vet lint check-file-length check-log-budget test build
 
-# Start the complete local development stack through docker compose.
-up:
-	docker compose up -d --build $(DEV_COMPOSE_SERVICES)
+# Start local Nango first and print the generated Hivy API secret.
+dev-nango:
+	docker compose up -d postgres redis nango
+	@echo "Waiting for Nango..."
+	@until docker compose exec -T postgres sh -lc 'pg_isready -U "$$POSTGRES_USER" -q' 2>/dev/null; do sleep 1; done
+	@until curl -fsS http://localhost:$${HIVY_COMPOSE_NANGO_PORT:-23003}/health >/dev/null 2>&1; do sleep 1; done
+	@secret=$$(docker compose exec -T postgres sh -lc 'psql -U "$$POSTGRES_USER" -d nango -Atc "$(NANGO_SECRET_SQL)"'); \
+	if [ -z "$$secret" ]; then echo "Nango secret not found after Nango became healthy"; exit 1; fi; \
+	echo "export HIVY_NANGO_SECRET_KEY=$$secret"
 
-# Start the complete local development stack through docker compose and stream logs.
+dev-nango-secret:
+	@secret=$$(docker compose exec -T postgres sh -lc 'psql -U "$$POSTGRES_USER" -d nango -Atc "$(NANGO_SECRET_SQL)"'); \
+	if [ -z "$$secret" ]; then echo "Nango secret not found; run make dev-nango first" >&2; exit 1; fi; \
+	printf '%s\n' "$$secret"
+
+# Start the complete local development stack through docker compose in the background.
+up:
+	@$(MAKE) -s dev-nango >/dev/null
+	@secret=$$($(MAKE) -s dev-nango-secret); \
+	echo "Starting Hivy dev stack in background with local Nango secret"; \
+	HIVY_NANGO_SECRET_KEY="$$secret" docker compose up -d --build $(DEV_COMPOSE_SERVICES)
+
+# Start the complete local development stack through docker compose in foreground dev mode.
 dev:
-	docker compose up --build $(DEV_COMPOSE_SERVICES)
+	@$(MAKE) -s dev-nango >/dev/null
+	@secret=$$($(MAKE) -s dev-nango-secret); \
+	echo "Starting Hivy dev stack with local Nango secret"; \
+	HIVY_NANGO_SECRET_KEY="$$secret" docker compose up --build $(DEV_COMPOSE_SERVICES)
 
 # Clean slate: tear down, rebuild, run all tests
 test-clean:
@@ -353,7 +375,7 @@ docker-run:
 # (vector search). Creates the hivy-rag-test bucket as a side effect.
 test-services-up:
 	HIVY_DB_PASSWORD=$${HIVY_DB_PASSWORD:-localdev} docker compose up -d postgres redis minio qdrant
-	@until curl -fsS http://localhost:$${HIVY_QDRANT_HTTP_PORT:-6333}/readyz >/dev/null 2>&1; do sleep 1; done
+	@until curl -fsS http://localhost:$${HIVY_COMPOSE_QDRANT_HTTP_PORT:-6333}/readyz >/dev/null 2>&1; do sleep 1; done
 	HIVY_DB_PASSWORD=$${HIVY_DB_PASSWORD:-localdev} docker compose run --rm minio-setup
 
 # Stop those services (keeps data volumes). Use `make down` for a full

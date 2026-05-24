@@ -25,6 +25,7 @@ import (
 	"github.com/usehivy/hivy/internal/middleware"
 	"github.com/usehivy/hivy/internal/model"
 	"github.com/usehivy/hivy/internal/nango"
+	ragmodel "github.com/usehivy/hivy/internal/rag/model"
 	"github.com/usehivy/hivy/internal/registry"
 	"github.com/usehivy/hivy/internal/sandbox"
 	"github.com/usehivy/hivy/internal/spider"
@@ -90,6 +91,21 @@ func New(ctx context.Context) (*Deps, error) {
 	}
 	if err := model.AutoMigrate(database); err != nil {
 		return nil, fmt.Errorf("running migrations: %w", err)
+	}
+	if err := database.AutoMigrate(
+		&ragmodel.RAGEmbeddingModel{},
+		&ragmodel.RAGSource{},
+		&ragmodel.RAGSearchSettings{},
+		&ragmodel.RAGSyncState{},
+		&ragmodel.RAGSyncRecord{},
+		&ragmodel.RAGExternalUserGroup{},
+		&ragmodel.RAGExternalIdentity{},
+		&ragmodel.RAGPublicExternalUserGroup{},
+		&ragmodel.RAGUserExternalUserGroup{},
+		&ragmodel.RAGIndexAttempt{},
+		&ragmodel.RAGIndexAttemptError{},
+	); err != nil {
+		return nil, fmt.Errorf("running rag migrations: %w", err)
 	}
 
 	if err := credentials.SeedPlatformOrg(database); err != nil {

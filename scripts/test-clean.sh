@@ -31,7 +31,7 @@ until docker compose exec -T redis redis-cli ping 2>/dev/null | grep -q PONG; do
 echo "  ✓ Redis"
 
 if [[ "$TARGET" == "nango" || "$TARGET" == "integrations" || "$TARGET" == "all" ]]; then
-    until curl -fsS "http://localhost:${HIVY_NANGO_PORT:-13003}/health" >/dev/null 2>&1; do sleep 1; done
+    until curl -fsS "http://localhost:${HIVY_COMPOSE_NANGO_PORT:-23003}/health" >/dev/null 2>&1; do sleep 1; done
     echo "  ✓ Nango"
 fi
 
