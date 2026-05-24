@@ -45,7 +45,7 @@ import type { components } from "@/lib/api/schema"
 
 type Skill = components["schemas"]["skillResponse"]
 type SkillDetail = components["schemas"]["skillDetailResponse"]
-type AttachedSkill = components["schemas"]["agentSkillResponse"]
+type AttachedSkill = components["schemas"]["employeeSkillResponse"]
 
 type SkillFile = {
   path: string

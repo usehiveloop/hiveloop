@@ -1,7 +1,7 @@
 -- +goose Up
 -- Billing, subscriptions, credits, and usage tables
 
-CREATE TABLE public.credit_ledger_entries (
+CREATE TABLE credit_ledger_entries (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     org_id uuid NOT NULL,
     amount bigint NOT NULL,
@@ -12,7 +12,7 @@ CREATE TABLE public.credit_ledger_entries (
     created_at timestamp with time zone
 );
 
-CREATE TABLE public.plans (
+CREATE TABLE plans (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     slug character varying(64) NOT NULL,
     name character varying(128) NOT NULL,
@@ -27,7 +27,7 @@ CREATE TABLE public.plans (
     updated_at timestamp with time zone
 );
 
-CREATE TABLE public.subscription_change_quotes (
+CREATE TABLE subscription_change_quotes (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     org_id uuid NOT NULL,
     subscription_id uuid NOT NULL,
@@ -44,7 +44,7 @@ CREATE TABLE public.subscription_change_quotes (
     created_at timestamp with time zone
 );
 
-CREATE TABLE public.subscriptions (
+CREATE TABLE subscriptions (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     org_id uuid NOT NULL,
     plan_id uuid NOT NULL,
@@ -75,7 +75,7 @@ CREATE TABLE public.subscriptions (
     updated_at timestamp with time zone
 );
 
-CREATE TABLE public.tool_usages (
+CREATE TABLE tool_usages (
     id text NOT NULL,
     org_id uuid NOT NULL,
     employee_id text NOT NULL,
@@ -91,7 +91,7 @@ CREATE TABLE public.tool_usages (
     created_at timestamp with time zone NOT NULL
 );
 
-CREATE TABLE public.usage (
+CREATE TABLE usage (
     id bigint NOT NULL,
     org_id uuid NOT NULL,
     credential_id uuid NOT NULL,
@@ -101,64 +101,64 @@ CREATE TABLE public.usage (
     created_at timestamp with time zone
 );
 
-CREATE SEQUENCE public.usage_id_seq
+CREATE SEQUENCE usage_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
     NO MAXVALUE
     CACHE 1;
 
-ALTER SEQUENCE public.usage_id_seq OWNED BY public.usage.id;
+ALTER SEQUENCE usage_id_seq OWNED BY usage.id;
 
-ALTER TABLE ONLY public.usage ALTER COLUMN id SET DEFAULT nextval('public.usage_id_seq'::regclass);
+ALTER TABLE ONLY usage ALTER COLUMN id SET DEFAULT nextval('usage_id_seq'::regclass);
 
-ALTER TABLE ONLY public.credit_ledger_entries
+ALTER TABLE ONLY credit_ledger_entries
     ADD CONSTRAINT credit_ledger_entries_pkey PRIMARY KEY (id);
 
-ALTER TABLE ONLY public.plans
+ALTER TABLE ONLY plans
     ADD CONSTRAINT plans_pkey PRIMARY KEY (id);
 
-ALTER TABLE ONLY public.subscription_change_quotes
+ALTER TABLE ONLY subscription_change_quotes
     ADD CONSTRAINT subscription_change_quotes_pkey PRIMARY KEY (id);
 
-ALTER TABLE ONLY public.subscriptions
+ALTER TABLE ONLY subscriptions
     ADD CONSTRAINT subscriptions_pkey PRIMARY KEY (id);
 
-ALTER TABLE ONLY public.tool_usages
+ALTER TABLE ONLY tool_usages
     ADD CONSTRAINT tool_usages_pkey PRIMARY KEY (id);
 
-ALTER TABLE ONLY public.usage
+ALTER TABLE ONLY usage
     ADD CONSTRAINT usage_pkey PRIMARY KEY (id);
 
-CREATE INDEX idx_credit_ledger_entries_expires_at ON public.credit_ledger_entries USING btree (expires_at);
+CREATE INDEX idx_credit_ledger_entries_expires_at ON credit_ledger_entries USING btree (expires_at);
 
-CREATE INDEX idx_credit_ledger_entries_org_id ON public.credit_ledger_entries USING btree (org_id);
+CREATE INDEX idx_credit_ledger_entries_org_id ON credit_ledger_entries USING btree (org_id);
 
-CREATE INDEX idx_credit_ledger_entries_ref_id ON public.credit_ledger_entries USING btree (ref_id);
+CREATE INDEX idx_credit_ledger_entries_ref_id ON credit_ledger_entries USING btree (ref_id);
 
-CREATE INDEX idx_plans_provider ON public.plans USING btree (provider);
+CREATE INDEX idx_plans_provider ON plans USING btree (provider);
 
-CREATE UNIQUE INDEX idx_plans_slug ON public.plans USING btree (slug);
+CREATE UNIQUE INDEX idx_plans_slug ON plans USING btree (slug);
 
-CREATE INDEX idx_subscription_change_quotes_expires_at ON public.subscription_change_quotes USING btree (expires_at);
+CREATE INDEX idx_subscription_change_quotes_expires_at ON subscription_change_quotes USING btree (expires_at);
 
-CREATE INDEX idx_subscription_change_quotes_org_id ON public.subscription_change_quotes USING btree (org_id);
+CREATE INDEX idx_subscription_change_quotes_org_id ON subscription_change_quotes USING btree (org_id);
 
-CREATE UNIQUE INDEX idx_subscription_change_quotes_paystack_reference ON public.subscription_change_quotes USING btree (paystack_reference);
+CREATE UNIQUE INDEX idx_subscription_change_quotes_paystack_reference ON subscription_change_quotes USING btree (paystack_reference);
 
-CREATE INDEX idx_subscription_change_quotes_subscription_id ON public.subscription_change_quotes USING btree (subscription_id);
+CREATE INDEX idx_subscription_change_quotes_subscription_id ON subscription_change_quotes USING btree (subscription_id);
 
-CREATE INDEX idx_subscriptions_external_customer_id ON public.subscriptions USING btree (external_customer_id);
+CREATE INDEX idx_subscriptions_external_customer_id ON subscriptions USING btree (external_customer_id);
 
-CREATE INDEX idx_subscriptions_org_id ON public.subscriptions USING btree (org_id);
+CREATE INDEX idx_subscriptions_org_id ON subscriptions USING btree (org_id);
 
-CREATE INDEX idx_subscriptions_plan_id ON public.subscriptions USING btree (plan_id);
+CREATE INDEX idx_subscriptions_plan_id ON subscriptions USING btree (plan_id);
 
-CREATE INDEX idx_tu_org_agent ON public.tool_usages USING btree (employee_id);
+CREATE INDEX idx_tu_org_agent ON tool_usages USING btree (employee_id);
 
-CREATE INDEX idx_tu_org_created ON public.tool_usages USING btree (org_id, created_at);
+CREATE INDEX idx_tu_org_created ON tool_usages USING btree (org_id, created_at);
 
-CREATE UNIQUE INDEX idx_usage_unique ON public.usage USING btree (org_id, credential_id, period_start);
+CREATE UNIQUE INDEX idx_usage_unique ON usage USING btree (org_id, credential_id, period_start);
 
 -- +goose Down
 -- +goose StatementBegin

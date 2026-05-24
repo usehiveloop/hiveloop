@@ -19,7 +19,7 @@ import (
 )
 
 func TestConnectionHandler_CreateConnectSession_Success(t *testing.T) {
-	db := connectTestDB(t)
+	db := connectFreshMigratedTestDB(t)
 	t.Cleanup(func() {
 		db.Where("1=1").Delete(&model.Connection{})
 		db.Where("1=1").Delete(&model.Integration{})
@@ -80,7 +80,7 @@ func TestConnectionHandler_CreateConnectSession_Success(t *testing.T) {
 }
 
 func TestConnectionHandler_CreateConnectSession_IntegrationNotFound(t *testing.T) {
-	db := connectTestDB(t)
+	db := connectFreshMigratedTestDB(t)
 
 	nangoSrv := httptest.NewServer(newNangoConnMock(&nangoConnMockConfig{}))
 	t.Cleanup(nangoSrv.Close)
@@ -107,7 +107,7 @@ func TestConnectionHandler_CreateConnectSession_IntegrationNotFound(t *testing.T
 }
 
 func TestConnectionHandler_CreateConnectSession_NangoFailure(t *testing.T) {
-	db := connectTestDB(t)
+	db := connectFreshMigratedTestDB(t)
 	t.Cleanup(func() {
 		db.Where("1=1").Delete(&model.Connection{})
 		db.Where("1=1").Delete(&model.Integration{})

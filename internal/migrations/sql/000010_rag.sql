@@ -1,7 +1,7 @@
 -- +goose Up
 -- RAG source, indexing, identity, and search tables
 
-CREATE TABLE public.rag_embedding_models (
+CREATE TABLE rag_embedding_models (
     id text NOT NULL,
     provider text NOT NULL,
     model_name text NOT NULL,
@@ -16,7 +16,7 @@ CREATE TABLE public.rag_embedding_models (
     updated_at timestamp with time zone
 );
 
-CREATE TABLE public.rag_external_identities (
+CREATE TABLE rag_external_identities (
     id bigint NOT NULL,
     org_id uuid NOT NULL,
     user_id uuid NOT NULL,
@@ -28,16 +28,16 @@ CREATE TABLE public.rag_external_identities (
     updated_at timestamp with time zone
 );
 
-CREATE SEQUENCE public.rag_external_identities_id_seq
+CREATE SEQUENCE rag_external_identities_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
     NO MAXVALUE
     CACHE 1;
 
-ALTER SEQUENCE public.rag_external_identities_id_seq OWNED BY public.rag_external_identities.id;
+ALTER SEQUENCE rag_external_identities_id_seq OWNED BY rag_external_identities.id;
 
-CREATE TABLE public.rag_external_user_groups (
+CREATE TABLE rag_external_user_groups (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     org_id uuid NOT NULL,
     rag_source_id uuid NOT NULL,
@@ -48,7 +48,7 @@ CREATE TABLE public.rag_external_user_groups (
     updated_at timestamp with time zone
 );
 
-CREATE TABLE public.rag_index_attempt_errors (
+CREATE TABLE rag_index_attempt_errors (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     org_id uuid NOT NULL,
     index_attempt_id uuid NOT NULL,
@@ -64,7 +64,7 @@ CREATE TABLE public.rag_index_attempt_errors (
     time_created timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 
-CREATE TABLE public.rag_index_attempts (
+CREATE TABLE rag_index_attempts (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     org_id uuid NOT NULL,
     rag_source_id uuid NOT NULL,
@@ -96,13 +96,13 @@ CREATE TABLE public.rag_index_attempts (
     time_updated timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 
-CREATE TABLE public.rag_public_external_user_groups (
+CREATE TABLE rag_public_external_user_groups (
     external_user_group_id text NOT NULL,
     rag_source_id uuid NOT NULL,
     stale boolean DEFAULT false NOT NULL
 );
 
-CREATE TABLE public.rag_search_settings (
+CREATE TABLE rag_search_settings (
     org_id uuid NOT NULL,
     embedding_model_id character varying(128) NOT NULL,
     embedding_dim bigint NOT NULL,
@@ -122,7 +122,7 @@ CREATE TABLE public.rag_search_settings (
     updated_at timestamp with time zone
 );
 
-CREATE TABLE public.rag_sources (
+CREATE TABLE rag_sources (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     org_id uuid NOT NULL,
     kind character varying(32) NOT NULL,
@@ -147,7 +147,7 @@ CREATE TABLE public.rag_sources (
     updated_at timestamp with time zone
 );
 
-CREATE TABLE public.rag_sync_records (
+CREATE TABLE rag_sync_records (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     org_id uuid NOT NULL,
     entity_id uuid NOT NULL,
@@ -158,7 +158,7 @@ CREATE TABLE public.rag_sync_records (
     sync_end_time timestamp with time zone
 );
 
-CREATE TABLE public.rag_sync_states (
+CREATE TABLE rag_sync_states (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     org_id uuid NOT NULL,
     rag_source_id uuid NOT NULL,
@@ -180,83 +180,83 @@ CREATE TABLE public.rag_sync_states (
     updated_at timestamp with time zone
 );
 
-CREATE TABLE public.rag_user_external_user_groups (
+CREATE TABLE rag_user_external_user_groups (
     user_id uuid NOT NULL,
     external_user_group_id text NOT NULL,
     rag_source_id uuid NOT NULL,
     stale boolean DEFAULT false NOT NULL
 );
 
-ALTER TABLE ONLY public.rag_external_identities ALTER COLUMN id SET DEFAULT nextval('public.rag_external_identities_id_seq'::regclass);
+ALTER TABLE ONLY rag_external_identities ALTER COLUMN id SET DEFAULT nextval('rag_external_identities_id_seq'::regclass);
 
-ALTER TABLE ONLY public.rag_embedding_models
+ALTER TABLE ONLY rag_embedding_models
     ADD CONSTRAINT rag_embedding_models_pkey PRIMARY KEY (id);
 
-ALTER TABLE ONLY public.rag_external_identities
+ALTER TABLE ONLY rag_external_identities
     ADD CONSTRAINT rag_external_identities_pkey PRIMARY KEY (id);
 
-ALTER TABLE ONLY public.rag_external_user_groups
+ALTER TABLE ONLY rag_external_user_groups
     ADD CONSTRAINT rag_external_user_groups_pkey PRIMARY KEY (id);
 
-ALTER TABLE ONLY public.rag_index_attempt_errors
+ALTER TABLE ONLY rag_index_attempt_errors
     ADD CONSTRAINT rag_index_attempt_errors_pkey PRIMARY KEY (id);
 
-ALTER TABLE ONLY public.rag_index_attempts
+ALTER TABLE ONLY rag_index_attempts
     ADD CONSTRAINT rag_index_attempts_pkey PRIMARY KEY (id);
 
-ALTER TABLE ONLY public.rag_public_external_user_groups
+ALTER TABLE ONLY rag_public_external_user_groups
     ADD CONSTRAINT rag_public_external_user_groups_pkey PRIMARY KEY (external_user_group_id, rag_source_id);
 
-ALTER TABLE ONLY public.rag_search_settings
+ALTER TABLE ONLY rag_search_settings
     ADD CONSTRAINT rag_search_settings_pkey PRIMARY KEY (org_id);
 
-ALTER TABLE ONLY public.rag_sources
+ALTER TABLE ONLY rag_sources
     ADD CONSTRAINT rag_sources_pkey PRIMARY KEY (id);
 
-ALTER TABLE ONLY public.rag_sync_records
+ALTER TABLE ONLY rag_sync_records
     ADD CONSTRAINT rag_sync_records_pkey PRIMARY KEY (id);
 
-ALTER TABLE ONLY public.rag_sync_states
+ALTER TABLE ONLY rag_sync_states
     ADD CONSTRAINT rag_sync_states_pkey PRIMARY KEY (id);
 
-ALTER TABLE ONLY public.rag_user_external_user_groups
+ALTER TABLE ONLY rag_user_external_user_groups
     ADD CONSTRAINT rag_user_external_user_groups_pkey PRIMARY KEY (user_id, external_user_group_id, rag_source_id);
 
-CREATE INDEX idx_rag_external_identity_org ON public.rag_external_identities USING btree (org_id);
+CREATE INDEX idx_rag_external_identity_org ON rag_external_identities USING btree (org_id);
 
-CREATE INDEX idx_rag_external_identity_source ON public.rag_external_identities USING btree (rag_source_id);
+CREATE INDEX idx_rag_external_identity_source ON rag_external_identities USING btree (rag_source_id);
 
-CREATE INDEX idx_rag_external_user_groups_org_id ON public.rag_external_user_groups USING btree (org_id);
+CREATE INDEX idx_rag_external_user_groups_org_id ON rag_external_user_groups USING btree (org_id);
 
-CREATE INDEX idx_rag_index_attempt_errors_index_attempt_id ON public.rag_index_attempt_errors USING btree (index_attempt_id);
+CREATE INDEX idx_rag_index_attempt_errors_index_attempt_id ON rag_index_attempt_errors USING btree (index_attempt_id);
 
-CREATE INDEX idx_rag_index_attempt_errors_org_id ON public.rag_index_attempt_errors USING btree (org_id);
+CREATE INDEX idx_rag_index_attempt_errors_org_id ON rag_index_attempt_errors USING btree (org_id);
 
-CREATE INDEX idx_rag_index_attempt_errors_rag_source_id ON public.rag_index_attempt_errors USING btree (rag_source_id);
+CREATE INDEX idx_rag_index_attempt_errors_rag_source_id ON rag_index_attempt_errors USING btree (rag_source_id);
 
-CREATE INDEX idx_rag_index_attempts_org_id ON public.rag_index_attempts USING btree (org_id);
+CREATE INDEX idx_rag_index_attempts_org_id ON rag_index_attempts USING btree (org_id);
 
-CREATE INDEX idx_rag_index_attempts_rag_source_id ON public.rag_index_attempts USING btree (rag_source_id);
+CREATE INDEX idx_rag_index_attempts_rag_source_id ON rag_index_attempts USING btree (rag_source_id);
 
-CREATE INDEX idx_rag_index_attempts_status ON public.rag_index_attempts USING btree (status);
+CREATE INDEX idx_rag_index_attempts_status ON rag_index_attempts USING btree (status);
 
-CREATE INDEX idx_rag_index_attempts_time_created ON public.rag_index_attempts USING btree (time_created);
+CREATE INDEX idx_rag_index_attempts_time_created ON rag_index_attempts USING btree (time_created);
 
-CREATE INDEX idx_rag_search_settings_embedding_model_id ON public.rag_search_settings USING btree (embedding_model_id);
+CREATE INDEX idx_rag_search_settings_embedding_model_id ON rag_search_settings USING btree (embedding_model_id);
 
-CREATE INDEX idx_rag_sync_records_org_id ON public.rag_sync_records USING btree (org_id);
+CREATE INDEX idx_rag_sync_records_org_id ON rag_sync_records USING btree (org_id);
 
-CREATE INDEX idx_rag_sync_state_last_pruned ON public.rag_sync_states USING btree (last_pruned);
+CREATE INDEX idx_rag_sync_state_last_pruned ON rag_sync_states USING btree (last_pruned);
 
-CREATE INDEX idx_rag_sync_states_org_id ON public.rag_sync_states USING btree (org_id);
+CREATE INDEX idx_rag_sync_states_org_id ON rag_sync_states USING btree (org_id);
 
-CREATE UNIQUE INDEX uq_rag_external_identity_provider_ext_id_org ON public.rag_external_identities USING btree (org_id, provider, external_user_id);
+CREATE UNIQUE INDEX uq_rag_external_identity_provider_ext_id_org ON rag_external_identities USING btree (org_id, provider, external_user_id);
 
-CREATE UNIQUE INDEX uq_rag_external_identity_user_source ON public.rag_external_identities USING btree (user_id, rag_source_id);
+CREATE UNIQUE INDEX uq_rag_external_identity_user_source ON rag_external_identities USING btree (user_id, rag_source_id);
 
-CREATE UNIQUE INDEX uq_rag_external_user_group_source_ext ON public.rag_external_user_groups USING btree (rag_source_id, external_user_group_id);
+CREATE UNIQUE INDEX uq_rag_external_user_group_source_ext ON rag_external_user_groups USING btree (rag_source_id, external_user_group_id);
 
-CREATE UNIQUE INDEX uq_rag_sync_state_rag_source_id ON public.rag_sync_states USING btree (rag_source_id);
+CREATE UNIQUE INDEX uq_rag_sync_state_rag_source_id ON rag_sync_states USING btree (rag_source_id);
 
 -- +goose Down
 -- +goose StatementBegin

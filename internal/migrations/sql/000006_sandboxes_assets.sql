@@ -1,7 +1,7 @@
 -- +goose Up
 -- Sandbox, upload, and asset tables
 
-CREATE TABLE public.custom_domains (
+CREATE TABLE custom_domains (
     id uuid NOT NULL,
     org_id uuid NOT NULL,
     domain character varying(255) NOT NULL,
@@ -16,7 +16,7 @@ CREATE TABLE public.custom_domains (
     updated_at timestamp with time zone
 );
 
-CREATE TABLE public.drive_assets (
+CREATE TABLE drive_assets (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     org_id uuid NOT NULL,
     employee_id uuid NOT NULL,
@@ -28,7 +28,7 @@ CREATE TABLE public.drive_assets (
     updated_at timestamp with time zone
 );
 
-CREATE TABLE public.employee_assets (
+CREATE TABLE employee_assets (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     org_id uuid NOT NULL,
     employee_id uuid NOT NULL,
@@ -43,7 +43,7 @@ CREATE TABLE public.employee_assets (
     updated_at timestamp with time zone
 );
 
-CREATE TABLE public.sandbox_templates (
+CREATE TABLE sandbox_templates (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     org_id uuid,
     name text NOT NULL,
@@ -64,7 +64,7 @@ CREATE TABLE public.sandbox_templates (
     updated_at timestamp with time zone
 );
 
-CREATE TABLE public.sandboxes (
+CREATE TABLE sandboxes (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     org_id uuid,
     employee_id uuid,
@@ -91,46 +91,46 @@ CREATE TABLE public.sandboxes (
     updated_at timestamp with time zone
 );
 
-ALTER TABLE ONLY public.custom_domains
+ALTER TABLE ONLY custom_domains
     ADD CONSTRAINT custom_domains_pkey PRIMARY KEY (id);
 
-ALTER TABLE ONLY public.drive_assets
+ALTER TABLE ONLY drive_assets
     ADD CONSTRAINT drive_assets_pkey PRIMARY KEY (id);
 
-ALTER TABLE ONLY public.employee_assets
+ALTER TABLE ONLY employee_assets
     ADD CONSTRAINT employee_assets_pkey PRIMARY KEY (id);
 
-ALTER TABLE ONLY public.sandbox_templates
+ALTER TABLE ONLY sandbox_templates
     ADD CONSTRAINT sandbox_templates_pkey PRIMARY KEY (id);
 
-ALTER TABLE ONLY public.sandboxes
+ALTER TABLE ONLY sandboxes
     ADD CONSTRAINT sandboxes_pkey PRIMARY KEY (id);
 
-CREATE UNIQUE INDEX idx_custom_domains_domain ON public.custom_domains USING btree (domain);
+CREATE UNIQUE INDEX idx_custom_domains_domain ON custom_domains USING btree (domain);
 
-CREATE INDEX idx_custom_domains_org_id ON public.custom_domains USING btree (org_id);
+CREATE INDEX idx_custom_domains_org_id ON custom_domains USING btree (org_id);
 
-CREATE INDEX idx_drive_asset_employee ON public.drive_assets USING btree (employee_id);
+CREATE INDEX idx_drive_asset_employee ON drive_assets USING btree (employee_id);
 
-CREATE INDEX idx_drive_asset_org ON public.drive_assets USING btree (org_id);
+CREATE INDEX idx_drive_asset_org ON drive_assets USING btree (org_id);
 
-CREATE UNIQUE INDEX idx_drive_assets_s3_key ON public.drive_assets USING btree (s3_key);
+CREATE UNIQUE INDEX idx_drive_assets_s3_key ON drive_assets USING btree (s3_key);
 
-CREATE INDEX idx_emp_asset_employee_created ON public.employee_assets USING btree (employee_id, created_at DESC);
+CREATE INDEX idx_emp_asset_employee_created ON employee_assets USING btree (employee_id, created_at DESC);
 
-CREATE UNIQUE INDEX idx_employee_assets_key ON public.employee_assets USING btree (key);
+CREATE UNIQUE INDEX idx_employee_assets_key ON employee_assets USING btree (key);
 
-CREATE INDEX idx_employee_assets_org_id ON public.employee_assets USING btree (org_id);
+CREATE INDEX idx_employee_assets_org_id ON employee_assets USING btree (org_id);
 
-CREATE INDEX idx_sandbox_templates_base_template_id ON public.sandbox_templates USING btree (base_template_id);
+CREATE INDEX idx_sandbox_templates_base_template_id ON sandbox_templates USING btree (base_template_id);
 
-CREATE INDEX idx_sandbox_templates_org_id ON public.sandbox_templates USING btree (org_id);
+CREATE INDEX idx_sandbox_templates_org_id ON sandbox_templates USING btree (org_id);
 
-CREATE UNIQUE INDEX idx_sandbox_templates_slug ON public.sandbox_templates USING btree (slug);
+CREATE UNIQUE INDEX idx_sandbox_templates_slug ON sandbox_templates USING btree (slug);
 
-CREATE INDEX idx_sandboxes_employee_id ON public.sandboxes USING btree (employee_id);
+CREATE INDEX idx_sandboxes_employee_id ON sandboxes USING btree (employee_id);
 
-CREATE INDEX idx_sandboxes_org_id ON public.sandboxes USING btree (org_id);
+CREATE INDEX idx_sandboxes_org_id ON sandboxes USING btree (org_id);
 
 -- +goose Down
 -- +goose StatementBegin

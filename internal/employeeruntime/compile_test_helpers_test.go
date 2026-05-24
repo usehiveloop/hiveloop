@@ -8,9 +8,8 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
-	"github.com/usehivy/hivy/internal/testdb"
 	"github.com/usehivy/hivy/internal/hindsight"
-	"github.com/usehivy/hivy/internal/model"
+	"github.com/usehivy/hivy/internal/testdb"
 )
 
 const compileTestDBURL = "postgres://hivy:localdev@localhost:15432/hivy_test?sslmode=disable" // #nosec G101 -- test fixture, not a real secret

@@ -1,7 +1,7 @@
 -- +goose Up
 -- Conversation event and artifact tables
 
-CREATE TABLE public.conversation_assets (
+CREATE TABLE conversation_assets (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     conversation_id uuid NOT NULL,
     org_id uuid NOT NULL,
@@ -16,7 +16,7 @@ CREATE TABLE public.conversation_assets (
     updated_at timestamp with time zone
 );
 
-CREATE TABLE public.conversation_events (
+CREATE TABLE conversation_events (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     org_id uuid NOT NULL,
     conversation_id uuid NOT NULL,
@@ -30,27 +30,27 @@ CREATE TABLE public.conversation_events (
     created_at timestamp with time zone
 );
 
-ALTER TABLE ONLY public.conversation_assets
+ALTER TABLE ONLY conversation_assets
     ADD CONSTRAINT conversation_assets_pkey PRIMARY KEY (id);
 
-ALTER TABLE ONLY public.conversation_events
+ALTER TABLE ONLY conversation_events
     ADD CONSTRAINT conversation_events_pkey PRIMARY KEY (id);
 
-CREATE INDEX idx_conv_asset_conv_created ON public.conversation_assets USING btree (conversation_id, created_at DESC);
+CREATE INDEX idx_conv_asset_conv_created ON conversation_assets USING btree (conversation_id, created_at DESC);
 
-CREATE UNIQUE INDEX idx_conversation_assets_key ON public.conversation_assets USING btree (key);
+CREATE UNIQUE INDEX idx_conversation_assets_key ON conversation_assets USING btree (key);
 
-CREATE INDEX idx_conversation_assets_org_id ON public.conversation_assets USING btree (org_id);
+CREATE INDEX idx_conversation_assets_org_id ON conversation_assets USING btree (org_id);
 
-CREATE INDEX idx_conversation_events_employee_id ON public.conversation_events USING btree (employee_id);
+CREATE INDEX idx_conversation_events_employee_id ON conversation_events USING btree (employee_id);
 
-CREATE INDEX idx_conversation_events_event_type ON public.conversation_events USING btree (event_type);
+CREATE INDEX idx_conversation_events_event_type ON conversation_events USING btree (event_type);
 
-CREATE INDEX idx_conversation_events_org_id ON public.conversation_events USING btree (org_id);
+CREATE INDEX idx_conversation_events_org_id ON conversation_events USING btree (org_id);
 
-CREATE INDEX idx_conversation_events_runtime_conversation_id ON public.conversation_events USING btree (runtime_conversation_id);
+CREATE INDEX idx_conversation_events_runtime_conversation_id ON conversation_events USING btree (runtime_conversation_id);
 
-CREATE INDEX idx_event_conv_created ON public.conversation_events USING btree (conversation_id, created_at);
+CREATE INDEX idx_event_conv_created ON conversation_events USING btree (conversation_id, created_at);
 
 -- +goose Down
 -- +goose StatementBegin

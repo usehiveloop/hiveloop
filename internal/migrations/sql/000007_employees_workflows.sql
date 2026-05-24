@@ -1,7 +1,7 @@
 -- +goose Up
 -- Employee runtime, schedules, triggers, and generation tables
 
-CREATE TABLE public.employee_memory_events (
+CREATE TABLE employee_memory_events (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     org_id uuid NOT NULL,
     employee_id uuid NOT NULL,
@@ -15,7 +15,7 @@ CREATE TABLE public.employee_memory_events (
     created_at timestamp with time zone
 );
 
-CREATE TABLE public.employee_sandbox_upgrades (
+CREATE TABLE employee_sandbox_upgrades (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     org_id uuid NOT NULL,
     employee_id uuid NOT NULL,
@@ -32,7 +32,7 @@ CREATE TABLE public.employee_sandbox_upgrades (
     updated_at timestamp with time zone
 );
 
-CREATE TABLE public.employee_schedule_runs (
+CREATE TABLE employee_schedule_runs (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     org_id uuid NOT NULL,
     employee_id uuid NOT NULL,
@@ -51,7 +51,7 @@ CREATE TABLE public.employee_schedule_runs (
     updated_at timestamp with time zone
 );
 
-CREATE TABLE public.employee_schedules (
+CREATE TABLE employee_schedules (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     org_id uuid NOT NULL,
     employee_id uuid NOT NULL,
@@ -75,7 +75,7 @@ CREATE TABLE public.employee_schedules (
     updated_at timestamp with time zone
 );
 
-CREATE TABLE public.employee_sessions (
+CREATE TABLE employee_sessions (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     org_id uuid NOT NULL,
     employee_id uuid NOT NULL,
@@ -94,13 +94,13 @@ CREATE TABLE public.employee_sessions (
     ended_at timestamp with time zone
 );
 
-CREATE TABLE public.employee_skills (
+CREATE TABLE employee_skills (
     employee_id uuid NOT NULL,
     skill_id uuid NOT NULL,
     created_at timestamp with time zone
 );
 
-CREATE TABLE public.employee_trigger_deliveries (
+CREATE TABLE employee_trigger_deliveries (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     org_id uuid NOT NULL,
     employee_id uuid NOT NULL,
@@ -119,7 +119,7 @@ CREATE TABLE public.employee_trigger_deliveries (
     created_at timestamp with time zone
 );
 
-CREATE TABLE public.employee_triggers (
+CREATE TABLE employee_triggers (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     org_id uuid NOT NULL,
     employee_id uuid NOT NULL,
@@ -134,7 +134,7 @@ CREATE TABLE public.employee_triggers (
     updated_at timestamp with time zone
 );
 
-CREATE TABLE public.employees (
+CREATE TABLE employees (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     org_id uuid,
     credential_id uuid,
@@ -162,7 +162,7 @@ CREATE TABLE public.employees (
     updated_at timestamp with time zone
 );
 
-CREATE TABLE public.failed_events (
+CREATE TABLE failed_events (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     org_id uuid NOT NULL,
     trigger_id uuid NOT NULL,
@@ -176,7 +176,7 @@ CREATE TABLE public.failed_events (
     retried_task_id text
 );
 
-CREATE TABLE public.generations (
+CREATE TABLE generations (
     id text NOT NULL,
     org_id uuid NOT NULL,
     credential_id uuid NOT NULL,
@@ -204,7 +204,7 @@ CREATE TABLE public.generations (
     billing_error text
 );
 
-CREATE TABLE public.hindsight_banks (
+CREATE TABLE hindsight_banks (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     employee_id uuid,
     bank_id text NOT NULL,
@@ -213,155 +213,155 @@ CREATE TABLE public.hindsight_banks (
     updated_at timestamp with time zone
 );
 
-ALTER TABLE ONLY public.employee_memory_events
+ALTER TABLE ONLY employee_memory_events
     ADD CONSTRAINT employee_memory_events_pkey PRIMARY KEY (id);
 
-ALTER TABLE ONLY public.employee_sandbox_upgrades
+ALTER TABLE ONLY employee_sandbox_upgrades
     ADD CONSTRAINT employee_sandbox_upgrades_pkey PRIMARY KEY (id);
 
-ALTER TABLE ONLY public.employee_schedule_runs
+ALTER TABLE ONLY employee_schedule_runs
     ADD CONSTRAINT employee_schedule_runs_pkey PRIMARY KEY (id);
 
-ALTER TABLE ONLY public.employee_schedules
+ALTER TABLE ONLY employee_schedules
     ADD CONSTRAINT employee_schedules_pkey PRIMARY KEY (id);
 
-ALTER TABLE ONLY public.employee_sessions
+ALTER TABLE ONLY employee_sessions
     ADD CONSTRAINT employee_sessions_pkey PRIMARY KEY (id);
 
-ALTER TABLE ONLY public.employee_skills
+ALTER TABLE ONLY employee_skills
     ADD CONSTRAINT employee_skills_pkey PRIMARY KEY (employee_id, skill_id);
 
-ALTER TABLE ONLY public.employee_trigger_deliveries
+ALTER TABLE ONLY employee_trigger_deliveries
     ADD CONSTRAINT employee_trigger_deliveries_pkey PRIMARY KEY (id);
 
-ALTER TABLE ONLY public.employee_triggers
+ALTER TABLE ONLY employee_triggers
     ADD CONSTRAINT employee_triggers_pkey PRIMARY KEY (id);
 
-ALTER TABLE ONLY public.employees
+ALTER TABLE ONLY employees
     ADD CONSTRAINT employees_pkey PRIMARY KEY (id);
 
-ALTER TABLE ONLY public.failed_events
+ALTER TABLE ONLY failed_events
     ADD CONSTRAINT failed_events_pkey PRIMARY KEY (id);
 
-ALTER TABLE ONLY public.generations
+ALTER TABLE ONLY generations
     ADD CONSTRAINT generations_pkey PRIMARY KEY (id);
 
-ALTER TABLE ONLY public.hindsight_banks
+ALTER TABLE ONLY hindsight_banks
     ADD CONSTRAINT hindsight_banks_pkey PRIMARY KEY (id);
 
-CREATE INDEX idx_employee_memory_events_event_at ON public.employee_memory_events USING btree (event_at);
+CREATE INDEX idx_employee_memory_events_event_at ON employee_memory_events USING btree (event_at);
 
-CREATE INDEX idx_employee_memory_events_event_type ON public.employee_memory_events USING btree (event_type);
+CREATE INDEX idx_employee_memory_events_event_type ON employee_memory_events USING btree (event_type);
 
-CREATE INDEX idx_employee_memory_events_retained_at ON public.employee_memory_events USING btree (retained_at);
+CREATE INDEX idx_employee_memory_events_retained_at ON employee_memory_events USING btree (retained_at);
 
-CREATE INDEX idx_employee_memory_events_sandbox_id ON public.employee_memory_events USING btree (sandbox_id);
+CREATE INDEX idx_employee_memory_events_sandbox_id ON employee_memory_events USING btree (sandbox_id);
 
-CREATE INDEX idx_employee_memory_scope ON public.employee_memory_events USING btree (org_id, employee_id, session_id);
+CREATE INDEX idx_employee_memory_scope ON employee_memory_events USING btree (org_id, employee_id, session_id);
 
-CREATE INDEX idx_employee_org_id ON public.employees USING btree (org_id);
+CREATE INDEX idx_employee_org_id ON employees USING btree (org_id);
 
-CREATE INDEX idx_employee_sandbox_upgrades_employee_id ON public.employee_sandbox_upgrades USING btree (employee_id);
+CREATE INDEX idx_employee_sandbox_upgrades_employee_id ON employee_sandbox_upgrades USING btree (employee_id);
 
-CREATE INDEX idx_employee_sandbox_upgrades_new_sandbox_id ON public.employee_sandbox_upgrades USING btree (new_sandbox_id);
+CREATE INDEX idx_employee_sandbox_upgrades_new_sandbox_id ON employee_sandbox_upgrades USING btree (new_sandbox_id);
 
-CREATE INDEX idx_employee_sandbox_upgrades_old_sandbox_id ON public.employee_sandbox_upgrades USING btree (old_sandbox_id);
+CREATE INDEX idx_employee_sandbox_upgrades_old_sandbox_id ON employee_sandbox_upgrades USING btree (old_sandbox_id);
 
-CREATE INDEX idx_employee_sandbox_upgrades_org_id ON public.employee_sandbox_upgrades USING btree (org_id);
+CREATE INDEX idx_employee_sandbox_upgrades_org_id ON employee_sandbox_upgrades USING btree (org_id);
 
-CREATE INDEX idx_employee_sandbox_upgrades_status ON public.employee_sandbox_upgrades USING btree (status);
+CREATE INDEX idx_employee_sandbox_upgrades_status ON employee_sandbox_upgrades USING btree (status);
 
-CREATE UNIQUE INDEX idx_employee_schedule_employee_bridge ON public.employee_schedules USING btree (employee_id, bridge_job_id);
+CREATE UNIQUE INDEX idx_employee_schedule_employee_bridge ON employee_schedules USING btree (employee_id, bridge_job_id);
 
-CREATE UNIQUE INDEX idx_employee_schedule_run_key ON public.employee_schedule_runs USING btree (schedule_id, run_key);
+CREATE UNIQUE INDEX idx_employee_schedule_run_key ON employee_schedule_runs USING btree (schedule_id, run_key);
 
-CREATE INDEX idx_employee_schedule_runs_bridge_job_id ON public.employee_schedule_runs USING btree (bridge_job_id);
+CREATE INDEX idx_employee_schedule_runs_bridge_job_id ON employee_schedule_runs USING btree (bridge_job_id);
 
-CREATE INDEX idx_employee_schedule_runs_employee_id ON public.employee_schedule_runs USING btree (employee_id);
+CREATE INDEX idx_employee_schedule_runs_employee_id ON employee_schedule_runs USING btree (employee_id);
 
-CREATE INDEX idx_employee_schedule_runs_org_id ON public.employee_schedule_runs USING btree (org_id);
+CREATE INDEX idx_employee_schedule_runs_org_id ON employee_schedule_runs USING btree (org_id);
 
-CREATE INDEX idx_employee_schedule_runs_sandbox_id ON public.employee_schedule_runs USING btree (sandbox_id);
+CREATE INDEX idx_employee_schedule_runs_sandbox_id ON employee_schedule_runs USING btree (sandbox_id);
 
-CREATE INDEX idx_employee_schedule_runs_scheduled_at ON public.employee_schedule_runs USING btree (scheduled_at);
+CREATE INDEX idx_employee_schedule_runs_scheduled_at ON employee_schedule_runs USING btree (scheduled_at);
 
-CREATE INDEX idx_employee_schedule_runs_status ON public.employee_schedule_runs USING btree (status);
+CREATE INDEX idx_employee_schedule_runs_status ON employee_schedule_runs USING btree (status);
 
-CREATE INDEX idx_employee_schedules_cancelled_at ON public.employee_schedules USING btree (cancelled_at);
+CREATE INDEX idx_employee_schedules_cancelled_at ON employee_schedules USING btree (cancelled_at);
 
-CREATE INDEX idx_employee_schedules_next_run_at ON public.employee_schedules USING btree (next_run_at);
+CREATE INDEX idx_employee_schedules_next_run_at ON employee_schedules USING btree (next_run_at);
 
-CREATE INDEX idx_employee_schedules_org_id ON public.employee_schedules USING btree (org_id);
+CREATE INDEX idx_employee_schedules_org_id ON employee_schedules USING btree (org_id);
 
-CREATE INDEX idx_employee_schedules_sandbox_id ON public.employee_schedules USING btree (sandbox_id);
+CREATE INDEX idx_employee_schedules_sandbox_id ON employee_schedules USING btree (sandbox_id);
 
-CREATE INDEX idx_employee_schedules_status ON public.employee_schedules USING btree (status);
+CREATE INDEX idx_employee_schedules_status ON employee_schedules USING btree (status);
 
-CREATE INDEX idx_employee_session_org_employee ON public.employee_sessions USING btree (org_id, employee_id);
+CREATE INDEX idx_employee_session_org_employee ON employee_sessions USING btree (org_id, employee_id);
 
-CREATE INDEX idx_employee_sessions_credential_id ON public.employee_sessions USING btree (credential_id);
+CREATE INDEX idx_employee_sessions_credential_id ON employee_sessions USING btree (credential_id);
 
-CREATE INDEX idx_employee_sessions_runtime_conversation_id ON public.employee_sessions USING btree (runtime_conversation_id);
+CREATE INDEX idx_employee_sessions_runtime_conversation_id ON employee_sessions USING btree (runtime_conversation_id);
 
-CREATE INDEX idx_employee_sessions_source ON public.employee_sessions USING btree (source);
+CREATE INDEX idx_employee_sessions_source ON employee_sessions USING btree (source);
 
-CREATE INDEX idx_employee_sessions_source_id ON public.employee_sessions USING btree (source_id);
+CREATE INDEX idx_employee_sessions_source_id ON employee_sessions USING btree (source_id);
 
-CREATE INDEX idx_employee_sessions_source_resource_key ON public.employee_sessions USING btree (source_resource_key);
+CREATE INDEX idx_employee_sessions_source_resource_key ON employee_sessions USING btree (source_resource_key);
 
-CREATE INDEX idx_employee_trigger_deliveries_connection_id ON public.employee_trigger_deliveries USING btree (connection_id);
+CREATE INDEX idx_employee_trigger_deliveries_connection_id ON employee_trigger_deliveries USING btree (connection_id);
 
-CREATE INDEX idx_employee_trigger_deliveries_conversation_id ON public.employee_trigger_deliveries USING btree (conversation_id);
+CREATE INDEX idx_employee_trigger_deliveries_conversation_id ON employee_trigger_deliveries USING btree (conversation_id);
 
-CREATE INDEX idx_employee_trigger_deliveries_delivery_id ON public.employee_trigger_deliveries USING btree (delivery_id);
+CREATE INDEX idx_employee_trigger_deliveries_delivery_id ON employee_trigger_deliveries USING btree (delivery_id);
 
-CREATE INDEX idx_employee_trigger_deliveries_event_key ON public.employee_trigger_deliveries USING btree (event_key);
+CREATE INDEX idx_employee_trigger_deliveries_event_key ON employee_trigger_deliveries USING btree (event_key);
 
-CREATE INDEX idx_employee_trigger_deliveries_resource_key ON public.employee_trigger_deliveries USING btree (resource_key);
+CREATE INDEX idx_employee_trigger_deliveries_resource_key ON employee_trigger_deliveries USING btree (resource_key);
 
-CREATE INDEX idx_employee_trigger_deliveries_runtime_conversation_id ON public.employee_trigger_deliveries USING btree (runtime_conversation_id);
+CREATE INDEX idx_employee_trigger_deliveries_runtime_conversation_id ON employee_trigger_deliveries USING btree (runtime_conversation_id);
 
-CREATE INDEX idx_employee_trigger_deliveries_runtime_session_id ON public.employee_trigger_deliveries USING btree (runtime_session_id);
+CREATE INDEX idx_employee_trigger_deliveries_runtime_session_id ON employee_trigger_deliveries USING btree (runtime_session_id);
 
-CREATE INDEX idx_employee_trigger_deliveries_trigger_id ON public.employee_trigger_deliveries USING btree (trigger_id);
+CREATE INDEX idx_employee_trigger_deliveries_trigger_id ON employee_trigger_deliveries USING btree (trigger_id);
 
-CREATE INDEX idx_employee_triggers_connection_id ON public.employee_triggers USING btree (connection_id);
+CREATE INDEX idx_employee_triggers_connection_id ON employee_triggers USING btree (connection_id);
 
-CREATE INDEX idx_employee_triggers_employee_id ON public.employee_triggers USING btree (employee_id);
+CREATE INDEX idx_employee_triggers_employee_id ON employee_triggers USING btree (employee_id);
 
-CREATE INDEX idx_employee_triggers_org_id ON public.employee_triggers USING btree (org_id);
+CREATE INDEX idx_employee_triggers_org_id ON employee_triggers USING btree (org_id);
 
-CREATE INDEX idx_employee_triggers_trigger_type ON public.employee_triggers USING btree (trigger_type);
+CREATE INDEX idx_employee_triggers_trigger_type ON employee_triggers USING btree (trigger_type);
 
-CREATE INDEX idx_employees_credential_id ON public.employees USING btree (credential_id);
+CREATE INDEX idx_employees_credential_id ON employees USING btree (credential_id);
 
-CREATE INDEX idx_failed_events_event_type ON public.failed_events USING btree (event_type);
+CREATE INDEX idx_failed_events_event_type ON failed_events USING btree (event_type);
 
-CREATE INDEX idx_failed_events_failed_at ON public.failed_events USING btree (failed_at);
+CREATE INDEX idx_failed_events_failed_at ON failed_events USING btree (failed_at);
 
-CREATE INDEX idx_failed_events_org_id ON public.failed_events USING btree (org_id);
+CREATE INDEX idx_failed_events_org_id ON failed_events USING btree (org_id);
 
-CREATE INDEX idx_failed_events_status ON public.failed_events USING btree (status);
+CREATE INDEX idx_failed_events_status ON failed_events USING btree (status);
 
-CREATE INDEX idx_failed_events_trigger_id ON public.failed_events USING btree (trigger_id);
+CREATE INDEX idx_failed_events_trigger_id ON failed_events USING btree (trigger_id);
 
-CREATE INDEX idx_gen_org_created ON public.generations USING btree (org_id, created_at);
+CREATE INDEX idx_gen_org_created ON generations USING btree (org_id, created_at);
 
-CREATE INDEX idx_gen_org_credential ON public.generations USING btree (credential_id);
+CREATE INDEX idx_gen_org_credential ON generations USING btree (credential_id);
 
-CREATE INDEX idx_gen_org_model ON public.generations USING btree (model);
+CREATE INDEX idx_gen_org_model ON generations USING btree (model);
 
-CREATE INDEX idx_gen_org_provider ON public.generations USING btree (provider_id);
+CREATE INDEX idx_gen_org_provider ON generations USING btree (provider_id);
 
-CREATE INDEX idx_gen_org_user ON public.generations USING btree (user_id);
+CREATE INDEX idx_gen_org_user ON generations USING btree (user_id);
 
-CREATE UNIQUE INDEX idx_hindsight_banks_bank_id ON public.hindsight_banks USING btree (bank_id);
+CREATE UNIQUE INDEX idx_hindsight_banks_bank_id ON hindsight_banks USING btree (bank_id);
 
-CREATE INDEX idx_hindsight_banks_employee_id ON public.hindsight_banks USING btree (employee_id);
+CREATE INDEX idx_hindsight_banks_employee_id ON hindsight_banks USING btree (employee_id);
 
-CREATE INDEX idx_trigger_delivery_org_employee_created ON public.employee_trigger_deliveries USING btree (org_id, employee_id, created_at);
+CREATE INDEX idx_trigger_delivery_org_employee_created ON employee_trigger_deliveries USING btree (org_id, employee_id, created_at);
 
-CREATE INDEX idx_trigger_delivery_org_employee_session_created ON public.employee_trigger_deliveries USING btree (org_id, employee_id, runtime_session_id, created_at);
+CREATE INDEX idx_trigger_delivery_org_employee_session_created ON employee_trigger_deliveries USING btree (org_id, employee_id, runtime_session_id, created_at);
 
 -- +goose Down
 -- +goose StatementBegin

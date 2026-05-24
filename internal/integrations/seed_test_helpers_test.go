@@ -3,6 +3,7 @@ package integrations
 import (
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -35,15 +36,34 @@ func connectIntegrationTestDB(t *testing.T) *gorm.DB {
 	if err := db.Exec(`CREATE SCHEMA "` + schema + `"`).Error; err != nil {
 		t.Fatalf("create schema: %v", err)
 	}
+	_ = sqlDB.Close()
+
+	db, err = gorm.Open(postgres.Open(withSearchPath(t, dsn, schema)), &gorm.Config{DisableForeignKeyConstraintWhenMigrating: true})
+	if err != nil {
+		t.Fatalf("connect schema postgres: %v", err)
+	}
+	sqlDB, err = db.DB()
+	if err != nil {
+		t.Fatalf("schema db handle: %v", err)
+	}
 	t.Cleanup(func() {
 		_ = db.Exec(`DROP SCHEMA IF EXISTS "` + schema + `" CASCADE`).Error
 		_ = sqlDB.Close()
 	})
-	if err := db.Exec(`SET search_path TO "` + schema + `"`).Error; err != nil {
-		t.Fatalf("set search_path: %v", err)
-	}
 	testdb.ApplyMigrations(t, db)
 	return db
+}
+
+func withSearchPath(t *testing.T, dsn string, schema string) string {
+	t.Helper()
+	u, err := url.Parse(dsn)
+	if err != nil {
+		t.Fatalf("parse test dsn: %v", err)
+	}
+	q := u.Query()
+	q.Set("search_path", schema)
+	u.RawQuery = q.Encode()
+	return u.String()
 }
 
 func writeManifest(t *testing.T, dir string, body map[string]any) {

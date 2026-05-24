@@ -21,7 +21,7 @@ import { extractErrorMessage } from "@/lib/api/error"
 import type { components } from "@/lib/api/schema"
 
 type Skill = components["schemas"]["skillResponse"]
-type AttachedSkill = components["schemas"]["agentSkillResponse"]
+type AttachedSkill = components["schemas"]["employeeSkillResponse"]
 
 export default function SkillsPage() {
   const queryClient = useQueryClient()

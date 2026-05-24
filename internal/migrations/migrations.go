@@ -37,7 +37,6 @@ func Up(ctx context.Context, db *sql.DB) ([]*goose.MigrationResult, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer p.Close()
 	return p.Up(ctx)
 }
 
@@ -46,7 +45,6 @@ func Status(ctx context.Context, db *sql.DB) ([]*goose.MigrationStatus, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer p.Close()
 	return p.Status(ctx)
 }
 
@@ -55,7 +53,6 @@ func Version(ctx context.Context, db *sql.DB) (int64, error) {
 	if err != nil {
 		return 0, err
 	}
-	defer p.Close()
 	return p.GetDBVersion(ctx)
 }
 
@@ -64,6 +61,5 @@ func HasPending(ctx context.Context, db *sql.DB) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	defer p.Close()
 	return p.HasPending(ctx)
 }

@@ -1,7 +1,7 @@
 -- +goose Up
 -- Skill catalog and specialist task tables
 
-CREATE TABLE public.skills (
+CREATE TABLE skills (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     org_id uuid,
     publisher_id uuid,
@@ -32,7 +32,7 @@ CREATE TABLE public.skills (
     updated_at timestamp with time zone
 );
 
-CREATE TABLE public.specialist_tasks (
+CREATE TABLE specialist_tasks (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     org_id uuid NOT NULL,
     employee_id uuid NOT NULL,
@@ -46,37 +46,37 @@ CREATE TABLE public.specialist_tasks (
     created_at timestamp with time zone
 );
 
-ALTER TABLE ONLY public.skills
+ALTER TABLE ONLY skills
     ADD CONSTRAINT skills_pkey PRIMARY KEY (id);
 
-ALTER TABLE ONLY public.specialist_tasks
+ALTER TABLE ONLY specialist_tasks
     ADD CONSTRAINT specialist_tasks_pkey PRIMARY KEY (id);
 
-CREATE INDEX idx_skills_category ON public.skills USING btree (category);
+CREATE INDEX idx_skills_category ON skills USING btree (category);
 
-CREATE INDEX idx_skills_featured ON public.skills USING btree (featured);
+CREATE INDEX idx_skills_featured ON skills USING btree (featured);
 
-CREATE INDEX idx_skills_hidden ON public.skills USING btree (hidden);
+CREATE INDEX idx_skills_hidden ON skills USING btree (hidden);
 
-CREATE INDEX idx_skills_org_id ON public.skills USING btree (org_id);
+CREATE INDEX idx_skills_org_id ON skills USING btree (org_id);
 
-CREATE INDEX idx_skills_origin_skill_id ON public.skills USING btree (origin_skill_id);
+CREATE INDEX idx_skills_origin_skill_id ON skills USING btree (origin_skill_id);
 
-CREATE INDEX idx_skills_public_skill_id ON public.skills USING btree (public_skill_id);
+CREATE INDEX idx_skills_public_skill_id ON skills USING btree (public_skill_id);
 
-CREATE INDEX idx_skills_publisher_id ON public.skills USING btree (publisher_id);
+CREATE INDEX idx_skills_publisher_id ON skills USING btree (publisher_id);
 
-CREATE INDEX idx_skills_slug ON public.skills USING btree (slug);
+CREATE INDEX idx_skills_slug ON skills USING btree (slug);
 
-CREATE INDEX idx_skills_status ON public.skills USING btree (status);
+CREATE INDEX idx_skills_status ON skills USING btree (status);
 
-CREATE INDEX idx_specialist_task_org ON public.specialist_tasks USING btree (org_id);
+CREATE INDEX idx_specialist_task_org ON specialist_tasks USING btree (org_id);
 
-CREATE INDEX idx_specialist_tasks_employee_id ON public.specialist_tasks USING btree (employee_id);
+CREATE INDEX idx_specialist_tasks_employee_id ON specialist_tasks USING btree (employee_id);
 
-CREATE INDEX idx_specialist_tasks_parent_conversation_id ON public.specialist_tasks USING btree (parent_conversation_id);
+CREATE INDEX idx_specialist_tasks_parent_conversation_id ON specialist_tasks USING btree (parent_conversation_id);
 
-CREATE INDEX idx_specialist_tasks_specialist_id ON public.specialist_tasks USING btree (specialist_id);
+CREATE INDEX idx_specialist_tasks_specialist_id ON specialist_tasks USING btree (specialist_id);
 
 -- +goose Down
 -- +goose StatementBegin

@@ -202,12 +202,12 @@ func (h *RAGSourceHandler) attachConnection(
 		Where("id = ? AND org_id = ? AND revoked_at IS NULL", connID, orgID).
 		First(&conn).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return http.StatusNotFound, "in_connection not found"
+			return http.StatusNotFound, "connection not found"
 		}
-		return http.StatusInternalServerError, "failed to load in_connection"
+		return http.StatusInternalServerError, "failed to load connection"
 	}
 	if conn.Integration.DeletedAt != nil {
-		return http.StatusNotFound, "in_connection not found"
+		return http.StatusNotFound, "connection not found"
 	}
 	if !conn.Integration.SupportsRAGSource {
 		return http.StatusUnprocessableEntity, "this integration does not support being used as a RAG source"

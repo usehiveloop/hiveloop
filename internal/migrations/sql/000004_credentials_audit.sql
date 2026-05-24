@@ -1,7 +1,7 @@
 -- +goose Up
 -- Credentials, API keys, tokens, and audit tables
 
-CREATE TABLE public.api_keys (
+CREATE TABLE api_keys (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     org_id uuid NOT NULL,
     name text NOT NULL,
@@ -14,7 +14,7 @@ CREATE TABLE public.api_keys (
     created_at timestamp with time zone
 );
 
-CREATE TABLE public.audit_log (
+CREATE TABLE audit_log (
     id bigint NOT NULL,
     org_id uuid NOT NULL,
     credential_id uuid,
@@ -24,16 +24,16 @@ CREATE TABLE public.audit_log (
     created_at timestamp with time zone
 );
 
-CREATE SEQUENCE public.audit_log_id_seq
+CREATE SEQUENCE audit_log_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
     NO MAXVALUE
     CACHE 1;
 
-ALTER SEQUENCE public.audit_log_id_seq OWNED BY public.audit_log.id;
+ALTER SEQUENCE audit_log_id_seq OWNED BY audit_log.id;
 
-CREATE TABLE public.credentials (
+CREATE TABLE credentials (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     org_id uuid NOT NULL,
     label text DEFAULT ''::text NOT NULL,
@@ -52,7 +52,7 @@ CREATE TABLE public.credentials (
     created_at timestamp with time zone
 );
 
-CREATE TABLE public.tokens (
+CREATE TABLE tokens (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     org_id uuid NOT NULL,
     credential_id uuid NOT NULL,
@@ -68,35 +68,35 @@ CREATE TABLE public.tokens (
     created_at timestamp with time zone
 );
 
-ALTER TABLE ONLY public.audit_log ALTER COLUMN id SET DEFAULT nextval('public.audit_log_id_seq'::regclass);
+ALTER TABLE ONLY audit_log ALTER COLUMN id SET DEFAULT nextval('audit_log_id_seq'::regclass);
 
-ALTER TABLE ONLY public.api_keys
+ALTER TABLE ONLY api_keys
     ADD CONSTRAINT api_keys_pkey PRIMARY KEY (id);
 
-ALTER TABLE ONLY public.audit_log
+ALTER TABLE ONLY audit_log
     ADD CONSTRAINT audit_log_pkey PRIMARY KEY (id);
 
-ALTER TABLE ONLY public.credentials
+ALTER TABLE ONLY credentials
     ADD CONSTRAINT credentials_pkey PRIMARY KEY (id);
 
-ALTER TABLE ONLY public.tokens
+ALTER TABLE ONLY tokens
     ADD CONSTRAINT tokens_pkey PRIMARY KEY (id);
 
-CREATE UNIQUE INDEX idx_api_keys_key_hash ON public.api_keys USING btree (key_hash);
+CREATE UNIQUE INDEX idx_api_keys_key_hash ON api_keys USING btree (key_hash);
 
-CREATE INDEX idx_api_keys_org_id ON public.api_keys USING btree (org_id);
+CREATE INDEX idx_api_keys_org_id ON api_keys USING btree (org_id);
 
-CREATE INDEX idx_audit_credential ON public.audit_log USING btree (credential_id);
+CREATE INDEX idx_audit_credential ON audit_log USING btree (credential_id);
 
-CREATE INDEX idx_audit_org_created ON public.audit_log USING btree (org_id, created_at);
+CREATE INDEX idx_audit_org_created ON audit_log USING btree (org_id, created_at);
 
-CREATE INDEX idx_credentials_is_system ON public.credentials USING btree (is_system);
+CREATE INDEX idx_credentials_is_system ON credentials USING btree (is_system);
 
-CREATE INDEX idx_credentials_org_id ON public.credentials USING btree (org_id);
+CREATE INDEX idx_credentials_org_id ON credentials USING btree (org_id);
 
-CREATE INDEX idx_tokens_credential_id ON public.tokens USING btree (credential_id);
+CREATE INDEX idx_tokens_credential_id ON tokens USING btree (credential_id);
 
-CREATE UNIQUE INDEX idx_tokens_jti ON public.tokens USING btree (jti);
+CREATE UNIQUE INDEX idx_tokens_jti ON tokens USING btree (jti);
 
 -- +goose Down
 -- +goose StatementBegin

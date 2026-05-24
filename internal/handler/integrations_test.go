@@ -198,7 +198,7 @@ type integrationTestHarness struct {
 
 func newIntegrationHarness(t *testing.T, mockCfg *nangoMockConfig) *integrationTestHarness {
 	t.Helper()
-	db := connectTestDB(t)
+	db := connectFreshMigratedTestDB(t)
 	cleanupIntegrations(t, db)
 
 	if mockCfg == nil {

@@ -1,7 +1,7 @@
 -- +goose Up
 -- Core identity, organizations, and auth tables
 
-CREATE TABLE public.email_verifications (
+CREATE TABLE email_verifications (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     user_id uuid NOT NULL,
     token_hash text NOT NULL,
@@ -10,7 +10,7 @@ CREATE TABLE public.email_verifications (
     created_at timestamp with time zone
 );
 
-CREATE TABLE public.oauth_accounts (
+CREATE TABLE oauth_accounts (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     user_id uuid NOT NULL,
     provider text NOT NULL,
@@ -23,7 +23,7 @@ CREATE TABLE public.oauth_accounts (
     updated_at timestamp with time zone
 );
 
-CREATE TABLE public.oauth_exchange_tokens (
+CREATE TABLE oauth_exchange_tokens (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     user_id uuid NOT NULL,
     token_hash text NOT NULL,
@@ -32,7 +32,7 @@ CREATE TABLE public.oauth_exchange_tokens (
     created_at timestamp with time zone
 );
 
-CREATE TABLE public.org_invites (
+CREATE TABLE org_invites (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     org_id uuid NOT NULL,
     email text NOT NULL,
@@ -46,7 +46,7 @@ CREATE TABLE public.org_invites (
     updated_at timestamp with time zone
 );
 
-CREATE TABLE public.org_memberships (
+CREATE TABLE org_memberships (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     user_id uuid NOT NULL,
     org_id uuid NOT NULL,
@@ -55,7 +55,7 @@ CREATE TABLE public.org_memberships (
     updated_at timestamp with time zone
 );
 
-CREATE TABLE public.orgs (
+CREATE TABLE orgs (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     name text NOT NULL,
     rate_limit bigint DEFAULT 1000 NOT NULL,
@@ -72,7 +72,7 @@ CREATE TABLE public.orgs (
     updated_at timestamp with time zone
 );
 
-CREATE TABLE public.otp_codes (
+CREATE TABLE otp_codes (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     email text NOT NULL,
     token_hash text NOT NULL,
@@ -81,7 +81,7 @@ CREATE TABLE public.otp_codes (
     created_at timestamp with time zone
 );
 
-CREATE TABLE public.password_resets (
+CREATE TABLE password_resets (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     user_id uuid NOT NULL,
     token_hash text NOT NULL,
@@ -90,7 +90,7 @@ CREATE TABLE public.password_resets (
     created_at timestamp with time zone
 );
 
-CREATE TABLE public.refresh_tokens (
+CREATE TABLE refresh_tokens (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     user_id uuid NOT NULL,
     token_hash text NOT NULL,
@@ -99,7 +99,7 @@ CREATE TABLE public.refresh_tokens (
     created_at timestamp with time zone
 );
 
-CREATE TABLE public.users (
+CREATE TABLE users (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     email text NOT NULL,
     password_hash text,
@@ -111,71 +111,71 @@ CREATE TABLE public.users (
     updated_at timestamp with time zone
 );
 
-ALTER TABLE ONLY public.email_verifications
+ALTER TABLE ONLY email_verifications
     ADD CONSTRAINT email_verifications_pkey PRIMARY KEY (id);
 
-ALTER TABLE ONLY public.oauth_accounts
+ALTER TABLE ONLY oauth_accounts
     ADD CONSTRAINT oauth_accounts_pkey PRIMARY KEY (id);
 
-ALTER TABLE ONLY public.oauth_exchange_tokens
+ALTER TABLE ONLY oauth_exchange_tokens
     ADD CONSTRAINT oauth_exchange_tokens_pkey PRIMARY KEY (id);
 
-ALTER TABLE ONLY public.org_invites
+ALTER TABLE ONLY org_invites
     ADD CONSTRAINT org_invites_pkey PRIMARY KEY (id);
 
-ALTER TABLE ONLY public.org_memberships
+ALTER TABLE ONLY org_memberships
     ADD CONSTRAINT org_memberships_pkey PRIMARY KEY (id);
 
-ALTER TABLE ONLY public.orgs
+ALTER TABLE ONLY orgs
     ADD CONSTRAINT orgs_pkey PRIMARY KEY (id);
 
-ALTER TABLE ONLY public.otp_codes
+ALTER TABLE ONLY otp_codes
     ADD CONSTRAINT otp_codes_pkey PRIMARY KEY (id);
 
-ALTER TABLE ONLY public.password_resets
+ALTER TABLE ONLY password_resets
     ADD CONSTRAINT password_resets_pkey PRIMARY KEY (id);
 
-ALTER TABLE ONLY public.refresh_tokens
+ALTER TABLE ONLY refresh_tokens
     ADD CONSTRAINT refresh_tokens_pkey PRIMARY KEY (id);
 
-ALTER TABLE ONLY public.users
+ALTER TABLE ONLY users
     ADD CONSTRAINT users_pkey PRIMARY KEY (id);
 
-CREATE UNIQUE INDEX idx_email_verifications_token_hash ON public.email_verifications USING btree (token_hash);
+CREATE UNIQUE INDEX idx_email_verifications_token_hash ON email_verifications USING btree (token_hash);
 
-CREATE INDEX idx_email_verifications_user_id ON public.email_verifications USING btree (user_id);
+CREATE INDEX idx_email_verifications_user_id ON email_verifications USING btree (user_id);
 
-CREATE UNIQUE INDEX idx_membership_user_org ON public.org_memberships USING btree (user_id, org_id);
+CREATE UNIQUE INDEX idx_membership_user_org ON org_memberships USING btree (user_id, org_id);
 
-CREATE UNIQUE INDEX idx_oauth_exchange_tokens_token_hash ON public.oauth_exchange_tokens USING btree (token_hash);
+CREATE UNIQUE INDEX idx_oauth_exchange_tokens_token_hash ON oauth_exchange_tokens USING btree (token_hash);
 
-CREATE INDEX idx_oauth_exchange_tokens_user_id ON public.oauth_exchange_tokens USING btree (user_id);
+CREATE INDEX idx_oauth_exchange_tokens_user_id ON oauth_exchange_tokens USING btree (user_id);
 
-CREATE UNIQUE INDEX idx_oauth_provider_uid ON public.oauth_accounts USING btree (provider, provider_user_id);
+CREATE UNIQUE INDEX idx_oauth_provider_uid ON oauth_accounts USING btree (provider, provider_user_id);
 
-CREATE UNIQUE INDEX idx_oauth_user_provider ON public.oauth_accounts USING btree (user_id, provider);
+CREATE UNIQUE INDEX idx_oauth_user_provider ON oauth_accounts USING btree (user_id, provider);
 
-CREATE INDEX idx_org_invites_email ON public.org_invites USING btree (email);
+CREATE INDEX idx_org_invites_email ON org_invites USING btree (email);
 
-CREATE INDEX idx_org_invites_org_id ON public.org_invites USING btree (org_id);
+CREATE INDEX idx_org_invites_org_id ON org_invites USING btree (org_id);
 
-CREATE UNIQUE INDEX idx_org_invites_token_hash ON public.org_invites USING btree (token_hash);
+CREATE UNIQUE INDEX idx_org_invites_token_hash ON org_invites USING btree (token_hash);
 
-CREATE UNIQUE INDEX idx_orgs_name ON public.orgs USING btree (name);
+CREATE UNIQUE INDEX idx_orgs_name ON orgs USING btree (name);
 
-CREATE INDEX idx_otp_codes_email ON public.otp_codes USING btree (email);
+CREATE INDEX idx_otp_codes_email ON otp_codes USING btree (email);
 
-CREATE UNIQUE INDEX idx_otp_codes_token_hash ON public.otp_codes USING btree (token_hash);
+CREATE UNIQUE INDEX idx_otp_codes_token_hash ON otp_codes USING btree (token_hash);
 
-CREATE UNIQUE INDEX idx_password_resets_token_hash ON public.password_resets USING btree (token_hash);
+CREATE UNIQUE INDEX idx_password_resets_token_hash ON password_resets USING btree (token_hash);
 
-CREATE INDEX idx_password_resets_user_id ON public.password_resets USING btree (user_id);
+CREATE INDEX idx_password_resets_user_id ON password_resets USING btree (user_id);
 
-CREATE UNIQUE INDEX idx_refresh_tokens_token_hash ON public.refresh_tokens USING btree (token_hash);
+CREATE UNIQUE INDEX idx_refresh_tokens_token_hash ON refresh_tokens USING btree (token_hash);
 
-CREATE INDEX idx_refresh_tokens_user_id ON public.refresh_tokens USING btree (user_id);
+CREATE INDEX idx_refresh_tokens_user_id ON refresh_tokens USING btree (user_id);
 
-CREATE UNIQUE INDEX idx_users_email ON public.users USING btree (email);
+CREATE UNIQUE INDEX idx_users_email ON users USING btree (email);
 
 -- +goose Down
 -- +goose StatementBegin

@@ -25,13 +25,13 @@ export default function ConnectionsPage() {
   const [dialogSearch, setDialogSearch] = useState("")
   const [preSelectedId, setPreSelectedId] = useState<string | null>(null)
 
-  const { data: connections, isLoading } = $api.useQuery(
+  const { data: connectionsPage, isLoading } = $api.useQuery(
     "get",
     "/v1/connections"
   )
   const { connect, connectingId } = useConnectIntegration()
 
-  const connections = useMemo(() => connections?.data ?? [], [connections])
+  const connections = useMemo(() => connectionsPage?.data ?? [], [connectionsPage])
 
   const filtered = useMemo(() => {
     if (!search.trim()) return connections

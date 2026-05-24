@@ -17,7 +17,7 @@ import (
 )
 
 func TestDashboardHandler_Get_ReturnsOrgSummary(t *testing.T) {
-	db := connectTestDB(t)
+	db := connectFreshMigratedTestDB(t)
 	org := createTestOrg(t, db)
 	org.PlanSlug = "pro"
 	if err := db.Save(&org).Error; err != nil {
@@ -88,7 +88,7 @@ func TestDashboardHandler_Get_ReturnsOrgSummary(t *testing.T) {
 }
 
 func TestDashboardHandler_Get_UsesCalendarMonthWithoutSubscription(t *testing.T) {
-	db := connectTestDB(t)
+	db := connectFreshMigratedTestDB(t)
 	org := createTestOrg(t, db)
 	now := time.Now().UTC()
 	monthStart := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC)
