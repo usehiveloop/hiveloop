@@ -52,6 +52,19 @@ func TestCalculateCost_WithCachedTokens_Anthropic(t *testing.T) {
 	}
 }
 
+func TestCalculateCost_CanonicalModelRoute(t *testing.T) {
+	reg := registry.Global()
+
+	usage := UsageData{
+		InputTokens:  1000,
+		OutputTokens: 500,
+	}
+	cost := CalculateCost(reg, "anthropic", "claude-sonnet-4.6", usage)
+	if cost <= 0 {
+		t.Fatalf("expected positive cost for canonical claude-sonnet-4.6, got %f", cost)
+	}
+}
+
 func TestCalculateCost_WithCachedTokens_OpenAI(t *testing.T) {
 	reg := registry.Global()
 

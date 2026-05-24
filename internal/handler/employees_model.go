@@ -27,23 +27,8 @@ func pickActiveSystemCredentialForModel(ctx context.Context, db *gorm.DB, reg *r
 		reg = registry.Global()
 	}
 
-	known := false
-	selectable := false
-	for _, provider := range reg.AllProviders() {
-		mdl, ok := provider.Models[modelID]
-		if !ok {
-			continue
-		}
-		known = true
-		if !mdl.Hidden {
-			selectable = true
-		}
-	}
-	if !known {
-		return nil, fmt.Errorf("model %q is not in the catalog", modelID)
-	}
-	if !selectable {
-		return nil, fmt.Errorf("model %q is not selectable", modelID)
+	if err := reg.ValidateCanonicalModel(modelID); err != nil {
+		return nil, err
 	}
 
 	var creds []model.Credential
@@ -55,12 +40,7 @@ func pickActiveSystemCredentialForModel(ctx context.Context, db *gorm.DB, reg *r
 	}
 
 	for i := range creds {
-		provider, ok := reg.GetProvider(creds[i].ProviderID)
-		if !ok {
-			continue
-		}
-		mdl, ok := provider.Models[modelID]
-		if ok && !mdl.Hidden {
+		if _, ok := reg.ResolveModel(creds[i].ProviderID, modelID); ok {
 			return &creds[i], nil
 		}
 	}

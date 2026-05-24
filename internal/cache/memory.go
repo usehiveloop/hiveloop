@@ -13,6 +13,7 @@ type CachedCredential struct {
 	Enclave    *memguard.Enclave
 	BaseURL    string
 	AuthScheme string
+	ProviderID  string
 	OrgID      uuid.UUID
 	CachedAt   time.Time
 	HardExpiry time.Time

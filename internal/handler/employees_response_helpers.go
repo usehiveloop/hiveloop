@@ -192,16 +192,8 @@ func validateEmployeeIntegrationsExclusivity(db *gorm.DB, orgID uuid.UUID, integ
 }
 
 func validateEmployeeModel(reg *registry.Registry, modelID string) error {
-	if modelID == "" {
+	if reg == nil || modelID == "" {
 		return nil
 	}
-	for _, p := range reg.AllProviders() {
-		if mdl, ok := p.Models[modelID]; ok {
-			if mdl.Hidden {
-				return fmt.Errorf("model %q is not selectable", modelID)
-			}
-			return nil
-		}
-	}
-	return fmt.Errorf("model %q is not in the catalog", modelID)
+	return reg.ValidateCanonicalModel(modelID)
 }

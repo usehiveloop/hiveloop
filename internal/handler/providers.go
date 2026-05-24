@@ -45,6 +45,7 @@ type modelSummary struct {
 	ID               string               `json:"id"`
 	Name             string               `json:"name"`
 	ProviderID       string               `json:"provider_id,omitempty"`
+	ProviderIDs      []string             `json:"provider_ids,omitempty"`
 	Family           string               `json:"family,omitempty"`
 	Reasoning        bool                 `json:"reasoning,omitempty"`
 	ToolCall         bool                 `json:"tool_call,omitempty"`
@@ -137,35 +138,28 @@ func (h *ProviderHandler) AllModels(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	out := make([]modelSummary, 0, 64)
-	for _, providerID := range providerIDs {
-		p, ok := h.reg.GetProvider(providerID)
-		if !ok {
-			continue
-		}
-		for _, mdl := range p.Models {
-			if mdl.Hidden {
-				continue
-			}
-			out = append(out, modelSummary{
-				ID:               mdl.ID,
-				Name:             mdl.Name,
-				ProviderID:       p.ID,
-				Family:           mdl.Family,
-				Reasoning:        mdl.Reasoning,
-				ToolCall:         mdl.ToolCall,
-				StructuredOutput: mdl.StructuredOutput,
-				OpenWeights:      mdl.OpenWeights,
-				Knowledge:        mdl.Knowledge,
-				ReleaseDate:      mdl.ReleaseDate,
-				Modalities:       mdl.Modalities,
-				Cost:             mdl.Cost,
-				Limit:            mdl.Limit,
-				Status:           mdl.Status,
-				Speed:            mdl.Speed,
-				Description:      mdl.Description,
-			})
-		}
+	canonical := h.reg.CanonicalModelsForProviders(providerIDs)
+	out := make([]modelSummary, 0, len(canonical))
+	for _, routed := range canonical {
+		mdl := routed.Model
+		out = append(out, modelSummary{
+			ID:               mdl.ID,
+			Name:             mdl.Name,
+			ProviderIDs:      routed.ProviderIDs,
+			Family:           mdl.Family,
+			Reasoning:        mdl.Reasoning,
+			ToolCall:         mdl.ToolCall,
+			StructuredOutput: mdl.StructuredOutput,
+			OpenWeights:      mdl.OpenWeights,
+			Knowledge:        mdl.Knowledge,
+			ReleaseDate:      mdl.ReleaseDate,
+			Modalities:       mdl.Modalities,
+			Cost:             mdl.Cost,
+			Limit:            mdl.Limit,
+			Status:           mdl.Status,
+			Speed:            mdl.Speed,
+			Description:      mdl.Description,
+		})
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].ID < out[j].ID })
 	writeJSON(w, http.StatusOK, out)

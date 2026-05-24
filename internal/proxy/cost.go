@@ -20,15 +20,11 @@ func CalculateCost(reg *registry.Registry, providerID, modelID string, usage Usa
 		return 0
 	}
 
-	provider, ok := reg.GetProvider(providerID)
+	route, ok := reg.ResolveModel(providerID, modelID)
 	if !ok {
 		return 0
 	}
-
-	model, ok := provider.Models[modelID]
-	if !ok {
-		return 0
-	}
+	model := route.Model
 
 	if model.Cost == nil {
 		return 0

@@ -210,7 +210,7 @@ func (h *SystemTaskHandler) Run(w http.ResponseWriter, r *http.Request) {
 		"base_url", cred.BaseURL,
 	)
 
-	modelID, err := h.resolveModel(task, cred.ProviderID)
+	upstreamModelID, err := h.resolveModel(task, cred.ProviderID)
 	if err != nil {
 		logger.Error("system_task: model resolution failed", "error", err)
 		writeJSON(w, http.StatusServiceUnavailable, systemTaskError{
@@ -219,11 +219,15 @@ func (h *SystemTaskHandler) Run(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	logger = logger.With("model", modelID)
+	recordModelID := upstreamModelID
+	if task.ModelTier == system.ModelNamed {
+		recordModelID = task.Model
+	}
+	logger = logger.With("model", recordModelID, "upstream_model", upstreamModelID)
 
 	cacheKey := ""
 	if h.cache != nil && task.CacheTTL > 0 {
-		key, err := system.CacheKey(task, modelID, resolvedArgs)
+		key, err := system.CacheKey(task, upstreamModelID, resolvedArgs)
 		if err != nil {
 			logging.Capture(r.Context(), fmt.Errorf("system_task: cache key build failed: %w", err))
 		} else {
@@ -245,7 +249,7 @@ func (h *SystemTaskHandler) Run(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	llmReq, err := system.BuildLLMRequest(task, modelID, resolvedArgs, stream)
+	llmReq, err := system.BuildLLMRequest(task, upstreamModelID, resolvedArgs, stream)
 	if err != nil {
 		logger.Error("system_task: build LLM request failed", "error", err)
 		writeJSON(w, http.StatusInternalServerError, systemTaskError{
@@ -270,7 +274,7 @@ func (h *SystemTaskHandler) Run(w http.ResponseWriter, r *http.Request) {
 			h.handleForwardError(w, err, true)
 			return
 		}
-		h.afterCompletion(r.Context(), logger, &task, taskName, modelID, cred, orgID, claims.UserID, res, cacheKey, true)
+		h.afterCompletion(r.Context(), logger, &task, taskName, recordModelID, cred, orgID, claims.UserID, res, cacheKey, true)
 		return
 	}
 
@@ -285,5 +289,5 @@ func (h *SystemTaskHandler) Run(w http.ResponseWriter, r *http.Request) {
 		Usage: res.Usage,
 		Model: res.Model,
 	})
-	h.afterCompletion(r.Context(), logger, &task, taskName, modelID, cred, orgID, claims.UserID, res, cacheKey, false)
+	h.afterCompletion(r.Context(), logger, &task, taskName, recordModelID, cred, orgID, claims.UserID, res, cacheKey, false)
 }

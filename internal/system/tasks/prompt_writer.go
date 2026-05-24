@@ -10,7 +10,7 @@ var PromptWriter = system.Task{
 	Description: "Generate a workflow-specific system prompt for an agent that runs on GLM 4.5/5.1.",
 
 	ModelTier: system.ModelNamed,
-	Model:     "google/gemini-3-flash-preview",
+	Model:     "gemini-3-flash-preview",
 
 	SystemPrompt:       promptWriterSystemPrompt,
 	UserPromptTemplate: promptWriterUserTemplate,

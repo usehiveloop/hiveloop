@@ -20,6 +20,7 @@ type DecryptedCredential struct {
 	APIKey     []byte
 	BaseURL    string
 	AuthScheme string
+	ProviderID  string
 }
 
 // Manager orchestrates the 3-tier cache: L1 (memory) → L2 (Redis) → L3 (Postgres + KMS).
@@ -98,6 +99,7 @@ func (m *Manager) GetDecryptedCredential(ctx context.Context, credentialID strin
 				APIKey:     apiKey,
 				BaseURL:    cached.BaseURL,
 				AuthScheme: cached.AuthScheme,
+				ProviderID:  cached.ProviderID,
 			}, nil
 		}
 	}
@@ -131,9 +133,10 @@ func (m *Manager) resolveFromLowerTiers(ctx context.Context, credentialID string
 				APIKey:     apiKey,
 				BaseURL:    redisCred.BaseURL,
 				AuthScheme: redisCred.AuthScheme,
+				ProviderID:  redisCred.ProviderID,
 			}
 
-			m.promoteToL1(credentialID, orgID, apiKey, redisCred.BaseURL, redisCred.AuthScheme)
+			m.promoteToL1(credentialID, orgID, apiKey, redisCred.BaseURL, redisCred.AuthScheme, redisCred.ProviderID)
 			return cred, nil
 		}
 	}
@@ -176,15 +179,17 @@ func (m *Manager) resolveFromDB(ctx context.Context, credentialID string, orgID 
 		WrappedDEK:   dbCred.WrappedDEK,
 		BaseURL:      dbCred.BaseURL,
 		AuthScheme:   dbCred.AuthScheme,
+		ProviderID:    dbCred.ProviderID,
 		OrgID:        orgID.String(),
 	})
 
-	m.promoteToL1(credentialID, orgID, apiKey, dbCred.BaseURL, dbCred.AuthScheme)
+	m.promoteToL1(credentialID, orgID, apiKey, dbCred.BaseURL, dbCred.AuthScheme, dbCred.ProviderID)
 
 	return &DecryptedCredential{
 		APIKey:     apiKey,
 		BaseURL:    dbCred.BaseURL,
 		AuthScheme: dbCred.AuthScheme,
+		ProviderID:  dbCred.ProviderID,
 	}, nil
 }
 
@@ -235,7 +240,7 @@ func (m *Manager) decryptWithDEKCache(ctx context.Context, credentialID string, 
 
 // promoteToL1 seals a copy of the plaintext API key in memguard and stores it in L1.
 // NOTE: memguard.NewEnclave zeroes the source slice, so we copy first.
-func (m *Manager) promoteToL1(credentialID string, orgID uuid.UUID, apiKey []byte, baseURL, authScheme string) {
+func (m *Manager) promoteToL1(credentialID string, orgID uuid.UUID, apiKey []byte, baseURL, authScheme, providerID string) {
 	keyCopy := make([]byte, len(apiKey))
 	copy(keyCopy, apiKey)
 	enclave := memguard.NewEnclave(keyCopy)
@@ -243,6 +248,7 @@ func (m *Manager) promoteToL1(credentialID string, orgID uuid.UUID, apiKey []byt
 		Enclave:    enclave,
 		BaseURL:    baseURL,
 		AuthScheme: authScheme,
+		ProviderID:  providerID,
 		OrgID:      orgID,
 		CachedAt:   time.Now(),
 		HardExpiry: time.Now().Add(m.hardExpiry),

@@ -104,7 +104,7 @@ func newEmployeeUpgradeFixture(t *testing.T) *employeeUpgradeFixture {
 		Name:         "employee-" + uuid.NewString()[:8],
 		IsEmployee:   true,
 		Harness:      "employee-sandbox",
-		Model:        "deepseek/deepseek-v4-flash",
+		Model:        "deepseek-v4-flash",
 		CredentialID: &cred.ID,
 		Status:       "active",
 		SystemPrompt: "test employee",

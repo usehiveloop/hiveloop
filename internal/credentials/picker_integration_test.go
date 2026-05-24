@@ -83,3 +83,39 @@ func TestIntegration_Picker_NoMatchReturnsSentinel(t *testing.T) {
 		t.Fatalf("expected ErrNoSystemCredential, got %v", err)
 	}
 }
+
+func TestIntegration_Picker_PickByModelUsesCanonicalRoutes(t *testing.T) {
+	db := connectTestDB(t)
+	if err := credentials.SeedPlatformOrg(db); err != nil {
+		t.Fatalf("seed: %v", err)
+	}
+	anthropic := seedSystemCred(t, db, "anthropic", false)
+	seedSystemCred(t, db, "openrouter", false)
+
+	picker := credentials.NewPicker(db)
+	got, err := picker.PickByModel(context.Background(), "claude-sonnet-4.6")
+	if err != nil {
+		t.Fatalf("PickByModel: %v", err)
+	}
+	if got.ID != anthropic.ID {
+		t.Fatalf("picked %s, want first matching anthropic credential %s", got.ID, anthropic.ID)
+	}
+}
+
+func TestIntegration_Picker_PickByModelUsesOpenRouterWhenDirectProviderMissing(t *testing.T) {
+	db := connectTestDB(t)
+	if err := credentials.SeedPlatformOrg(db); err != nil {
+		t.Fatalf("seed: %v", err)
+	}
+	openrouter := seedSystemCred(t, db, "openrouter", false)
+	seedSystemCred(t, db, "openai", false)
+
+	picker := credentials.NewPicker(db)
+	got, err := picker.PickByModel(context.Background(), "claude-sonnet-4.6")
+	if err != nil {
+		t.Fatalf("PickByModel: %v", err)
+	}
+	if got.ID != openrouter.ID {
+		t.Fatalf("picked %s, want openrouter credential %s", got.ID, openrouter.ID)
+	}
+}

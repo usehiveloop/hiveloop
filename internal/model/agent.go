@@ -21,21 +21,20 @@ type Employee struct {
 	SandboxTemplate   *SandboxTemplate `gorm:"foreignKey:SandboxTemplateID;constraint:OnDelete:SET NULL"`
 
 	// Bridge AgentDefinition fields
-	SystemPrompt              string             `gorm:"-"`
-	IdentityPrompt            string             `gorm:"-"`
-	PromptOperatingPrinciples string             `gorm:"-"`
-	ProviderPrompts           ProviderPromptsMap `gorm:"type:jsonb;not null;default:'{}'"`
-	Instructions              *string            `gorm:"type:text"`
-	Model                     string             `gorm:"not null"`
-	Tools                     JSON               `gorm:"type:jsonb;not null;default:'{}'"`
-	McpServers                JSON               `gorm:"type:jsonb;not null;default:'{}'"`
-	Skills                    JSON               `gorm:"type:jsonb;not null;default:'{}'"`
-	Integrations              JSON               `gorm:"-"`
-	AgentConfig               JSON               `gorm:"type:jsonb;not null;default:'{}'"`
-	Permissions               JSON               `gorm:"type:jsonb;not null;default:'{}'"`
-	Resources                 JSON               `gorm:"type:jsonb;not null;default:'{}'"`
-	SharedMemory              bool               `gorm:"not null;default:false"`
-	DisabledSpecialists       pq.StringArray     `gorm:"type:text[];not null;default:'{}'"`
+	SystemPrompt              string         `gorm:"-"`
+	IdentityPrompt            string         `gorm:"-"`
+	PromptOperatingPrinciples string         `gorm:"-"`
+	Instructions              *string        `gorm:"type:text"`
+	Model                     string         `gorm:"not null"`
+	Tools                     JSON           `gorm:"type:jsonb;not null;default:'{}'"`
+	McpServers                JSON           `gorm:"type:jsonb;not null;default:'{}'"`
+	Skills                    JSON           `gorm:"type:jsonb;not null;default:'{}'"`
+	Integrations              JSON           `gorm:"-"`
+	AgentConfig               JSON           `gorm:"type:jsonb;not null;default:'{}'"`
+	Permissions               JSON           `gorm:"type:jsonb;not null;default:'{}'"`
+	Resources                 JSON           `gorm:"type:jsonb;not null;default:'{}'"`
+	SharedMemory              bool           `gorm:"not null;default:false"`
+	DisabledSpecialists       pq.StringArray `gorm:"type:text[];not null;default:'{}'"`
 
 	// Sandbox setup
 	SandboxTools     pq.StringArray `gorm:"type:text[];default:'{}'"` // enabled sandbox tools (e.g. "chrome")

@@ -64,7 +64,7 @@ func newSQLiteBackupHarnessWithStreamer(t *testing.T, maxBytes int64, isEmployee
 		OrgID:        &orgID,
 		Name:         fmt.Sprintf("employee-%s", uuid.New().String()[:8]),
 		Status:       "active",
-		Model:        "deepseek/deepseek-v4-flash",
+		Model:        "deepseek-v4-flash",
 		IsEmployee:   isEmployee,
 		SystemPrompt: "",
 	}

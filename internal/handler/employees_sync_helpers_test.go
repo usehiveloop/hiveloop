@@ -73,7 +73,7 @@ func (h *employeeHarness) seedEmployeeAgent(t *testing.T, m orgWithMember) model
 		Name:         "agent-" + uuid.NewString()[:8],
 		IsEmployee:   true,
 		Harness:      "employee-sandbox",
-		Model:        "deepseek/deepseek-v4-flash",
+		Model:        "deepseek-v4-flash",
 		SystemPrompt: "you are a test employee",
 		CredentialID: &credID,
 		Status:       "active",

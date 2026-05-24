@@ -289,7 +289,7 @@ system_prompt: |
 
   ---
 
-  **[Important]** `ResolveProviderConfig` doesn't have tests yet — worth adding cases for match, fallback, and empty map. `provider_prompts_test.go:24` has the pattern for the sibling methods.
+  **[Important]** `resolveModel` doesn't have tests yet — worth adding cases for named model resolution, cheapest fallback, and unknown provider errors. `system_tasks_helpers_test.go` has the pattern for the sibling helpers.
 
   ---
 

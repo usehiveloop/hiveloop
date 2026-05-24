@@ -8737,6 +8737,7 @@ export interface components {
             name?: string;
             open_weights?: boolean;
             provider_id?: string;
+            provider_ids?: string[];
             reasoning?: boolean;
             release_date?: string;
             speed?: string;

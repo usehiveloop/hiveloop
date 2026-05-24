@@ -1,8 +1,7 @@
 package handler
 
 import (
-	"errors"
-	"fmt"
+	"context"
 
 	"gorm.io/gorm"
 
@@ -49,34 +48,17 @@ type employeeProviderChoice struct {
 }
 
 func pickEmployeeCredential(db *gorm.DB) (*employeeProviderChoice, error) {
-	return pickSystemCredential(db, []struct{ providerID, modelID string }{
-		{"openrouter", employeeruntime.DefaultEmployeeModel},
-	})
+	return pickSystemCredentialByModel(db, employeeruntime.DefaultEmployeeModel)
 }
 
 func pickEmployeeSubagentCredential(db *gorm.DB) (*employeeProviderChoice, error) {
-	return pickSystemCredential(db, []struct{ providerID, modelID string }{
-		{"openrouter", employeeruntime.DefaultEmployeeSubagentModel},
-	})
+	return pickSystemCredentialByModel(db, employeeruntime.DefaultEmployeeSubagentModel)
 }
 
-func pickSystemCredential(db *gorm.DB, candidates []struct{ providerID, modelID string }) (*employeeProviderChoice, error) {
-	for _, c := range candidates {
-		var cred model.Credential
-		err := db.Where("is_system = ? AND provider_id = ? AND revoked_at IS NULL", true, c.providerID).
-			Order("created_at ASC").
-			Limit(1).
-			First(&cred).Error
-		if err == nil {
-			return &employeeProviderChoice{cred: &cred, model: c.modelID}, nil
-		}
-		if !errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, fmt.Errorf("lookup %s system credential: %w", c.providerID, err)
-		}
+func pickSystemCredentialByModel(db *gorm.DB, modelID string) (*employeeProviderChoice, error) {
+	cred, err := pickActiveSystemCredentialForModel(context.Background(), db, registry.Global(), modelID)
+	if err != nil {
+		return nil, err
 	}
-	names := make([]string, len(candidates))
-	for i, c := range candidates {
-		names[i] = c.providerID
-	}
-	return nil, fmt.Errorf("no %v system credential configured", names)
+	return &employeeProviderChoice{cred: cred, model: modelID}, nil
 }

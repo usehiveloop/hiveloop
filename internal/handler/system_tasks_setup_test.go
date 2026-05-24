@@ -93,7 +93,7 @@ func buildHarness(t *testing.T, upstream fakeUpstream) *systemTaskHarness {
 	}))
 
 	kms := newSystemTaskKMS(t)
-	cred := seedSystemCredential(t, db, kms, srv.URL+"/v1", "openai")
+	cred := seedSystemCredential(t, db, kms, srv.URL+"/v1", "openrouter")
 
 	org := &model.Org{Name: "system-task-org-" + sysShortID()}
 	if err := db.Create(org).Error; err != nil {

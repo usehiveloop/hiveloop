@@ -18,6 +18,7 @@ type RedisCredential struct {
 	WrappedDEK   []byte `json:"wd"`
 	BaseURL      string `json:"bu"`
 	AuthScheme   string `json:"as"`
+	ProviderID    string `json:"pi"`
 	OrgID        string `json:"oi"`
 }
 

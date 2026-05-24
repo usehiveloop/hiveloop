@@ -131,7 +131,11 @@ func (h *SystemTaskHandler) afterCompletion(
 func (h *SystemTaskHandler) resolveModel(task system.Task, providerID string) (string, error) {
 	switch task.ModelTier {
 	case system.ModelNamed:
-		return task.Model, nil
+		route, ok := h.registry.ResolveModel(providerID, task.Model)
+		if !ok {
+			return "", fmt.Errorf("model %q is not available on provider %q", task.Model, providerID)
+		}
+		return route.UpstreamID, nil
 	case system.ModelCheapest, system.ModelDefault, "":
 		provider, ok := h.registry.GetProvider(providerID)
 		if !ok {

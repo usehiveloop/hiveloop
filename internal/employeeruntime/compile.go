@@ -19,9 +19,9 @@ import (
 )
 
 const (
-	DefaultEmployeeModel           = "deepseek/deepseek-v4-flash"
-	DefaultEmployeeSubagentModel   = "deepseek/deepseek-v4-pro"
-	DefaultEmployeeMultimodalModel = "google/gemini-3-flash-preview"
+	DefaultEmployeeModel           = "deepseek-v4-flash"
+	DefaultEmployeeSubagentModel   = "deepseek-v4-pro"
+	DefaultEmployeeMultimodalModel = "gemini-3-flash-preview"
 	proxyTokenTTL                  = 24 * time.Hour
 	managedEmployeeName            = "Hivy"
 	managedEmployeeDescription     = "Hivy is the organization's managed AI employee."

@@ -11,7 +11,7 @@ import (
 	"github.com/usehivy/hivy/internal/credentials"
 	"github.com/usehivy/hivy/internal/logging"
 	"github.com/usehivy/hivy/internal/model"
-	subagents "github.com/usehivy/hivy/internal/sub-agents"
+	"github.com/usehivy/hivy/internal/registry"
 )
 
 func (p *Pusher) pushAgentToSandbox(ctx context.Context, agent *model.Agent, sb *model.Sandbox) error {
@@ -78,8 +78,11 @@ func (p *Pusher) buildAgentDefinition(ctx context.Context, agent *model.Agent, o
 
 	proxyBaseURL := fmt.Sprintf("https://%s", p.cfg.ProxyHost)
 
-	providerGroup := subagents.MapProviderToGroup(cred.ProviderID, agent.Model)
-	systemPrompt, modelName := agent.ResolveProviderConfig(providerGroup)
+	systemPrompt := agent.SystemPrompt
+	modelName := agent.Model
+	if route, ok := registry.Global().ResolveModel(cred.ProviderID, agent.Model); ok {
+		modelName = route.UpstreamID
+	}
 
 	if repoContext := buildRepoContext(mergeAgentResourcesForContext(agent, owningEmployee)); repoContext != "" {
 		systemPrompt += "\n\n" + repoContext

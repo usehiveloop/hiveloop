@@ -5,7 +5,7 @@
 //
 // Usage:
 //
-//	go run ./skills/upload
+//	go run ./global/skills/upload
 //
 // Requires HIVY_SKILLS_API_KEY in the environment (or loaded via .env).
 package main
@@ -35,9 +35,24 @@ func main() {
 	if err != nil {
 		log.Fatalf("getting working directory: %v", err)
 	}
-	skillsDir := filepath.Join(scriptDir, "global-skills")
+	skillsDir := filepath.Join(scriptDir, "global/skills")
 	if _, err := os.Stat(skillsDir); err != nil {
-		skillsDir = "global-skills"
+		found := false
+		candidates := []string{
+			scriptDir,
+			filepath.Clean(filepath.Join(scriptDir, "..")),
+			"global/skills",
+		}
+		for _, candidate := range candidates {
+			if _, statErr := os.Stat(filepath.Join(candidate, "upload")); statErr == nil {
+				skillsDir = candidate
+				found = true
+				break
+			}
+		}
+		if !found {
+			skillsDir = "global/skills"
+		}
 	}
 
 	log.Printf("Discovering skills in %s...", skillsDir)

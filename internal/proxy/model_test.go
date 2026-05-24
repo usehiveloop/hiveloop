@@ -3,6 +3,7 @@ package proxy
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"io"
 	"net/http"
 	"strings"
@@ -181,6 +182,39 @@ func TestExtractModel_ArraysBeforeModel(t *testing.T) {
 	got := ExtractModel(req)
 	if got != "gpt-4o-mini" {
 		t.Errorf("expected %q, got %q", "gpt-4o-mini", got)
+	}
+}
+
+func TestRewriteModel_ReplacesTopLevelModel(t *testing.T) {
+	req := makePostRequest(`{"model":"claude-sonnet-4.6","messages":[{"role":"user","content":"hello"}]}`)
+
+	if err := RewriteModel(req, "anthropic/claude-sonnet-4.6"); err != nil {
+		t.Fatalf("RewriteModel: %v", err)
+	}
+
+	var body map[string]any
+	raw, _ := io.ReadAll(req.Body)
+	if err := json.Unmarshal(raw, &body); err != nil {
+		t.Fatalf("decode rewritten body: %v", err)
+	}
+	if body["model"] != "anthropic/claude-sonnet-4.6" {
+		t.Fatalf("model = %q, want anthropic/claude-sonnet-4.6", body["model"])
+	}
+	if req.ContentLength != int64(len(raw)) {
+		t.Fatalf("content length = %d, want %d", req.ContentLength, len(raw))
+	}
+}
+
+func TestRewriteModel_LeavesMalformedJSONReadable(t *testing.T) {
+	body := `{"model":`
+	req := makePostRequest(body)
+
+	if err := RewriteModel(req, "gpt-5.4"); err != nil {
+		t.Fatalf("RewriteModel: %v", err)
+	}
+	raw, _ := io.ReadAll(req.Body)
+	if string(raw) != body {
+		t.Fatalf("body = %q, want original %q", raw, body)
 	}
 }
 

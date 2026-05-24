@@ -11,6 +11,7 @@ import (
 	"github.com/usehivy/hivy/internal/logging"
 	"github.com/usehivy/hivy/internal/middleware"
 	"github.com/usehivy/hivy/internal/observe"
+	"github.com/usehivy/hivy/internal/registry"
 )
 
 func NewDirector(cacheManager *cache.Manager) func(req *http.Request) {
@@ -89,6 +90,13 @@ func NewDirector(cacheManager *cache.Manager) func(req *http.Request) {
 		req.Host = hostAndPath[0]
 
 		modelName := ExtractModel(req)
+		if route, ok := registry.Global().ResolveModel(cred.ProviderID, modelName); ok && route.UpstreamID != modelName {
+			if err := RewriteModel(req, route.UpstreamID); err != nil {
+				logging.Capture(req.Context(), fmt.Errorf("proxy director: rewrite model %q for provider %q: %w", modelName, cred.ProviderID, err))
+				req.Header.Set("X-Proxy-Error", fmt.Sprintf("rewrite model: %v", err))
+				return
+			}
+		}
 		if captured, ok := observe.CapturedDataFromContext(req.Context()); ok {
 			captured.Model = modelName
 		}

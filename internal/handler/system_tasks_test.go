@@ -134,7 +134,7 @@ func TestSystemTask_RevokedCredentialIgnored(t *testing.T) {
 		t.Fatalf("revoke: %v", err)
 	}
 	kms := newSystemTaskKMS(t)
-	active := seedSystemCredential(t, h.db, kms, h.upstream.URL+"/v1", "openai")
+	active := seedSystemCredential(t, h.db, kms, h.upstream.URL+"/v1", "openrouter")
 	t.Cleanup(func() { h.db.Where("id = ?", active.ID).Delete(&model.Credential{}) })
 
 	rr := h.post(t, "prompt_writer", map[string]any{"args": validArgs()})

@@ -8714,6 +8714,12 @@ const docTemplate = `{
                 "provider_id": {
                     "type": "string"
                 },
+                "provider_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
                 "reasoning": {
                     "type": "boolean"
                 },

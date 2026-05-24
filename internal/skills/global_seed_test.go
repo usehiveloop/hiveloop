@@ -226,7 +226,7 @@ func TestBundledAssetUploadsSkillDeclaresUploadEnv(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	manifest, err := os.ReadFile(filepath.Join(dir, "global-skills", "asset-uploads", "skill.json"))
+	manifest, err := os.ReadFile(filepath.Join(dir, "global/skills", "asset-uploads", "skill.json"))
 	if err != nil {
 		t.Fatalf("read bundled asset uploads manifest: %v", err)
 	}
@@ -278,11 +278,11 @@ func TestSeedGlobalSkills_ArchivesObsoleteUploadSkillNames(t *testing.T) {
 
 func TestSeedGlobalSkills_RealBundledDirectory(t *testing.T) {
 	if os.Getenv("RUN_REAL_GLOBAL_SKILLS_SEED") != "1" {
-		t.Skip("set RUN_REAL_GLOBAL_SKILLS_SEED=1 to seed the real global-skills directory")
+		t.Skip("set RUN_REAL_GLOBAL_SKILLS_SEED=1 to seed the real global/skills directory")
 	}
 	db := connectDB(t)
 
-	result, err := skills.SeedGlobalSkills(context.Background(), db, "global-skills")
+	result, err := skills.SeedGlobalSkills(context.Background(), db, "global/skills")
 	if err != nil {
 		t.Fatalf("seed real global skills: %v", err)
 	}

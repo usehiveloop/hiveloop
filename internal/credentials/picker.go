@@ -17,7 +17,7 @@ var ErrNoSystemCredential = errors.New("credentials: no system credential config
 
 type Picker interface {
 	Pick(ctx context.Context, providerGroup string) (*model.Credential, error)
-	PickByModel(ctx context.Context, modelID string) (*model.Credential, error)
+	PickByModel(ctx context.Context, canonicalModelID string) (*model.Credential, error)
 }
 
 type PostgresPicker struct {
@@ -54,29 +54,26 @@ func (p *PostgresPicker) Pick(ctx context.Context, providerGroup string) (*model
 	return pickRandom(matching, fmt.Sprintf("group=%q", providerGroup))
 }
 
-func (p *PostgresPicker) PickByModel(ctx context.Context, modelID string) (*model.Credential, error) {
-	if modelID == "" {
+func (p *PostgresPicker) PickByModel(ctx context.Context, canonicalModelID string) (*model.Credential, error) {
+	if canonicalModelID == "" {
 		return nil, fmt.Errorf("credentials: PickByModel requires a non-empty model id")
 	}
 
 	var all []model.Credential
 	if err := p.db.WithContext(ctx).
 		Where("is_system = ? AND revoked_at IS NULL", true).
+		Order("created_at ASC").
 		Find(&all).Error; err != nil {
 		return nil, fmt.Errorf("list system credentials: %w", err)
 	}
 
-	matching := all[:0]
 	for _, c := range all {
-		provider, ok := p.reg.GetProvider(c.ProviderID)
-		if !ok {
-			continue
-		}
-		if _, exists := provider.Models[modelID]; exists {
-			matching = append(matching, c)
+		if _, ok := p.reg.ResolveModel(c.ProviderID, canonicalModelID); ok {
+			chosen := c
+			return &chosen, nil
 		}
 	}
-	return pickRandom(matching, fmt.Sprintf("model=%q", modelID))
+	return nil, fmt.Errorf("%w: model=%q", ErrNoSystemCredential, canonicalModelID)
 }
 
 func pickRandom(matching []model.Credential, what string) (*model.Credential, error) {

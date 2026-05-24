@@ -26,12 +26,12 @@ func calculateCost(reg *registry.Registry, providerID, modelID string, usage obs
 	if reg == nil || providerID == "" || modelID == "" {
 		return 0
 	}
-	provider, ok := reg.GetProvider(providerID)
+	route, ok := reg.ResolveModel(providerID, modelID)
 	if !ok {
 		return 0
 	}
-	m, ok := provider.Models[modelID]
-	if !ok || m.Cost == nil {
+	m := route.Model
+	if m.Cost == nil {
 		return 0
 	}
 

@@ -3,6 +3,7 @@ package proxy
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -44,6 +45,44 @@ func ExtractModel(req *http.Request) string {
 
 	// Try fast JSON extraction of the "model" field
 	return extractModelFromJSON(peek)
+}
+
+func RewriteModel(req *http.Request, modelID string) error {
+	if req.Method != http.MethodPost || req.Body == nil {
+		return nil
+	}
+	ct := req.Header.Get("Content-Type")
+	if !strings.HasPrefix(ct, "application/json") {
+		return nil
+	}
+
+	body, err := io.ReadAll(req.Body)
+	if err != nil {
+		return err
+	}
+	payload := map[string]any{}
+	if err := json.Unmarshal(body, &payload); err != nil {
+		req.Body = io.NopCloser(bytes.NewReader(body))
+		return nil
+	}
+	if _, ok := payload["model"].(string); !ok {
+		req.Body = io.NopCloser(bytes.NewReader(body))
+		return nil
+	}
+	payload["model"] = modelID
+
+	rewritten, err := json.Marshal(payload)
+	if err != nil {
+		req.Body = io.NopCloser(bytes.NewReader(body))
+		return err
+	}
+	req.Body = io.NopCloser(bytes.NewReader(rewritten))
+	req.ContentLength = int64(len(rewritten))
+	req.GetBody = func() (io.ReadCloser, error) {
+		return io.NopCloser(bytes.NewReader(rewritten)), nil
+	}
+	req.Header.Set("Content-Length", fmt.Sprintf("%d", len(rewritten)))
+	return nil
 }
 
 // extractModelFromJSON extracts the top-level "model" string field from

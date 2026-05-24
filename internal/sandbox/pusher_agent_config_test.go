@@ -184,26 +184,26 @@ func TestPusherAgentConfig_HarnessOptionalFields(t *testing.T) {
 	}
 }
 
-func TestPusherAgentConfig_ProviderPromptModelOverride(t *testing.T) {
+func TestPusherAgentConfig_ResolvesCanonicalModelForProvider(t *testing.T) {
 	db := setupPusherTestDB(t)
 	encKey := testPusherEncKey(t)
-	signingKey := []byte("test-signing-key-for-provider-model")
+	signingKey := []byte("test-signing-key-for-canonical-model")
 
-	org := model.Org{ID: uuid.New(), Name: "provider-model-org-" + uuid.New().String()[:8], Active: true}
+	org := model.Org{ID: uuid.New(), Name: "canonical-model-org-" + uuid.New().String()[:8], Active: true}
 	if err := db.Create(&org).Error; err != nil {
 		t.Fatalf("create org: %v", err)
 	}
 	t.Cleanup(func() { db.Where("id = ?", org.ID).Delete(&model.Org{}) })
 
-	encrypted, err := encKey.EncryptString("sk-provider-model")
+	encrypted, err := encKey.EncryptString("sk-canonical-model")
 	if err != nil {
 		t.Fatalf("encrypt: %v", err)
 	}
 	cred := model.Credential{
 		ID: uuid.New(), OrgID: org.ID,
-		ProviderID: "openai", Label: "Cfg OpenAI",
+		ProviderID: "openrouter", Label: "Cfg OpenRouter",
 		EncryptedKey: encrypted, WrappedDEK: []byte("test"),
-		BaseURL: "https://api.openai.com", AuthScheme: "bearer",
+		BaseURL: "https://openrouter.ai/api/v1", AuthScheme: "bearer",
 	}
 	if err := db.Create(&cred).Error; err != nil {
 		t.Fatalf("create cred: %v", err)
@@ -212,12 +212,9 @@ func TestPusherAgentConfig_ProviderPromptModelOverride(t *testing.T) {
 
 	agent := model.Agent{
 		ID: uuid.New(), OrgID: &org.ID, CredentialID: &cred.ID,
-		Name:  "Provider Model Override " + uuid.New().String()[:8],
-		Model: "gpt-5-pro",
-		ProviderPrompts: model.ProviderPromptsMap{
-			"openai": {SystemPrompt: "Use the provider-specific prompt.", Model: "kimi-k2"},
-		},
-		SystemPrompt: "fallback prompt",
+		Name:         "Canonical Model " + uuid.New().String()[:8],
+		Model:        "claude-sonnet-4.6",
+		SystemPrompt: "canonical prompt",
 		Status:       "active",
 		Tools:        model.JSON{}, McpServers: model.JSON{}, Skills: model.JSON{},
 		Integrations: model.JSON{}, AgentConfig: model.JSON{}, Permissions: model.JSON{},
@@ -231,16 +228,16 @@ func TestPusherAgentConfig_ProviderPromptModelOverride(t *testing.T) {
 	pusher := NewPusher(db, nil, signingKey, cfg, nil)
 
 	def := pusher.buildAgentDefinition(t.Context(), &agent, nil, &cred, "ptok_cfg", uuid.New().String())
-	if def.Provider.Model != "kimi-k2" {
-		t.Fatalf("provider.model = %q, want kimi-k2", def.Provider.Model)
+	if def.Provider.Model != "anthropic/claude-sonnet-4.6" {
+		t.Fatalf("provider.model = %q, want anthropic/claude-sonnet-4.6", def.Provider.Model)
 	}
-	if def.SystemPrompt != "Use the provider-specific prompt." {
-		t.Fatalf("system_prompt = %q, want provider-specific prompt", def.SystemPrompt)
+	if def.SystemPrompt != "canonical prompt" {
+		t.Fatalf("system_prompt = %q, want canonical prompt", def.SystemPrompt)
 	}
 	if def.Config == nil || def.Config.MaxTokens == nil {
 		t.Fatal("expected config.max_tokens")
 	}
-	if *def.Config.MaxTokens != 209715 {
-		t.Fatalf("config.max_tokens = %d, want kimi default 209715", *def.Config.MaxTokens)
+	if *def.Config.MaxTokens != 13107 {
+		t.Fatalf("config.max_tokens = %d, want openrouter default 13107", *def.Config.MaxTokens)
 	}
 }

@@ -32,7 +32,7 @@ LABEL org.opencontainers.image.revision="${COMMIT}"
 RUN apk add --no-cache ca-certificates tzdata nginx
 
 COPY --from=build /hivy /hivy
-COPY --from=build /src/global-skills /global-skills
+COPY --from=build /src/global /global
 COPY proxy.nginx.conf /etc/nginx/http.d/default.conf
 
 EXPOSE 80 8080

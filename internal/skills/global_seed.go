@@ -53,7 +53,7 @@ type loadedGlobalSkill struct {
 	bundle   *Bundle
 }
 
-// SeedGlobalSkills loads bundled skills from global-skills/ and upserts them
+// SeedGlobalSkills loads bundled skills from global/skills/ and upserts them
 // as published org-null skills. Existing skills are matched by name and get a
 // fresh latest inline version so app startup always mirrors bundled content.
 func SeedGlobalSkills(ctx context.Context, db *gorm.DB, skillsDir string) (*GlobalSeedResult, error) {
@@ -61,7 +61,7 @@ func SeedGlobalSkills(ctx context.Context, db *gorm.DB, skillsDir string) (*Glob
 		return nil, fmt.Errorf("db is required")
 	}
 	if strings.TrimSpace(skillsDir) == "" {
-		skillsDir = "global-skills"
+		skillsDir = "global/skills"
 	}
 	resolvedDir, err := resolveGlobalSkillsDir(skillsDir)
 	if err != nil {

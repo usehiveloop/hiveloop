@@ -20,7 +20,7 @@ Hivy is a Go-first platform with a Go API/worker, Next.js web app, Rust sandbox 
 - Hindsight: optional agent memory service.
 - `sandboxes/runtime`: Rust bridge/runtime workspace.
 - `sandboxes/employee`: Rust employee sandbox runtime workspace.
-- `global-skills`: global skill definitions seeded during backend bootstrap.
+- `global/skills`: global skill definitions seeded during backend bootstrap.
 
 Local ports: fake-nango `13004`, backend API `18080`, frontend `31112`, Redis `6379`, Postgres discovered at `/tmp/agent-test/pg.port` with many tests defaulting to `5433`.
 

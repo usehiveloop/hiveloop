@@ -98,7 +98,7 @@ func New(ctx context.Context) (*Deps, error) {
 	if err := credentials.SeedPlatformOrg(database); err != nil {
 		return nil, fmt.Errorf("seeding platform org: %w", err)
 	}
-	if result, err := skills.SeedGlobalSkills(ctx, database, "global-skills"); err != nil {
+	if result, err := skills.SeedGlobalSkills(ctx, database, "global/skills"); err != nil {
 		return nil, fmt.Errorf("seeding global skills: %w", err)
 	} else {
 		logging.FromContext(ctx).InfoContext(ctx, "global skills seeded",
@@ -172,6 +172,18 @@ func New(ctx context.Context) (*Deps, error) {
 
 	ctr := counter.New(redisClient, database)
 	logging.FromContext(ctx).InfoContext(ctx, "request counter ready")
+
+	if result, err := credentials.SeedGlobalLLMCredentials(ctx, database, kms, cacheManager, ctr, "global/credentials/llm.json"); err != nil {
+		return nil, fmt.Errorf("seeding global LLM credentials: %w", err)
+	} else {
+		logging.FromContext(ctx).InfoContext(ctx, "global LLM credentials seeded",
+			"created", result.Created,
+			"updated", result.Updated,
+			"unchanged", result.Unchanged,
+			"revoked", result.Revoked,
+			"skipped", result.Skipped,
+		)
+	}
 
 	signingKey := []byte(cfg.JWTSigningKey)
 
