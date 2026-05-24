@@ -2,6 +2,7 @@ package tasks_test
 
 import (
 	"context"
+	"math"
 	"testing"
 	"time"
 
@@ -15,34 +16,46 @@ import (
 )
 
 const (
-	testInputTokens   = 30_000
-	testOutputTokens  = 4_000
-	testCreditsPerGen = 123
-	testModel         = "glm-5.1-precision"
+	testInputTokens  = 30_000
+	testOutputTokens = 4_000
+	testCostPerGen   = 0.03071
+	testModel        = "glm-5.1-precision"
 )
 
 // genFixture is the projection we read back to assert state.
 type genFixture struct {
-	ID           string
-	BilledAt     *time.Time
-	BillingError string
+	ID                string
+	BilledAt          *time.Time
+	BillingError      string
+	CreditsDebited    int64
+	BillingCostSource string
+	Cost              float64
 }
 
 type genOpts struct {
 	Model        string
+	ProviderID   string
 	IsSystem     bool
 	InputTokens  int
 	OutputTokens int
+	CachedTokens int
+	Cost         float64
 	TokenJTI     string
 }
 
 func defaultGenOpts() genOpts {
 	return genOpts{
 		Model:        testModel,
+		ProviderID:   "test-provider",
 		IsSystem:     true,
 		InputTokens:  testInputTokens,
 		OutputTokens: testOutputTokens,
+		Cost:         testCostPerGen,
 	}
+}
+
+func creditsForTestCost(count int) int64 {
+	return int64(math.Ceil(float64(count) * testCostPerGen / billing.CreditUSDValue))
 }
 
 func insertGeneration(t *testing.T, db *gorm.DB, orgID uuid.UUID, credID uuid.UUID, opts genOpts) string {
@@ -56,11 +69,13 @@ func insertGeneration(t *testing.T, db *gorm.DB, orgID uuid.UUID, credID uuid.UU
 		OrgID:        orgID,
 		CredentialID: credID,
 		TokenJTI:     opts.TokenJTI,
-		ProviderID:   "test-provider",
+		ProviderID:   opts.ProviderID,
 		Model:        opts.Model,
 		IsSystem:     opts.IsSystem,
 		InputTokens:  opts.InputTokens,
 		OutputTokens: opts.OutputTokens,
+		CachedTokens: opts.CachedTokens,
+		Cost:         opts.Cost,
 		CreatedAt:    time.Now().UTC(),
 	}).Error; err != nil {
 		t.Fatalf("insert generation: %v", err)
@@ -74,7 +89,14 @@ func loadGen(t *testing.T, db *gorm.DB, id string) genFixture {
 	if err := db.Where("id = ?", id).First(&g).Error; err != nil {
 		t.Fatalf("load generation %s: %v", id, err)
 	}
-	return genFixture{ID: g.ID, BilledAt: g.BilledAt, BillingError: g.BillingError}
+	return genFixture{
+		ID:                g.ID,
+		BilledAt:          g.BilledAt,
+		BillingError:      g.BillingError,
+		CreditsDebited:    g.CreditsDebited,
+		BillingCostSource: g.BillingCostSource,
+		Cost:              g.Cost,
+	}
 }
 
 func seedTaskTestOrg(t *testing.T, db *gorm.DB) uuid.UUID {
@@ -101,7 +123,7 @@ func seedOrgWithCredentialAndCredits(t *testing.T, db *gorm.DB, granted int64) (
 
 	cred := model.Credential{
 		ID:           uuid.New(),
-		OrgID:        orgID,
+		OrgID:        &orgID,
 		ProviderID:   "test-provider",
 		BaseURL:      "https://example.test",
 		AuthScheme:   "bearer",

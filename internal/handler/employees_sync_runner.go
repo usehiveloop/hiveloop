@@ -186,18 +186,15 @@ func addControlPlaneRuntimeEnv(ctx context.Context, db *gorm.DB, env map[string]
 	if env == nil || cfg == nil || agent == nil || agent.ID == uuid.Nil || runtimeSecret == "" {
 		return
 	}
-	bridgeHost := strings.TrimSpace(cfg.SpecialistSandboxHost)
-	if bridgeHost == "" {
-		return
-	}
-	env[employeeruntime.EmployeeEnvBugsinkURL] = fmt.Sprintf("https://%s/internal/bugsink-proxy/%s", bridgeHost, agent.ID)
+	controlPlaneBaseURL := cfg.RuntimeControlPlaneBaseURL()
+	env[employeeruntime.EmployeeEnvBugsinkURL] = fmt.Sprintf("%s/internal/bugsink-proxy/%s", controlPlaneBaseURL, agent.ID)
 	if agent.OrgID != nil {
 		env[employeeruntime.EmployeeEnvBugsinkDashboardBaseURL] = employeeruntime.BugsinkDashboardBaseURL(ctx, db, *agent.OrgID, *agent)
 	}
 	env[employeeruntime.EmployeeEnvBugsinkToken] = runtimeSecret
-	env[employeeruntime.EmployeeEnvLinearURL] = fmt.Sprintf("https://%s/internal/linear-proxy/%s", bridgeHost, agent.ID)
+	env[employeeruntime.EmployeeEnvLinearURL] = fmt.Sprintf("%s/internal/linear-proxy/%s", controlPlaneBaseURL, agent.ID)
 	env[employeeruntime.EmployeeEnvLinearToken] = runtimeSecret
-	env[employeeruntime.EmployeeEnvNotionAPIURL] = fmt.Sprintf("https://%s/internal/notion-proxy/%s", bridgeHost, agent.ID)
+	env[employeeruntime.EmployeeEnvNotionAPIURL] = fmt.Sprintf("%s/internal/notion-proxy/%s", controlPlaneBaseURL, agent.ID)
 	env[employeeruntime.EmployeeEnvNotionToken] = runtimeSecret
 }
 

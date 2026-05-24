@@ -31,7 +31,7 @@ func TestIntegration_CacheManager_TokenRevocation_ThreeTier(t *testing.T) {
 	}
 
 	dummyCred := model.Credential{
-		ID: credID, OrgID: org.ID, Label: "dummy",
+		ID: credID, OrgID: &org.ID, Label: "dummy",
 		BaseURL: "https://example.com", AuthScheme: "bearer",
 		EncryptedKey: []byte("ek"), WrappedDEK: []byte("wd"),
 	}
@@ -81,7 +81,7 @@ func TestIntegration_CacheManager_IsTokenRevoked_PromotesFromDB(t *testing.T) {
 
 	revokedAt := time.Now()
 	dummyCred := model.Credential{
-		ID: credID, OrgID: org.ID, Label: "dummy",
+		ID: credID, OrgID: &org.ID, Label: "dummy",
 		BaseURL: "https://example.com", AuthScheme: "bearer",
 		EncryptedKey: []byte("ek"), WrappedDEK: []byte("wd"),
 	}

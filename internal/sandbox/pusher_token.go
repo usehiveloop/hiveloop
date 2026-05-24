@@ -83,7 +83,7 @@ func (p *Pusher) mintEmployeeProxyToken(agent *model.Employee, cred *model.Crede
 		(*agent.OrgID).String(),
 		cred.ID.String(),
 		agentTokenTTL,
-		token.MintOptions{IsSystem: cred.IsSystem},
+		token.MintOptions{IsSystem: cred.OrgID == nil},
 	)
 	if err != nil {
 		return "", "", err

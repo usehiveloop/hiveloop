@@ -66,7 +66,7 @@ func NewManager(
 // owning org from the row.
 func (m *Manager) GetDecryptedCredentialByID(ctx context.Context, credentialID string) (*DecryptedCredential, error) {
 	var orgIDOnly struct {
-		OrgID uuid.UUID `gorm:"column:org_id"`
+		OrgID *uuid.UUID `gorm:"column:org_id"`
 	}
 	if err := m.db.WithContext(ctx).
 		Table("credentials").
@@ -78,7 +78,10 @@ func (m *Manager) GetDecryptedCredentialByID(ctx context.Context, credentialID s
 		}
 		return nil, fmt.Errorf("db lookup: %w", err)
 	}
-	return m.GetDecryptedCredential(ctx, credentialID, orgIDOnly.OrgID)
+	if orgIDOnly.OrgID == nil {
+		return m.GetDecryptedCredential(ctx, credentialID, uuid.Nil)
+	}
+	return m.GetDecryptedCredential(ctx, credentialID, *orgIDOnly.OrgID)
 }
 
 // GetDecryptedCredential resolves a credential through the 3-tier cache.
@@ -147,9 +150,13 @@ func (m *Manager) resolveFromLowerTiers(ctx context.Context, credentialID string
 // resolveFromDB fetches from Postgres, decrypts via KMS, and promotes to L2 + L1.
 func (m *Manager) resolveFromDB(ctx context.Context, credentialID string, orgID uuid.UUID) (*DecryptedCredential, error) {
 	var dbCred model.Credential
-	err := m.db.WithContext(ctx).
-		Where("id = ? AND org_id = ? AND revoked_at IS NULL", credentialID, orgID).
-		First(&dbCred).Error
+	query := m.db.WithContext(ctx).Where("id = ? AND revoked_at IS NULL", credentialID)
+	if orgID == uuid.Nil {
+		query = query.Where("org_id IS NULL")
+	} else {
+		query = query.Where("org_id = ?", orgID)
+	}
+	err := query.First(&dbCred).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, fmt.Errorf("credential not found or revoked")

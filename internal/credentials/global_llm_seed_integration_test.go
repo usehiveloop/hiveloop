@@ -49,8 +49,8 @@ func TestIntegration_SeedGlobalLLMCredentials_CreateIdempotentAndRotate(t *testi
 	if got := decryptCredentialForTest(t, kms, cred); got != "sk-first" {
 		t.Fatalf("decrypted key = %q, want sk-first", got)
 	}
-	if !cred.IsSystem || cred.OrgID != credentials.PlatformOrgID {
-		t.Fatalf("credential is not a platform system credential: org=%s is_system=%v", cred.OrgID, cred.IsSystem)
+	if cred.OrgID != nil {
+		t.Fatalf("credential is not a system credential: org=%v", cred.OrgID)
 	}
 	if cred.ProviderID != "openai" || cred.AuthScheme != "bearer" || cred.BaseURL != "https://api.openai.com/v1" {
 		t.Fatalf("credential metadata not defaulted correctly: provider=%q scheme=%q base=%q", cred.ProviderID, cred.AuthScheme, cred.BaseURL)
@@ -125,10 +125,7 @@ func TestIntegration_SeedGlobalLLMCredentials_OptionalMissingEnvSkips(t *testing
 	}
 	var count int64
 	if err := db.Model(&model.Credential{}).
-		Where("org_id = ? AND is_system = ? AND meta @> ?::jsonb",
-			credentials.PlatformOrgID, true,
-			`{"managed_by":"global_llm_seed","global_seed_id":"`+seedID+`"}`,
-		).
+		Where("org_id IS NULL AND meta @> ?::jsonb", `{"managed_by":"global_llm_seed","global_seed_id":"`+seedID+`"}`).
 		Count(&count).Error; err != nil {
 		t.Fatalf("count skipped credential: %v", err)
 	}
@@ -252,8 +249,7 @@ func testKMS(t *testing.T) *crypto.KeyWrapper {
 func loadManagedSeedCredential(t *testing.T, db *gorm.DB, seedID string) model.Credential {
 	t.Helper()
 	var cred model.Credential
-	if err := db.Where("org_id = ? AND is_system = ? AND meta @> ?::jsonb",
-		credentials.PlatformOrgID, true,
+	if err := db.Where("org_id IS NULL AND meta @> ?::jsonb",
 		`{"managed_by":"global_llm_seed","global_seed_id":"`+seedID+`"}`,
 	).First(&cred).Error; err != nil {
 		t.Fatalf("load managed credential %q: %v", seedID, err)

@@ -65,7 +65,7 @@ type Claims struct {
 	CredentialID string `json:"cred_id"`
 	ScopeHash    string `json:"scope_hash,omitempty"`
 	// IsSystem is true when the referenced credential is platform-owned
-	// (credentials.is_system = true). Baked into the JWT at mint time so
+	// (credentials.org_id IS NULL). Baked into the JWT at mint time so
 	// the proxy can decide whether to gate on credit balance and meter
 	// token spend without a DB round-trip.
 	IsSystem bool `json:"is_system,omitempty"`

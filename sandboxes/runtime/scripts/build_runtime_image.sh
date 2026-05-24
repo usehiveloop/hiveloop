@@ -5,7 +5,15 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 export PATH="/usr/local/bin:/opt/homebrew/bin:$HOME/.cargo/bin:$PATH"
 DOCKER_BIN="${DOCKER_BIN:-$(command -v docker)}"
 IMAGE="${HIVY_SANDBOXES_RUNTIME_IMAGE:-hivy-sandboxes-runtime:runtime}"
-BINARY="${HIVY_SANDBOXES_RUNTIME_BINARY:-$ROOT/target/release/hivy-sandboxes-runtime}"
+case "$(uname -m)" in
+  arm64|aarch64)
+    default_target="aarch64-unknown-linux-gnu"
+    ;;
+  *)
+    default_target="x86_64-unknown-linux-gnu"
+    ;;
+esac
+BINARY="${HIVY_SANDBOXES_RUNTIME_BINARY:-$ROOT/dist/hivy-sandboxes-runtime-$default_target}"
 PLATFORM="${HIVY_SANDBOXES_RUNTIME_PLATFORM:-}"
 PROFILE="${HIVY_SANDBOXES_RUNTIME_PROFILE:-employee}"
 TMP_CONTEXT="$(mktemp -d)"
@@ -13,7 +21,7 @@ trap 'rm -rf "$TMP_CONTEXT"' EXIT
 
 if [[ ! -x "$BINARY" ]]; then
   echo "release binary not found or not executable: $BINARY" >&2
-  echo "build it first with: cargo build --release -p hivy-sandboxes-runtime" >&2
+  echo "build it first with: scripts/build_linux_release.sh" >&2
   exit 1
 fi
 

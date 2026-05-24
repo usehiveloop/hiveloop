@@ -131,7 +131,7 @@ func (h *ProviderHandler) AllModels(w http.ResponseWriter, r *http.Request) {
 	var providerIDs []string
 	if err := h.db.WithContext(r.Context()).
 		Model(&model.Credential{}).
-		Where("is_system = ? AND revoked_at IS NULL", true).
+		Where("org_id IS NULL AND revoked_at IS NULL").
 		Distinct("provider_id").
 		Pluck("provider_id", &providerIDs).Error; err != nil {
 		writeJSON(w, http.StatusInternalServerError, errorResponse{Error: "failed to load system credentials"})

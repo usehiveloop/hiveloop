@@ -20,8 +20,8 @@ var cachedTokenDiscount = map[string]float64{
 
 // calculateCost computes USD cost for one LLM call using registry pricing.
 // This is the observability figure written into model.Generation.Cost and
-// shown in usage dashboards — NOT the source of truth for billing, which
-// uses billing.TokensToCredits against its own rate table.
+// shown in usage dashboards. Billing uses the provider-reported cost on
+// model.Generation first, and falls back to registry pricing when absent.
 func calculateCost(reg *registry.Registry, providerID, modelID string, usage observe.UsageData) float64 {
 	if reg == nil || providerID == "" || modelID == "" {
 		return 0

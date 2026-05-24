@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/usehivy/hivy/internal/cache"
+	"github.com/usehivy/hivy/internal/model"
 )
 
 func TestIntegration_CacheManager_L3ColdPath(t *testing.T) {
@@ -31,6 +32,24 @@ func TestIntegration_CacheManager_L3ColdPath(t *testing.T) {
 	}
 	if result.AuthScheme != "bearer" {
 		t.Fatalf("expected auth scheme, got %q", result.AuthScheme)
+	}
+}
+
+func TestIntegration_CacheManager_GetByIDResolvesSystemCredential(t *testing.T) {
+	db := connectTestDB(t)
+	rc := connectTestRedis(t)
+	kms := createTestKMS(t)
+	mgr := buildManager(t, rc, kms, db)
+
+	cred := createTestSystemCredential(t, db, kms, "sk-system-key")
+	t.Cleanup(func() { db.Where("id = ?", cred.ID).Delete(&model.Credential{}) })
+
+	result, err := mgr.GetDecryptedCredentialByID(context.Background(), cred.ID.String())
+	if err != nil {
+		t.Fatalf("get system credential by id: %v", err)
+	}
+	if string(result.APIKey) != "sk-system-key" {
+		t.Fatalf("expected system key, got %q", result.APIKey)
 	}
 }
 

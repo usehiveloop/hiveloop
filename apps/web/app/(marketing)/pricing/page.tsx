@@ -127,12 +127,13 @@ function FeatureItem({ children }: { children: React.ReactNode }) {
 
 function PricingHeader() {
   return (
-    <div className="mx-auto max-w-2xl text-center">
+    <div className="mx-auto max-w-3xl text-center">
       <h1 className="font-heading text-4xl font-normal leading-[1.1] tracking-[-0.02em] text-foreground md:text-5xl">
-        Simple, credits-based pricing
+        Pricing for AI work that actually runs
       </h1>
-      <p className="mx-auto mt-4 max-w-lg text-base leading-[1.6] text-muted-foreground">
-        Start free, scale as you grow. Only pay for what you use.
+      <p className="mx-auto mt-4 max-w-2xl text-base leading-[1.6] text-muted-foreground">
+        Start free, then choose the Business credit checkpoint that matches how
+        much work your team wants Hivy to handle.
       </p>
     </div>
   )
@@ -142,9 +143,9 @@ function PricingHeader() {
 
 function BestFeatures() {
   const features = [
-    "No setup fees",
-    "Cancel anytime",
-    "Credits never expire",
+    "Simple monthly credits",
+    "Business features included",
+    "Hard spend controls",
   ]
 
   return (
@@ -159,12 +160,31 @@ function BestFeatures() {
 /* ─────────────────────────── Credit Slider ─────────────────────────── */
 
 const creditSteps = [
-  { credits: 5000, price: 49000, label: "5K" },
-  { credits: 10000, price: 79000, label: "10K" },
-  { credits: 25000, price: 129000, label: "25K" },
-  { credits: 50000, price: 199000, label: "50K" },
-  { credits: 100000, price: 289000, label: "100K" },
+  {
+    credits: 2500,
+    priceNGN: 49900,
+    label: "2.5K",
+  },
+  {
+    credits: 10000,
+    priceNGN: 199600,
+    label: "10K",
+  },
+  {
+    credits: 25000,
+    priceNGN: 499000,
+    label: "25K",
+  },
+  {
+    credits: 100000,
+    priceNGN: 1996000,
+    label: "100K",
+  },
 ]
+
+function formatNGN(value: number) {
+  return `₦${value.toLocaleString("en-NG")}`
+}
 
 function CreditSlider({
   value,
@@ -177,7 +197,7 @@ function CreditSlider({
     <div className="mx-auto w-full max-w-xl">
       <div className="mb-4 flex items-center justify-between">
         <span className="text-xs font-medium text-muted-foreground">
-          Credits per month
+          Business credits per month
         </span>
         <span className="font-heading text-lg font-medium text-foreground">
           {creditSteps[value].credits.toLocaleString()}
@@ -217,16 +237,15 @@ function CreditSlider({
 
 function FreePlanCard() {
   const features = [
-    "1,000 credits per month",
-    "Up to 3 team members",
-    "Core integrations (Slack, GitHub, Sheets)",
-    "Basic task automation",
-    "Shared team memory",
-    "Community support",
+    "500 credits included",
+    "Employee sandbox runtime",
+    "Specialist task trial",
+    "Core integrations",
+    "No credit card required",
   ]
 
   return (
-    <div className="flex flex-col rounded-2xl border border-border bg-secondary p-6 sm:p-8">
+    <div className="flex flex-col rounded-lg border border-border bg-secondary p-6 sm:p-8">
       <div className="mb-6">
         <div className="mb-2 inline-flex rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
           Free
@@ -238,7 +257,7 @@ function FreePlanCard() {
           <span className="text-sm text-muted-foreground">/month</span>
         </div>
         <p className="mt-2 text-sm text-muted-foreground">
-          Perfect for trying hivy out with your team.
+          Try hivy with 500 credits.
         </p>
       </div>
 
@@ -264,36 +283,36 @@ function BusinessPlanCard({ sliderValue }: { sliderValue: number }) {
 
   const features = [
     `${tier.credits.toLocaleString()} credits per month`,
+    "Business features included",
     "Unlimited team members",
-    "All integrations",
-    "AI-powered task automation",
-    "Recurring tasks & scheduling",
+    "Employee and specialist sandboxes",
+    "All integrations and MCP tools",
+    "Recurring tasks and scheduling",
     "Shared team memory",
-    "Granular permissions",
-    "API & webhook access",
-    "Standard support (24h response)",
+    "API and webhook access",
+    "Spend caps and usage visibility",
   ]
 
   return (
-    <div className="relative flex flex-col rounded-2xl border border-primary/20 bg-secondary p-6 sm:p-8">
+    <div className="relative flex flex-col rounded-lg border border-primary/20 bg-secondary p-6 sm:p-8">
       <div className="absolute -top-3 left-1/2 -translate-x-1/2">
         <div className="rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground">
-          Most popular
+          Business
         </div>
       </div>
 
       <div className="mb-6">
         <div className="mb-2 inline-flex rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
-          Business
+          {tier.label} checkpoint
         </div>
         <div className="mt-4 flex items-baseline gap-1">
           <span className="font-heading text-4xl font-medium text-foreground">
-            ₦{tier.price.toLocaleString()}
+            {formatNGN(tier.priceNGN)}
           </span>
           <span className="text-sm text-muted-foreground">/month</span>
         </div>
         <p className="mt-2 text-sm text-muted-foreground">
-          For teams that want to automate their workflow.
+          Includes {tier.credits.toLocaleString()} monthly credits.
         </p>
       </div>
 
@@ -319,37 +338,37 @@ function FAQ() {
     {
       question: "What are credits?",
       answer:
-        "Credits are the currency hivy uses to perform tasks. Each action — sending a message, reading a document, or executing a workflow — consumes a small number of credits. You only pay for what you use.",
+        "Credits are consumed by AI model calls and sandbox runtime. Business checkpoints include a monthly credit balance, and Free includes 500 credits to try Hivy.",
     },
     {
-      question: "Do credits expire?",
+      question: "Do you mark up AI usage?",
       answer:
-        "No. Your credits never expire as long as your account is active. Unused credits roll over to the next month.",
+        "No. Hivy has zero markup on AI usage. Your credits are used against the underlying model cost.",
+    },
+    {
+      question: "What does the plan price include?",
+      answer:
+        "Each Business checkpoint includes monthly usage credits, workflow orchestration, integrations, memory, security, and support.",
     },
     {
       question: "What happens if I run out of credits?",
       answer:
-        "Your AI coworkers will pause until your credits are replenished. You can upgrade your plan anytime, or wait for your next monthly refill.",
+        "You can move to a larger Business checkpoint or add more usage. If spend caps are enabled, new AI calls and sandbox starts pause before unexpected overage.",
     },
     {
       question: "Can I change my plan later?",
       answer:
-        "Yes. You can upgrade or downgrade your plan at any time from your workspace settings. Changes take effect immediately.",
+        "Yes. You can move between Business checkpoints as your workload changes.",
     },
     {
-      question: "Is there a free trial?",
+      question: "What is included in Free?",
       answer:
-        "Yes. Every new workspace starts on the Free plan with 1,000 credits — no credit card required.",
+        "Free includes 500 credits so you can test a real workflow before upgrading.",
     },
     {
-      question: "How do I estimate how many credits I need?",
+      question: "Are credits charged for every feature?",
       answer:
-        "A typical team of 5 uses around 10,000 credits per month. Start with the Free plan and monitor your usage in the dashboard. You can always adjust.",
-    },
-    {
-      question: "What's included in the free plan?",
-      answer:
-        "The Free plan includes 1,000 credits per month, up to 3 team members, core integrations, basic automation, shared memory, and community support.",
+        "No. Credits are charged only for AI tokens and sandbox runtime. Business features are included in your checkpoint.",
     },
     {
       question: "Do you offer refunds?",
@@ -367,7 +386,7 @@ function FAQ() {
         {items.map((item) => (
           <div
             key={item.question}
-            className="rounded-2xl border border-border bg-secondary p-5"
+            className="rounded-lg border border-border bg-secondary p-5"
           >
             <h3 className="font-heading text-sm font-medium text-foreground">
               {item.question}
@@ -386,21 +405,21 @@ function FAQ() {
 
 function CustomPlanCTA() {
   const features = [
-    "Bring your own LLM keys",
-    "Custom preview domains",
-    "Multiple AI coworkers",
-    "On-premise deployment option",
+    "Above 100K monthly credits",
+    "Premium model routing",
+    "Custom sandbox profiles",
+    "Security and deployment reviews",
   ]
 
   return (
-    <div className="mx-auto flex max-w-4xl flex-col gap-6 rounded-md border border-border bg-secondary p-6 sm:flex-row sm:items-start sm:justify-between sm:p-8">
+    <div className="mx-auto flex max-w-4xl flex-col gap-6 rounded-lg border border-border bg-secondary p-6 sm:flex-row sm:items-start sm:justify-between sm:p-8">
       <div className="flex-1">
         <h3 className="font-heading text-xl font-medium text-foreground">
-          Need a custom plan?
+          Need a larger checkpoint?
         </h3>
         <p className="mt-1 text-sm text-muted-foreground">
-          Talk to our team for tailored pricing, unlimited credits, and
-          enterprise features.
+          Talk to our team for committed usage, custom runtime limits, and
+          enterprise rollout support.
         </p>
         <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
           {features.map((feature) => (
@@ -420,7 +439,7 @@ function CustomPlanCTA() {
 /* ─────────────────────────── Page ─────────────────────────── */
 
 export default function PricingPage() {
-  const [sliderValue, setSliderValue] = useState(2)
+  const [sliderValue, setSliderValue] = useState(1)
 
   return (
     <main className="relative flex min-h-screen flex-col items-center bg-background font-display text-foreground">

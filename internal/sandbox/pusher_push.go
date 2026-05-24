@@ -76,7 +76,7 @@ func (p *Pusher) buildSpecialistDefinition(ctx context.Context, agent *model.Emp
 		providerType = pt
 	}
 
-	proxyBaseURL := fmt.Sprintf("https://%s", p.cfg.ProxyHost)
+	proxyBaseURL := p.cfg.ProxyOriginURL()
 
 	systemPrompt := agent.SystemPrompt
 	modelName := agent.Model

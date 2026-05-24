@@ -18,7 +18,7 @@ func TestPusher_NeedsTokenRotation(t *testing.T) {
 	}
 
 	cred := model.Credential{
-		ID: uuid.New(), OrgID: org.ID, ProviderID: "openai", Label: "OpenAI",
+		ID: uuid.New(), OrgID: &org.ID, ProviderID: "openai", Label: "OpenAI",
 		BaseURL: "https://api.openai.com", AuthScheme: "bearer",
 		EncryptedKey: []byte("enc"), WrappedDEK: []byte("dek"),
 	}

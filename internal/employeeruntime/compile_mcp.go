@@ -15,7 +15,7 @@ func buildEmployeeMCPServer(ctx context.Context, deps CompileDeps, agent *model.
 	}
 	var tok model.Token
 	if err := deps.DB.WithContext(ctx).
-		Where("org_id = ? AND expires_at > ? AND meta->>'employee_id' = ? AND meta->>'type' = ?", *agent.OrgID, time.Now(), agent.ID.String(), "employee_proxy").
+		Where("org_id = ? AND expires_at > ? AND revoked_at IS NULL AND meta->>'employee_id' = ? AND meta->>'type' = ?", *agent.OrgID, time.Now(), agent.ID.String(), "employee_proxy").
 		Order("created_at DESC").
 		First(&tok).Error; err != nil {
 		return nil

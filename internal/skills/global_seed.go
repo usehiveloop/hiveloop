@@ -17,6 +17,7 @@ import (
 )
 
 const globalSkillFetchTimeout = 20 * time.Second
+const globalSkillSeedLockKey int64 = 2026052401
 
 var obsoleteGlobalSkillNames = []string{
 	"public-assets-uploads",
@@ -73,21 +74,26 @@ func SeedGlobalSkills(ctx context.Context, db *gorm.DB, skillsDir string) (*Glob
 	}
 
 	result := &GlobalSeedResult{}
-	for _, skill := range loaded {
-		created, changed, err := upsertGlobalSkill(ctx, db, skill)
-		if err != nil {
-			return result, err
+	if err := db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := tx.Exec("SELECT pg_advisory_xact_lock(?)", globalSkillSeedLockKey).Error; err != nil {
+			return fmt.Errorf("lock global skills seed: %w", err)
 		}
-		switch {
-		case created:
-			result.Created++
-		case changed:
-			result.Updated++
-		default:
-			result.Unchanged++
+		for _, skill := range loaded {
+			created, changed, err := upsertGlobalSkill(ctx, tx, skill)
+			if err != nil {
+				return err
+			}
+			switch {
+			case created:
+				result.Created++
+			case changed:
+				result.Updated++
+			default:
+				result.Unchanged++
+			}
 		}
-	}
-	if err := archiveObsoleteGlobalSkills(ctx, db); err != nil {
+		return archiveObsoleteGlobalSkills(ctx, tx)
+	}); err != nil {
 		return result, err
 	}
 	return result, nil

@@ -4,51 +4,42 @@ import (
 	"errors"
 	"fmt"
 	"math"
+
+	"github.com/usehivy/hivy/internal/registry"
 )
 
-// ErrUnknownModel is returned when TokensToCredits is asked to price a model
-// that isn't in the rate table. Callers must treat this as an operational
-// error (model config missing) rather than billing the user zero.
+const (
+	// CreditUSDValue is the customer-facing value of one credit for AI usage.
+	CreditUSDValue = 0.001
+
+	CostSourceProvider = "provider_reported"
+	CostSourceRegistry = "registry_estimated"
+
+	// WebsitePagePriceCredits is the flat per-page charge for a website crawl.
+	WebsitePagePriceCredits = 1
+)
+
+// ErrUnknownModel is returned when a generation has no provider-reported cost
+// and the registry cannot estimate the model/provider route.
 var ErrUnknownModel = errors.New("billing: unknown model")
 
-// ModelRates is the per-million-token pricing for a model in USD.
-// Matches the format in business/pricing.md — easy to cross-reference.
-type ModelRates struct {
-	InputPerMTok  float64
-	OutputPerMTok float64
+var cachedTokenDiscount = map[string]float64{
+	"anthropic":     0.10,
+	"openai":        0.50,
+	"google":        0.25,
+	"google-vertex": 0.25,
 }
 
-// modelRates is the authoritative pricing table for platform-keys inference.
-// Kept separate from internal/registry (which holds observability prices)
-// so billing and display can diverge when needed — e.g. honoring a
-// grandfathered rate for an existing subscription after the registry price
-// changes.
-//
-// Add new models here as we enable them on platform credentials.
-var modelRates = map[string]ModelRates{
-	// Default model (2026-04). See business/pricing.md.
-	"glm-5.1-precision": {InputPerMTok: 0.437, OutputPerMTok: 4.40},
+func CostUSDToCredits(cost float64) int64 {
+	if cost <= 0 {
+		return 0
+	}
+	return int64(math.Ceil(cost / CreditUSDValue))
 }
 
-// WebsitePagePriceCredits is the flat per-page charge for a website
-// crawl. 1 credit = $0.001 to the user vs ~$0.0002 average Spider
-// COGS — roughly 5× our cost on typical mixed sites.
-const WebsitePagePriceCredits = 1
-
-// TokensToCredits converts an LLM call's input/output token counts into the
-// number of credits the org's ledger should be debited.
-//
-// Math matches business/pricing.md:
-//
-//	COGS    = in × $/Mtok_in/1e6  +  out × $/Mtok_out/1e6
-//	credits = ceil(COGS × 4000)   // 1 credit = $0.001, 75% GM → cost budget $0.00025/credit
-//
-// Ceil is deliberate: we never underbill. Negative or zero token counts
-// produce zero credits (idle calls can't cost anything).
-func TokensToCredits(model string, inputTokens, outputTokens int64) (int64, error) {
-	rates, ok := modelRates[model]
-	if !ok {
-		return 0, fmt.Errorf("%w: %q", ErrUnknownModel, model)
+func EstimateCostUSD(reg *registry.Registry, providerID, modelID string, inputTokens, outputTokens, cachedTokens int64) (float64, error) {
+	if reg == nil {
+		reg = registry.Global()
 	}
 	if inputTokens < 0 {
 		inputTokens = 0
@@ -56,19 +47,33 @@ func TokensToCredits(model string, inputTokens, outputTokens int64) (int64, erro
 	if outputTokens < 0 {
 		outputTokens = 0
 	}
+	if cachedTokens < 0 {
+		cachedTokens = 0
+	}
 	if inputTokens == 0 && outputTokens == 0 {
 		return 0, nil
 	}
-	cost := float64(inputTokens)*rates.InputPerMTok/1_000_000 +
-		float64(outputTokens)*rates.OutputPerMTok/1_000_000
-	credits := math.Ceil(cost * 4_000)
-	return int64(credits), nil
+
+	route, ok := reg.ResolveModel(providerID, modelID)
+	if !ok || route.Model.Cost == nil {
+		return 0, fmt.Errorf("%w: provider=%q model=%q", ErrUnknownModel, providerID, modelID)
+	}
+
+	if cachedTokens > inputTokens {
+		cachedTokens = inputTokens
+	}
+	nonCachedInput := inputTokens - cachedTokens
+	inputCost := float64(nonCachedInput) * route.Model.Cost.Input / 1_000_000
+	discount := cachedTokenDiscount[providerID]
+	if discount == 0 && cachedTokens > 0 {
+		discount = 1
+	}
+	cachedCost := float64(cachedTokens) * route.Model.Cost.Input * discount / 1_000_000
+	outputCost := float64(outputTokens) * route.Model.Cost.Output / 1_000_000
+	return inputCost + cachedCost + outputCost, nil
 }
 
-// IsKnownModel reports whether the given model has an entry in the rate
-// table. Useful for admin-side validation before writing a system credential
-// or agent config.
 func IsKnownModel(model string) bool {
-	_, ok := modelRates[model]
+	_, ok := registry.Global().CanonicalModel(model)
 	return ok
 }

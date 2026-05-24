@@ -201,7 +201,9 @@ CREATE TABLE generations (
     created_at timestamp with time zone NOT NULL,
     is_system boolean DEFAULT false NOT NULL,
     billed_at timestamp with time zone,
-    billing_error text
+    billing_error text,
+    credits_debited bigint DEFAULT 0 NOT NULL,
+    billing_cost_source text DEFAULT ''::text NOT NULL
 );
 
 CREATE TABLE hindsight_banks (

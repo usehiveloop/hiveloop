@@ -150,7 +150,7 @@ func MintProxyToken(ctx context.Context, deps CompileDeps, agent *model.Employee
 		agent.OrgID.String(),
 		cred.ID.String(),
 		proxyTokenTTL,
-		token.MintOptions{IsSystem: cred.IsSystem},
+		token.MintOptions{IsSystem: cred.OrgID == nil},
 	)
 	if err != nil {
 		return nil, fmt.Errorf("mint proxy token: %w", err)
@@ -279,15 +279,12 @@ func CompileSpecialist(ctx context.Context, deps CompileDeps, employee *model.Em
 }
 
 func ControlPlaneOutboundChannels(cfg *config.Config, sandboxID uuid.UUID) []any {
-	bridgeHost := "api.usehivy.com"
-	if cfg != nil && strings.TrimSpace(cfg.SpecialistSandboxHost) != "" {
-		bridgeHost = strings.TrimRight(strings.TrimSpace(cfg.SpecialistSandboxHost), "/")
-	}
+	baseURL := cfg.RuntimeControlPlaneBaseURL()
 	return []any{
 		map[string]any{
 			"name":       "control-plane-memory",
 			"type":       "webhook",
-			"url":        fmt.Sprintf("https://%s/internal/webhooks/employee/%s", bridgeHost, sandboxID),
+			"url":        fmt.Sprintf("%s/internal/webhooks/employee/%s", baseURL, sandboxID),
 			"secret_env": EmployeeEnvRuntimeSecret,
 		},
 	}

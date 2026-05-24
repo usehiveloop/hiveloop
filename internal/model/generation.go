@@ -49,6 +49,9 @@ type Generation struct {
 	IsSystem     bool       `gorm:"default:false;not null" json:"is_system"`
 	BilledAt     *time.Time `json:"billed_at,omitempty"`
 	BillingError string     `gorm:"type:text" json:"billing_error,omitempty"`
+
+	CreditsDebited    int64  `gorm:"default:0;not null" json:"credits_debited"`
+	BillingCostSource string `gorm:"type:text;default:'';not null" json:"billing_cost_source,omitempty"`
 }
 
 func (Generation) TableName() string { return "generations" }

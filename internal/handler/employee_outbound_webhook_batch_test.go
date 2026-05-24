@@ -67,14 +67,11 @@ func TestEmployeeOutboundWebhookBatch_IngestsCoalescedStreamWithoutPerDeltaRows(
 	finalPayload := map[string]any{
 		"session_id": "C123-1779137680.936289",
 		"source":     "slack",
-		"agent_event": map[string]any{
-			"kind": "final_message",
-			"text": "Done.",
-		},
+		"text":       "Done.",
 	}
 	body := gzipNDJSON(t,
 		employeeOutboundEvent{EventType: "agent.stream.thinking", Payload: mustJSON(t, streamPayload), At: time.Now().UTC()},
-		employeeOutboundEvent{EventType: "agent.final_message", Payload: mustJSON(t, finalPayload), At: time.Now().UTC()},
+		employeeOutboundEvent{EventType: "agent.message.sent", Payload: mustJSON(t, finalPayload), At: time.Now().UTC()},
 	)
 	req := httptest.NewRequest(http.MethodPost, "/internal/webhooks/employee/"+sandbox.ID.String()+"/batch", bytes.NewReader(body))
 	req.Header.Set("Content-Encoding", "gzip")

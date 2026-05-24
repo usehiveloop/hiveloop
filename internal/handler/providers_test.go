@@ -6,7 +6,6 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/usehivy/hivy/internal/credentials"
 	"github.com/usehivy/hivy/internal/handler"
 	"github.com/usehivy/hivy/internal/model"
 	"github.com/usehivy/hivy/internal/registry"
@@ -14,30 +13,23 @@ import (
 
 func TestProviderHandler_AllModelsReturnsCanonicalModels(t *testing.T) {
 	db := connectTestDB(t)
-	if err := credentials.SeedPlatformOrg(db); err != nil {
-		t.Fatalf("seed platform org: %v", err)
-	}
 
 	creds := []model.Credential{
 		{
-			OrgID:        credentials.PlatformOrgID,
 			Label:        "test-anthropic",
 			BaseURL:      "https://api.anthropic.com",
 			AuthScheme:   "bearer",
 			ProviderID:   "anthropic",
 			EncryptedKey: []byte("enc"),
 			WrappedDEK:   []byte("dek"),
-			IsSystem:     true,
 		},
 		{
-			OrgID:        credentials.PlatformOrgID,
 			Label:        "test-openrouter",
 			BaseURL:      "https://openrouter.ai/api/v1",
 			AuthScheme:   "bearer",
 			ProviderID:   "openrouter",
 			EncryptedKey: []byte("enc"),
 			WrappedDEK:   []byte("dek"),
-			IsSystem:     true,
 		},
 	}
 	if err := db.Create(&creds).Error; err != nil {

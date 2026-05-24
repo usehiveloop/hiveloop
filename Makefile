@@ -1,12 +1,22 @@
-.PHONY: build test test-e2e test-handler-sharded lint check-file-length vet check up down dev dev-nango dev-nango-secret clean fetch-actions generate docker-build docker-run migrate-up migrate-status migrate-version test-clean test-clean-auth test-clean-nango test-clean-proxy test-clean-connect test-clean-integrations test-auth test-nango test-real-nango test-proxy test-connect test-integrations test-connections test-sandbox-docker test-setup test-setup-nango openapi generate-auth-keys generate-bridge-client generate-sandbox-runtime-client build-sandbox-runtime-templates build-sandbox-runtime-specialist-templates employee-env-doctor employee-debug-pack test-services-up test-services-down ragtest-slack-live ragtest-kb-search-live seed-test local-up local-down local-reset local-status login-test asynq-peek
-.PHONY: sandbox-runtime-build sandbox-runtime-test sandbox-runtime-fmt-check sandbox-runtime-clippy sandbox-runtime-openapi runtime-openapi sandbox-runtime-image sandbox-runtime-specialist-image sandbox-runtime-image-test
+.PHONY: build test test-e2e test-handler-sharded lint check-file-length vet check infra-up app-up app-up-build up up-build down dev dev-build dev-nango dev-nango-secret dev-migrate clean fetch-actions generate docker-build docker-run migrate-up migrate-status migrate-version test-clean test-clean-auth test-clean-nango test-clean-proxy test-clean-connect test-clean-integrations test-auth test-nango test-real-nango test-proxy test-connect test-integrations test-connections test-sandbox-docker test-setup test-setup-nango openapi generate-auth-keys generate-bridge-client generate-sandbox-runtime-client build-sandbox-runtime-templates build-sandbox-runtime-specialist-templates employee-env-doctor employee-debug-pack test-services-up test-services-down ragtest-slack-live ragtest-kb-search-live seed-test local-up local-down local-reset local-status login-test asynq-peek
+.PHONY: sandbox-runtime-build sandbox-runtime-native-release sandbox-runtime-linux-build sandbox-runtime-linux-build-amd64 sandbox-runtime-linux-build-arm64 sandbox-runtime-linux-build-all sandbox-runtime-release-all sandbox-runtime-test sandbox-runtime-fmt-check sandbox-runtime-clippy sandbox-runtime-openapi runtime-openapi sandbox-runtime-image sandbox-runtime-image-amd64 sandbox-runtime-image-arm64 sandbox-runtime-specialist-image sandbox-runtime-specialist-image-amd64 sandbox-runtime-specialist-image-arm64 sandbox-runtime-image-test
 
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 COMMIT  ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo unknown)
 IMAGE   ?= usehivy/hivy
 SANDBOX_RUNTIME_DIR ?= sandboxes/runtime
+SANDBOX_RUNTIME_LINUX_TARGET ?= $(shell arch=`uname -m`; if [ "$$arch" = "arm64" ] || [ "$$arch" = "aarch64" ]; then echo aarch64-unknown-linux-gnu; else echo x86_64-unknown-linux-gnu; fi)
+SANDBOX_RUNTIME_LINUX_AMD64_TARGET := x86_64-unknown-linux-gnu
+SANDBOX_RUNTIME_LINUX_ARM64_TARGET := aarch64-unknown-linux-gnu
+SANDBOX_RUNTIME_LINUX_BINARY := dist/hivy-sandboxes-runtime-$(SANDBOX_RUNTIME_LINUX_TARGET)
+SANDBOX_RUNTIME_LINUX_AMD64_BINARY := dist/hivy-sandboxes-runtime-$(SANDBOX_RUNTIME_LINUX_AMD64_TARGET)
+SANDBOX_RUNTIME_LINUX_ARM64_BINARY := dist/hivy-sandboxes-runtime-$(SANDBOX_RUNTIME_LINUX_ARM64_TARGET)
+SANDBOX_RUNTIME_IMAGE ?= hivy-sandboxes-runtime:runtime
+SANDBOX_RUNTIME_SPECIALIST_IMAGE ?= hivy-sandboxes-runtime-specialist:runtime
 GO_BIN ?= $(shell if command -v go >/dev/null 2>&1; then command -v go; elif [ -x /opt/homebrew/bin/go ]; then echo /opt/homebrew/bin/go; elif [ -x /usr/local/go/bin/go ]; then echo /usr/local/go/bin/go; else echo go; fi)
 DEV_COMPOSE_SERVICES ?= postgres redis nango qdrant minio minio-setup hindsight api worker web
+DEV_INFRA_SERVICES ?= postgres redis nango qdrant minio minio-setup hindsight
+DEV_APP_SERVICES ?= api worker web
 NANGO_SECRET_SQL = SELECT secret_key FROM nango._nango_environments WHERE name='\''prod'\'' LIMIT 1
 TEST_DATABASE_URL ?= postgres://hivy:localdev@localhost:$(or $(HIVY_COMPOSE_POSTGRES_PORT),15432)/hivy_test?sslmode=disable
 TEST_REDIS_ADDR ?= localhost:$(or $(HIVY_COMPOSE_REDIS_PORT),16379)
@@ -121,6 +131,22 @@ generate-sandbox-runtime-client:
 sandbox-runtime-build:
 	cd $(SANDBOX_RUNTIME_DIR) && cargo build --workspace --all-targets --locked
 
+sandbox-runtime-native-release:
+	cd $(SANDBOX_RUNTIME_DIR) && cargo build --release --locked -p hivy-sandboxes-runtime
+
+sandbox-runtime-linux-build:
+	cd $(SANDBOX_RUNTIME_DIR) && HIVY_SANDBOXES_RUNTIME_LINUX_TARGET="$(SANDBOX_RUNTIME_LINUX_TARGET)" HIVY_SANDBOXES_RUNTIME_LINUX_BINARY="$(SANDBOX_RUNTIME_LINUX_BINARY)" scripts/build_linux_release.sh
+
+sandbox-runtime-linux-build-amd64:
+	cd $(SANDBOX_RUNTIME_DIR) && HIVY_SANDBOXES_RUNTIME_LINUX_TARGET="$(SANDBOX_RUNTIME_LINUX_AMD64_TARGET)" HIVY_SANDBOXES_RUNTIME_LINUX_BINARY="$(SANDBOX_RUNTIME_LINUX_AMD64_BINARY)" scripts/build_linux_release.sh
+
+sandbox-runtime-linux-build-arm64:
+	cd $(SANDBOX_RUNTIME_DIR) && HIVY_SANDBOXES_RUNTIME_LINUX_TARGET="$(SANDBOX_RUNTIME_LINUX_ARM64_TARGET)" HIVY_SANDBOXES_RUNTIME_LINUX_BINARY="$(SANDBOX_RUNTIME_LINUX_ARM64_BINARY)" scripts/build_linux_release.sh
+
+sandbox-runtime-linux-build-all: sandbox-runtime-linux-build-amd64 sandbox-runtime-linux-build-arm64
+
+sandbox-runtime-release-all: sandbox-runtime-native-release sandbox-runtime-linux-build-all
+
 sandbox-runtime-test:
 	cd $(SANDBOX_RUNTIME_DIR) && cargo test --workspace --locked
 
@@ -133,11 +159,23 @@ sandbox-runtime-clippy:
 sandbox-runtime-openapi runtime-openapi:
 	$(MAKE) -C $(SANDBOX_RUNTIME_DIR) openapi
 
-sandbox-runtime-image:
-	cd $(SANDBOX_RUNTIME_DIR) && cargo build --release --locked -p hivy-sandboxes-runtime && scripts/build_runtime_image.sh
+sandbox-runtime-image: sandbox-runtime-linux-build
+	cd $(SANDBOX_RUNTIME_DIR) && HIVY_SANDBOXES_RUNTIME_BINARY="$(SANDBOX_RUNTIME_LINUX_BINARY)" HIVY_SANDBOXES_RUNTIME_IMAGE="$(SANDBOX_RUNTIME_IMAGE)" scripts/build_runtime_image.sh
 
-sandbox-runtime-specialist-image:
-	cd $(SANDBOX_RUNTIME_DIR) && cargo build --release --locked -p hivy-sandboxes-runtime && HIVY_SANDBOXES_RUNTIME_PROFILE=specialist HIVY_SANDBOXES_RUNTIME_IMAGE=hivy-sandboxes-runtime-specialist:runtime scripts/build_runtime_image.sh
+sandbox-runtime-image-amd64: sandbox-runtime-linux-build-amd64
+	cd $(SANDBOX_RUNTIME_DIR) && HIVY_SANDBOXES_RUNTIME_BINARY="$(SANDBOX_RUNTIME_LINUX_AMD64_BINARY)" HIVY_SANDBOXES_RUNTIME_IMAGE="$(SANDBOX_RUNTIME_IMAGE)-amd64" scripts/build_runtime_image.sh
+
+sandbox-runtime-image-arm64: sandbox-runtime-linux-build-arm64
+	cd $(SANDBOX_RUNTIME_DIR) && HIVY_SANDBOXES_RUNTIME_BINARY="$(SANDBOX_RUNTIME_LINUX_ARM64_BINARY)" HIVY_SANDBOXES_RUNTIME_IMAGE="$(SANDBOX_RUNTIME_IMAGE)-arm64" scripts/build_runtime_image.sh
+
+sandbox-runtime-specialist-image: sandbox-runtime-linux-build
+	cd $(SANDBOX_RUNTIME_DIR) && HIVY_SANDBOXES_RUNTIME_BINARY="$(SANDBOX_RUNTIME_LINUX_BINARY)" HIVY_SANDBOXES_RUNTIME_PROFILE=specialist HIVY_SANDBOXES_RUNTIME_IMAGE="$(SANDBOX_RUNTIME_SPECIALIST_IMAGE)" scripts/build_runtime_image.sh
+
+sandbox-runtime-specialist-image-amd64: sandbox-runtime-linux-build-amd64
+	cd $(SANDBOX_RUNTIME_DIR) && HIVY_SANDBOXES_RUNTIME_BINARY="$(SANDBOX_RUNTIME_LINUX_AMD64_BINARY)" HIVY_SANDBOXES_RUNTIME_PROFILE=specialist HIVY_SANDBOXES_RUNTIME_IMAGE="$(SANDBOX_RUNTIME_SPECIALIST_IMAGE)-amd64" scripts/build_runtime_image.sh
+
+sandbox-runtime-specialist-image-arm64: sandbox-runtime-linux-build-arm64
+	cd $(SANDBOX_RUNTIME_DIR) && HIVY_SANDBOXES_RUNTIME_BINARY="$(SANDBOX_RUNTIME_LINUX_ARM64_BINARY)" HIVY_SANDBOXES_RUNTIME_PROFILE=specialist HIVY_SANDBOXES_RUNTIME_IMAGE="$(SANDBOX_RUNTIME_SPECIALIST_IMAGE)-arm64" scripts/build_runtime_image.sh
 
 sandbox-runtime-image-test:
 	cd $(SANDBOX_RUNTIME_DIR) && scripts/test_runtime_image.sh
@@ -271,19 +309,51 @@ dev-nango-secret:
 	if [ -z "$$secret" ]; then echo "Nango secret not found; run make dev-nango first" >&2; exit 1; fi; \
 	printf '%s\n' "$$secret"
 
-# Start the complete local development stack through docker compose in the background.
-up:
+dev-migrate:
+	@set -a; [ ! -f .env ] || . ./.env; set +a; \
+	secret=$$($(MAKE) -s dev-nango-secret); \
+	port=$$(docker compose port postgres 5432 | awk -F: '{print $$NF}' | tail -1); \
+	if [ -z "$$port" ]; then echo "Postgres port not found; run make infra-up first" >&2; exit 1; fi; \
+	echo "Running Hivy database migrations on localhost:$$port"; \
+	HIVY_NANGO_SECRET_KEY="$$secret" \
+	HIVY_DATABASE_URL="postgres://$${HIVY_DB_USER:-hivy}:$${HIVY_DB_PASSWORD:-localdev}@localhost:$$port/$${HIVY_DB_NAME:-hivy}?sslmode=$${HIVY_DB_SSLMODE:-disable}" \
+	go run ./cmd/server migrate up
+
+infra-up:
 	@$(MAKE) -s dev-nango >/dev/null
+	docker compose up -d qdrant minio minio-setup hindsight
+
+app-up:
 	@secret=$$($(MAKE) -s dev-nango-secret); \
-	echo "Starting Hivy dev stack in background with local Nango secret"; \
-	HIVY_NANGO_SECRET_KEY="$$secret" docker compose up -d --build $(DEV_COMPOSE_SERVICES)
+	echo "Starting Hivy app containers with local Nango secret"; \
+	HIVY_NANGO_SECRET_KEY="$$secret" docker compose up -d $(DEV_APP_SERVICES)
+
+app-up-build:
+	@secret=$$($(MAKE) -s dev-nango-secret); \
+	echo "Building and starting Hivy app containers with local Nango secret"; \
+	HIVY_NANGO_SECRET_KEY="$$secret" docker compose up -d --build $(DEV_APP_SERVICES)
+
+# Start the complete local development stack through docker compose in the background.
+up: infra-up
+	@$(MAKE) -s dev-migrate
+	@$(MAKE) -s app-up
+
+up-build: infra-up
+	@$(MAKE) -s dev-migrate
+	@$(MAKE) -s app-up-build
 
 # Start the complete local development stack through docker compose in foreground dev mode.
-dev:
-	@$(MAKE) -s dev-nango >/dev/null
+dev: infra-up
+	@$(MAKE) -s dev-migrate
 	@secret=$$($(MAKE) -s dev-nango-secret); \
 	echo "Starting Hivy dev stack with local Nango secret"; \
-	HIVY_NANGO_SECRET_KEY="$$secret" docker compose up --build $(DEV_COMPOSE_SERVICES)
+	HIVY_NANGO_SECRET_KEY="$$secret" docker compose up $(DEV_APP_SERVICES)
+
+dev-build: infra-up
+	@$(MAKE) -s dev-migrate
+	@secret=$$($(MAKE) -s dev-nango-secret); \
+	echo "Building and starting Hivy dev stack with local Nango secret"; \
+	HIVY_NANGO_SECRET_KEY="$$secret" docker compose up --build $(DEV_APP_SERVICES)
 
 # Clean slate: tear down, rebuild, run all tests
 test-clean:

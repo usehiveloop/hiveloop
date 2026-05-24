@@ -88,7 +88,7 @@ func newEmployeeUpgradeFixture(t *testing.T) *employeeUpgradeFixture {
 		t.Fatalf("create user: %v", err)
 	}
 	cred := model.Credential{
-		OrgID:        org.ID,
+		OrgID:        &org.ID,
 		Label:        "employee-upgrade",
 		BaseURL:      "https://proxy.test",
 		AuthScheme:   "bearer",

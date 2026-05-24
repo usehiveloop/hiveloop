@@ -216,6 +216,7 @@ impl AgentRunner for RigAgentRunner {
                                         "total_tokens": usage.total_tokens,
                                         "cached_tokens": usage.cached_tokens,
                                         "cache_write_tokens": usage.cache_write_tokens,
+                                        "reasoning_tokens": usage.reasoning_tokens,
                                         "cost": usage.cost,
                                     }
                                 }),
@@ -226,6 +227,7 @@ impl AgentRunner for RigAgentRunner {
                                 total_tokens = usage.total_tokens,
                                 cached_tokens = usage.cached_tokens,
                                 cache_write_tokens = usage.cache_write_tokens,
+                                reasoning_tokens = usage.reasoning_tokens,
                                 cost = usage.cost,
                                 "model usage"
                             );

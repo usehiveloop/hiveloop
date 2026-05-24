@@ -2,23 +2,18 @@ package employeeruntime
 
 import (
 	"encoding/json"
-	"strings"
 
 	"github.com/usehivy/hivy/internal/config"
 	"github.com/usehivy/hivy/internal/model"
 )
 
 func proxyModel(cfg *config.Config, modelID string) ModelConfig {
-	baseURL := "https://proxy.usehivy.com/v1"
-	if cfg != nil && cfg.ProxyHost != "" {
-		baseURL = "https://" + strings.TrimRight(cfg.ProxyHost, "/") + "/v1"
-	}
 	temp := 0.3
 	maxOutput := uint32(8192)
 	reasoning := "low"
 	return ModelConfig{
 		Provider:        "openai_compatible",
-		BaseURL:         baseURL,
+		BaseURL:         cfg.ProxyOpenAIBaseURL(),
 		ModelID:         modelID,
 		APIKeyEnv:       ProxyAPIKeyEnv,
 		Temperature:     &temp,

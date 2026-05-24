@@ -35,7 +35,7 @@ ALTER SEQUENCE audit_log_id_seq OWNED BY audit_log.id;
 
 CREATE TABLE credentials (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
-    org_id uuid NOT NULL,
+    org_id uuid,
     label text DEFAULT ''::text NOT NULL,
     base_url text NOT NULL,
     auth_scheme text NOT NULL,
@@ -47,7 +47,6 @@ CREATE TABLE credentials (
     last_refill_at timestamp with time zone,
     provider_id text DEFAULT ''::text,
     meta jsonb DEFAULT '{}'::jsonb,
-    is_system boolean DEFAULT false NOT NULL,
     revoked_at timestamp with time zone,
     created_at timestamp with time zone
 );
@@ -89,8 +88,6 @@ CREATE INDEX idx_api_keys_org_id ON api_keys USING btree (org_id);
 CREATE INDEX idx_audit_credential ON audit_log USING btree (credential_id);
 
 CREATE INDEX idx_audit_org_created ON audit_log USING btree (org_id, created_at);
-
-CREATE INDEX idx_credentials_is_system ON credentials USING btree (is_system);
 
 CREATE INDEX idx_credentials_org_id ON credentials USING btree (org_id);
 

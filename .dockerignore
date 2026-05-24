@@ -1,6 +1,12 @@
 # Build artifacts
 bin/
 server
+buildtemplates
+fetchactions-*
+handler.test
+sandbox.test
+daytona.test
+*.test
 *.exe
 *.test
 *.out
@@ -33,10 +39,16 @@ logs.txt
 apps/
 packages/
 services/
+sandboxes/
 node_modules/
 venv/
 .venv*/
 .ignored/
+tmp/
+target/
+dist/
+**/target/
+**/dist/
 
 # Claude / AI agents
 .claude/

@@ -526,7 +526,10 @@ fn parse_thinking_delta(delta: &Value) -> Option<String> {
 
 fn parse_usage(value: &Value) -> Option<ProviderUsage> {
     let usage = value.get("usage")?;
-    let details = usage.get("prompt_tokens_details").unwrap_or(&Value::Null);
+    let prompt_details = usage.get("prompt_tokens_details").unwrap_or(&Value::Null);
+    let completion_details = usage
+        .get("completion_tokens_details")
+        .unwrap_or(&Value::Null);
     Some(ProviderUsage {
         prompt_tokens: usage
             .get("prompt_tokens")
@@ -540,12 +543,16 @@ fn parse_usage(value: &Value) -> Option<ProviderUsage> {
             .get("total_tokens")
             .and_then(|v| v.as_i64())
             .unwrap_or_default(),
-        cached_tokens: details
+        cached_tokens: prompt_details
             .get("cached_tokens")
             .and_then(|v| v.as_i64())
             .unwrap_or_default(),
-        cache_write_tokens: details
+        cache_write_tokens: prompt_details
             .get("cache_write_tokens")
+            .and_then(|v| v.as_i64())
+            .unwrap_or_default(),
+        reasoning_tokens: completion_details
+            .get("reasoning_tokens")
             .and_then(|v| v.as_i64())
             .unwrap_or_default(),
         cost: usage.get("cost").and_then(|v| v.as_f64()),
@@ -626,7 +633,7 @@ mod tests {
     use crate::primitives::{AgentMessage, CacheControlPolicy, ModelRequest, ModelStreamEvent};
 
     use super::{
-        classify_http_error, parse_thinking_delta, ChatModelClient, ModelErrorClass,
+        classify_http_error, parse_thinking_delta, parse_usage, ChatModelClient, ModelErrorClass,
         ModelRetryPolicy,
     };
 
@@ -653,6 +660,34 @@ mod tests {
     #[test]
     fn ignores_missing_thinking_delta() {
         assert_eq!(parse_thinking_delta(&json!({"content": "visible"})), None);
+    }
+
+    #[test]
+    fn parses_reasoning_tokens_from_usage_details() {
+        let usage = parse_usage(&json!({
+            "usage": {
+                "prompt_tokens": 10,
+                "completion_tokens": 7,
+                "total_tokens": 17,
+                "prompt_tokens_details": {
+                    "cached_tokens": 3,
+                    "cache_write_tokens": 2
+                },
+                "completion_tokens_details": {
+                    "reasoning_tokens": 4
+                },
+                "cost": 0.001
+            }
+        }))
+        .expect("usage");
+
+        assert_eq!(usage.prompt_tokens, 10);
+        assert_eq!(usage.completion_tokens, 7);
+        assert_eq!(usage.total_tokens, 17);
+        assert_eq!(usage.cached_tokens, 3);
+        assert_eq!(usage.cache_write_tokens, 2);
+        assert_eq!(usage.reasoning_tokens, 4);
+        assert_eq!(usage.cost, Some(0.001));
     }
 
     #[test]

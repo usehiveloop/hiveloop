@@ -26,7 +26,7 @@ func TestPusherBuildAgentDefinition(t *testing.T) {
 
 	encrypted, _ := encKey.EncryptString("sk-test-key-for-pusher")
 	cred := model.Credential{
-		ID: uuid.New(), OrgID: org.ID,
+		ID: uuid.New(), OrgID: &org.ID,
 		ProviderID: "moonshotai", Label: "Test Kimi",
 		EncryptedKey: encrypted, WrappedDEK: []byte("test"),
 		BaseURL: "https://api.moonshot.cn", AuthScheme: "bearer",

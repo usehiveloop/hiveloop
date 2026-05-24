@@ -33,7 +33,7 @@ func pickActiveSystemCredentialForModel(ctx context.Context, db *gorm.DB, reg *r
 
 	var creds []model.Credential
 	if err := db.WithContext(ctx).
-		Where("is_system = ? AND revoked_at IS NULL", true).
+		Where("org_id IS NULL AND revoked_at IS NULL").
 		Order("created_at ASC").
 		Find(&creds).Error; err != nil {
 		return nil, fmt.Errorf("list active system credentials: %w", err)

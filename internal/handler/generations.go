@@ -22,54 +22,58 @@ func NewGenerationHandler(db *gorm.DB) *GenerationHandler {
 }
 
 type generationResponse struct {
-	ID              string   `json:"id"`
-	OrgID           string   `json:"org_id"`
-	CredentialID    string   `json:"credential_id"`
-	TokenJTI        string   `json:"token_jti"`
-	ProviderID      string   `json:"provider_id"`
-	Model           string   `json:"model"`
-	RequestPath     string   `json:"request_path"`
-	IsStreaming     bool     `json:"is_streaming"`
-	InputTokens     int      `json:"input_tokens"`
-	OutputTokens    int      `json:"output_tokens"`
-	CachedTokens    int      `json:"cached_tokens"`
-	ReasoningTokens int      `json:"reasoning_tokens"`
-	Cost            float64  `json:"cost"`
-	TTFBMs          *int     `json:"ttfb_ms,omitempty"`
-	TotalMs         int      `json:"total_ms"`
-	UpstreamStatus  int      `json:"upstream_status"`
-	UserID          string   `json:"user_id,omitempty"`
-	Tags            []string `json:"tags,omitempty"`
-	ErrorType       string   `json:"error_type,omitempty"`
-	ErrorMessage    string   `json:"error_message,omitempty"`
-	IPAddress       *string  `json:"ip_address,omitempty"`
-	CreatedAt       string   `json:"created_at"`
+	ID                string   `json:"id"`
+	OrgID             string   `json:"org_id"`
+	CredentialID      string   `json:"credential_id"`
+	TokenJTI          string   `json:"token_jti"`
+	ProviderID        string   `json:"provider_id"`
+	Model             string   `json:"model"`
+	RequestPath       string   `json:"request_path"`
+	IsStreaming       bool     `json:"is_streaming"`
+	InputTokens       int      `json:"input_tokens"`
+	OutputTokens      int      `json:"output_tokens"`
+	CachedTokens      int      `json:"cached_tokens"`
+	ReasoningTokens   int      `json:"reasoning_tokens"`
+	Cost              float64  `json:"cost"`
+	TTFBMs            *int     `json:"ttfb_ms,omitempty"`
+	TotalMs           int      `json:"total_ms"`
+	UpstreamStatus    int      `json:"upstream_status"`
+	UserID            string   `json:"user_id,omitempty"`
+	Tags              []string `json:"tags,omitempty"`
+	ErrorType         string   `json:"error_type,omitempty"`
+	ErrorMessage      string   `json:"error_message,omitempty"`
+	IPAddress         *string  `json:"ip_address,omitempty"`
+	CreatedAt         string   `json:"created_at"`
+	CreditsDebited    int64    `json:"credits_debited"`
+	BillingCostSource string   `json:"billing_cost_source,omitempty"`
 }
 
 func toGenerationResponse(g model.Generation) generationResponse {
 	resp := generationResponse{
-		ID:              g.ID,
-		OrgID:           g.OrgID.String(),
-		CredentialID:    g.CredentialID.String(),
-		TokenJTI:        g.TokenJTI,
-		ProviderID:      g.ProviderID,
-		Model:           g.Model,
-		RequestPath:     g.RequestPath,
-		IsStreaming:     g.IsStreaming,
-		InputTokens:     g.InputTokens,
-		OutputTokens:    g.OutputTokens,
-		CachedTokens:    g.CachedTokens,
-		ReasoningTokens: g.ReasoningTokens,
-		Cost:            g.Cost,
-		TTFBMs:          g.TTFBMs,
-		TotalMs:         g.TotalMs,
-		UpstreamStatus:  g.UpstreamStatus,
-		UserID:          g.UserID,
-		Tags:            g.Tags,
-		ErrorType:       g.ErrorType,
-		ErrorMessage:    g.ErrorMessage,
-		IPAddress:       g.IPAddress,
-		CreatedAt:       g.CreatedAt.Format(time.RFC3339),
+		ID:                g.ID,
+		OrgID:             g.OrgID.String(),
+		CredentialID:      g.CredentialID.String(),
+		TokenJTI:          g.TokenJTI,
+		ProviderID:        g.ProviderID,
+		Model:             g.Model,
+		RequestPath:       g.RequestPath,
+		IsStreaming:       g.IsStreaming,
+		InputTokens:       g.InputTokens,
+		OutputTokens:      g.OutputTokens,
+		CachedTokens:      g.CachedTokens,
+		ReasoningTokens:   g.ReasoningTokens,
+		Cost:              g.Cost,
+		TTFBMs:            g.TTFBMs,
+		TotalMs:           g.TotalMs,
+		UpstreamStatus:    g.UpstreamStatus,
+		UserID:            g.UserID,
+		Tags:              g.Tags,
+		ErrorType:         g.ErrorType,
+		ErrorMessage:      g.ErrorMessage,
+		IPAddress:         g.IPAddress,
+		CreatedAt:         g.CreatedAt.Format(time.RFC3339),
+		CreditsDebited:    g.CreditsDebited,
+		BillingCostSource: g.BillingCostSource,
 	}
 	if resp.Tags == nil {
 		resp.Tags = []string{}

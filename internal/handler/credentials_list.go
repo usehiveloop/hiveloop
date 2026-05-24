@@ -39,11 +39,7 @@ func (h *CredentialHandler) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// is_system = false is defense in depth: org scoping already prevents a
-	// customer from seeing the platform org's credentials, but this makes it
-	// impossible for a misconfigured row (is_system = true attached to a
-	// customer org) to leak either.
-	q := h.db.Where("credentials.org_id = ? AND credentials.is_system = ?", org.ID, false)
+	q := h.db.Where("credentials.org_id = ?", org.ID)
 
 	if metaFilter := r.URL.Query().Get("meta"); metaFilter != "" {
 		q = q.Where("credentials.meta @> ?::jsonb", metaFilter)
@@ -151,7 +147,7 @@ func (h *CredentialHandler) Get(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var cred model.Credential
-	if err := h.db.Where("id = ? AND org_id = ? AND is_system = ?", credID, org.ID, false).First(&cred).Error; err != nil {
+	if err := h.db.Where("id = ? AND org_id = ?", credID, org.ID).First(&cred).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			writeJSON(w, http.StatusNotFound, map[string]string{"error": "credential not found"})
 			return

@@ -52,7 +52,7 @@ func pushHarnessFixture(t *testing.T, storedHarness string) map[string]any {
 		t.Fatalf("encrypt: %v", err)
 	}
 	cred := model.Credential{
-		ID: uuid.New(), OrgID: org.ID,
+		ID: uuid.New(), OrgID: &org.ID,
 		ProviderID: "openai", Label: "OpenAI",
 		EncryptedKey: encrypted, WrappedDEK: []byte("test"),
 		BaseURL: "https://api.openai.com", AuthScheme: "bearer",

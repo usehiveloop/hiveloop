@@ -21,10 +21,16 @@ func TestBatch_DeductsSingleRow(t *testing.T) {
 	if g.BillingError != "" {
 		t.Errorf("expected no billing error, got %q", g.BillingError)
 	}
+	if g.CreditsDebited != creditsForTestCost(1) {
+		t.Errorf("credits_debited = %d, want %d", g.CreditsDebited, creditsForTestCost(1))
+	}
+	if g.BillingCostSource != billing.CostSourceProvider {
+		t.Errorf("billing_cost_source = %q, want %q", g.BillingCostSource, billing.CostSourceProvider)
+	}
 
 	bal, _ := billing.NewCreditsService(db).Balance(orgID)
-	if bal != 10_000-testCreditsPerGen {
-		t.Errorf("balance after single deduction = %d, want %d", bal, 10_000-testCreditsPerGen)
+	if bal != 10_000-creditsForTestCost(1) {
+		t.Errorf("balance after single deduction = %d, want %d", bal, 10_000-creditsForTestCost(1))
 	}
 }
 
@@ -48,7 +54,7 @@ func TestBatch_GroupsPerOrgIntoOneLedgerEntry(t *testing.T) {
 	}
 
 	bal, _ := billing.NewCreditsService(db).Balance(orgID)
-	want := int64(10_000 - N*testCreditsPerGen)
+	want := int64(10_000 - creditsForTestCost(N))
 	if bal != want {
 		t.Errorf("balance after %d-row batch = %d, want %d", N, bal, want)
 	}
@@ -72,14 +78,14 @@ func TestBatch_MultiOrgIndependentDeductions(t *testing.T) {
 	balB, _ := credits.Balance(orgB)
 	balC, _ := credits.Balance(orgC)
 
-	if balA != 10_000-2*testCreditsPerGen {
-		t.Errorf("orgA balance = %d, want %d", balA, 10_000-2*testCreditsPerGen)
+	if balA != 10_000-creditsForTestCost(2) {
+		t.Errorf("orgA balance = %d, want %d", balA, 10_000-creditsForTestCost(2))
 	}
-	if balB != 5_000-testCreditsPerGen {
-		t.Errorf("orgB balance = %d, want %d", balB, 5_000-testCreditsPerGen)
+	if balB != 5_000-creditsForTestCost(1) {
+		t.Errorf("orgB balance = %d, want %d", balB, 5_000-creditsForTestCost(1))
 	}
-	if balC != 1_000-testCreditsPerGen {
-		t.Errorf("orgC balance = %d, want %d", balC, 1_000-testCreditsPerGen)
+	if balC != 1_000-creditsForTestCost(1) {
+		t.Errorf("orgC balance = %d, want %d", balC, 1_000-creditsForTestCost(1))
 	}
 }
 
@@ -110,6 +116,7 @@ func TestBatch_SkipsBYOKAndZeroTokenRows(t *testing.T) {
 	zero := defaultGenOpts()
 	zero.InputTokens = 0
 	zero.OutputTokens = 0
+	zero.Cost = 0
 	zeroID := insertGeneration(t, db, orgID, credID, zero)
 
 	runBatch(t, db)
@@ -132,6 +139,7 @@ func TestBatch_UnknownModelMarksErrorWithoutDeduction(t *testing.T) {
 
 	bad := defaultGenOpts()
 	bad.Model = "definitely-not-a-real-model"
+	bad.Cost = 0
 	badID := insertGeneration(t, db, orgID, credID, bad)
 	goodID := insertGeneration(t, db, orgID, credID, defaultGenOpts())
 
@@ -148,18 +156,22 @@ func TestBatch_UnknownModelMarksErrorWithoutDeduction(t *testing.T) {
 		t.Error("good row should not be tagged with the bad row's error")
 	}
 	bal, _ := billing.NewCreditsService(db).Balance(orgID)
-	if bal != 10_000-testCreditsPerGen {
-		t.Errorf("only the good row should have deducted: balance = %d, want %d", bal, 10_000-testCreditsPerGen)
+	if bal != 10_000-creditsForTestCost(1) {
+		t.Errorf("only the good row should have deducted: balance = %d, want %d", bal, 10_000-creditsForTestCost(1))
 	}
 }
 
 func TestBatch_ResolvesModelFromAgentWhenGenerationModelEmpty(t *testing.T) {
 	db := connectDB(t)
 	orgID, credID := seedOrgWithCredentialAndCredits(t, db, 10_000)
-	jti := seedAgentWithToken(t, db, orgID, credID, testModel)
+	jti := seedAgentWithToken(t, db, orgID, credID, "deepseek-v4-flash")
 
 	opts := defaultGenOpts()
 	opts.Model = ""
+	opts.ProviderID = "openrouter"
+	opts.Cost = 0
+	opts.InputTokens = 5_624
+	opts.OutputTokens = 124
 	opts.TokenJTI = jti
 	id := insertGeneration(t, db, orgID, credID, opts)
 
@@ -169,9 +181,16 @@ func TestBatch_ResolvesModelFromAgentWhenGenerationModelEmpty(t *testing.T) {
 	if g.BillingError != "" {
 		t.Errorf("expected agent fallback to resolve model, got error %q", g.BillingError)
 	}
+	if g.BillingCostSource != billing.CostSourceRegistry {
+		t.Errorf("billing_cost_source = %q, want %q", g.BillingCostSource, billing.CostSourceRegistry)
+	}
+	if g.Cost <= 0 {
+		t.Fatal("registry-estimated row should write estimated cost back to generations.cost")
+	}
+	wantCredits := billing.CostUSDToCredits(g.Cost)
 	bal, _ := billing.NewCreditsService(db).Balance(orgID)
-	if bal != 10_000-testCreditsPerGen {
-		t.Errorf("balance after agent-resolved deduction = %d, want %d", bal, 10_000-testCreditsPerGen)
+	if bal != 10_000-wantCredits {
+		t.Errorf("balance after agent-resolved deduction = %d, want %d", bal, 10_000-wantCredits)
 	}
 }
 
@@ -181,6 +200,7 @@ func TestBatch_UnresolvableModelMarksError(t *testing.T) {
 
 	opts := defaultGenOpts()
 	opts.Model = ""
+	opts.Cost = 0
 	id := insertGeneration(t, db, orgID, credID, opts)
 
 	runBatch(t, db)
@@ -226,7 +246,7 @@ func TestBatch_InsufficientBalanceMarksRowsAndContinues(t *testing.T) {
 	if bp != 10 {
 		t.Errorf("poor org balance changed despite insufficient credits: %d", bp)
 	}
-	if br != 10_000-testCreditsPerGen {
+	if br != 10_000-creditsForTestCost(1) {
 		t.Errorf("rich org should be deducted normally: %d", br)
 	}
 }

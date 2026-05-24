@@ -103,7 +103,7 @@ func TestSystemTask_NoSystemCredential_Returns503(t *testing.T) {
 	h := newSystemTaskHarness(t, func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})
-	if err := h.db.Where("is_system = ?", true).Delete(&model.Credential{}).Error; err != nil {
+	if err := h.db.Where("org_id IS NULL").Delete(&model.Credential{}).Error; err != nil {
 		t.Fatalf("wipe creds: %v", err)
 	}
 
@@ -130,7 +130,7 @@ func TestSystemTask_RevokedCredentialIgnored(t *testing.T) {
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write([]byte(chatCompletionResponse(promptWriterPayload, 5, 5)))
 	})
-	if err := h.db.Model(&model.Credential{}).Where("is_system = ?", true).Update("revoked_at", &revokedAt).Error; err != nil {
+	if err := h.db.Model(&model.Credential{}).Where("org_id IS NULL").Update("revoked_at", &revokedAt).Error; err != nil {
 		t.Fatalf("revoke: %v", err)
 	}
 	kms := newSystemTaskKMS(t)

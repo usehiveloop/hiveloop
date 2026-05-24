@@ -45,7 +45,7 @@ func (o *Orchestrator) createSandbox(ctx context.Context, org *model.Org, agent 
 		return nil, fmt.Errorf("loading owning employee: %w", err)
 	}
 
-	webhookURL := fmt.Sprintf("https://%s/internal/webhooks/employee/%s", o.cfg.SpecialistSandboxHost, sb.ID)
+	webhookURL := fmt.Sprintf("%s/internal/webhooks/employee/%s", o.cfg.RuntimeControlPlaneBaseURL(), sb.ID)
 	envVars := baseEnvVars(o.cfg, bridgeAPIKey, sb.ID, webhookURL)
 	setOrgEnvVars(envVars, org.ID)
 	setAgentEnvVars(envVars, agent, o.cfg)

@@ -31,7 +31,7 @@ func TestIntegration_TokenAuth_ValidToken(t *testing.T) {
 	}
 	cred := model.Credential{
 		ID:           credID,
-		OrgID:        orgID,
+		OrgID:        &orgID,
 		Label:        "test-cred",
 		BaseURL:      "https://api.example.com",
 		AuthScheme:   "bearer",
@@ -106,7 +106,7 @@ func TestIntegration_TokenAuth_RevokedToken(t *testing.T) {
 	}
 	cred := model.Credential{
 		ID:           credID,
-		OrgID:        orgID,
+		OrgID:        &orgID,
 		Label:        "test-cred",
 		BaseURL:      "https://api.example.com",
 		AuthScheme:   "bearer",
@@ -187,7 +187,7 @@ func TestIntegration_TokenAuth_XApiKey(t *testing.T) {
 	orgID := uuid.New()
 	credID := uuid.New()
 	db.Create(&model.Org{ID: orgID, Name: "token-xapikey-" + uuid.New().String()[:8], RateLimit: 1000, Active: true})
-	db.Create(&model.Credential{ID: credID, OrgID: orgID, Label: "test", BaseURL: "https://api.anthropic.com", AuthScheme: "x-api-key", EncryptedKey: []byte("e"), WrappedDEK: []byte("w")})
+	db.Create(&model.Credential{ID: credID, OrgID: &orgID, Label: "test", BaseURL: "https://api.anthropic.com", AuthScheme: "x-api-key", EncryptedKey: []byte("e"), WrappedDEK: []byte("w")})
 	t.Cleanup(func() { cleanupOrg(t, db, orgID) })
 
 	signingKey := []byte(testSigningKey)
@@ -220,7 +220,7 @@ func TestIntegration_TokenAuth_AzureApiKey(t *testing.T) {
 	orgID := uuid.New()
 	credID := uuid.New()
 	db.Create(&model.Org{ID: orgID, Name: "token-azure-" + uuid.New().String()[:8], RateLimit: 1000, Active: true})
-	db.Create(&model.Credential{ID: credID, OrgID: orgID, Label: "test", BaseURL: "https://myinstance.openai.azure.com", AuthScheme: "api-key", EncryptedKey: []byte("e"), WrappedDEK: []byte("w")})
+	db.Create(&model.Credential{ID: credID, OrgID: &orgID, Label: "test", BaseURL: "https://myinstance.openai.azure.com", AuthScheme: "api-key", EncryptedKey: []byte("e"), WrappedDEK: []byte("w")})
 	t.Cleanup(func() { cleanupOrg(t, db, orgID) })
 
 	signingKey := []byte(testSigningKey)
@@ -253,7 +253,7 @@ func TestIntegration_TokenAuth_QueryParam(t *testing.T) {
 	orgID := uuid.New()
 	credID := uuid.New()
 	db.Create(&model.Org{ID: orgID, Name: "token-google-" + uuid.New().String()[:8], RateLimit: 1000, Active: true})
-	db.Create(&model.Credential{ID: credID, OrgID: orgID, Label: "test", BaseURL: "https://generativelanguage.googleapis.com", AuthScheme: "query_param", EncryptedKey: []byte("e"), WrappedDEK: []byte("w")})
+	db.Create(&model.Credential{ID: credID, OrgID: &orgID, Label: "test", BaseURL: "https://generativelanguage.googleapis.com", AuthScheme: "query_param", EncryptedKey: []byte("e"), WrappedDEK: []byte("w")})
 	t.Cleanup(func() { cleanupOrg(t, db, orgID) })
 
 	signingKey := []byte(testSigningKey)

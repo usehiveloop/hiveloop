@@ -40,7 +40,7 @@ func (p *PostgresPicker) Pick(ctx context.Context, providerGroup string) (*model
 
 	var all []model.Credential
 	if err := p.db.WithContext(ctx).
-		Where("is_system = ? AND revoked_at IS NULL", true).
+		Where("org_id IS NULL AND revoked_at IS NULL").
 		Find(&all).Error; err != nil {
 		return nil, fmt.Errorf("list system credentials: %w", err)
 	}
@@ -61,7 +61,7 @@ func (p *PostgresPicker) PickByModel(ctx context.Context, canonicalModelID strin
 
 	var all []model.Credential
 	if err := p.db.WithContext(ctx).
-		Where("is_system = ? AND revoked_at IS NULL", true).
+		Where("org_id IS NULL AND revoked_at IS NULL").
 		Order("created_at ASC").
 		Find(&all).Error; err != nil {
 		return nil, fmt.Errorf("list system credentials: %w", err)

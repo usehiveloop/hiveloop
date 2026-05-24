@@ -56,6 +56,7 @@ func TokenAuth(signingKey []byte, db *gorm.DB) func(http.Handler) http.Handler {
 				OrgID:        claims.OrgID,
 				CredentialID: claims.CredentialID,
 				JTI:          claims.ID,
+				TokenType:    tokenMetaString(tokenRecord.Meta, "type"),
 				IsSystem:     claims.IsSystem,
 			}
 
@@ -95,5 +96,12 @@ func extractProxyToken(r *http.Request) string {
 		return key
 	}
 
+	return ""
+}
+
+func tokenMetaString(meta model.JSON, key string) string {
+	if value, ok := meta[key].(string); ok {
+		return strings.TrimSpace(value)
+	}
 	return ""
 }

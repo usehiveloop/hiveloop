@@ -48,7 +48,6 @@ func TestResolve_PlatformAgentCallsPickerByModel(t *testing.T) {
 	sysCred := &model.Credential{
 		ID:         uuid.New(),
 		ProviderID: "moonshotai",
-		IsSystem:   true,
 	}
 	picker := &fakePicker{byModel: map[string]*model.Credential{"kimi-k2.5": sysCred}}
 

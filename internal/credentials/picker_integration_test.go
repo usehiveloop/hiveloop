@@ -10,9 +10,6 @@ import (
 
 func TestIntegration_Picker_ReturnsSystemCredentialForMatchingGroup(t *testing.T) {
 	db := connectTestDB(t)
-	if err := credentials.SeedPlatformOrg(db); err != nil {
-		t.Fatalf("seed: %v", err)
-	}
 
 	// Two system credentials for kimi group ("moonshotai" maps to "kimi")
 	// plus one for a different group — picker must never return the latter.
@@ -28,16 +25,13 @@ func TestIntegration_Picker_ReturnsSystemCredentialForMatchingGroup(t *testing.T
 	if got.ID != a.ID && got.ID != b.ID {
 		t.Fatalf("picked credential %s, expected one of %s/%s", got.ID, a.ID, b.ID)
 	}
-	if !got.IsSystem {
-		t.Errorf("picked credential is_system = false, should be true")
+	if got.OrgID != nil {
+		t.Errorf("picked system credential OrgID = %v, should be nil", got.OrgID)
 	}
 }
 
 func TestIntegration_Picker_FiltersRevokedCredentials(t *testing.T) {
 	db := connectTestDB(t)
-	if err := credentials.SeedPlatformOrg(db); err != nil {
-		t.Fatalf("seed: %v", err)
-	}
 
 	active := seedSystemCred(t, db, "moonshotai", false)
 	seedSystemCred(t, db, "kimi", true) // revoked — must be filtered out
@@ -58,9 +52,6 @@ func TestIntegration_Picker_FiltersRevokedCredentials(t *testing.T) {
 
 func TestIntegration_Picker_IgnoresNonSystemCredentials(t *testing.T) {
 	db := connectTestDB(t)
-	if err := credentials.SeedPlatformOrg(db); err != nil {
-		t.Fatalf("seed: %v", err)
-	}
 	orgID := seedBYOKOrg(t, db)
 	seedBYOKCred(t, db, orgID, "moonshotai") // user-owned, must be ignored
 
@@ -73,9 +64,6 @@ func TestIntegration_Picker_IgnoresNonSystemCredentials(t *testing.T) {
 
 func TestIntegration_Picker_NoMatchReturnsSentinel(t *testing.T) {
 	db := connectTestDB(t)
-	if err := credentials.SeedPlatformOrg(db); err != nil {
-		t.Fatalf("seed: %v", err)
-	}
 
 	picker := credentials.NewPicker(db)
 	_, err := picker.Pick(context.Background(), "gemini")
@@ -86,9 +74,6 @@ func TestIntegration_Picker_NoMatchReturnsSentinel(t *testing.T) {
 
 func TestIntegration_Picker_PickByModelUsesCanonicalRoutes(t *testing.T) {
 	db := connectTestDB(t)
-	if err := credentials.SeedPlatformOrg(db); err != nil {
-		t.Fatalf("seed: %v", err)
-	}
 	anthropic := seedSystemCred(t, db, "anthropic", false)
 	seedSystemCred(t, db, "openrouter", false)
 
@@ -104,9 +89,6 @@ func TestIntegration_Picker_PickByModelUsesCanonicalRoutes(t *testing.T) {
 
 func TestIntegration_Picker_PickByModelUsesOpenRouterWhenDirectProviderMissing(t *testing.T) {
 	db := connectTestDB(t)
-	if err := credentials.SeedPlatformOrg(db); err != nil {
-		t.Fatalf("seed: %v", err)
-	}
 	openrouter := seedSystemCred(t, db, "openrouter", false)
 	seedSystemCred(t, db, "openai", false)
 

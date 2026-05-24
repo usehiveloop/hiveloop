@@ -35,7 +35,7 @@ func TestBridgeCodegenSmoke_NewWireShape(t *testing.T) {
 		t.Fatalf("encrypt: %v", err)
 	}
 	cred := model.Credential{
-		ID: uuid.New(), OrgID: org.ID,
+		ID: uuid.New(), OrgID: &org.ID,
 		ProviderID: "anthropic", Label: "Smoke Anthropic",
 		EncryptedKey: encrypted, WrappedDEK: []byte("test"),
 		BaseURL: "https://api.anthropic.com", AuthScheme: "bearer",

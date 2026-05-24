@@ -103,7 +103,7 @@ func createTestAgent(t *testing.T, db *gorm.DB, orgID, credID uuid.UUID) model.E
 func createTestCred(t *testing.T, db *gorm.DB, orgID uuid.UUID) model.Credential {
 	t.Helper()
 	cred := model.Credential{
-		OrgID: orgID, BaseURL: "https://api.openai.com", AuthScheme: "bearer",
+		OrgID: &orgID, BaseURL: "https://api.openai.com", AuthScheme: "bearer",
 		ProviderID: "openai", EncryptedKey: []byte("enc"), WrappedDEK: []byte("dek"),
 	}
 	db.Create(&cred)

@@ -15,11 +15,11 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
-	"github.com/usehivy/hivy/internal/testdb"
 	"github.com/usehivy/hivy/internal/handler"
 	"github.com/usehivy/hivy/internal/middleware"
 	"github.com/usehivy/hivy/internal/model"
 	"github.com/usehivy/hivy/internal/spider"
+	"github.com/usehivy/hivy/internal/testdb"
 )
 
 const spiderTestDBURL = "postgres://hivy:localdev@localhost:15432/hivy_test?sslmode=disable" // #nosec G101 -- test fixture, not a real secret
@@ -71,7 +71,7 @@ func newSpiderHarness(t *testing.T, spiderHandler http.Handler) *spiderTestHarne
 	credID := uuid.New()
 	cred := model.Credential{
 		ID:           credID,
-		OrgID:        orgID,
+		OrgID:        &orgID,
 		ProviderID:   "openai",
 		Label:        "test-cred",
 		EncryptedKey: []byte("test-encrypted-key"),

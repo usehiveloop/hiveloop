@@ -5,8 +5,8 @@
 //
 //   - BYOK credentials: owned by a customer org, created via the user-facing
 //     API, referenced by agent.credential_id.
-//   - System credentials (is_system = true): owned by the platform org, created
-//     via admin-only endpoints, used by any agent whose credential_id is nil.
+//   - System credentials (org_id = NULL): owned by the platform, created via
+//     admin-only endpoints, used by any agent whose credential_id is nil.
 //
 // Every credential-resolution call site in the codebase (currently
 // sandbox.Pusher at push and token-rotation time) routes through

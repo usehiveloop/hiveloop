@@ -8,7 +8,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/lib/pq"
 
-	"github.com/usehivy/hivy/internal/credentials"
 	"github.com/usehivy/hivy/internal/model"
 	"github.com/usehivy/hivy/internal/specialists"
 )
@@ -185,8 +184,8 @@ func (h *employeeHarness) seedWhatsappProfile(t *testing.T, m orgWithMember, age
 
 func (h *employeeHarness) platformCredCleanup(t *testing.T) {
 	t.Helper()
-	h.db.Unscoped().Where("org_id = ?", credentials.PlatformOrgID).Delete(&model.Credential{})
+	h.db.Unscoped().Where("org_id IS NULL").Delete(&model.Credential{})
 	t.Cleanup(func() {
-		h.db.Unscoped().Where("org_id = ?", credentials.PlatformOrgID).Delete(&model.Credential{})
+		h.db.Unscoped().Where("org_id IS NULL").Delete(&model.Credential{})
 	})
 }

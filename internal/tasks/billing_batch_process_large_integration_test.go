@@ -63,7 +63,7 @@ func TestBatch_LargeBatchEndToEnd(t *testing.T) {
 	}
 
 	credits := billing.NewCreditsService(db)
-	expectedDeduction := int64(perOrg * testCreditsPerGen)
+	expectedDeduction := int64(creditsForTestCost(perOrg))
 	for i, o := range orgs {
 		bal, _ := credits.Balance(o.id)
 		if bal != o.grant-expectedDeduction {
@@ -95,7 +95,7 @@ func TestBatch_ConcurrentRunsDoNotDoubleDeduct(t *testing.T) {
 	wg.Wait()
 
 	bal, _ := billing.NewCreditsService(db).Balance(orgID)
-	want := int64(100_000 - N*testCreditsPerGen)
+	want := int64(100_000 - creditsForTestCost(N))
 	if bal != want {
 		t.Errorf("concurrent runs deducted incorrectly: balance = %d, want %d", bal, want)
 	}

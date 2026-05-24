@@ -25,9 +25,10 @@ func TestUsageHandler_WithData(t *testing.T) {
 
 	dummyKey := []byte("encrypted-test-key-placeholder-32")
 	dummyDEK := []byte("wrapped-dek-placeholder")
+	now := time.Now().UTC()
 	cred1 := model.Credential{
 		ID:           uuid.New(),
-		OrgID:        org.ID,
+		OrgID:        &org.ID,
 		Label:        "active-cred",
 		BaseURL:      "https://api.openai.com/v1",
 		ProviderID:   "openai",
@@ -36,18 +37,17 @@ func TestUsageHandler_WithData(t *testing.T) {
 	}
 	cred2 := model.Credential{
 		ID:           uuid.New(),
-		OrgID:        org.ID,
+		OrgID:        &org.ID,
 		Label:        "revoked-cred",
 		BaseURL:      "https://api.anthropic.com/v1",
 		ProviderID:   "anthropic",
 		EncryptedKey: dummyKey,
 		WrappedDEK:   dummyDEK,
-		RevokedAt:    ptrTime(time.Now()),
+		RevokedAt:    ptrTime(now),
 	}
 	h.db.Create(&cred1)
 	h.db.Create(&cred2)
 
-	now := time.Now()
 	tok1 := model.Token{
 		ID:           uuid.New(),
 		OrgID:        org.ID,

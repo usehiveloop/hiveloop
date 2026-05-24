@@ -90,9 +90,6 @@ func New(ctx context.Context) (*Deps, error) {
 		return nil, fmt.Errorf("installing sentry gorm plugin: %w", err)
 	}
 
-	if err := credentials.SeedPlatformOrg(database); err != nil {
-		return nil, fmt.Errorf("seeding platform org: %w", err)
-	}
 	if err := seedGlobalSkills(ctx, database); err != nil {
 		return nil, err
 	}
@@ -251,7 +248,7 @@ func New(ctx context.Context) (*Deps, error) {
 
 	var s3Client *storage.S3Client
 	if cfg.S3Bucket != "" {
-		s3Client, err = storage.NewS3Client(cfg.S3Bucket, cfg.S3Region, cfg.S3Endpoint, cfg.S3AccessKey, cfg.S3SecretKey)
+		s3Client, err = storage.NewS3ClientWithPresignEndpoint(cfg.S3Bucket, cfg.S3Region, cfg.S3Endpoint, cfg.S3PresignEndpoint, cfg.S3AccessKey, cfg.S3SecretKey)
 		if err != nil {
 			return nil, fmt.Errorf("creating S3 client: %w", err)
 		}

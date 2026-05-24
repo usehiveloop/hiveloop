@@ -12,9 +12,6 @@ import (
 
 func TestIntegration_Resolve_BYOKPath(t *testing.T) {
 	db := connectTestDB(t)
-	if err := credentials.SeedPlatformOrg(db); err != nil {
-		t.Fatalf("seed: %v", err)
-	}
 	orgID := seedBYOKOrg(t, db)
 	cred := seedBYOKCred(t, db, orgID, "anthropic")
 
@@ -31,16 +28,13 @@ func TestIntegration_Resolve_BYOKPath(t *testing.T) {
 	if got.ID != cred.ID {
 		t.Errorf("resolved %s, want BYOK cred %s", got.ID, cred.ID)
 	}
-	if got.IsSystem {
-		t.Errorf("BYOK cred reported IsSystem = true")
+	if got.OrgID == nil {
+		t.Errorf("BYOK cred has nil OrgID")
 	}
 }
 
 func TestIntegration_Resolve_PlatformPath(t *testing.T) {
 	db := connectTestDB(t)
-	if err := credentials.SeedPlatformOrg(db); err != nil {
-		t.Fatalf("seed: %v", err)
-	}
 	sys := seedSystemCred(t, db, "moonshotai", false)
 
 	orgID := seedBYOKOrg(t, db)
@@ -58,16 +52,13 @@ func TestIntegration_Resolve_PlatformPath(t *testing.T) {
 	if got.ID != sys.ID {
 		t.Errorf("resolved %s, want system cred %s", got.ID, sys.ID)
 	}
-	if !got.IsSystem {
-		t.Errorf("picked credential IsSystem = false, should be true")
+	if got.OrgID != nil {
+		t.Errorf("picked system credential OrgID = %v, should be nil", got.OrgID)
 	}
 }
 
 func TestIntegration_Resolve_MissingBYOKCredErrors(t *testing.T) {
 	db := connectTestDB(t)
-	if err := credentials.SeedPlatformOrg(db); err != nil {
-		t.Fatalf("seed: %v", err)
-	}
 	orgID := seedBYOKOrg(t, db)
 
 	// Point at a credential that doesn't exist.

@@ -18,6 +18,7 @@ import (
 )
 
 const managedBy = "global_integrations"
+const globalIntegrationSeedLockKey int64 = 2026052403
 
 type SeedResult struct {
 	Created   int
@@ -60,30 +61,40 @@ func (s *Seeder) Seed(ctx context.Context, dir string) (*SeedResult, error) {
 	}
 	result := &SeedResult{}
 	seen := map[string]bool{}
-	for _, manifest := range manifests {
-		seen[manifest.ID] = true
-		state, err := s.syncOne(ctx, manifest)
+	if err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := tx.Exec("SELECT pg_advisory_xact_lock(?)", globalIntegrationSeedLockKey).Error; err != nil {
+			return fmt.Errorf("lock global integrations seed: %w", err)
+		}
+		locked := *s
+		locked.db = tx
+		for _, manifest := range manifests {
+			seen[manifest.ID] = true
+			state, err := locked.syncOne(ctx, manifest)
+			if err != nil {
+				return err
+			}
+			switch state {
+			case "created":
+				result.Created++
+			case "updated":
+				result.Updated++
+			case "unchanged":
+				result.Unchanged++
+			case "deleted":
+				result.Deleted++
+			case "skipped":
+				result.Skipped++
+			}
+		}
+		deleted, err := locked.disableMissing(ctx, seen)
 		if err != nil {
-			return result, err
+			return err
 		}
-		switch state {
-		case "created":
-			result.Created++
-		case "updated":
-			result.Updated++
-		case "unchanged":
-			result.Unchanged++
-		case "deleted":
-			result.Deleted++
-		case "skipped":
-			result.Skipped++
-		}
-	}
-	deleted, err := s.disableMissing(ctx, seen)
-	if err != nil {
+		result.Deleted += deleted
+		return nil
+	}); err != nil {
 		return result, err
 	}
-	result.Deleted += deleted
 	return result, nil
 }
 

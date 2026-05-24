@@ -119,6 +119,24 @@ func TestEmployeeProxyTokenRefreshHandler_RevokesMintedTokenWhenRuntimeRejectsEn
 	}
 }
 
+func TestNextEmployeeProxyTokenRefreshAt_UsesActiveStartupTokenExpiry(t *testing.T) {
+	f := newEmployeeProxyTokenRefreshFixture(t, 0)
+	startupToken, err := employeeruntime.MintProxyToken(context.Background(), f.compileDeps, &f.agent, f.sandbox.ID)
+	if err != nil {
+		t.Fatalf("mint startup proxy token: %v", err)
+	}
+	now := startupToken.ExpiresAt.Add(-12 * employeeProxyTokenRefreshLead)
+
+	got, err := nextEmployeeProxyTokenRefreshAt(context.Background(), f.db, &f.agent, f.sandbox.ID, now)
+	if err != nil {
+		t.Fatalf("next refresh: %v", err)
+	}
+	want := startupToken.ExpiresAt.Add(-employeeProxyTokenRefreshLead).UTC()
+	if !got.Equal(want) {
+		t.Fatalf("next refresh = %s, want %s", got, want)
+	}
+}
+
 type employeeProxyTokenRefreshFixture struct {
 	db          *gorm.DB
 	server      *httptest.Server
@@ -171,7 +189,7 @@ func newEmployeeProxyTokenRefreshFixture(t *testing.T, envStatus int) *employeeP
 		t.Fatalf("create org: %v", err)
 	}
 	cred := model.Credential{
-		OrgID:        org.ID,
+		OrgID:        &org.ID,
 		Label:        "proxy-refresh",
 		BaseURL:      "https://proxy.test",
 		AuthScheme:   "bearer",

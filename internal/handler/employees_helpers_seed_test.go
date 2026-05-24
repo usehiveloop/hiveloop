@@ -11,7 +11,6 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/usehivy/hivy/internal/auth"
-	"github.com/usehivy/hivy/internal/credentials"
 	"github.com/usehivy/hivy/internal/crypto"
 	"github.com/usehivy/hivy/internal/middleware"
 	"github.com/usehivy/hivy/internal/model"
@@ -68,14 +67,12 @@ func (h *employeeHarness) createOrgWithRole(t *testing.T, role string) orgWithMe
 func (h *employeeHarness) seedSystemCred(t *testing.T, providerID string, revoked bool) model.Credential {
 	t.Helper()
 	cred := model.Credential{
-		OrgID:        credentials.PlatformOrgID,
 		Label:        "sys-" + providerID,
 		BaseURL:      "https://api.example.com",
 		AuthScheme:   "bearer",
 		EncryptedKey: []byte("enc"),
 		WrappedDEK:   []byte("dek"),
 		ProviderID:   providerID,
-		IsSystem:     true,
 	}
 	if revoked {
 		now := time.Now()

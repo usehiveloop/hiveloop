@@ -65,7 +65,7 @@ func validateGlobalLLMSpec(spec *globalLLMCredentialSpec) error {
 func loadManagedCredential(ctx context.Context, db *gorm.DB, seedID string) (*model.Credential, error) {
 	var cred model.Credential
 	err := db.WithContext(ctx).
-		Where("org_id = ? AND is_system = ? AND meta @> ?::jsonb", PlatformOrgID, true, managedCredentialLookupJSON(seedID)).
+		Where("org_id IS NULL AND meta @> ?::jsonb", managedCredentialLookupJSON(seedID)).
 		Order("created_at DESC").
 		First(&cred).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -170,7 +170,7 @@ func invalidateCredential(ctx context.Context, cm *cache.Manager, credentialID s
 func revokeManagedCredentialsNotInManifest(ctx context.Context, db *gorm.DB, cm *cache.Manager, seen map[string]bool) (int, error) {
 	var creds []model.Credential
 	if err := db.WithContext(ctx).
-		Where("org_id = ? AND is_system = ? AND revoked_at IS NULL AND meta @> ?::jsonb", PlatformOrgID, true, `{"managed_by":"global_llm_seed"}`).
+		Where("org_id IS NULL AND revoked_at IS NULL AND meta @> ?::jsonb", `{"managed_by":"global_llm_seed"}`).
 		Find(&creds).Error; err != nil {
 		return 0, fmt.Errorf("list managed global LLM credentials for prune: %w", err)
 	}

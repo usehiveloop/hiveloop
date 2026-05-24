@@ -12,10 +12,10 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
-	"github.com/usehivy/hivy/internal/testdb"
 	"github.com/usehivy/hivy/internal/cache"
 	"github.com/usehivy/hivy/internal/crypto"
 	"github.com/usehivy/hivy/internal/model"
+	"github.com/usehivy/hivy/internal/testdb"
 )
 
 const (
@@ -66,6 +66,16 @@ func createTestKMS(t *testing.T) *crypto.KeyWrapper {
 
 // createTestCredential creates a real encrypted credential in Postgres via KMS.
 func createTestCredential(t *testing.T, db *gorm.DB, kms *crypto.KeyWrapper, orgID uuid.UUID, apiKey string) model.Credential {
+	t.Helper()
+	return createTestCredentialWithOrg(t, db, kms, &orgID, apiKey)
+}
+
+func createTestSystemCredential(t *testing.T, db *gorm.DB, kms *crypto.KeyWrapper, apiKey string) model.Credential {
+	t.Helper()
+	return createTestCredentialWithOrg(t, db, kms, nil, apiKey)
+}
+
+func createTestCredentialWithOrg(t *testing.T, db *gorm.DB, kms *crypto.KeyWrapper, orgID *uuid.UUID, apiKey string) model.Credential {
 	t.Helper()
 
 	dek, err := crypto.GenerateDEK()

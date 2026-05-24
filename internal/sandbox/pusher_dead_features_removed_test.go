@@ -36,7 +36,7 @@ func TestPusherDeadFeatures_NotEmittedOnWire(t *testing.T) {
 		t.Fatalf("encrypt: %v", err)
 	}
 	cred := model.Credential{
-		ID: uuid.New(), OrgID: org.ID,
+		ID: uuid.New(), OrgID: &org.ID,
 		ProviderID: "anthropic", Label: "Dead Anthropic",
 		EncryptedKey: encrypted, WrappedDEK: []byte("test"),
 		BaseURL: "https://api.anthropic.com", AuthScheme: "bearer",

@@ -39,6 +39,9 @@ impl OutboundEmitter {
                     warn!(event_type = %event.event_type, %error, "stream batch enqueue failed")
                 }
             }
+            if let Err(error) = batcher.flush_before_event(&event).await {
+                warn!(event_type = %event.event_type, %error, "stream batch flush before event failed");
+            }
         }
 
         let channels = {

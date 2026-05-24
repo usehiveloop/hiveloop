@@ -19,7 +19,8 @@ import (
 )
 
 const (
-	globalLLMSeedManager = "global_llm_seed"
+	globalLLMSeedManager       = "global_llm_seed"
+	globalLLMSeedLockKey int64 = 2026052402
 )
 
 type globalLLMSeedProvider struct {
@@ -93,40 +94,45 @@ func SeedGlobalLLMCredentials(ctx context.Context, db *gorm.DB, kms *crypto.KeyW
 	if kms == nil {
 		return nil, fmt.Errorf("kms is required")
 	}
-	if err := SeedPlatformOrg(db); err != nil {
-		return nil, err
-	}
 
 	result := &GlobalLLMCredentialSeedResult{}
 	seen := map[string]bool{}
-	for _, spec := range manifest.Credentials {
-		if seen[spec.ID] {
-			return nil, fmt.Errorf("duplicate global LLM credential id %q", spec.ID)
+	if err := db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := tx.Exec("SELECT pg_advisory_xact_lock(?)", globalLLMSeedLockKey).Error; err != nil {
+			return fmt.Errorf("lock global LLM credentials seed: %w", err)
 		}
-		seen[spec.ID] = true
-		state, err := seedGlobalLLMCredential(ctx, db, kms, cm, ctr, spec)
-		if err != nil {
-			return nil, err
+		for _, spec := range manifest.Credentials {
+			if seen[spec.ID] {
+				return fmt.Errorf("duplicate global LLM credential id %q", spec.ID)
+			}
+			seen[spec.ID] = true
+			state, err := seedGlobalLLMCredential(ctx, tx, kms, cm, ctr, spec)
+			if err != nil {
+				return err
+			}
+			switch state {
+			case "created":
+				result.Created++
+			case "updated":
+				result.Updated++
+			case "unchanged":
+				result.Unchanged++
+			case "revoked":
+				result.Revoked++
+			case "skipped":
+				result.Skipped++
+			}
 		}
-		switch state {
-		case "created":
-			result.Created++
-		case "updated":
-			result.Updated++
-		case "unchanged":
-			result.Unchanged++
-		case "revoked":
-			result.Revoked++
-		case "skipped":
-			result.Skipped++
+		if manifest.Prune {
+			revoked, err := revokeManagedCredentialsNotInManifest(ctx, tx, cm, seen)
+			if err != nil {
+				return err
+			}
+			result.Revoked += revoked
 		}
-	}
-	if manifest.Prune {
-		revoked, err := revokeManagedCredentialsNotInManifest(ctx, db, cm, seen)
-		if err != nil {
-			return nil, err
-		}
-		result.Revoked += revoked
+		return nil
+	}); err != nil {
+		return nil, err
 	}
 	return result, nil
 }
@@ -168,7 +174,6 @@ func seedGlobalLLMCredential(ctx context.Context, db *gorm.DB, kms *crypto.KeyWr
 
 	if existing == nil {
 		cred := model.Credential{
-			OrgID:          PlatformOrgID,
 			Label:          spec.Label,
 			BaseURL:        spec.BaseURL,
 			AuthScheme:     spec.AuthScheme,
@@ -179,7 +184,6 @@ func seedGlobalLLMCredential(ctx context.Context, db *gorm.DB, kms *crypto.KeyWr
 			RefillInterval: spec.RefillInterval,
 			ProviderID:     spec.ProviderID,
 			Meta:           meta,
-			IsSystem:       true,
 		}
 		if err := db.WithContext(ctx).Create(&cred).Error; err != nil {
 			return "", fmt.Errorf("create global LLM credential %q: %w", spec.ID, err)
@@ -205,8 +209,7 @@ func seedGlobalLLMCredential(ctx context.Context, db *gorm.DB, kms *crypto.KeyWr
 		"refill_amount":   spec.RefillAmount,
 		"refill_interval": spec.RefillInterval,
 		"meta":            meta,
-		"is_system":       true,
-		"org_id":          PlatformOrgID,
+		"org_id":          nil,
 		"revoked_at":      nil,
 	}
 	if keyChanged {

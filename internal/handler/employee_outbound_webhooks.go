@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"regexp"
 	"strings"
 	"time"
 
@@ -25,8 +24,6 @@ import (
 	"github.com/usehivy/hivy/internal/model"
 	"github.com/usehivy/hivy/internal/tasks"
 )
-
-var obviousSecretPattern = regexp.MustCompile(`(?i)(ptok_|xox[baprs]-|sk-[a-z0-9]|api[_-]?key|secret|token|password)\s*[:=]\s*\S+`)
 
 type EmployeeOutboundWebhookHandler struct {
 	db            *gorm.DB
@@ -152,6 +149,14 @@ func (h *EmployeeOutboundWebhookHandler) storeAndMaybeEnqueue(ctx context.Contex
 	} else if _, ok := payload["mode"]; !ok {
 		payload["mode"] = "employee"
 	}
+	if event.EventType == "agent.run.model.usage" {
+		if err := h.recordRuntimeModelUsageGeneration(ctx, sb, event, payload); err != nil {
+			captureEmployeeWebhookIngest(ctx, "record_runtime_generation", sb, event, sessionID, source, err)
+		}
+	}
+	if !shouldStoreEmployeeMemoryEvent(event.EventType) {
+		return
+	}
 	stored, ok := employeeMemoryEventFromOutbound(sb, event, payload, sessionID)
 	if !ok {
 		captureEmployeeWebhookIngest(ctx, "drop_missing_sandbox_owner", sb, event, sessionID, source, fmt.Errorf("employee sandbox missing org_id or employee_id"))
@@ -237,46 +242,19 @@ func employeeMemoryEventFromOutbound(sb *model.Sandbox, event *employeeOutboundE
 	}, true
 }
 
-func stringValueDefault(payload map[string]any, key, fallback string) string {
-	if value := stringValue(payload, key); value != "" {
-		return value
+func shouldStoreEmployeeMemoryEvent(eventType string) bool {
+	switch {
+	case eventType == "session.created":
+		return false
+	case eventType == "tool.invoked":
+		return false
+	case eventType == "agent.final_message":
+		return false
+	case strings.HasPrefix(eventType, "agent.run."):
+		return false
+	default:
+		return true
 	}
-	return fallback
-}
-
-func employeeEventSource(payload map[string]any) string {
-	source := sanitizeTagValue(stringValue(payload, "source"))
-	if source == "" {
-		source = sanitizeTagValue(stringValue(payload, "gateway"))
-	}
-	if source == "" {
-		source = sanitizeTagValue(stringValue(payload, "platform"))
-	}
-	if source == "" {
-		return "manual"
-	}
-	return source
-}
-
-func sanitizeTagValue(value string) string {
-	value = strings.ToLower(strings.TrimSpace(value))
-	if value == "" {
-		return ""
-	}
-	var b strings.Builder
-	for _, r := range value {
-		switch {
-		case r >= 'a' && r <= 'z':
-			b.WriteRune(r)
-		case r >= '0' && r <= '9':
-			b.WriteRune(r)
-		case r == '-' || r == '_':
-			b.WriteRune(r)
-		case r == ' ' || r == '.' || r == '/':
-			b.WriteRune('-')
-		}
-	}
-	return strings.Trim(b.String(), "-_")
 }
 
 func shouldTriggerEmployeeMemoryCheckpoint(eventType string) bool {
@@ -286,20 +264,4 @@ func shouldTriggerEmployeeMemoryCheckpoint(eventType string) bool {
 	default:
 		return false
 	}
-}
-
-func payloadLooksSensitive(payload map[string]any) bool {
-	for _, key := range []string{"text", "result_summary", "message", "error"} {
-		if obviousSecretPattern.MatchString(stringValue(payload, key)) {
-			return true
-		}
-	}
-	return false
-}
-
-func stringValue(m map[string]any, key string) string {
-	if value, ok := m[key].(string); ok {
-		return strings.TrimSpace(value)
-	}
-	return ""
 }

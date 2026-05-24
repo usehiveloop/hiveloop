@@ -164,7 +164,7 @@ func (h *CredentialHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	cred := model.Credential{
 		ID:             uuid.New(),
-		OrgID:          org.ID,
+		OrgID:          &org.ID,
 		Label:          req.Label,
 		BaseURL:        req.BaseURL,
 		AuthScheme:     req.AuthScheme,

@@ -52,7 +52,7 @@ func createTestConversation(t *testing.T, db *gorm.DB) (uuid.UUID, uuid.UUID) {
 	db.Create(&org)
 
 	cred := model.Credential{
-		ID: credID, OrgID: orgID, ProviderID: "openrouter",
+		ID: credID, OrgID: &orgID, ProviderID: "openrouter",
 		EncryptedKey: []byte("test"), WrappedDEK: []byte("test"),
 		BaseURL: "https://test.com", AuthScheme: "bearer",
 	}

@@ -9,9 +9,8 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
-	"github.com/usehivy/hivy/internal/testdb"
-	"github.com/usehivy/hivy/internal/credentials"
 	"github.com/usehivy/hivy/internal/model"
+	"github.com/usehivy/hivy/internal/testdb"
 )
 
 // Integration tests connect to a real Postgres instance to catch bugs the
@@ -52,20 +51,17 @@ func connectTestDB(t *testing.T) *gorm.DB {
 	return db
 }
 
-// seedSystemCred inserts a system credential attached to the platform org
-// and registers a cleanup. revoked=true sets RevokedAt so the picker should
-// filter it out.
+// seedSystemCred inserts an org-less system credential and registers a cleanup.
+// revoked=true sets RevokedAt so the picker should filter it out.
 func seedSystemCred(t *testing.T, db *gorm.DB, providerID string, revoked bool) model.Credential {
 	t.Helper()
 	cred := model.Credential{
-		OrgID:        credentials.PlatformOrgID,
 		Label:        "system-" + providerID,
 		BaseURL:      "https://api.example.com",
 		AuthScheme:   "bearer",
 		EncryptedKey: []byte("enc"),
 		WrappedDEK:   []byte("dek"),
 		ProviderID:   providerID,
-		IsSystem:     true,
 	}
 	if revoked {
 		now := time.Now()
@@ -97,7 +93,7 @@ func seedBYOKOrg(t *testing.T, db *gorm.DB) uuid.UUID {
 func seedBYOKCred(t *testing.T, db *gorm.DB, orgID uuid.UUID, providerID string) model.Credential {
 	t.Helper()
 	cred := model.Credential{
-		OrgID:        orgID,
+		OrgID:        &orgID,
 		Label:        "byok-" + providerID,
 		BaseURL:      "https://api.example.com",
 		AuthScheme:   "bearer",

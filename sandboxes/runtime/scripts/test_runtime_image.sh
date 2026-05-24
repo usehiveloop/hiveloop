@@ -85,7 +85,7 @@ if [[ -n "$PLATFORM" ]]; then
 fi
 
 "$DOCKER_BIN" run -d \
-  "${run_args[@]}" \
+  "${run_args[@]+"${run_args[@]}"}" \
   --name "$NAME" \
   -p 17080:7080 \
   -e RUNTIME_SECRET="$SECRET" \
@@ -143,7 +143,7 @@ curl -fsS \
 "$DOCKER_BIN" exec "$NAME" sh -lc 'test "$(git config --system user.email)" = "runtime-smoke@usehivy.com"'
 
 "$DOCKER_BIN" run -d \
-  "${run_args[@]}" \
+  "${run_args[@]+"${run_args[@]}"}" \
   --name "$AUTH_NAME" \
   --entrypoint /bin/sh \
   -e RUNTIME_SECRET="$SECRET" \

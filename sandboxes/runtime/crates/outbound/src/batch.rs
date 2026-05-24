@@ -114,6 +114,21 @@ impl StreamBatcher {
         Ok(true)
     }
 
+    pub async fn flush_before_event(&self, event: &OutboundEvent) -> Result<()> {
+        if is_stream_delta(&event.event_type) {
+            return Ok(());
+        }
+        if string_field(&event.payload, "session_id").is_none() {
+            return Ok(());
+        }
+        let mut state = self.state.lock().await;
+        state.finish_streams_before_event(event);
+        if !state.pending.is_empty() {
+            self.flush_locked(&mut state).await?;
+        }
+        Ok(())
+    }
+
     pub async fn flush_session(&self, session_id: &str) -> Result<()> {
         let mut state = self.state.lock().await;
         state.finish_session(session_id);
@@ -207,6 +222,14 @@ impl BatchState {
             .unwrap_or(0);
         let source = string_field(&event.payload, "source").unwrap_or_else(|| "manual".to_string());
         let key = format!("{}:{session_id}", event.event_type);
+        self.finish_other_session_streams(&session_id, &key);
+        if self
+            .coalescing
+            .get(&key)
+            .is_some_and(|entry| sequence == 0 || sequence != entry.sequence_end + 1)
+        {
+            self.finish_key(&key);
+        }
         let should_finish = {
             let entry = self
                 .coalescing
@@ -230,6 +253,29 @@ impl BatchState {
                 || entry.text.len() >= MAX_COALESCED_TEXT_BYTES
         };
         if should_finish {
+            self.finish_key(&key);
+        }
+    }
+
+    fn finish_streams_before_event(&mut self, event: &OutboundEvent) {
+        if is_stream_delta(&event.event_type) {
+            return;
+        }
+        let Some(session_id) = string_field(&event.payload, "session_id") else {
+            return;
+        };
+        self.finish_session(&session_id);
+    }
+
+    fn finish_other_session_streams(&mut self, session_id: &str, keep_key: &str) {
+        let suffix = format!(":{session_id}");
+        let keys = self
+            .coalescing
+            .keys()
+            .filter(|key| key.ends_with(&suffix) && key.as_str() != keep_key)
+            .cloned()
+            .collect::<Vec<_>>();
+        for key in keys {
             self.finish_key(&key);
         }
     }
@@ -378,5 +424,67 @@ mod tests {
             .collect::<HashSet<_>>()
             .iter()
             .any(|k| k.ends_with(":b")));
+    }
+
+    #[test]
+    fn flushes_stream_span_before_non_stream_event() {
+        let mut state = BatchState::default();
+        state.add_stream_delta(OutboundEvent::new(
+            "agent.stream.thinking",
+            json!({
+                "session_id": "http-thread-1",
+                "source": "http",
+                "sequence": 3,
+                "agent_event": {"text": "thinking"},
+            }),
+        ));
+        state.finish_streams_before_event(&OutboundEvent::new(
+            "agent.tool.call",
+            json!({
+                "session_id": "http-thread-1",
+                "source": "http",
+                "sequence": 4,
+                "agent_event": {"kind": "tool_call"},
+            }),
+        ));
+
+        assert_eq!(state.pending.len(), 1);
+        assert_eq!(state.pending[0].event_type, "agent.stream.thinking");
+        assert_eq!(state.pending[0].payload["sequence_start"], 3);
+        assert_eq!(state.pending[0].payload["sequence_end"], 3);
+        assert!(state.coalescing.is_empty());
+    }
+
+    #[test]
+    fn splits_stream_spans_on_kind_change_and_sequence_gap() {
+        let mut state = BatchState::default();
+        for (event_type, sequence, text) in [
+            ("agent.stream.thinking", 3, "think-a"),
+            ("agent.stream.thinking", 4, "think-b"),
+            ("agent.stream.token", 5, "token-a"),
+            ("agent.stream.token", 8, "token-b"),
+        ] {
+            state.add_stream_delta(OutboundEvent::new(
+                event_type,
+                json!({
+                    "session_id": "http-thread-1",
+                    "source": "http",
+                    "sequence": sequence,
+                    "agent_event": {"text": text},
+                }),
+            ));
+        }
+        state.finish_all();
+
+        assert_eq!(state.pending.len(), 3);
+        assert_eq!(state.pending[0].event_type, "agent.stream.thinking");
+        assert_eq!(state.pending[0].payload["sequence_start"], 3);
+        assert_eq!(state.pending[0].payload["sequence_end"], 4);
+        assert_eq!(state.pending[1].event_type, "agent.stream.token");
+        assert_eq!(state.pending[1].payload["sequence_start"], 5);
+        assert_eq!(state.pending[1].payload["sequence_end"], 5);
+        assert_eq!(state.pending[2].event_type, "agent.stream.token");
+        assert_eq!(state.pending[2].payload["sequence_start"], 8);
+        assert_eq!(state.pending[2].payload["sequence_end"], 8);
     }
 }

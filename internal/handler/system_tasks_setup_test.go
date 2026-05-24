@@ -163,18 +163,13 @@ func seedSystemCredential(t *testing.T, db *gorm.DB, kms *crypto.KeyWrapper, bas
 	for i := range dek {
 		dek[i] = 0
 	}
-	if err := credentials.SeedPlatformOrg(db); err != nil {
-		t.Fatalf("seed platform org: %v", err)
-	}
 	cred := &model.Credential{
-		OrgID:        credentials.PlatformOrgID,
 		Label:        "test-system-" + sysShortID(),
 		BaseURL:      baseURL,
 		AuthScheme:   "bearer",
 		ProviderID:   providerID,
 		EncryptedKey: encKey,
 		WrappedDEK:   wrapped,
-		IsSystem:     true,
 	}
 	if err := db.Create(cred).Error; err != nil {
 		t.Fatalf("create system credential: %v", err)

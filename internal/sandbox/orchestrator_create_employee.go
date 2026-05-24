@@ -3,13 +3,8 @@ package sandbox
 import (
 	"context"
 	"fmt"
-	"net/http"
-	"strings"
 	"time"
 
-	"github.com/google/uuid"
-
-	"github.com/usehivy/hivy/internal/config"
 	"github.com/usehivy/hivy/internal/employeeruntime"
 	"github.com/usehivy/hivy/internal/logging"
 	"github.com/usehivy/hivy/internal/model"
@@ -234,104 +229,6 @@ func (o *Orchestrator) CreateSpecialistRuntimeSandbox(ctx context.Context, agent
 	logging.FromContext(ctx).InfoContext(ctx, "specialist runtime sandbox created",
 		"sandbox_id", sb.ID, "external_id", info.ExternalID, "employee_id", agent.ID)
 	return &sb, nil
-}
-
-func employeeSandboxEnvVars(cfg *config.Config, runtimeSecret string, sb *model.Sandbox, orgID uuid.UUID, agent *model.Employee, secrets *employeeruntime.StartupSecrets, gitIdentity *employeeGitIdentity, bugsinkDashboardURL string) map[string]string {
-	bridgeHost := "api.usehivy.com"
-	proxyHost := "proxy.usehivy.com"
-	if cfg != nil {
-		if cfg.SpecialistSandboxHost != "" {
-			bridgeHost = cfg.SpecialistSandboxHost
-		}
-		if cfg.ProxyHost != "" {
-			proxyHost = cfg.ProxyHost
-		}
-	}
-	proxyBaseURL := "https://" + strings.TrimRight(proxyHost, "/") + "/v1"
-	envVars := map[string]string{
-		employeeruntime.EmployeeEnvRuntimeSecret:            runtimeSecret,
-		employeeruntime.ProxyAPIKeyEnv:                      secrets.ProxyToken,
-		employeeruntime.EmployeeEnvAgentModel:               employeeruntime.DefaultEmployeeModel,
-		employeeruntime.EmployeeEnvAgentBaseURL:             proxyBaseURL,
-		employeeruntime.EmployeeEnvAgentAPIKeyEnv:           employeeruntime.ProxyAPIKeyEnv,
-		employeeruntime.EmployeeEnvAgentMultimodalModel:     employeeruntime.DefaultEmployeeMultimodalModel,
-		employeeruntime.EmployeeEnvAgentMultimodalBaseURL:   proxyBaseURL,
-		employeeruntime.EmployeeEnvAgentMultimodalAPIKeyEnv: employeeruntime.ProxyAPIKeyEnv,
-		employeeruntime.EmployeeEnvEmployeeID:               agent.ID.String(),
-		employeeruntime.EmployeeEnvCloudControlPlaneURL:     "https://" + bridgeHost,
-		employeeruntime.EmployeeEnvBridgeAPIKey:             runtimeSecret,
-		employeeruntime.EmployeeEnvUploadBearer:             runtimeSecret,
-		employeeruntime.EmployeeEnvWorkspaceRoot:            "/workspace",
-		employeeruntime.EmployeeEnvDBPath:                   "/app/data/hivy-sandboxes-runtime.db",
-		employeeruntime.EmployeeEnvRuntimeBindAddr:          fmt.Sprintf("0.0.0.0:%d", EmployeeSandboxPort),
-		employeeruntime.EmployeeEnvRuntimeMode:              "employee",
-		employeeruntime.EmployeeEnvSandboxID:                sb.ID.String(),
-		employeeruntime.EmployeeEnvOrgID:                    orgID.String(),
-		employeeruntime.EmployeeEnvHivyEmployeeID:           agent.ID.String(),
-		employeeruntime.EmployeeEnvGitUsername:              employeeGitUsername(agent, gitIdentity),
-		employeeruntime.EmployeeEnvGitEmail:                 employeeGitEmail(agent, gitIdentity),
-		employeeruntime.EmployeeEnvGitCredentialsURL:        fmt.Sprintf("https://%s/internal/git-credentials/%s", bridgeHost, agent.ID),
-		employeeruntime.EmployeeEnvGitHubNoKeyring:          "1",
-		employeeruntime.EmployeeEnvBugsinkURL:               fmt.Sprintf("https://%s/internal/bugsink-proxy/%s", bridgeHost, agent.ID),
-		employeeruntime.EmployeeEnvBugsinkDashboardBaseURL:  bugsinkDashboardURL,
-		employeeruntime.EmployeeEnvBugsinkToken:             runtimeSecret,
-		employeeruntime.EmployeeEnvLinearURL:                fmt.Sprintf("https://%s/internal/linear-proxy/%s", bridgeHost, agent.ID),
-		employeeruntime.EmployeeEnvLinearToken:              runtimeSecret,
-		employeeruntime.EmployeeEnvNotionAPIURL:             fmt.Sprintf("https://%s/internal/notion-proxy/%s", bridgeHost, agent.ID),
-		employeeruntime.EmployeeEnvNotionToken:              runtimeSecret,
-	}
-	setEmployeeDriveUploadURL(envVars, cfg, agent.ID, "employee")
-	employeeSentryDSN := ""
-	if cfg != nil {
-		employeeSentryDSN = cfg.SandboxesRuntimeSentryDSN
-	}
-	setSandboxSentryEnvVars(envVars, cfg, employeeSentryDSN)
-	return envVars
-}
-
-func buildEmployeeSandboxName(agent *model.Employee) string {
-	return fmt.Sprintf("hivy-employee-%s-%s-%d", sanitizeName(agent.Name), shortID(agent.ID), time.Now().Unix())
-}
-
-func buildSpecialistRuntimeSandboxName(agent *model.Employee) string {
-	return fmt.Sprintf("hivy-specialist-%s-%s-%d", sanitizeName(agent.Name), shortID(agent.ID), time.Now().Unix())
-}
-
-func (o *Orchestrator) waitForEmployeeRuntimeLive(ctx context.Context, sb *model.Sandbox) error {
-	healthURL := strings.TrimRight(sb.BridgeURL, "/") + "/healthz"
-	deadline := time.Now().Add(employeeHealthTimeout)
-	client := &http.Client{Timeout: 5 * time.Second}
-	attempt := 0
-
-	logging.FromContext(ctx).InfoContext(ctx, "waiting for employee runtime", "sandbox_id", sb.ID)
-	for time.Now().Before(deadline) {
-		attempt++
-		req, err := http.NewRequestWithContext(ctx, http.MethodGet, healthURL, nil)
-		if err != nil {
-			return fmt.Errorf("build request: %w", err)
-		}
-		resp, doErr := client.Do(req)
-		if doErr != nil {
-			logging.FromContext(ctx).DebugContext(ctx, "employee runtime probe transport error",
-				"sandbox_id", sb.ID, "attempt", attempt, "error", doErr)
-		} else {
-			status := resp.StatusCode
-			resp.Body.Close()
-			if status == http.StatusOK {
-				logging.FromContext(ctx).InfoContext(ctx, "employee runtime live",
-					"sandbox_id", sb.ID, "attempts", attempt)
-				return nil
-			}
-			logging.FromContext(ctx).DebugContext(ctx, "employee runtime probe non-200",
-				"sandbox_id", sb.ID, "attempt", attempt, "status", status)
-		}
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case <-time.After(employeeHealthInterval):
-		}
-	}
-	return fmt.Errorf("employee runtime not live within %s (%d attempts)", employeeHealthTimeout, attempt)
 }
 
 func (o *Orchestrator) RefreshEmployeeSandboxURL(ctx context.Context, sb *model.Sandbox) error {

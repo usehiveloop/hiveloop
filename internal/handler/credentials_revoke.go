@@ -41,7 +41,7 @@ func (h *CredentialHandler) Revoke(w http.ResponseWriter, r *http.Request) {
 	now := time.Now()
 
 	result := h.db.Model(&model.Credential{}).
-		Where("id = ? AND org_id = ? AND is_system = ? AND revoked_at IS NULL", credID, org.ID, false).
+		Where("id = ? AND org_id = ? AND revoked_at IS NULL", credID, org.ID).
 		Update("revoked_at", &now)
 
 	if result.Error != nil {

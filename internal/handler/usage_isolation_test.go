@@ -26,7 +26,7 @@ func TestUsageHandler_OrgIsolation(t *testing.T) {
 	dummyDEK := []byte("wrapped-dek-placeholder")
 	h.db.Create(&model.Credential{
 		ID:           uuid.New(),
-		OrgID:        org1.ID,
+		OrgID:        &org1.ID,
 		Label:        "org1-cred",
 		BaseURL:      "https://api.openai.com/v1",
 		EncryptedKey: dummyKey,
@@ -34,7 +34,7 @@ func TestUsageHandler_OrgIsolation(t *testing.T) {
 	})
 	h.db.Create(&model.Credential{
 		ID:           uuid.New(),
-		OrgID:        org2.ID,
+		OrgID:        &org2.ID,
 		Label:        "org2-cred",
 		BaseURL:      "https://api.openai.com/v1",
 		EncryptedKey: dummyKey,

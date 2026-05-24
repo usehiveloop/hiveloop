@@ -248,9 +248,6 @@ func nextEmployeeProxyTokenRefreshAt(ctx context.Context, db *gorm.DB, agent *mo
 	if agent == nil || agent.OrgID == nil {
 		return now.UTC(), nil
 	}
-	if agent.LastProxyTokenRefreshedAt == nil {
-		return now.UTC(), nil
-	}
 	var tok model.Token
 	err := db.WithContext(ctx).
 		Where("org_id = ? AND meta->>'employee_id' = ? AND meta->>'type' = ? AND meta->>'harness' = ? AND revoked_at IS NULL",

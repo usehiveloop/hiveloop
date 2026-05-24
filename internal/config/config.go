@@ -136,6 +136,7 @@ type Config struct {
 	S3Bucket                     string `env:"HIVY_AWS_S3_BUCKET_NAME"`
 	S3Region                     string `env:"HIVY_AWS_DEFAULT_REGION" envDefault:"us-east-1"`
 	S3Endpoint                   string `env:"HIVY_AWS_ENDPOINT_URL"` // for MinIO / R2 / local dev
+	S3PresignEndpoint            string `env:"HIVY_AWS_PRESIGN_ENDPOINT_URL"`
 	S3AccessKey                  string `env:"HIVY_AWS_ACCESS_KEY_ID"`
 	S3SecretKey                  string `env:"HIVY_AWS_SECRET_ACCESS_KEY"`
 	EmployeeSQLiteBackupMaxBytes int64  `env:"HIVY_EMPLOYEE_SQLITE_BACKUP_MAX_BYTES" envDefault:"5368709120"`

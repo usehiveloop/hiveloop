@@ -101,6 +101,7 @@ pub struct ProviderUsage {
     pub total_tokens: i64,
     pub cached_tokens: i64,
     pub cache_write_tokens: i64,
+    pub reasoning_tokens: i64,
     pub cost: Option<f64>,
     pub raw: Option<Value>,
 }

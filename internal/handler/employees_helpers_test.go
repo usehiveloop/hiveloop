@@ -120,9 +120,6 @@ type employeeHarness struct {
 func newEmployeeHarness(t *testing.T) *employeeHarness {
 	t.Helper()
 	db := connectTestDB(t)
-	if err := credentials.SeedPlatformOrg(db); err != nil {
-		t.Fatalf("seed platform org: %v", err)
-	}
 	defaultSkillNames := []string{
 		"git-github",
 		"asset-uploads",
