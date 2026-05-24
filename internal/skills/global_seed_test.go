@@ -161,6 +161,7 @@ func TestSeedGlobalSkills_PreservesTagsAndIntegrationIDs(t *testing.T) {
 	manifest["category"] = "Project management"
 	manifest["tags"] = []string{"linear", "issues"}
 	manifest["integration_ids"] = []string{"linear", "github-app"}
+	manifest["hidden"] = true
 	body, err = json.Marshal(manifest)
 	if err != nil {
 		t.Fatalf("marshal manifest: %v", err)
@@ -185,10 +186,14 @@ func TestSeedGlobalSkills_PreservesTagsAndIntegrationIDs(t *testing.T) {
 	if want := []string{"linear", "github-app"}; !reflect.DeepEqual([]string(skill.IntegrationIDs), want) {
 		t.Fatalf("integration ids = %#v, want %#v", []string(skill.IntegrationIDs), want)
 	}
+	if !skill.Hidden {
+		t.Fatalf("hidden = false, want true")
+	}
 
 	manifest["category"] = "Engineering"
 	manifest["tags"] = []string{"github", "review"}
 	manifest["integration_ids"] = []string{"github-app", "github-app-code-reviews"}
+	manifest["hidden"] = false
 	body, err = json.Marshal(manifest)
 	if err != nil {
 		t.Fatalf("marshal updated manifest: %v", err)
@@ -210,6 +215,9 @@ func TestSeedGlobalSkills_PreservesTagsAndIntegrationIDs(t *testing.T) {
 	}
 	if want := []string{"github-app", "github-app-code-reviews"}; !reflect.DeepEqual([]string(skill.IntegrationIDs), want) {
 		t.Fatalf("updated integration ids = %#v, want %#v", []string(skill.IntegrationIDs), want)
+	}
+	if skill.Hidden {
+		t.Fatalf("updated hidden = true, want false")
 	}
 }
 

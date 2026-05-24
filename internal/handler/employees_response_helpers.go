@@ -111,7 +111,7 @@ func (h *EmployeeHandler) loadEmployeeSkills(agentIDs ...uuid.UUID) map[uuid.UUI
 		skillIDs[index] = link.SkillID
 	}
 	var skills []model.Skill
-	if err := h.db.Select("id, name, description, source_type").Where("id IN ?", skillIDs).Find(&skills).Error; err != nil {
+	if err := h.db.Select("id, name, description, source_type").Where("id IN ? AND hidden = false", skillIDs).Find(&skills).Error; err != nil {
 		return nil
 	}
 	skillByID := make(map[uuid.UUID]model.Skill, len(skills))

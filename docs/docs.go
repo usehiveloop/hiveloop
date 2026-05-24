@@ -7758,6 +7758,9 @@ const docTemplate = `{
                 "description": {
                     "type": "string"
                 },
+                "hidden": {
+                    "type": "boolean"
+                },
                 "integration_ids": {
                     "type": "array",
                     "items": {
@@ -10051,6 +10054,9 @@ const docTemplate = `{
                 "featured": {
                     "type": "boolean"
                 },
+                "hidden": {
+                    "type": "boolean"
+                },
                 "hydration_error": {
                     "type": "string"
                 },
@@ -10121,6 +10127,9 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "featured": {
+                    "type": "boolean"
+                },
+                "hidden": {
                     "type": "boolean"
                 },
                 "hydration_error": {
@@ -10668,6 +10677,9 @@ const docTemplate = `{
                 },
                 "description": {
                     "type": "string"
+                },
+                "hidden": {
+                    "type": "boolean"
                 },
                 "integration_ids": {
                     "type": "array",

@@ -61,6 +61,9 @@ func (h *SkillHandler) Update(w http.ResponseWriter, r *http.Request) {
 	if req.IntegrationIDs != nil {
 		updates["integration_ids"] = pq.StringArray(*req.IntegrationIDs)
 	}
+	if req.Hidden != nil {
+		updates["hidden"] = *req.Hidden
+	}
 	if req.RepoRef != nil && skill.SourceType == model.SkillSourceGit {
 		updates["repo_ref"] = *req.RepoRef
 	}

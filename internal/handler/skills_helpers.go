@@ -28,6 +28,7 @@ func toSkillResponse(s model.Skill) skillResponse {
 		IntegrationIDs: []string(s.IntegrationIDs),
 		InstallCount:   s.InstallCount,
 		Featured:       s.Featured,
+		Hidden:         s.Hidden,
 		Status:         s.Status,
 		CreatedAt:      s.CreatedAt,
 		UpdatedAt:      s.UpdatedAt,
@@ -82,7 +83,7 @@ func (h *SkillHandler) loadSkillVisibleToOrg(ctx context.Context, id string, org
 	}
 	var skill model.Skill
 	err = h.db.WithContext(ctx).
-		Where("id = ? AND (org_id = ? OR (org_id IS NULL AND status = ?))", skillID, orgID, model.SkillStatusPublished).
+		Where("id = ? AND (org_id = ? OR (org_id IS NULL AND status = ? AND hidden = false))", skillID, orgID, model.SkillStatusPublished).
 		First(&skill).Error
 	if err != nil {
 		return nil, err

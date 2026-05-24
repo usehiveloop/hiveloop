@@ -8412,6 +8412,7 @@ export interface components {
             bundle?: components["schemas"]["Bundle"];
             category?: string;
             description?: string;
+            hidden?: boolean;
             integration_ids?: string[];
             name?: string;
             repo_ref?: string;
@@ -9180,6 +9181,7 @@ export interface components {
             created_at?: string;
             description?: string;
             featured?: boolean;
+            hidden?: boolean;
             hydration_error?: string;
             /** @description pending, ready, error */
             hydration_status?: string;
@@ -9203,6 +9205,7 @@ export interface components {
             created_at?: string;
             description?: string;
             featured?: boolean;
+            hidden?: boolean;
             hydration_error?: string;
             /** @description pending, ready, error */
             hydration_status?: string;
@@ -9391,6 +9394,7 @@ export interface components {
         updateSkillRequest: {
             category?: string;
             description?: string;
+            hidden?: boolean;
             integration_ids?: string[];
             name?: string;
             repo_ref?: string;

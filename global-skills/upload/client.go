@@ -87,6 +87,7 @@ func (client *apiClient) createSkill(skill *loadedSkill) error {
 		SourceType:     "inline",
 		Tags:           skill.manifest.Tags,
 		IntegrationIDs: skill.manifest.IntegrationIDs,
+		Hidden:         skill.manifest.Hidden,
 		Bundle:         &skill.bundle,
 	}
 	responseBody, status, err := client.do("POST", "/v1/skills", request)
@@ -118,6 +119,7 @@ func (client *apiClient) updateMetadata(skillID string, skill *loadedSkill) erro
 		"category":        skill.manifest.Category,
 		"tags":            skill.manifest.Tags,
 		"integration_ids": skill.manifest.IntegrationIDs,
+		"hidden":          skill.manifest.Hidden,
 	}
 	responseBody, status, err := client.do("PATCH", "/v1/skills/"+skillID, request)
 	if err != nil {

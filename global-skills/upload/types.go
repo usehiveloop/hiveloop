@@ -8,6 +8,7 @@ type manifest struct {
 	Files          []manifestFile `json:"files"`
 	Tags           []string       `json:"tags,omitempty"`
 	IntegrationIDs []string       `json:"integration_ids,omitempty"`
+	Hidden         bool           `json:"hidden,omitempty"`
 
 	// Internal skills are local-only documentation for AI coding agents
 	// working on this repo (test runbooks, fake-server references, etc.).
@@ -40,6 +41,7 @@ type createRequest struct {
 	SourceType     string   `json:"source_type"`
 	Tags           []string `json:"tags,omitempty"`
 	IntegrationIDs []string `json:"integration_ids,omitempty"`
+	Hidden         bool     `json:"hidden,omitempty"`
 	Bundle         *bundle  `json:"bundle,omitempty"`
 }
 

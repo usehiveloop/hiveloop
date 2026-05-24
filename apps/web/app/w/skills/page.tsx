@@ -83,7 +83,7 @@ export default function SkillsPage() {
     "/v1/employees/{id}/skills/{skillID}"
   )
 
-  const skills = skillsQuery.data?.data ?? []
+  const skills = (skillsQuery.data?.data ?? []).filter((skill) => !skill.hidden)
   const attached = attachedQuery.data ?? []
 
   const attachedBySkillID = useMemo(() => {

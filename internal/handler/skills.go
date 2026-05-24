@@ -31,6 +31,7 @@ type createSkillRequest struct {
 	SourceType     string   `json:"source_type"` // "inline" | "git"
 	Tags           []string `json:"tags,omitempty"`
 	IntegrationIDs []string `json:"integration_ids,omitempty"`
+	Hidden         bool     `json:"hidden,omitempty"`
 
 	// Inline source
 	Bundle *skills.Bundle `json:"bundle,omitempty"`
@@ -47,6 +48,7 @@ type updateSkillRequest struct {
 	Category       *string   `json:"category,omitempty"`
 	Tags           *[]string `json:"tags,omitempty"`
 	IntegrationIDs *[]string `json:"integration_ids,omitempty"`
+	Hidden         *bool     `json:"hidden,omitempty"`
 	RepoRef        *string   `json:"repo_ref,omitempty"`
 	Status         *string   `json:"status,omitempty"`
 }
@@ -70,6 +72,7 @@ type skillResponse struct {
 	IntegrationIDs  []string  `json:"integration_ids"`
 	InstallCount    int       `json:"install_count"`
 	Featured        bool      `json:"featured"`
+	Hidden          bool      `json:"hidden"`
 	Status          string    `json:"status"`
 	PublicSkillID   *string   `json:"public_skill_id,omitempty"`
 	HydrationStatus string    `json:"hydration_status"` // pending, ready, error
@@ -142,6 +145,7 @@ func (h *SkillHandler) Create(w http.ResponseWriter, r *http.Request) {
 		SourceType:     req.SourceType,
 		Tags:           req.Tags,
 		IntegrationIDs: req.IntegrationIDs,
+		Hidden:         req.Hidden,
 		Status:         model.SkillStatusDraft,
 	}
 

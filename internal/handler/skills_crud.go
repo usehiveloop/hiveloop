@@ -45,7 +45,7 @@ func (h *SkillHandler) List(w http.ResponseWriter, r *http.Request) {
 	case "own":
 		q = q.Where("org_id = ?", org.ID)
 	case "", "all":
-		q = q.Where("org_id = ? OR (org_id IS NULL AND status = ? AND "+publicSkillLibraryFilterSQL()+")", org.ID, model.SkillStatusPublished)
+		q = q.Where("(org_id = ? AND hidden = false) OR (org_id IS NULL AND status = ? AND "+publicSkillLibraryFilterSQL()+")", org.ID, model.SkillStatusPublished)
 	default:
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "scope must be public, own, or all"})
 		return
@@ -80,7 +80,7 @@ func (h *SkillHandler) List(w http.ResponseWriter, r *http.Request) {
 }
 
 func publicSkillLibraryFilterSQL() string {
-	return "COALESCE(array_length(integration_ids, 1), 0) = 0"
+	return "hidden = false AND COALESCE(array_length(integration_ids, 1), 0) = 0"
 }
 
 // Get handles GET /v1/skills/{id}.

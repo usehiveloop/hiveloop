@@ -700,6 +700,8 @@ definitions:
         type: string
       description:
         type: string
+      hidden:
+        type: boolean
       integration_ids:
         items:
           type: string
@@ -2201,6 +2203,8 @@ definitions:
         type: string
       featured:
         type: boolean
+      hidden:
+        type: boolean
       hydration_error:
         type: string
       hydration_status:
@@ -2248,6 +2252,8 @@ definitions:
       description:
         type: string
       featured:
+        type: boolean
+      hidden:
         type: boolean
       hydration_error:
         type: string
@@ -2606,6 +2612,8 @@ definitions:
         type: string
       description:
         type: string
+      hidden:
+        type: boolean
       integration_ids:
         items:
           type: string

@@ -161,7 +161,7 @@ func (h *SkillHandler) ListEmployeeSkills(w http.ResponseWriter, r *http.Request
 		skillIDs[i] = l.SkillID
 	}
 	var rows []model.Skill
-	if err := h.db.Where("id IN ?", skillIDs).Find(&rows).Error; err != nil {
+	if err := h.db.Where("id IN ? AND hidden = false", skillIDs).Find(&rows).Error; err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to load skills"})
 		return
 	}

@@ -63,6 +63,7 @@ func createGlobalSkill(tx *gorm.DB, skill *model.Skill, manifest globalSkillMani
 		RepoRef:        "main",
 		Tags:           manifest.Tags,
 		IntegrationIDs: manifest.IntegrationIDs,
+		Hidden:         manifest.Hidden,
 		Status:         model.SkillStatusPublished,
 		PublishedAt:    &now,
 	}
@@ -84,6 +85,7 @@ func updateGlobalSkill(tx *gorm.DB, skill *model.Skill, manifest globalSkillMani
 		"repo_ref":        "main",
 		"tags":            pq.StringArray(manifest.Tags),
 		"integration_ids": pq.StringArray(manifest.IntegrationIDs),
+		"hidden":          manifest.Hidden,
 		"status":          model.SkillStatusPublished,
 		"published_at":    coalesceTime(skill.PublishedAt, now),
 	}

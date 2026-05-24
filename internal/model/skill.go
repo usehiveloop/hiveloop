@@ -36,6 +36,7 @@ type Skill struct {
 	IntegrationIDs pq.StringArray `gorm:"type:text[];default:'{}'"`
 	InstallCount   int            `gorm:"not null;default:0"`
 	Featured       bool           `gorm:"not null;default:false;index"`
+	Hidden         bool           `gorm:"not null;default:false;index"`
 	VerifiedAt     *time.Time
 
 	// Status is draft, published, or archived.

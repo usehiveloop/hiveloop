@@ -9165,6 +9165,9 @@
           "description": {
             "type": "string"
           },
+          "hidden": {
+            "type": "boolean"
+          },
           "integration_ids": {
             "type": "array",
             "items": {
@@ -11458,6 +11461,9 @@
           "featured": {
             "type": "boolean"
           },
+          "hidden": {
+            "type": "boolean"
+          },
           "hydration_error": {
             "type": "string"
           },
@@ -11528,6 +11534,9 @@
             "type": "string"
           },
           "featured": {
+            "type": "boolean"
+          },
+          "hidden": {
             "type": "boolean"
           },
           "hydration_error": {
@@ -12075,6 +12084,9 @@
           },
           "description": {
             "type": "string"
+          },
+          "hidden": {
+            "type": "boolean"
           },
           "integration_ids": {
             "type": "array",
