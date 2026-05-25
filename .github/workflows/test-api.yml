@@ -363,7 +363,7 @@ jobs:
         run: make ci-cleanup-containers
 
   e2e:
-    name: e2e ${{ matrix.shard }}/6
+    name: e2e
     runs-on: ubuntu-latest
     timeout-minutes: 8
     services:
@@ -389,10 +389,6 @@ jobs:
           --health-interval 2s
           --health-timeout 5s
           --health-retries 30
-    strategy:
-      fail-fast: false
-      matrix:
-        shard: [0, 1, 2, 3, 4, 5]
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-go@v6
@@ -402,8 +398,8 @@ jobs:
       - name: wait for services
         run: make ci-wait-services
         timeout-minutes: 2
-      - name: test e2e shard
-        run: make ci-test-e2e SHARD_INDEX=${{ matrix.shard }} SHARD_TOTAL=6
+      - name: test e2e
+        run: make ci-test-e2e
         timeout-minutes: 5
 
   cmd:
