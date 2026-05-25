@@ -54,8 +54,16 @@ internal_packages() {
   go list ./internal/...
 }
 
+internal_test_packages() {
+  go list -f '{{if or .TestGoFiles .XTestGoFiles}}{{.ImportPath}}{{end}}' ./internal/... | sed '/^$/d'
+}
+
+cmd_test_packages() {
+  go list -f '{{if or .TestGoFiles .XTestGoFiles}}{{.ImportPath}}{{end}}' ./cmd/... | sed '/^$/d'
+}
+
 internal_core_packages() {
-  internal_packages | grep -Ev 'internal/(handler|hindsight|integrations|nango|rag|storage|tasks)(/|$)'
+  internal_test_packages | grep -Ev 'internal/(handler|hindsight|integrations|nango|rag|storage|tasks)(/|$)'
 }
 
 case "$suite" in
@@ -66,13 +74,13 @@ case "$suite" in
     run_test_names ./internal/handler
     ;;
   internal-rag)
-    run_packages "$(internal_packages | grep -E 'internal/rag(/|$)' | shard_lines)"
+    run_packages "$(internal_test_packages | grep -E 'internal/rag(/|$)' | shard_lines)"
     ;;
   internal-tasks)
     run_test_names ./internal/tasks
     ;;
   internal-hindsight)
-    run_packages "$(internal_packages | grep -E 'internal/hindsight(/|$)' | shard_lines)"
+    run_packages "$(internal_test_packages | grep -E 'internal/hindsight(/|$)' | shard_lines)"
     ;;
   internal-integrations)
     run_packages "$(printf '%s\n' github.com/usehivy/hivy/internal/integrations github.com/usehivy/hivy/internal/nango | shard_lines)"
@@ -87,7 +95,8 @@ case "$suite" in
     run_packages "github.com/usehivy/hivy/e2e/fakebridge"
     ;;
   cmd)
-    env "${test_env[@]}" go test ./cmd/... -count=1
+    env "${test_env[@]}" go build ./cmd/...
+    run_packages "$(cmd_test_packages)"
     ;;
   *)
     echo "unknown suite: $suite" >&2

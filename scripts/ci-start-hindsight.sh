@@ -25,13 +25,12 @@ docker run -d --name hivy-ci-hindsight --network host \
   -e HINDSIGHT_API_RETAIN_LLM_PROVIDER=none \
   -e HINDSIGHT_API_RETAIN_LLM_API_KEY=dummy \
   -e HINDSIGHT_API_RETAIN_LLM_MODEL=openai/gpt-oss-20b \
-  -e HINDSIGHT_API_EMBEDDINGS_PROVIDER=openai \
-  -e HINDSIGHT_API_EMBEDDINGS_OPENAI_API_KEY=dummy \
-  -e HINDSIGHT_API_EMBEDDINGS_OPENAI_MODEL=text-embedding-3-small \
+  -e HINDSIGHT_API_EMBEDDINGS_PROVIDER=local \
+  -e HINDSIGHT_API_EMBEDDINGS_LOCAL_FORCE_CPU=true \
   -e HINDSIGHT_API_RERANKER_PROVIDER=rrf \
   -e HINDSIGHT_API_RERANKER_ZEROENTROPY_API_KEY=dummy \
   -e HINDSIGHT_API_RERANKER_ZEROENTROPY_MODEL=zerank-2 \
-  ghcr.io/vectorize-io/hindsight:latest-slim >/dev/null
+  ghcr.io/vectorize-io/hindsight:latest >/dev/null
 
 for _ in $(seq 1 90); do
   if curl -fsS http://localhost:8888/health >/dev/null 2>&1 || curl -fsS http://localhost:8888 >/dev/null 2>&1; then

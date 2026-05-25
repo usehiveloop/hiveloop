@@ -8,6 +8,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/hibiken/asynq"
@@ -131,7 +132,7 @@ func TestNextEmployeeProxyTokenRefreshAt_UsesActiveStartupTokenExpiry(t *testing
 	if err != nil {
 		t.Fatalf("next refresh: %v", err)
 	}
-	want := startupToken.ExpiresAt.Add(-employeeProxyTokenRefreshLead).UTC()
+	want := startupToken.ExpiresAt.Add(-employeeProxyTokenRefreshLead).UTC().Truncate(time.Microsecond)
 	if !got.Equal(want) {
 		t.Fatalf("next refresh = %s, want %s", got, want)
 	}

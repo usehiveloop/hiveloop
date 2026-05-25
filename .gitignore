@@ -21,9 +21,9 @@ strix_runs/
 !.env.example
 !.env.*.example
 
-fetchactions-graphql
-fetchactions-oas2
-fetchactions-oas3
+/fetchactions-graphql
+/fetchactions-oas2
+/fetchactions-oas3
 examples/
 certs/
 

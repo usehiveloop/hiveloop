@@ -23,7 +23,7 @@ wait_for_minio() {
 }
 
 wait_for_minio
-docker run --rm --network host minio/mc:latest sh -lc '
+docker run --rm --network host --entrypoint /bin/sh minio/mc:latest -lc '
   mc alias set local http://127.0.0.1:9000 minioadmin minioadmin &&
   mc mb --ignore-existing local/hivy-rag-test &&
   mc mb --ignore-existing local/public-files-test &&

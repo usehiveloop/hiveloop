@@ -380,7 +380,10 @@ ci-test-cmd:
 	./scripts/ci-test-shard.sh cmd
 
 ci-test-web:
-	cd apps/web && pnpm typecheck && HIVY_API_URL=http://localhost:8080 pnpm build
+	cd apps/web && pnpm typecheck
+	node scripts/ci-web-plans-api.mjs & pid=$$!; \
+	trap 'kill $$pid' EXIT; \
+	HIVY_API_URL=http://127.0.0.1:18081 pnpm --dir apps/web build
 
 ci-test-runtime:
 	$(MAKE) sandbox-runtime-fmt-check
