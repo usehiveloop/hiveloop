@@ -2,13 +2,16 @@ package e2e
 
 import (
 	"encoding/base64"
+	"encoding/json"
+	"io"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/google/uuid"
 
-	"github.com/usehivy/hivy/e2e/fakebridge"
 	bridgepkg "github.com/usehivy/hivy/internal/bridge"
 	"github.com/usehivy/hivy/internal/config"
 	"github.com/usehivy/hivy/internal/crypto"
@@ -86,14 +89,14 @@ func TestSkillsPassthrough_NewWireShape(t *testing.T) {
 	}
 	_ = skillIDs
 
-	fb := fakebridge.New(t)
+	pushTarget := newAgentPushCapture(t)
 
 	expiresAt := time.Now().Add(24 * time.Hour)
 	sb := model.Sandbox{
 		OrgID:                 &org.ID,
 		EmployeeID:            &agent.ID,
 		ExternalID:            "sk-ext-" + suffix,
-		BridgeURL:             fb.URL,
+		BridgeURL:             pushTarget.URL,
 		BridgeURLExpiresAt:    &expiresAt,
 		EncryptedBridgeAPIKey: encryptedAPIKey,
 		Status:                "running",
@@ -106,18 +109,17 @@ func TestSkillsPassthrough_NewWireShape(t *testing.T) {
 		MCPBaseURL:            "https://mcp.test",
 		SpecialistSandboxHost: "bridge.test",
 	}
-	orch := sandbox.NewOrchestrator(h.db, &e2eSandboxProvider{endpoint: fb.URL}, encKey, cfg)
+	orch := sandbox.NewOrchestrator(h.db, &e2eSandboxProvider{endpoint: pushTarget.URL}, encKey, cfg)
 	pusher := sandbox.NewPusher(h.db, orch, h.signingKey, cfg, nil)
 
 	if err := pusher.PushSpecialistToSandbox(t.Context(), &agent, &sb); err != nil {
 		t.Fatalf("PushSpecialistToSandbox: %v", err)
 	}
 
-	cap := fb.CapturedSnapshot()
-	if len(cap.UpsertAgents) != 1 {
-		t.Fatalf("UpsertAgent calls: got %d, want 1", len(cap.UpsertAgents))
+	if len(pushTarget.UpsertAgents) != 1 {
+		t.Fatalf("UpsertAgent calls: got %d, want 1", len(pushTarget.UpsertAgents))
 	}
-	def := cap.UpsertAgents[0]
+	def := pushTarget.UpsertAgents[0]
 	if def.Skills == nil {
 		t.Fatalf("def.skills is nil; want 2 entries")
 	}
@@ -161,4 +163,39 @@ func TestSkillsPassthrough_NewWireShape(t *testing.T) {
 	if !strings.HasPrefix(def.Provider.Model, "claude") {
 		t.Errorf("model: got %q, want claude*", def.Provider.Model)
 	}
+}
+
+type agentPushCapture struct {
+	URL          string
+	UpsertAgents []bridgepkg.AgentDefinition
+}
+
+func newAgentPushCapture(t *testing.T) *agentPushCapture {
+	t.Helper()
+
+	capture := &agentPushCapture{}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPut || !strings.HasPrefix(r.URL.Path, "/push/agents/") {
+			http.NotFound(w, r)
+			return
+		}
+
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			http.Error(w, "read body", http.StatusBadRequest)
+			return
+		}
+		var def bridgepkg.AgentDefinition
+		if err := json.Unmarshal(body, &def); err != nil {
+			http.Error(w, "invalid agent definition", http.StatusBadRequest)
+			return
+		}
+		capture.UpsertAgents = append(capture.UpsertAgents, def)
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"status":"ok"}`))
+	}))
+	t.Cleanup(server.Close)
+
+	capture.URL = server.URL
+	return capture
 }
