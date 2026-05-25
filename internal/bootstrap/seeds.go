@@ -7,6 +7,7 @@ import (
 	"github.com/lib/pq"
 	"gorm.io/gorm"
 
+	"github.com/usehivy/hivy/internal/billing/plancatalog"
 	"github.com/usehivy/hivy/internal/cache"
 	"github.com/usehivy/hivy/internal/counter"
 	"github.com/usehivy/hivy/internal/credentials"
@@ -44,6 +45,19 @@ func seedGlobalLLMCredentials(ctx context.Context, database *gorm.DB, kms *crypt
 		"unchanged", result.Unchanged,
 		"revoked", result.Revoked,
 		"skipped", result.Skipped,
+	)
+	return nil
+}
+
+func seedGlobalPlans(ctx context.Context, database *gorm.DB) error {
+	result, err := plancatalog.SyncDB(ctx, database, "global/plans/catalog.json")
+	if err != nil {
+		return fmt.Errorf("seeding global plans: %w", err)
+	}
+	logging.FromContext(ctx).InfoContext(ctx, "global plans seeded",
+		"created", result.Created,
+		"updated", result.Updated,
+		"unchanged", result.Unchanged,
 	)
 	return nil
 }

@@ -1,0 +1,128 @@
+{
+  "version": 1,
+  "plans": [
+    {
+      "slug": "free",
+      "name": "Free",
+      "provider": "",
+      "visible": true,
+      "active": true,
+      "monthly_credits": 0,
+      "welcome_credits": 500,
+      "price_cents": 0,
+      "currency": "NGN",
+      "features": [
+        "500 credits included",
+        "Core integrations",
+        "No credit card required"
+      ],
+      "paystack": {
+        "sync": false
+      }
+    },
+    {
+      "slug": "business-2500",
+      "name": "Business 2.5K",
+      "provider": "paystack",
+      "visible": true,
+      "active": true,
+      "monthly_credits": 2500,
+      "welcome_credits": 0,
+      "price_cents": 4990000,
+      "currency": "NGN",
+      "features": [
+        "2,500 credits per month",
+        "Unlimited integrations",
+        "Unlimited team members",
+        "Employee and specialist sandboxes",
+        "Custom mcp tools",
+        "Recurring tasks and scheduling",
+        "Shared team memory",
+        "API and webhook access",
+        "Spend caps and usage visibility"
+      ],
+      "paystack": {
+        "sync": true,
+        "interval": "monthly"
+      }
+    },
+    {
+      "slug": "business-10000",
+      "name": "Business 10K",
+      "provider": "paystack",
+      "visible": true,
+      "active": true,
+      "monthly_credits": 10000,
+      "welcome_credits": 0,
+      "price_cents": 19960000,
+      "currency": "NGN",
+      "features": [
+        "10,000 credits per month",
+        "Unlimited integrations",
+        "Unlimited team members",
+        "Employee and specialist sandboxes",
+        "Custom mcp tools",
+        "Recurring tasks and scheduling",
+        "Shared team memory",
+        "API and webhook access",
+        "Spend caps and usage visibility"
+      ],
+      "paystack": {
+        "sync": true,
+        "interval": "monthly"
+      }
+    },
+    {
+      "slug": "business-25000",
+      "name": "Business 25K",
+      "provider": "paystack",
+      "visible": true,
+      "active": true,
+      "monthly_credits": 25000,
+      "welcome_credits": 0,
+      "price_cents": 49900000,
+      "currency": "NGN",
+      "features": [
+        "25,000 credits per month",
+        "Unlimited integrations",
+        "Unlimited team members",
+        "Employee and specialist sandboxes",
+        "Custom mcp tools",
+        "Recurring tasks and scheduling",
+        "Shared team memory",
+        "API and webhook access",
+        "Spend caps and usage visibility"
+      ],
+      "paystack": {
+        "sync": true,
+        "interval": "monthly"
+      }
+    },
+    {
+      "slug": "business-100000",
+      "name": "Business 100K",
+      "provider": "paystack",
+      "visible": true,
+      "active": true,
+      "monthly_credits": 100000,
+      "welcome_credits": 0,
+      "price_cents": 199600000,
+      "currency": "NGN",
+      "features": [
+        "100,000 credits per month",
+        "Unlimited integrations",
+        "Unlimited team members",
+        "Employee and specialist sandboxes",
+        "Custom mcp tools",
+        "Recurring tasks and scheduling",
+        "Shared team memory",
+        "API and webhook access",
+        "Spend caps and usage visibility"
+      ],
+      "paystack": {
+        "sync": true,
+        "interval": "monthly"
+      }
+    }
+  ]
+}

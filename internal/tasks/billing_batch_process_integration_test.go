@@ -60,6 +60,37 @@ func TestBatch_GroupsPerOrgIntoOneLedgerEntry(t *testing.T) {
 	}
 }
 
+func TestBatch_CumulativeRoundingUnaffectedBySplitRuns(t *testing.T) {
+	db := connectDB(t)
+	orgID, credID := seedOrgWithCredentialAndCredits(t, db, 10_000)
+
+	for _, cost := range []float64{0.000635488, 0.000170336, 0.000184896, 0.000183220} {
+		opts := defaultGenOpts()
+		opts.Cost = cost
+		insertGeneration(t, db, orgID, credID, opts)
+	}
+	runBatch(t, db)
+
+	opts := defaultGenOpts()
+	opts.Cost = 0.000658672
+	lastID := insertGeneration(t, db, orgID, credID, opts)
+	runBatch(t, db)
+
+	bal, _ := billing.NewCreditsService(db).Balance(orgID)
+	if bal != 9_998 {
+		t.Errorf("split runs should debit cumulative ceil(total cost) only: balance = %d, want 9998", bal)
+	}
+
+	var debited int64
+	db.Model(&model.Generation{}).Where("org_id = ?", orgID).Select("COALESCE(SUM(credits_debited), 0)").Scan(&debited)
+	if debited != 2 {
+		t.Errorf("row credits_debited sum = %d, want 2", debited)
+	}
+	if last := loadGen(t, db, lastID); last.CreditsDebited != 0 {
+		t.Errorf("second split row crossed no new credit boundary: credits_debited = %d, want 0", last.CreditsDebited)
+	}
+}
+
 func TestBatch_MultiOrgIndependentDeductions(t *testing.T) {
 	db := connectDB(t)
 	orgA, credA := seedOrgWithCredentialAndCredits(t, db, 10_000)

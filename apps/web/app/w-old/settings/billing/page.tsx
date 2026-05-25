@@ -63,7 +63,7 @@ export default function Page() {
   const plans = (plansQuery.data ?? []) as Plan[]
 
   const currentSlug = subscription?.plan_slug || fallbackSlug
-  const currentPlan = plans.find((p) => p.slug === currentSlug) ?? null
+  const currentPlan = plans.find((p) => p.slug === currentSlug) ?? activeOrg?.plan ?? null
   const pendingPlan = subscription?.pending_plan_slug
     ? plans.find((p) => p.slug === subscription.pending_plan_slug) ?? null
     : null

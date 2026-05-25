@@ -35,6 +35,11 @@ func newPlansListHarness(t *testing.T) *plansListHarness {
 
 func (h *plansListHarness) seedPlan(t *testing.T, slug string, name string, priceCents int64, active bool) {
 	t.Helper()
+	h.seedPlanWithVisibility(t, slug, name, priceCents, active, true)
+}
+
+func (h *plansListHarness) seedPlanWithVisibility(t *testing.T, slug string, name string, priceCents int64, active bool, visible bool) {
+	t.Helper()
 	plan := model.Plan{
 		Slug:           slug,
 		Name:           name,
@@ -43,6 +48,7 @@ func (h *plansListHarness) seedPlan(t *testing.T, slug string, name string, pric
 		PriceCents:     priceCents,
 		Currency:       "USD",
 		Active:         active,
+		Visible:        visible,
 	}
 	if err := h.db.Where("slug = ?", slug).Delete(&model.Plan{}).Error; err != nil {
 		t.Fatalf("clean prior plan: %v", err)
@@ -56,6 +62,12 @@ func (h *plansListHarness) seedPlan(t *testing.T, slug string, name string, pric
 		if err := h.db.Model(&model.Plan{}).Where("id = ?", plan.ID).
 			Update("active", false).Error; err != nil {
 			t.Fatalf("force inactive on %s: %v", slug, err)
+		}
+	}
+	if !visible {
+		if err := h.db.Model(&model.Plan{}).Where("id = ?", plan.ID).
+			Update("visible", false).Error; err != nil {
+			t.Fatalf("force hidden on %s: %v", slug, err)
 		}
 	}
 	t.Cleanup(func() {
@@ -91,6 +103,7 @@ func TestPlansList_ReturnsActiveOrderedByPrice(t *testing.T) {
 	h.seedPlan(t, "test-business-"+suffix, "Business "+suffix, 19900, true)
 	h.seedPlan(t, "test-free-"+suffix, "Free "+suffix, 0, true)
 	h.seedPlan(t, "test-archived-"+suffix, "Archived "+suffix, 9900, false)
+	h.seedPlanWithVisibility(t, "test-hidden-"+suffix, "Hidden "+suffix, 5900, true, false)
 
 	rr := h.doGet(t)
 	if rr.Code != http.StatusOK {
@@ -113,7 +126,7 @@ func TestPlansList_ReturnsActiveOrderedByPrice(t *testing.T) {
 	var ours []string
 	for _, plan := range got {
 		switch plan.Slug {
-		case "test-pro-" + suffix, "test-business-" + suffix, "test-free-" + suffix, "test-archived-" + suffix:
+		case "test-pro-" + suffix, "test-business-" + suffix, "test-free-" + suffix, "test-archived-" + suffix, "test-hidden-" + suffix:
 			ours = append(ours, plan.Slug)
 			if plan.Currency != "USD" {
 				t.Errorf("plan %s: currency got %q, want USD", plan.Slug, plan.Currency)
@@ -147,6 +160,9 @@ func TestPlansList_ReturnsActiveOrderedByPrice(t *testing.T) {
 	for _, plan := range got {
 		if plan.Slug == "test-archived-"+suffix {
 			t.Errorf("inactive plan %q should be excluded from /v1/plans", plan.Slug)
+		}
+		if plan.Slug == "test-hidden-"+suffix {
+			t.Errorf("hidden plan %q should be excluded from /v1/plans", plan.Slug)
 		}
 	}
 }

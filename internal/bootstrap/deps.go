@@ -90,6 +90,9 @@ func New(ctx context.Context) (*Deps, error) {
 		return nil, fmt.Errorf("installing sentry gorm plugin: %w", err)
 	}
 
+	if err := seedGlobalPlans(ctx, database); err != nil {
+		return nil, err
+	}
 	if err := seedGlobalSkills(ctx, database); err != nil {
 		return nil, err
 	}

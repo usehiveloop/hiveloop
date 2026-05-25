@@ -82,7 +82,7 @@ func (h *BillingHandler) CreateCheckout(w http.ResponseWriter, r *http.Request) 
 	}
 
 	var plan model.Plan
-	if err := h.db.Where("slug = ? AND active = true", body.PlanSlug).First(&plan).Error; err != nil {
+	if err := h.db.Where("slug = ? AND active = true AND visible = true", body.PlanSlug).First(&plan).Error; err != nil {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "unknown plan"})
 		return
 	}

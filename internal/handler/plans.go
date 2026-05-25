@@ -18,7 +18,7 @@ func NewPlansHandler(db *gorm.DB) *PlansHandler {
 }
 
 // List handles GET /v1/plans (no auth).
-// @Summary List all active plans
+// @Summary List all public active plans
 // @Description Returns the public catalog of billing plans, ordered by price
 // @Description ascending (free first). Public — no authentication required.
 // @Tags plans
@@ -28,7 +28,7 @@ func NewPlansHandler(db *gorm.DB) *PlansHandler {
 // @Router /v1/plans [get]
 func (h *PlansHandler) List(w http.ResponseWriter, r *http.Request) {
 	var plans []model.Plan
-	if err := h.db.Where("active = ?", true).
+	if err := h.db.Where("active = ? AND visible = ?", true, true).
 		Order("price_cents ASC, slug ASC").
 		Find(&plans).Error; err != nil {
 		logging.FromContext(r.Context()).ErrorContext(r.Context(), "plans list: query failed", "error", err)

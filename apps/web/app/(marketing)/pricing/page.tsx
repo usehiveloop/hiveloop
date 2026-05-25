@@ -1,10 +1,12 @@
 "use client"
 
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Slider } from "@/components/ui/slider"
+import { $api } from "@/lib/api/hooks"
+import type { components } from "@/lib/api/schema"
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -15,6 +17,8 @@ import {
 } from "@/components/ui/navigation-menu"
 import { GithubIcon } from "@/components/icons"
 import { MarketingFooter } from "../_components/footer"
+
+type Plan = components["schemas"]["planDTO"]
 
 /* ─────────────────────────── Navbar ─────────────────────────── */
 
@@ -159,37 +163,35 @@ function BestFeatures() {
 
 /* ─────────────────────────── Credit Slider ─────────────────────────── */
 
-const creditSteps = [
-  {
-    credits: 2500,
-    priceNGN: 49900,
-    label: "2.5K",
-  },
-  {
-    credits: 10000,
-    priceNGN: 199600,
-    label: "10K",
-  },
-  {
-    credits: 25000,
-    priceNGN: 499000,
-    label: "25K",
-  },
-  {
-    credits: 100000,
-    priceNGN: 1996000,
-    label: "100K",
-  },
-]
+type CreditStep = {
+  plan: Plan
+  credits: number
+  priceMinor: number
+  label: string
+}
 
-function formatNGN(value: number) {
-  return `₦${value.toLocaleString("en-NG")}`
+function formatNGN(minor: number) {
+  return new Intl.NumberFormat("en-NG", {
+    style: "currency",
+    currency: "NGN",
+    maximumFractionDigits: 0,
+  }).format(minor / 100)
+}
+
+function formatCreditLabel(credits: number) {
+  if (credits >= 1000) {
+    const thousands = credits / 1000
+    return `${Number.isInteger(thousands) ? thousands : thousands.toFixed(1)}K`
+  }
+  return credits.toLocaleString("en-NG")
 }
 
 function CreditSlider({
+  steps,
   value,
   onChange,
 }: {
+  steps: CreditStep[]
   value: number
   onChange: (value: number) => void
 }) {
@@ -200,12 +202,12 @@ function CreditSlider({
           Business credits per month
         </span>
         <span className="font-heading text-lg font-medium text-foreground">
-          {creditSteps[value].credits.toLocaleString()}
+          {steps[value].credits.toLocaleString()}
         </span>
       </div>
       <Slider
         min={0}
-        max={creditSteps.length - 1}
+        max={steps.length - 1}
         step={1}
         value={[value]}
         onValueChange={(v) => {
@@ -214,7 +216,7 @@ function CreditSlider({
         }}
       />
       <div className="mt-3 flex justify-between">
-        {creditSteps.map((step, i) => (
+        {steps.map((step, i) => (
           <button
             key={step.label}
             type="button"
@@ -235,14 +237,9 @@ function CreditSlider({
 
 /* ─────────────────────────── Free Plan Card ─────────────────────────── */
 
-function FreePlanCard() {
-  const features = [
-    "500 credits included",
-    "Employee sandbox runtime",
-    "Specialist task trial",
-    "Core integrations",
-    "No credit card required",
-  ]
+function FreePlanCard({ plan }: { plan: Plan | undefined }) {
+  const credits = plan?.welcome_credits ?? 0
+  const features = plan?.features ?? []
 
   return (
     <div className="flex flex-col rounded-lg border border-border bg-secondary p-6 sm:p-8">
@@ -257,7 +254,7 @@ function FreePlanCard() {
           <span className="text-sm text-muted-foreground">/month</span>
         </div>
         <p className="mt-2 text-sm text-muted-foreground">
-          Try hivy with 500 credits.
+          Try hivy with {credits.toLocaleString()} credits.
         </p>
       </div>
 
@@ -278,20 +275,8 @@ function FreePlanCard() {
 
 /* ─────────────────────────── Business Plan Card ─────────────────────────── */
 
-function BusinessPlanCard({ sliderValue }: { sliderValue: number }) {
-  const tier = creditSteps[sliderValue]
-
-  const features = [
-    `${tier.credits.toLocaleString()} credits per month`,
-    "Business features included",
-    "Unlimited team members",
-    "Employee and specialist sandboxes",
-    "All integrations and MCP tools",
-    "Recurring tasks and scheduling",
-    "Shared team memory",
-    "API and webhook access",
-    "Spend caps and usage visibility",
-  ]
+function BusinessPlanCard({ tier }: { tier: CreditStep }) {
+  const features = tier.plan.features ?? []
 
   return (
     <div className="relative flex flex-col rounded-lg border border-primary/20 bg-secondary p-6 sm:p-8">
@@ -307,7 +292,7 @@ function BusinessPlanCard({ sliderValue }: { sliderValue: number }) {
         </div>
         <div className="mt-4 flex items-baseline gap-1">
           <span className="font-heading text-4xl font-medium text-foreground">
-            {formatNGN(tier.priceNGN)}
+            {formatNGN(tier.priceMinor)}
           </span>
           <span className="text-sm text-muted-foreground">/month</span>
         </div>
@@ -439,7 +424,32 @@ function CustomPlanCTA() {
 /* ─────────────────────────── Page ─────────────────────────── */
 
 export default function PricingPage() {
+  const plansQuery = $api.useQuery("get", "/v1/plans")
   const [sliderValue, setSliderValue] = useState(1)
+  const plans = (plansQuery.data ?? []) as Plan[]
+  const freePlan = plans.find((plan) => plan.slug === "free")
+  const creditSteps = useMemo(
+    () =>
+      plans
+        .filter(
+          (plan) =>
+            plan.slug?.startsWith("business-") &&
+            (plan.monthly_credits ?? 0) > 0,
+        )
+        .sort((a, b) => (a.monthly_credits ?? 0) - (b.monthly_credits ?? 0))
+        .map((plan) => ({
+          plan,
+          credits: plan.monthly_credits ?? 0,
+          priceMinor: plan.price_cents ?? 0,
+          label: formatCreditLabel(plan.monthly_credits ?? 0),
+        })),
+    [plans],
+  )
+  const selectedSliderValue =
+    creditSteps.length === 0
+      ? 0
+      : Math.min(sliderValue, creditSteps.length - 1)
+  const selectedTier = creditSteps[selectedSliderValue]
 
   return (
     <main className="relative flex min-h-screen flex-col items-center bg-background font-display text-foreground">
@@ -481,14 +491,30 @@ export default function PricingPage() {
           <BestFeatures />
         </div>
 
-        <div className="mx-auto mt-14 max-w-xl">
-          <CreditSlider value={sliderValue} onChange={setSliderValue} />
-        </div>
+        {selectedTier ? (
+          <div className="mx-auto mt-14 max-w-xl">
+            <CreditSlider
+              steps={creditSteps}
+              value={selectedSliderValue}
+              onChange={setSliderValue}
+            />
+          </div>
+        ) : null}
 
-        <div className="mx-auto mt-12 grid max-w-4xl grid-cols-1 gap-5 md:grid-cols-2">
-          <FreePlanCard />
-          <BusinessPlanCard sliderValue={sliderValue} />
-        </div>
+        {plansQuery.isLoading ? (
+          <div className="mx-auto mt-12 max-w-4xl rounded-lg border border-border bg-secondary p-8 text-center text-sm text-muted-foreground">
+            Loading pricing plans.
+          </div>
+        ) : selectedTier ? (
+          <div className="mx-auto mt-12 grid max-w-4xl grid-cols-1 gap-5 md:grid-cols-2">
+            <FreePlanCard plan={freePlan} />
+            <BusinessPlanCard tier={selectedTier} />
+          </div>
+        ) : (
+          <div className="mx-auto mt-12 max-w-4xl rounded-lg border border-border bg-secondary p-8 text-center text-sm text-muted-foreground">
+            Pricing plans are temporarily unavailable.
+          </div>
+        )}
 
         <div className="mx-auto mt-8 max-w-4xl">
           <CustomPlanCTA />

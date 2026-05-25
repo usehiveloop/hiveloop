@@ -17,6 +17,7 @@ type Plan struct {
 	PriceCents     int64     `gorm:"not null;default:0"`
 	Currency       string    `gorm:"not null;default:'USD';size:8"`
 	Active         bool      `gorm:"not null;default:true"`
+	Visible        bool      `gorm:"not null;default:true;index"`
 	CreatedAt      time.Time
 	UpdatedAt      time.Time
 }
