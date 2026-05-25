@@ -26,18 +26,6 @@ CREATE INDEX idx_specialist_tasks_specialist_slug ON specialist_tasks USING btre
 CREATE INDEX idx_specialist_tasks_employee_session_id ON specialist_tasks USING btree (employee_session_id);
 CREATE INDEX idx_specialist_tasks_status ON specialist_tasks USING btree (status);
 
-ALTER TABLE employee_memory_events
-    ADD COLUMN mode varchar(64) NOT NULL DEFAULT 'employee',
-    ADD COLUMN specialist_slug varchar(128) NOT NULL DEFAULT '',
-    ADD COLUMN specialist_task_id uuid;
-
-CREATE INDEX idx_employee_memory_events_mode ON employee_memory_events USING btree (mode);
-CREATE INDEX idx_employee_memory_events_specialist_slug ON employee_memory_events USING btree (specialist_slug);
-CREATE INDEX idx_employee_memory_events_specialist_task_id ON employee_memory_events USING btree (specialist_task_id);
-
-ALTER TABLE ONLY employee_memory_events
-    ADD CONSTRAINT fk_employee_memory_events_specialist_task FOREIGN KEY (specialist_task_id) REFERENCES specialist_tasks(id) ON DELETE SET NULL;
-
 -- +goose Down
 -- +goose StatementBegin
 DO $$ BEGIN RAISE EXCEPTION 'runtime specialists migration down is intentionally unsupported; reset or restore the database instead'; END $$;

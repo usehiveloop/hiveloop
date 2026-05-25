@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     mcp_specs::McpSpec, model_config::ModelConfig, outbound::OutboundChannelSpec,
-    skill_specs::SkillSpec, skill_specs::SubagentSpec, tool_specs::ToolSpec,
+    skill_specs::SkillSpec, tool_specs::ToolSpec,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -28,8 +28,6 @@ pub struct AgentDefinition {
     pub mcp_servers: Vec<McpSpec>,
     #[serde(default)]
     pub skills: Vec<SkillSpec>,
-    #[serde(default)]
-    pub subagents: Vec<SubagentSpec>,
     #[serde(default)]
     pub outbound_channels: Vec<OutboundChannelSpec>,
 }
@@ -102,8 +100,7 @@ pub enum SystemPromptSegment {
     DynamicContext(DynamicContextPromptSegment),
     MemoryContext(MemoryPromptSegment),
     SkillCatalog(ListPromptSegment),
-    LoadedMcpTools(ListPromptSegment),
-    UnloadedMcpTools(ListPromptSegment),
+    McpTools(ListPromptSegment),
 }
 
 impl SystemPromptSegment {
@@ -145,9 +142,7 @@ impl SystemPromptSegment {
                     max_text_chars,
                 )?;
             }
-            SystemPromptSegment::SkillCatalog(segment)
-            | SystemPromptSegment::LoadedMcpTools(segment)
-            | SystemPromptSegment::UnloadedMcpTools(segment) => {
+            SystemPromptSegment::SkillCatalog(segment) | SystemPromptSegment::McpTools(segment) => {
                 validate_prompt_text("list.title", &segment.title, max_text_chars)?;
                 validate_prompt_text("list.preamble", &segment.preamble, max_text_chars)?;
                 validate_prompt_text("list.item_template", &segment.item_template, max_text_chars)?;
@@ -249,7 +244,6 @@ pub struct Limits {
     pub input_token_budget: u32,
     pub output_token_budget: u32,
     pub tool_call_timeout_seconds: u32,
-    pub subagent_max_depth: u32,
 }
 
 impl Default for Limits {
@@ -259,7 +253,6 @@ impl Default for Limits {
             input_token_budget: 180_000,
             output_token_budget: 8_000,
             tool_call_timeout_seconds: 60,
-            subagent_max_depth: 2,
         }
     }
 }

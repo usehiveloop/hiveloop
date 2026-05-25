@@ -76,24 +76,24 @@ func (h *EmployeeMemoryRetainHandler) Handle(ctx context.Context, task *asynq.Ta
 
 	now := time.Now().UTC()
 	if err := h.db.WithContext(ctx).
-		Model(&model.EmployeeMemoryEvent{}).
-		Where("id IN ?", employeeMemoryEventIDs(events)).
+		Model(&model.EmployeeSessionEvent{}).
+		Where("id IN ?", employeeSessionEventIDs(events)).
 		Update("retained_at", now).Error; err != nil {
-		return fmt.Errorf("mark employee memory events retained: %w", err)
+		return fmt.Errorf("mark employee session events retained: %w", err)
 	}
 
 	h.enqueueRefresh(ctx, payload.EmployeeID, payload.SandboxID)
 	return nil
 }
 
-func (h *EmployeeMemoryRetainHandler) loadPendingEvents(ctx context.Context, payload EmployeeMemoryRetainPayload) ([]model.EmployeeMemoryEvent, error) {
-	var events []model.EmployeeMemoryEvent
+func (h *EmployeeMemoryRetainHandler) loadPendingEvents(ctx context.Context, payload EmployeeMemoryRetainPayload) ([]model.EmployeeSessionEvent, error) {
+	var events []model.EmployeeSessionEvent
 	if err := h.db.WithContext(ctx).
-		Where("employee_id = ? AND sandbox_id = ? AND session_id = ? AND retained_at IS NULL",
+		Where("employee_id = ? AND sandbox_id = ? AND runtime_session_id = ? AND retained_at IS NULL",
 			payload.EmployeeID, payload.SandboxID, payload.SessionID).
 		Order("event_at ASC, created_at ASC").
 		Find(&events).Error; err != nil {
-		return nil, fmt.Errorf("load employee memory events: %w", err)
+		return nil, fmt.Errorf("load employee session events: %w", err)
 	}
 	return events, nil
 }

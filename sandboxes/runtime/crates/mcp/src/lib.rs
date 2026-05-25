@@ -1,4 +1,3 @@
-use dashmap::{DashMap, DashSet};
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -37,25 +36,19 @@ pub struct McpToolDefinition {
 
 pub struct McpRegistry {
     entries: ArcSwap<Vec<McpEntry>>,
-    default_loaded: ArcSwap<DashSet<String>>,
-    session_loaded: DashMap<String, Arc<DashSet<String>>>,
 }
 
 impl McpRegistry {
     pub async fn from_specs(specs: &[McpSpec]) -> Self {
-        let (entries, default_loaded) = connect_specs(specs).await;
+        let entries = connect_specs(specs).await;
         Self {
             entries: ArcSwap::from_pointee(entries),
-            default_loaded: ArcSwap::from(default_loaded),
-            session_loaded: DashMap::new(),
         }
     }
 
     pub async fn reload_from_specs(&self, specs: &[McpSpec]) {
-        let (entries, default_loaded) = connect_specs(specs).await;
+        let entries = connect_specs(specs).await;
         self.entries.store(Arc::new(entries));
-        self.default_loaded.store(default_loaded);
-        self.session_loaded.clear();
     }
 
     pub fn available_tool_names(&self) -> Vec<String> {
@@ -69,99 +62,12 @@ impl McpRegistry {
         names
     }
 
-    pub fn loaded_tool_names(&self) -> Vec<String> {
-        self.loaded_tool_names_for_session("")
-    }
-
-    pub fn loaded_tool_names_for_session(&self, session_id: &str) -> Vec<String> {
-        let entries = self.entries.load();
-        let mut names: Vec<String> = Vec::new();
-        for entry in entries.iter() {
-            for (prefixed, raw) in &entry.tool_names {
-                if self.is_raw_loaded_for_session(raw, session_id) {
-                    names.push(prefixed.clone());
-                }
-            }
-        }
-        names.sort();
-        names
-    }
-
-    pub fn unloaded_tool_names(&self) -> Vec<String> {
-        self.unloaded_tool_names_for_session("")
-    }
-
-    pub fn unloaded_tool_names_for_session(&self, session_id: &str) -> Vec<String> {
-        let entries = self.entries.load();
-        let mut names: Vec<String> = Vec::new();
-        for entry in entries.iter() {
-            for (prefixed, raw) in &entry.tool_names {
-                if !self.is_raw_loaded_for_session(raw, session_id) {
-                    names.push(prefixed.clone());
-                }
-            }
-        }
-        names.sort();
-        names
-    }
-
-    pub fn is_loaded(&self, tool_name: &str) -> bool {
-        self.default_loaded.load().contains(tool_name)
-    }
-
-    pub fn load_tools(&self, names: &[String]) -> Vec<String> {
-        self.load_tools_for_session("", names)
-    }
-
-    pub fn load_tools_for_session(&self, session_id: &str, names: &[String]) -> Vec<String> {
-        let entries = self.entries.load();
-        let all: Vec<(&str, &str)> = entries
-            .iter()
-            .flat_map(|e| {
-                e.tool_names
-                    .iter()
-                    .map(|(pfx, raw)| (pfx.as_str(), raw.as_str()))
-            })
-            .collect();
-
-        let mut loaded = Vec::new();
-        let mut not_found = Vec::new();
-        let session_loaded = self.session_loaded_set(session_id);
-        let default_loaded = self.default_loaded.load();
-
-        for name in names {
-            if let Some((_, raw)) = all
-                .iter()
-                .find(|(pfx, r)| *pfx == name.as_str() || *r == name.as_str())
-            {
-                if !default_loaded.contains(*raw) {
-                    session_loaded.insert(raw.to_string());
-                }
-                loaded.push(name.clone());
-            } else {
-                not_found.push(name.clone());
-            }
-        }
-
-        if !not_found.is_empty() {
-            info!(?not_found, "requested tools not found in any MCP server");
-        }
-
-        loaded
-    }
-
     pub fn loaded_tools(&self) -> Vec<McpToolDefinition> {
-        self.loaded_tools_for_session("")
-    }
-
-    pub fn loaded_tools_for_session(&self, session_id: &str) -> Vec<McpToolDefinition> {
         let entries = self.entries.load();
         let mut tools = Vec::new();
         for entry in entries.iter() {
             for tool in &entry.tools {
-                if self.is_raw_loaded_for_session(&tool.raw_name, session_id) {
-                    tools.push(tool.clone());
-                }
+                tools.push(tool.clone());
             }
         }
         tools.sort_by(|a, b| a.prefixed_name.cmp(&b.prefixed_name));
@@ -189,11 +95,6 @@ impl McpRegistry {
                 .iter()
                 .find(|(pfx, _)| pfx == prefixed_name)
             {
-                if !self.is_raw_loaded_for_session(raw, session_id) {
-                    anyhow::bail!(
-                        "Tool '{prefixed_name}' is not loaded yet. Call load_tools first."
-                    );
-                }
                 let mut arguments = match args {
                     serde_json::Value::Object(map) => map,
                     serde_json::Value::Null => JsonObject::new(),
@@ -218,53 +119,15 @@ impl McpRegistry {
         }
         anyhow::bail!("MCP tool '{prefixed_name}' not found")
     }
-
-    fn is_raw_loaded_for_session(&self, raw_name: &str, session_id: &str) -> bool {
-        if self.default_loaded.load().contains(raw_name) {
-            return true;
-        }
-        self.session_loaded
-            .get(session_id)
-            .is_some_and(|loaded| loaded.contains(raw_name))
-    }
-
-    fn session_loaded_set(&self, session_id: &str) -> Arc<DashSet<String>> {
-        if let Some(loaded) = self.session_loaded.get(session_id) {
-            return loaded.clone();
-        }
-        let loaded = Arc::new(DashSet::new());
-        let existing = self
-            .session_loaded
-            .insert(session_id.to_string(), loaded.clone());
-        existing.unwrap_or(loaded)
-    }
 }
 
-async fn connect_specs(specs: &[McpSpec]) -> (Vec<McpEntry>, Arc<DashSet<String>>) {
+async fn connect_specs(specs: &[McpSpec]) -> Vec<McpEntry> {
     let mut entries: Vec<McpEntry> = Vec::new();
-    let default_loaded = Arc::new(DashSet::new());
 
     for spec in specs {
         match connect_and_discover(spec).await {
             Ok((service, peer, tool_names, tools, server_name)) => {
-                if spec.default_enable_all_tools() {
-                    for (_prefixed_name, raw_name) in &tool_names {
-                        default_loaded.insert(raw_name.clone());
-                    }
-                    info!(server = %server_name, loaded = tool_names.len(), "all MCP tools auto-loaded");
-                }
-                for default_name in spec.default_enabled_tools() {
-                    let found = tool_names.iter().find(|(pfx, raw)| {
-                        raw == default_name || pfx.as_str() == default_name.as_str()
-                    });
-                    if let Some((_pfx, raw_name)) = found {
-                        default_loaded.insert(raw_name.clone());
-                        info!(name = %default_name, server = %server_name, "MCP tool auto-loaded");
-                    } else {
-                        warn!(name = %default_name, server = %server_name, "default_enabled_tool not found");
-                    }
-                }
-                info!(server = %server_name, tool_count = tool_names.len(), loaded = default_loaded.len(), "MCP server connected");
+                info!(server = %server_name, tool_count = tool_names.len(), "MCP server connected");
                 entries.push(McpEntry {
                     server_name: server_name.clone(),
                     _service: service,
@@ -277,7 +140,7 @@ async fn connect_specs(specs: &[McpSpec]) -> (Vec<McpEntry>, Arc<DashSet<String>
         }
     }
 
-    (entries, default_loaded)
+    entries
 }
 
 async fn connect_and_discover(

@@ -62,17 +62,17 @@ func TestBuildScopesFromIntegrations(t *testing.T) {
 	}
 }
 
-func TestMergeAgentIntegrationsForAccess_InheritsEmployeeAndAllowsSubagentOverride(t *testing.T) {
+func TestMergeAgentIntegrationsForAccess_InheritsEmployeeAndAllowsSpecialistOverride(t *testing.T) {
 	employee := &model.Employee{Integrations: model.JSON{
 		"employee-conn": map[string]any{"actions": []any{"issues.read"}},
 		"shared-conn":   map[string]any{"actions": []any{"parent.action"}},
 	}}
-	subagent := &model.Employee{Integrations: model.JSON{
-		"shared-conn":   map[string]any{"actions": []any{"child.action"}},
-		"subagent-conn": map[string]any{"actions": []any{"deploy.create"}},
+	specialist := &model.Employee{Integrations: model.JSON{
+		"shared-conn":     map[string]any{"actions": []any{"child.action"}},
+		"specialist-conn": map[string]any{"actions": []any{"deploy.create"}},
 	}}
 
-	merged := mergeAgentIntegrationsForAccess(subagent, employee)
+	merged := mergeAgentIntegrationsForAccess(specialist, employee)
 	scopes := buildScopesFromIntegrations(merged)
 	if len(scopes) != 3 {
 		t.Fatalf("scope count = %d, want 3: %#v", len(scopes), scopes)
@@ -89,8 +89,8 @@ func TestMergeAgentIntegrationsForAccess_InheritsEmployeeAndAllowsSubagentOverri
 	if got := actionsByConnection["shared-conn"]; len(got) != 1 || got[0] != "child.action" {
 		t.Fatalf("shared-conn actions = %#v, want child override", got)
 	}
-	if got := actionsByConnection["subagent-conn"]; len(got) != 1 || got[0] != "deploy.create" {
-		t.Fatalf("subagent-conn actions = %#v, want deploy.create", got)
+	if got := actionsByConnection["specialist-conn"]; len(got) != 1 || got[0] != "deploy.create" {
+		t.Fatalf("specialist-conn actions = %#v, want deploy.create", got)
 	}
 }
 

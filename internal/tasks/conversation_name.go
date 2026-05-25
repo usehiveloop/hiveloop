@@ -156,13 +156,12 @@ func pickCheapestModel(providerID string) (string, bool, bool) {
 	return cheapestID, cheapestSupportsTools, true
 }
 
-// loadFirstMessageContent returns the `content` field of the earliest
-// `message_received` event for the conversation, truncated.
+// loadFirstMessageContent returns the first user message content for a session, truncated.
 func loadFirstMessageContent(ctx context.Context, db *gorm.DB, conversationID any) (string, error) {
-	var event model.ConversationEvent
+	var event model.EmployeeSessionEvent
 	err := db.WithContext(ctx).
-		Where("conversation_id = ? AND event_type = ?", conversationID, "message_received").
-		Order("sequence_number ASC").
+		Where("employee_session_id = ? AND event_type IN ?", conversationID, []string{"message_received", "user.message.received"}).
+		Order("sequence_number ASC, event_at ASC").
 		Limit(1).
 		First(&event).Error
 	if err != nil {
@@ -174,11 +173,15 @@ func loadFirstMessageContent(ctx context.Context, db *gorm.DB, conversationID an
 
 	var data struct {
 		Content string `json:"content"`
+		Text    string `json:"text"`
 	}
-	if err := json.Unmarshal(event.Data, &data); err != nil {
+	if err := json.Unmarshal(event.Payload, &data); err != nil {
 		return "", fmt.Errorf("decode event data: %w", err)
 	}
 	content := data.Content
+	if content == "" {
+		content = data.Text
+	}
 	if len(content) > messageContentMaxBytes {
 		content = content[:messageContentMaxBytes]
 	}

@@ -48,7 +48,8 @@ func TestEmployeeMemoryRetainHandler_CallsHindsight(t *testing.T) {
 	if err := db.Create(&model.Sandbox{ID: sandboxID, OrgID: &orgID, EmployeeID: &agentID, ExternalID: "sb", BridgeURL: "http://bridge", EncryptedBridgeAPIKey: []byte("x"), Status: "running"}).Error; err != nil {
 		t.Fatalf("create sandbox: %v", err)
 	}
-	for _, event := range []model.EmployeeMemoryEvent{
+	createMemorySession(t, db, orgID, agentID, sandboxID, "S1")
+	for _, event := range []model.EmployeeSessionEvent{
 		memoryEvent(t, orgID, agentID, sandboxID, "S1", "user.message.received", map[string]any{"source": "slack", "text": "We require rollback notes."}),
 		memoryEvent(t, orgID, agentID, sandboxID, "S1", "tool.invoked", map[string]any{"source": "slack", "tool": "memory_retain", "result_summary": "retained deployment policy"}),
 		memoryEvent(t, orgID, agentID, sandboxID, "S1", "agent.message.sent", map[string]any{"source": "slack", "text": "Done."}),
@@ -71,8 +72,8 @@ func TestEmployeeMemoryRetainHandler_CallsHindsight(t *testing.T) {
 		t.Fatalf("unexpected retain request: %#v", retained)
 	}
 	var count int64
-	if err := db.Model(&model.EmployeeMemoryEvent{}).
-		Where("employee_id = ? AND sandbox_id = ? AND session_id = ? AND retained_at IS NOT NULL", agentID, sandboxID, "S1").
+	if err := db.Model(&model.EmployeeSessionEvent{}).
+		Where("employee_id = ? AND sandbox_id = ? AND runtime_session_id = ? AND retained_at IS NOT NULL", agentID, sandboxID, "S1").
 		Count(&count).Error; err != nil {
 		t.Fatalf("count retained: %v", err)
 	}

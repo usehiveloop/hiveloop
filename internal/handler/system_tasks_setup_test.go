@@ -269,7 +269,6 @@ func promptWriterTestTask() system.Task {
 			{Name: "category", Type: system.ArgString, Required: true, MaxLen: 80},
 			{Name: "instructions", Type: system.ArgString, Required: true, MaxLen: 4000},
 			{Name: "skills_md", Type: system.ArgString, Required: false, MaxLen: 4000},
-			{Name: "sub_agents_md", Type: system.ArgString, Required: false, MaxLen: 4000},
 			{Name: "triggers_md", Type: system.ArgString, Required: false, MaxLen: 4000},
 			{Name: "tools_md", Type: system.ArgString, Required: false, MaxLen: 2000},
 		},

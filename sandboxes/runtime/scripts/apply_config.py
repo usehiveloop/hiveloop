@@ -34,16 +34,9 @@ for segment in [
         },
     },
     {
-        'type': 'loaded_mcp_tools',
+        'type': 'mcp_tools',
         'config': {
-            'title': 'Currently loaded tools (use directly)',
-            'item_template': '- {name}',
-        },
-    },
-    {
-        'type': 'unloaded_mcp_tools',
-        'config': {
-            'title': 'Additional tools available to load via load_tools(tool_names=[...])',
+            'title': 'Available MCP tools (use directly)',
             'item_template': '- {name}',
         },
     },
@@ -54,8 +47,7 @@ for segment in [
 tools = d.get('tools', [])
 existing = {t['type'] for t in tools}
 for spec in [
-    'builtin.cron', 'builtin.delegate', 'builtin.check_delegated_status',
-    'builtin.check_bash_status', 'builtin.wake', 'builtin.load_tools',
+    'builtin.cron', 'builtin.check_bash_status', 'builtin.wake',
 ]:
     if spec not in existing:
         tools.append({'type': spec})

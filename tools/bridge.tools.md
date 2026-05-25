@@ -61,8 +61,7 @@ Complete index of all tools available to Bridge agents.
 
 | Name | Description |
 |------|-------------|
-| `agent` | Launch a clone of the parent agent for a focused subtask. Shares system prompt, tools, and capabilities. Set `runInBackground: true` to detach — the result is auto-injected into the parent's next user turn. Not available to subagents. |
-| `sub_agent` | Launch a named subagent (from the agent's `subagents` list) to handle a task. Set `runInBackground: true` to detach. For parallel fan-out, emit multiple `sub_agent` tool_use blocks in a single assistant turn — the runtime dispatches them concurrently. Not available to subagents. |
+| `agent` | Launch a clone of the parent agent for a focused subtask. Shares system prompt, tools, and capabilities. Set `runInBackground: true` to detach — the result is auto-injected into the parent's next user turn. |
 | `batch` | Execute 1-25 independent tool calls concurrently in a single operation. Partial failures don't stop other calls. No recursive batching. |
 
 ## Skills
@@ -81,24 +80,24 @@ Complete index of all tools available to Bridge agents.
 
 | Name | Description |
 |------|-------------|
-| *(varies)* | Tools provided by MCP servers connected to the agent. Each MCP server advertises its own tools with names and schemas. Bridged into the agent's tool registry at load time. Available to both parent agents and subagents. |
+| *(varies)* | Tools provided by MCP servers connected to the agent. Each MCP server advertises its own tools with names and schemas. Bridged into the agent's tool registry at load time. |
 
 ---
 
 ## Availability
 
-| Tool | Parent | Subagent | Condition |
-|------|--------|----------|-----------|
-| RipGrep, AstGrep, Read, Glob, LS | Yes | Yes | Always |
-| bash, edit, write, apply_patch, multiedit | Yes | Yes | Always |
-| web_fetch | Yes | Yes | Always |
-| web_search, web_crawl, web_get_links, web_screenshot, web_transform | Yes | Yes | `BRIDGE_WEB_URL` set |
-| todowrite, todoread | Yes | Yes | Always |
-| journal_write, journal_read | Yes | Yes | Immortal mode configured |
-| ping_me_back_in, cancel_ping_me_back | Yes | No | Always |
-| lsp | Yes | No | LSP configured |
-| agent, sub_agent | Yes | No | Always (prevents recursion) |
-| batch | Yes | Yes | Always |
-| skill | Yes | Yes | Agent/subagent has `skills` defined |
-| Integration tools | Yes | Inherited from parent | Agent has `integrations` defined |
-| MCP tools | Yes | Yes (own servers) | Agent/subagent has `mcp_servers` defined |
+| Tool | Agent | Condition |
+|------|-------|-----------|
+| RipGrep, AstGrep, Read, Glob, LS | Yes | Always |
+| bash, edit, write, apply_patch, multiedit | Yes | Always |
+| web_fetch | Yes | Always |
+| web_search, web_crawl, web_get_links, web_screenshot, web_transform | Yes | `BRIDGE_WEB_URL` set |
+| todowrite, todoread | Yes | Always |
+| journal_write, journal_read | Yes | Immortal mode configured |
+| ping_me_back_in, cancel_ping_me_back | Yes | Always |
+| lsp | Yes | LSP configured |
+| agent | Yes | Always |
+| batch | Yes | Always |
+| skill | Yes | Agent has `skills` defined |
+| Integration tools | Yes | Agent has `integrations` defined |
+| MCP tools | Yes | Agent has `mcp_servers` defined |

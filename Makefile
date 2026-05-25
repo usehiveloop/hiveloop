@@ -326,12 +326,12 @@ infra-up:
 app-up:
 	@secret=$$($(MAKE) -s dev-nango-secret); \
 	echo "Starting Hivy app containers with local Nango secret"; \
-	HIVY_NANGO_SECRET_KEY="$$secret" docker compose up -d $(DEV_APP_SERVICES)
+	HIVY_NANGO_SECRET_KEY="$$secret" docker compose up -d --no-deps $(DEV_APP_SERVICES)
 
 app-up-build:
 	@secret=$$($(MAKE) -s dev-nango-secret); \
 	echo "Building and starting Hivy app containers with local Nango secret"; \
-	HIVY_NANGO_SECRET_KEY="$$secret" docker compose up -d --build $(DEV_APP_SERVICES)
+	HIVY_NANGO_SECRET_KEY="$$secret" docker compose up -d --build --no-deps $(DEV_APP_SERVICES)
 
 # Start the complete local development stack through docker compose in the background.
 up: infra-up
@@ -347,13 +347,13 @@ dev: infra-up
 	@$(MAKE) -s dev-migrate
 	@secret=$$($(MAKE) -s dev-nango-secret); \
 	echo "Starting Hivy dev stack with local Nango secret"; \
-	HIVY_NANGO_SECRET_KEY="$$secret" docker compose up $(DEV_APP_SERVICES)
+	HIVY_NANGO_SECRET_KEY="$$secret" docker compose up --no-deps $(DEV_APP_SERVICES)
 
 dev-build: infra-up
 	@$(MAKE) -s dev-migrate
 	@secret=$$($(MAKE) -s dev-nango-secret); \
 	echo "Building and starting Hivy dev stack with local Nango secret"; \
-	HIVY_NANGO_SECRET_KEY="$$secret" docker compose up --build $(DEV_APP_SERVICES)
+	HIVY_NANGO_SECRET_KEY="$$secret" docker compose up --build --no-deps $(DEV_APP_SERVICES)
 
 # Clean slate: tear down, rebuild, run all tests
 test-clean:

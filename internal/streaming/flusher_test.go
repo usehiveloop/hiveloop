@@ -94,7 +94,7 @@ func createTestConversation(t *testing.T, db *gorm.DB) (uuid.UUID, uuid.UUID) {
 	}
 
 	t.Cleanup(func() {
-		db.Where("conversation_id = ?", convID).Delete(&model.ConversationEvent{})
+		db.Where("employee_session_id = ?", convID).Delete(&model.EmployeeSessionEvent{})
 		db.Delete(&conv)
 		db.Delete(&agent)
 		db.Delete(&cred)
@@ -118,7 +118,7 @@ func TestFlusher_BatchWritesToPostgres(t *testing.T) {
 	flusher.flushStream(ctx, convID.String())
 
 	var count int64
-	db.Model(&model.ConversationEvent{}).Where("conversation_id = ?", convID).Count(&count)
+	db.Model(&model.EmployeeSessionEvent{}).Where("employee_session_id = ?", convID).Count(&count)
 	if count != 50 {
 		t.Fatalf("expected 50 events in Postgres, got %d", count)
 	}
@@ -137,7 +137,7 @@ func TestFlusher_SkipsResponseChunks(t *testing.T) {
 	flusher.flushStream(ctx, convID.String())
 
 	var count int64
-	db.Model(&model.ConversationEvent{}).Where("conversation_id = ?", convID).Count(&count)
+	db.Model(&model.EmployeeSessionEvent{}).Where("employee_session_id = ?", convID).Count(&count)
 	if count != 1 {
 		t.Fatalf("expected only response_completed persisted, got %d rows", count)
 	}

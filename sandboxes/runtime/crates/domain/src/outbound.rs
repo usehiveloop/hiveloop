@@ -61,7 +61,6 @@ pub mod event_types {
     pub const SESSION_COMPLETED: &str = "session.completed";
     pub const TOOL_INVOKED: &str = "tool.invoked";
     pub const AGENT_MESSAGE_SENT: &str = "agent.message.sent";
-    pub const SUBAGENT_INVOKED: &str = "subagent.invoked";
     pub const ERROR_TOOL: &str = "error.tool";
     pub const ERROR_MODEL: &str = "error.model";
     pub const CONFIG_APPLIED: &str = "config.applied";

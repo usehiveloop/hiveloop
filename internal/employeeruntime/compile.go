@@ -21,7 +21,7 @@ import (
 
 const (
 	DefaultEmployeeModel           = "deepseek-v4-flash"
-	DefaultEmployeeSubagentModel   = "deepseek-v4-pro"
+	DefaultEmployeeSpecialistModel = "deepseek-v4-pro"
 	DefaultEmployeeMultimodalModel = "gemini-3-flash-preview"
 	proxyTokenTTL                  = 24 * time.Hour
 	managedEmployeeName            = "Hivy"
@@ -29,14 +29,15 @@ const (
 )
 
 type CompileDeps struct {
-	DB         *gorm.DB
-	Picker     credentials.Picker
-	KMS        *crypto.KeyWrapper
-	EncKey     *crypto.SymmetricKey
-	SigningKey []byte
-	Cfg        *config.Config
-	Nango      *nango.Client
-	Hindsight  HindsightRecallClient
+	DB          *gorm.DB
+	Picker      credentials.Picker
+	KMS         *crypto.KeyWrapper
+	EncKey      *crypto.SymmetricKey
+	SigningKey  []byte
+	Cfg         *config.Config
+	Nango       *nango.Client
+	Hindsight   HindsightRecallClient
+	Specialists *specialists.Catalog
 }
 
 type HindsightRecallClient interface {
@@ -213,6 +214,7 @@ func Compile(ctx context.Context, deps CompileDeps, agent *model.Employee) (*Emp
 	}
 	description := managedEmployeeDescription
 	fragments := buildPromptSections(ctx, deps.DB, agent, description)
+	fragments.AvailableSpecialists = buildAvailableSpecialistsSection(agent, deps.Specialists)
 	contextMap := map[string]any{
 		"memory": buildMemoryContext(ctx, deps, agent),
 	}
@@ -254,7 +256,7 @@ func CompileSpecialist(ctx context.Context, deps CompileDeps, employee *model.Em
 	fragments := buildPromptSections(ctx, deps.DB, employee, def.Description)
 	modelID := strings.TrimSpace(employee.Model)
 	if modelID == "" {
-		modelID = DefaultEmployeeSubagentModel
+		modelID = DefaultEmployeeSpecialistModel
 	}
 	return &EmployeeDefinition{
 		Agent: AgentMeta{

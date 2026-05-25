@@ -75,21 +75,21 @@ func (f *Flusher) accumulateDelta(ctx context.Context, kind, convID, dataStr str
 	}
 }
 
-func buildRecoveredEvent(conv *model.EmployeeConversation, terminal model.ConversationEvent, messageID, content string) model.ConversationEvent {
+func buildRecoveredEvent(conv *model.EmployeeConversation, terminal model.EmployeeSessionEvent, messageID, content string) model.EmployeeSessionEvent {
 	return buildRecoveredAccumulatedEvent(conv, terminal, messageID, content, bridgeevents.EventResponseCompleted, "full_response")
 }
 
-func buildRecoveredReasoningEvent(conv *model.EmployeeConversation, terminal model.ConversationEvent, messageID, content string) model.ConversationEvent {
+func buildRecoveredReasoningEvent(conv *model.EmployeeConversation, terminal model.EmployeeSessionEvent, messageID, content string) model.EmployeeSessionEvent {
 	return buildRecoveredAccumulatedEvent(conv, terminal, messageID, content, bridgeevents.EventReasoningCompleted, "full_reasoning")
 }
 
-func buildRecoveredAccumulatedEvent(conv *model.EmployeeConversation, terminal model.ConversationEvent, messageID, content, eventType, contentField string) model.ConversationEvent {
+func buildRecoveredAccumulatedEvent(conv *model.EmployeeConversation, terminal model.EmployeeSessionEvent, messageID, content, eventType, contentField string) model.EmployeeSessionEvent {
 	data, _ := json.Marshal(map[string]any{
 		"message_id": messageID,
 		contentField: content,
 		"recovered":  true,
 	})
-	timestamp := terminal.Timestamp
+	timestamp := terminal.EventAt
 	if timestamp.IsZero() {
 		timestamp = time.Now()
 	}
@@ -97,16 +97,22 @@ func buildRecoveredAccumulatedEvent(conv *model.EmployeeConversation, terminal m
 	if sequenceNumber > 0 {
 		sequenceNumber--
 	}
-	return model.ConversationEvent{
-		OrgID:                 conv.OrgID,
-		ConversationID:        conv.ID,
-		EventID:               recoveredEventID(eventType, messageID),
-		EventType:             eventType,
-		EmployeeID:            terminal.EmployeeID,
-		RuntimeConversationID: conv.RuntimeConversationID,
-		Timestamp:             timestamp,
-		SequenceNumber:        sequenceNumber,
-		Data:                  model.RawJSON(data),
+	source := conv.Source
+	if source == "" {
+		source = "manual"
+	}
+	return model.EmployeeSessionEvent{
+		OrgID:             conv.OrgID,
+		EmployeeID:        terminal.EmployeeID,
+		SandboxID:         conv.SandboxID,
+		EmployeeSessionID: conv.ID,
+		SessionID:         conv.RuntimeConversationID,
+		EventID:           recoveredEventID(eventType, messageID),
+		EventType:         eventType,
+		Source:            source,
+		SequenceNumber:    sequenceNumber,
+		Payload:           model.RawJSON(data),
+		EventAt:           timestamp,
 	}
 }
 

@@ -11,14 +11,14 @@ import (
 	"github.com/usehivy/hivy/internal/model"
 )
 
-func buildEmployeeRetainItem(agent *model.Employee, payload EmployeeMemoryRetainPayload, events []model.EmployeeMemoryEvent) (hindsight.RetainItem, bool) {
+func buildEmployeeRetainItem(agent *model.Employee, payload EmployeeMemoryRetainPayload, events []model.EmployeeSessionEvent) (hindsight.RetainItem, bool) {
 	if agent == nil || agent.OrgID == nil || len(events) == 0 {
 		return hindsight.RetainItem{}, false
 	}
-	if employeeMemoryEventsContainSecret(events) {
+	if employeeSessionEventsContainSecret(events) {
 		return hindsight.RetainItem{}, false
 	}
-	if !employeeMemoryEventsHaveWorkSignal(events) {
+	if !employeeSessionEventsHaveWorkSignal(events) {
 		return hindsight.RetainItem{}, false
 	}
 	digest := employeeMemoryRetentionDigest(agent.Name, events)
@@ -43,7 +43,7 @@ func buildEmployeeRetainItem(agent *model.Employee, payload EmployeeMemoryRetain
 	}, true
 }
 
-func employeeMemoryRetentionDigest(agentName string, events []model.EmployeeMemoryEvent) string {
+func employeeMemoryRetentionDigest(agentName string, events []model.EmployeeSessionEvent) string {
 	var lines []string
 	for _, event := range events {
 		payload := employeeMemoryPayload(event)
@@ -104,7 +104,7 @@ func employeeMemorySlackMention(userID string) string {
 	return ""
 }
 
-func employeeMemoryRetainMetadata(agent *model.Employee, payload EmployeeMemoryRetainPayload, events []model.EmployeeMemoryEvent) map[string]string {
+func employeeMemoryRetainMetadata(agent *model.Employee, payload EmployeeMemoryRetainPayload, events []model.EmployeeSessionEvent) map[string]string {
 	meta := map[string]string{
 		"employee_id":  agent.ID.String(),
 		"sandbox_id":   payload.SandboxID.String(),
@@ -120,7 +120,7 @@ func employeeMemoryRetainMetadata(agent *model.Employee, payload EmployeeMemoryR
 	return meta
 }
 
-func firstEmployeePayloadString(events []model.EmployeeMemoryEvent, key string) string {
+func firstEmployeePayloadString(events []model.EmployeeSessionEvent, key string) string {
 	for _, event := range events {
 		if value := firstPayloadString(employeeMemoryPayload(event), key); value != "" {
 			return value
@@ -138,7 +138,7 @@ func firstPayloadString(payload map[string]any, keys ...string) string {
 	return ""
 }
 
-func employeeMemoryEventIDs(events []model.EmployeeMemoryEvent) []uuid.UUID {
+func employeeSessionEventIDs(events []model.EmployeeSessionEvent) []uuid.UUID {
 	ids := make([]uuid.UUID, 0, len(events))
 	for _, event := range events {
 		ids = append(ids, event.ID)

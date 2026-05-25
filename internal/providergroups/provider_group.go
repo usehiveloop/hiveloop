@@ -1,4 +1,4 @@
-package subagents
+package providergroups
 
 import "strings"
 

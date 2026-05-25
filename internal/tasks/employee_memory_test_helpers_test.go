@@ -11,29 +11,54 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
-	"github.com/usehivy/hivy/internal/testdb"
 	"github.com/usehivy/hivy/internal/crypto"
 	"github.com/usehivy/hivy/internal/model"
+	"github.com/usehivy/hivy/internal/testdb"
 )
 
-func memoryEvent(t *testing.T, orgID, agentID, sandboxID uuid.UUID, sessionID, eventType string, payload map[string]any) model.EmployeeMemoryEvent {
+func memoryEvent(t *testing.T, orgID, agentID, sandboxID uuid.UUID, sessionID, eventType string, payload map[string]any) model.EmployeeSessionEvent {
 	t.Helper()
 	payload["session_id"] = sessionID
 	raw, err := json.Marshal(payload)
 	if err != nil {
 		t.Fatalf("marshal payload: %v", err)
 	}
-	return model.EmployeeMemoryEvent{
-		ID:         uuid.New(),
-		OrgID:      orgID,
-		EmployeeID: agentID,
-		SandboxID:  sandboxID,
-		SessionID:  sessionID,
-		EventType:  eventType,
-		Source:     "slack",
-		Payload:    model.RawJSON(raw),
-		EventAt:    time.Now().UTC(),
+	return model.EmployeeSessionEvent{
+		ID:                uuid.New(),
+		OrgID:             orgID,
+		EmployeeID:        agentID,
+		SandboxID:         sandboxID,
+		EmployeeSessionID: memorySessionID(orgID, agentID, sandboxID, sessionID),
+		SessionID:         sessionID,
+		EventType:         eventType,
+		Source:            "slack",
+		Payload:           model.RawJSON(raw),
+		EventAt:           time.Now().UTC(),
 	}
+}
+
+func createMemorySession(t *testing.T, db *gorm.DB, orgID, agentID, sandboxID uuid.UUID, sessionID string) uuid.UUID {
+	t.Helper()
+	id := memorySessionID(orgID, agentID, sandboxID, sessionID)
+	session := model.EmployeeConversation{
+		ID:                    id,
+		OrgID:                 orgID,
+		EmployeeID:            agentID,
+		SandboxID:             sandboxID,
+		RuntimeConversationID: sessionID,
+		Source:                "slack",
+		SourceResourceKey:     sessionID,
+		Status:                "active",
+		IntegrationScopes:     model.JSON{},
+	}
+	if err := db.Where("id = ?", id).FirstOrCreate(&session).Error; err != nil {
+		t.Fatalf("create memory session: %v", err)
+	}
+	return id
+}
+
+func memorySessionID(orgID, agentID, sandboxID uuid.UUID, sessionID string) uuid.UUID {
+	return uuid.NewSHA1(uuid.NameSpaceOID, []byte(orgID.String()+":"+agentID.String()+":"+sandboxID.String()+":"+sessionID))
 }
 
 func hasTaskString(values []string, want string) bool {

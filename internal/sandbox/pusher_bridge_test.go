@@ -135,8 +135,8 @@ func TestPusherBuildAgentDefinition(t *testing.T) {
 		t.Errorf("config.max_turns: expected 250, got %v", def.Config.MaxTurns)
 	}
 
-	// AgentDefinition has no nested `subagents` field. The subagent feature
-	// has been removed entirely; this assertion guards against regressions.
+	// Specialist work is launched through Hivy MCP tools and must not be
+	// embedded as a nested runtime delegation field.
 	defJSON, err := json.Marshal(def)
 	if err != nil {
 		t.Fatalf("marshal def: %v", err)

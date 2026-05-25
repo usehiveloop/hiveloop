@@ -156,7 +156,7 @@ func (h *EmployeeHandler) attachGlobalSkills(ctx context.Context, agentID uuid.U
 	attachPublishedGlobalSkills(ctx, h.db, agentID, names)
 }
 
-func (h *EmployeeHandler) rollbackEmployee(ctx context.Context, orgID, agentID, subagentID uuid.UUID) {
+func (h *EmployeeHandler) rollbackEmployee(ctx context.Context, orgID, agentID, companionEmployeeID uuid.UUID) {
 	err := h.db.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Where("org_id = ? AND employee_id = ?", orgID, agentID).Delete(&model.Sandbox{}).Error; err != nil {
 			return fmt.Errorf("delete sandbox: %w", err)
@@ -164,20 +164,20 @@ func (h *EmployeeHandler) rollbackEmployee(ctx context.Context, orgID, agentID, 
 		if err := tx.Where("org_id = ? AND id = ?", orgID, agentID).Delete(&model.Employee{}).Error; err != nil {
 			return fmt.Errorf("delete employee agent: %w", err)
 		}
-		if subagentID != uuid.Nil {
-			if err := tx.Where("org_id = ? AND id = ?", orgID, subagentID).Delete(&model.Employee{}).Error; err != nil {
-				return fmt.Errorf("delete subagent: %w", err)
+		if companionEmployeeID != uuid.Nil {
+			if err := tx.Where("org_id = ? AND id = ?", orgID, companionEmployeeID).Delete(&model.Employee{}).Error; err != nil {
+				return fmt.Errorf("delete companion employee: %w", err)
 			}
 		}
 		return nil
 	})
 	if err != nil {
 		logging.FromContext(ctx).ErrorContext(ctx, "rollback employee", "error", err,
-			"employee_id", agentID, "subemployee_id", subagentID, "org_id", orgID)
+			"employee_id", agentID, "companion_employee_id", companionEmployeeID, "org_id", orgID)
 	}
 }
 
-const subagentSlugMaxAttempts = 32
+const employeeSlugMaxAttempts = 32
 
 func slugifyAgentName(s string) string {
 	var b strings.Builder
@@ -195,7 +195,7 @@ func slugifyAgentName(s string) string {
 }
 
 func createWithUniqueNameSlug(tx *gorm.DB, agent *model.Employee, baseSlug string) error {
-	for i := 0; i < subagentSlugMaxAttempts; i++ {
+	for i := 0; i < employeeSlugMaxAttempts; i++ {
 		candidate := baseSlug
 		if i > 0 {
 			candidate = fmt.Sprintf("%s-%d", baseSlug, i+1)
@@ -211,7 +211,7 @@ func createWithUniqueNameSlug(tx *gorm.DB, agent *model.Employee, baseSlug strin
 			continue
 		}
 
-		sp := fmt.Sprintf("sp_subagent_attempt_%d", i)
+		sp := fmt.Sprintf("sp_employee_slug_attempt_%d", i)
 		if err := tx.SavePoint(sp).Error; err != nil {
 			return fmt.Errorf("savepoint: %w", err)
 		}
@@ -226,7 +226,7 @@ func createWithUniqueNameSlug(tx *gorm.DB, agent *model.Employee, baseSlug strin
 			return fmt.Errorf("rollback to savepoint: %w", rbErr)
 		}
 	}
-	return fmt.Errorf("could not allocate unique subagent name after %d attempts (base=%s)", subagentSlugMaxAttempts, baseSlug)
+	return fmt.Errorf("could not allocate unique employee name after %d attempts (base=%s)", employeeSlugMaxAttempts, baseSlug)
 }
 
 func agentNameExists(tx *gorm.DB, orgID *uuid.UUID, name string) (bool, error) {

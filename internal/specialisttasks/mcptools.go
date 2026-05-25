@@ -19,11 +19,31 @@ func NewToolsFunc(service *Service) func(server *mcp.Server, token *model.Token)
 		if tokenType, _ := token.Meta["type"].(string); tokenType != "employee_proxy" {
 			return
 		}
+		registerListTool(server, service, token)
 		registerLaunchTool(server, service, token)
 		registerStatusTool(server, service, token)
 		registerSendMessageTool(server, service, token)
 		registerTerminateTool(server, service, token)
 	}
+}
+
+func registerListTool(server *mcp.Server, service *Service, token *model.Token) {
+	server.AddTool(&mcp.Tool{
+		Name: "specialist_list",
+		Description: `List the specialists attached to the current employee.
+
+Use this before launching specialist work when you need the exact specialist slugs, names, descriptions, or types available to this employee. Only slugs returned by this tool can be passed to specialist_launch_task.`,
+		InputSchema: map[string]any{
+			"type":       "object",
+			"properties": map[string]any{},
+		},
+	}, func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		resp, toolErr := service.ListAvailable(ctx, token)
+		if toolErr != nil {
+			return toolErrorJSON(toolErr), nil
+		}
+		return toolJSON(resp)
+	})
 }
 
 func registerLaunchTool(server *mcp.Server, service *Service, token *model.Token) {

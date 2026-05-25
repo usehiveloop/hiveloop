@@ -70,8 +70,8 @@ func pickEmployeeCredential(db *gorm.DB) (*employeeProviderChoice, error) {
 	return pickSystemCredentialByModel(db, employeeruntime.DefaultEmployeeModel)
 }
 
-func pickEmployeeSubagentCredential(db *gorm.DB) (*employeeProviderChoice, error) {
-	return pickSystemCredentialByModel(db, employeeruntime.DefaultEmployeeSubagentModel)
+func pickEmployeeSpecialistCredential(db *gorm.DB) (*employeeProviderChoice, error) {
+	return pickSystemCredentialByModel(db, employeeruntime.DefaultEmployeeSpecialistModel)
 }
 
 func pickSystemCredentialByModel(db *gorm.DB, modelID string) (*employeeProviderChoice, error) {

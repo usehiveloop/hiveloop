@@ -98,7 +98,6 @@ impl AgentRunner for RigAgentRunner {
             max_output_tokens,
         } = build_model_client(model_config, &runtime_env)?;
 
-        let dynamic_context = user_input.dynamic_context.clone();
         let mut messages = build_initial_messages(
             &snapshot,
             &self.tool_context.workspace_root,
@@ -138,8 +137,6 @@ impl AgentRunner for RigAgentRunner {
         let session_id = session_id.clone();
         let event_repo = self.event_repo.clone();
         let emitter = self.outbound_emitter.clone();
-        let dynamic_context_for_updates = dynamic_context.clone();
-
         Ok(Box::pin(stream! {
             let mut final_text = String::new();
             let turn_id = format!("turn-{}", chrono::Utc::now().timestamp_millis());
@@ -290,32 +287,6 @@ impl AgentRunner for RigAgentRunner {
                                 return;
                             }
                             messages.push(message);
-                            if call.name == "load_tools" {
-                                if let Some(system_message) = messages.get_mut(1) {
-                                    *system_message = AgentMessage::system(render_dynamic_system_prompt(
-                                        &snapshot,
-                                        &tool_context.workspace_root,
-                                        &session_id,
-                                        mcp_registry.as_deref(),
-                                        &dynamic_context_for_updates,
-                                    ).await);
-                                }
-                                available_tools = build_all_tools(
-                                    &snapshot.tools,
-                                    &session_id,
-                                    &tool_context,
-                                    &ToolContext {
-                                        gateway: gateway.clone(),
-                                        cron_repo: cron_repo.clone(),
-                                        process_registry: Some(process_registry.clone()),
-                                        mcp_registry: mcp_registry.clone(),
-                                        workspace_root: tool_context.workspace_root.clone(),
-                                        outbound_emitter: emitter.clone(),
-                                    },
-                                    mcp_registry.clone(),
-                                );
-                                available_tools.sort_by(|a, b| a.definition().name.cmp(&b.definition().name));
-                            }
                         }
                         Err(error) => {
                             emit_tool_error(emitter.clone(), &session_id, &call.name, &call.arguments, &error.to_string()).await;
@@ -357,14 +328,8 @@ async fn build_initial_messages(
     let mut messages = vec![
         AgentMessage::system(render_cacheable_system_prompt(snapshot)),
         AgentMessage::system(
-            render_dynamic_system_prompt(
-                snapshot,
-                workspace_root,
-                session_id,
-                mcp_registry,
-                &dynamic_context,
-            )
-            .await,
+            render_dynamic_system_prompt(snapshot, workspace_root, mcp_registry, &dynamic_context)
+                .await,
         ),
     ];
     let mut history = load_model_history(event_repo, session_id, 1000).await?;
@@ -396,19 +361,15 @@ fn render_cacheable_system_prompt(snapshot: &AgentDefinition) -> String {
 async fn render_dynamic_system_prompt(
     snapshot: &AgentDefinition,
     workspace_root: &std::path::Path,
-    session_id: &SessionId,
     mcp_registry: Option<&McpRegistry>,
     dynamic_context: &[String],
 ) -> String {
     let mut prompt = String::new();
     let skill_store = skills::SkillStore::new(workspace_root);
     let skill_summaries = skill_store.summaries(None);
-    let (loaded, unloaded) = match mcp_registry {
-        Some(registry) => (
-            registry.loaded_tool_names_for_session(session_id.as_str()),
-            registry.unloaded_tool_names_for_session(session_id.as_str()),
-        ),
-        None => (Vec::new(), Vec::new()),
+    let mcp_tools = match mcp_registry {
+        Some(registry) => registry.available_tool_names(),
+        None => Vec::new(),
     };
     for segment in &snapshot.system_prompt.dynamic_segments {
         let rendered = match segment {
@@ -422,22 +383,16 @@ async fn render_dynamic_system_prompt(
             SystemPromptSegment::SkillCatalog(config) => {
                 render_skill_catalog_segment(config, &skill_summaries)
             }
-            SystemPromptSegment::LoadedMcpTools(config) => {
-                render_tool_list_segment(config, &loaded)
-            }
-            SystemPromptSegment::UnloadedMcpTools(config) => {
-                render_tool_list_segment(config, &unloaded)
-            }
+            SystemPromptSegment::McpTools(config) => render_tool_list_segment(config, &mcp_tools),
         };
         append_rendered_segment(&mut prompt, rendered);
     }
 
     tracing::info!(
-        loaded_count = loaded.len(),
-        unloaded_count = unloaded.len(),
+        mcp_tool_count = mcp_tools.len(),
         skill_count = skill_summaries.len(),
         prompt_len = prompt.len(),
-        "system prompt augmented with skill and MCP tool catalogs"
+        "system prompt augmented with skill and MCP tool catalog"
     );
     prompt
 }
@@ -751,7 +706,6 @@ mod tests {
             tools: Vec::new(),
             mcp_servers: Vec::new(),
             skills: Vec::new(),
-            subagents: Vec::new(),
             outbound_channels: Vec::new(),
         }
     }
@@ -770,12 +724,10 @@ mod tests {
 
     #[tokio::test]
     async fn dynamic_prompt_contains_control_plane_runtime_context_not_legacy_fragments() {
-        let session_id = SessionId::from("http-test-session");
         let definition = test_definition();
         let prompt = render_dynamic_system_prompt(
             &definition,
             std::path::Path::new("/tmp"),
-            &session_id,
             None,
             &["## Channel-specific instruction\nKeep replies short.".to_string()],
         )
@@ -788,7 +740,6 @@ mod tests {
 
     #[tokio::test]
     async fn dynamic_prompt_contains_bounded_recalled_memory() {
-        let session_id = SessionId::from("http-test-session");
         let mut definition = test_definition();
         definition.context.memory = MemoryContextConfig {
             token_budget: 30,
@@ -807,14 +758,9 @@ mod tests {
                 },
             ],
         };
-        let prompt = render_dynamic_system_prompt(
-            &definition,
-            std::path::Path::new("/tmp"),
-            &session_id,
-            None,
-            &[],
-        )
-        .await;
+        let prompt =
+            render_dynamic_system_prompt(&definition, std::path::Path::new("/tmp"), None, &[])
+                .await;
 
         assert!(prompt.contains("## Your memories"));
         assert!(prompt.contains("<memories>"));
@@ -855,13 +801,8 @@ mod tests {
                     preamble: "Before using tools for a task, check this list and call skill_view(name) when a skill matches the user's request. Do not load unrelated skills.".to_string(),
                     item_template: "- {name}: {description}".to_string(),
                 }),
-                SystemPromptSegment::LoadedMcpTools(ListPromptSegment {
-                    title: "Currently loaded tools (use directly)".to_string(),
-                    preamble: String::new(),
-                    item_template: "- {name}".to_string(),
-                }),
-                SystemPromptSegment::UnloadedMcpTools(ListPromptSegment {
-                    title: "Additional tools available to load via load_tools(tool_names=[...])".to_string(),
+                SystemPromptSegment::McpTools(ListPromptSegment {
+                    title: "Available MCP tools (use directly)".to_string(),
                     preamble: String::new(),
                     item_template: "- {name}".to_string(),
                 }),
@@ -918,7 +859,7 @@ fn build_all_tools(
     let mut tools = tools::build_builtin_tools(specs, context);
     tools.extend(build_agent_tools(specs, session_id, tool_context));
     if let Some(registry) = mcp_registry {
-        for def in registry.loaded_tools_for_session(session_id.as_str()) {
+        for def in registry.loaded_tools() {
             let registry = registry.clone();
             let prefixed = def.prefixed_name.clone();
             let session_id = session_id.clone();

@@ -50,10 +50,10 @@ async fn setup_repo() -> Arc<dyn CronJobRepo> {
     Arc::new(SqliteCronJobRepo::new(Arc::new(pool)))
 }
 
-// SCENARIO: User asks agent to do a big task. Agent decides to delegate to 3 subagents in parallel.
-// Each subagent gets a focused goal with context. Results are returned together.
+// SCENARIO: User asks agent to do a big task. Agent decides to delegate 3 background jobs in parallel.
+// Each job gets a focused goal with context. Results are returned together.
 #[tokio::test]
-async fn delegate_parallel_creates_subagents_with_isolated_goals() {
+async fn delegate_parallel_creates_background_jobs_with_isolated_goals() {
     // This is what happens when the delegate tool runs in parallel mode.
     // We can't run the actual delegate tool without an LLM, so we test the cron infrastructure.
     let repo = setup_repo().await;

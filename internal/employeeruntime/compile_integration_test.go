@@ -86,7 +86,7 @@ func TestCompile_EmitsControlPlaneSystemPromptWithoutRawAgentPrompt(t *testing.T
 	if requirePromptString(t, company.Title) != "About the company" {
 		t.Fatalf("company title = %q", requirePromptString(t, company.Title))
 	}
-	if len(dynamic) != 5 {
+	if len(dynamic) != 4 {
 		t.Fatalf("dynamic segment count = %d", len(dynamic))
 	}
 	if got := requireDynamicContextSegmentType(t, dynamic[0]); got != "dynamic_context" {
@@ -117,7 +117,7 @@ func assertRuntimeSystemPromptPayloadShape(t *testing.T, body []byte) {
 		t.Fatalf("first cacheable segment type = %#v", firstCacheable["type"])
 	}
 	dynamic, _ := systemPrompt["dynamic_segments"].([]any)
-	if len(dynamic) != 5 {
+	if len(dynamic) != 4 {
 		t.Fatalf("dynamic_segments count = %d", len(dynamic))
 	}
 	firstDynamic, _ := dynamic[0].(map[string]any)

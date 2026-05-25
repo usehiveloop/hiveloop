@@ -42,8 +42,9 @@ func TestRealHindsightEmployeeMemoryCheckpointFlow(t *testing.T) {
 	if err := db.Create(&model.Sandbox{ID: sandboxID, OrgID: &orgID, EmployeeID: &agentID, ExternalID: "real-hindsight-sb", BridgeURL: "http://bridge", EncryptedBridgeAPIKey: []byte("x"), Status: "running"}).Error; err != nil {
 		t.Fatalf("create sandbox: %v", err)
 	}
+	createMemorySession(t, db, orgID, agentID, sandboxID, sessionID)
 
-	seededEvents := []model.EmployeeMemoryEvent{
+	seededEvents := []model.EmployeeSessionEvent{
 		memoryEvent(t, orgID, agentID, sandboxID, sessionID, "user.message.received", map[string]any{
 			"source": "slack", "channel": "C123", "thread_ts": "1770000000.000001", "user_display_name": "Kim",
 			"text": "For every production deploy, the Platform team must include rollback notes before merging. " + marker,
@@ -91,8 +92,8 @@ func TestRealHindsightEmployeeMemoryCheckpointFlow(t *testing.T) {
 	}
 
 	var retainedCount int64
-	if err := db.Model(&model.EmployeeMemoryEvent{}).
-		Where("employee_id = ? AND sandbox_id = ? AND session_id = ? AND retained_at IS NOT NULL", agentID, sandboxID, sessionID).
+	if err := db.Model(&model.EmployeeSessionEvent{}).
+		Where("employee_id = ? AND sandbox_id = ? AND runtime_session_id = ? AND retained_at IS NOT NULL", agentID, sandboxID, sessionID).
 		Count(&retainedCount).Error; err != nil {
 		t.Fatalf("count retained events: %v", err)
 	}
@@ -146,6 +147,7 @@ func TestRealHindsightEmployeeMemoryProductionWorkload(t *testing.T) {
 	var expectedRetained int
 	for i, session := range sessions {
 		sessionID := "slack-C123-prod-" + uuid.NewString()
+		createMemorySession(t, db, orgID, agentID, sandboxID, sessionID)
 		events := session.toEvents(t, orgID, agentID, sandboxID, sessionID, i)
 		if _, ok := buildEmployeeRetainItem(&agent, EmployeeMemoryRetainPayload{
 			EmployeeID: agentID, SandboxID: sandboxID, SessionID: sessionID, SourceEvent: "agent.message.sent",
@@ -184,7 +186,7 @@ func TestRealHindsightEmployeeMemoryProductionWorkload(t *testing.T) {
 		}
 	}
 	var retainedCount int64
-	if err := db.Model(&model.EmployeeMemoryEvent{}).
+	if err := db.Model(&model.EmployeeSessionEvent{}).
 		Where("employee_id = ? AND sandbox_id = ? AND retained_at IS NOT NULL", agentID, sandboxID).
 		Count(&retainedCount).Error; err != nil {
 		t.Fatalf("count retained: %v", err)

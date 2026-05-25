@@ -18,7 +18,7 @@ const employeeEventBatchSize = 100
 
 type EmployeeEventWriter struct {
 	db            *gorm.DB
-	entries       chan model.EmployeeMemoryEvent
+	entries       chan model.EmployeeSessionEvent
 	wg            sync.WaitGroup
 	flushInterval time.Duration
 }
@@ -30,7 +30,7 @@ func NewEmployeeEventWriter(ctx context.Context, db *gorm.DB, bufferSize int, fl
 	}
 	w := &EmployeeEventWriter{
 		db:            db,
-		entries:       make(chan model.EmployeeMemoryEvent, bufferSize),
+		entries:       make(chan model.EmployeeSessionEvent, bufferSize),
 		flushInterval: interval,
 	}
 	w.wg.Add(1)
@@ -52,7 +52,7 @@ func (w *EmployeeEventWriter) drain(ctx context.Context) {
 		w.wg.Done()
 	}()
 
-	batch := make([]model.EmployeeMemoryEvent, 0, employeeEventBatchSize)
+	batch := make([]model.EmployeeSessionEvent, 0, employeeEventBatchSize)
 	timer := time.NewTimer(w.flushInterval)
 	defer timer.Stop()
 
@@ -66,7 +66,7 @@ func (w *EmployeeEventWriter) drain(ctx context.Context) {
 			}
 			for _, entry := range batch {
 				if err := syncEmployeeScheduleEvent(tx, entry); err != nil {
-					captureEmployeeMemoryEventFailure(ctx, "batch_sync_schedule", entry, err)
+					captureEmployeeSessionEventFailure(ctx, "batch_sync_schedule", entry, err)
 					logging.FromContext(ctx).WarnContext(ctx, "employee schedule sync failed",
 						"error", err,
 						"event_type", entry.EventType,
@@ -108,7 +108,7 @@ func (w *EmployeeEventWriter) drain(ctx context.Context) {
 	}
 }
 
-func (w *EmployeeEventWriter) Write(ctx context.Context, entry model.EmployeeMemoryEvent) {
+func (w *EmployeeEventWriter) Write(ctx context.Context, entry model.EmployeeSessionEvent) {
 	if w == nil {
 		return
 	}
@@ -120,7 +120,7 @@ func (w *EmployeeEventWriter) Write(ctx context.Context, entry model.EmployeeMem
 				return err
 			}
 			if err := syncEmployeeScheduleEvent(tx, entry); err != nil {
-				captureEmployeeMemoryEventFailure(ctx, "direct_sync_schedule", entry, err)
+				captureEmployeeSessionEventFailure(ctx, "direct_sync_schedule", entry, err)
 				logging.FromContext(ctx).WarnContext(ctx, "employee schedule sync failed",
 					"error", err,
 					"event_type", entry.EventType,
@@ -130,7 +130,7 @@ func (w *EmployeeEventWriter) Write(ctx context.Context, entry model.EmployeeMem
 			return nil
 		})
 		if err != nil {
-			captureEmployeeMemoryEventFailure(ctx, "direct_write", entry, err)
+			captureEmployeeSessionEventFailure(ctx, "direct_write", entry, err)
 			logging.FromContext(ctx).ErrorContext(ctx, "employee event direct write failed", "error", err, "event_type", entry.EventType)
 		}
 	}
@@ -155,7 +155,7 @@ func (w *EmployeeEventWriter) Shutdown(ctx context.Context) {
 	}
 }
 
-func employeeEventBatchSentryFields(stage string, batch []model.EmployeeMemoryEvent) map[string]any {
+func employeeEventBatchSentryFields(stage string, batch []model.EmployeeSessionEvent) map[string]any {
 	fields := map[string]any{
 		"stage": stage,
 		"count": len(batch),

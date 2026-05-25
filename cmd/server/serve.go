@@ -67,14 +67,15 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 		mcpHandler.SetWebTools(spider.NewWebToolsFunc(deps.SpiderClient))
 	}
 	runtimeCompileDeps := employeeruntime.CompileDeps{
-		DB:         database,
-		Picker:     credentials.NewPickerWithRegistry(database, reg),
-		KMS:        deps.KMS,
-		EncKey:     sandboxEncKey,
-		SigningKey: signingKey,
-		Cfg:        cfg,
-		Nango:      nangoClient,
-		Hindsight:  hindsightClient,
+		DB:          database,
+		Picker:      credentials.NewPickerWithRegistry(database, reg),
+		KMS:         deps.KMS,
+		EncKey:      sandboxEncKey,
+		SigningKey:  signingKey,
+		Cfg:         cfg,
+		Nango:       nangoClient,
+		Hindsight:   hindsightClient,
+		Specialists: deps.Specialists,
 	}
 	if orchestrator != nil {
 		specialistService := specialisttasks.NewService(database, orchestrator, runtimeCompileDeps, deps.Specialists)

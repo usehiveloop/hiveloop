@@ -137,7 +137,7 @@ func employeeScheduleTestPayload(now time.Time) map[string]any {
 func assertEmployeeScheduleMirror(t *testing.T, db *gorm.DB, agentID uuid.UUID, payload map[string]any) {
 	t.Helper()
 	var eventCount int64
-	db.Model(&model.EmployeeMemoryEvent{}).Where("employee_id = ? AND event_type LIKE ?", agentID, "schedule.%").Count(&eventCount)
+	db.Model(&model.EmployeeSessionEvent{}).Where("employee_id = ? AND event_type LIKE ?", agentID, "schedule.%").Count(&eventCount)
 	if eventCount != 6 {
 		t.Fatalf("schedule event count = %d", eventCount)
 	}
@@ -173,7 +173,7 @@ func assertEmployeeScheduleMirror(t *testing.T, db *gorm.DB, agentID uuid.UUID, 
 func assertScheduleEventWithoutMirror(t *testing.T, db *gorm.DB, agentID uuid.UUID) {
 	t.Helper()
 	var eventCount int64
-	db.Model(&model.EmployeeMemoryEvent{}).Where("employee_id = ? AND event_type = ?", agentID, "schedule.created").Count(&eventCount)
+	db.Model(&model.EmployeeSessionEvent{}).Where("employee_id = ? AND event_type = ?", agentID, "schedule.created").Count(&eventCount)
 	if eventCount != 1 {
 		t.Fatalf("event count = %d", eventCount)
 	}

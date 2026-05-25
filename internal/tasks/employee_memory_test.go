@@ -14,7 +14,7 @@ func TestBuildEmployeeRetainItem_BundlesSessionAtCheckpoint(t *testing.T) {
 	agentID := uuid.New()
 	sandboxID := uuid.New()
 	agent := &model.Employee{ID: agentID, OrgID: &orgID, Name: "Aria"}
-	events := []model.EmployeeMemoryEvent{
+	events := []model.EmployeeSessionEvent{
 		memoryEvent(t, orgID, agentID, sandboxID, "S1", "user.message.received", map[string]any{
 			"source": "slack", "channel": "C123", "user": "U123", "user_display_name": "Kim",
 			"text": "The Platform team requires rollback notes before deploys.",
@@ -69,7 +69,7 @@ func TestBuildEmployeeRetainItem_SkipsNoCheckpointAndSecrets(t *testing.T) {
 	agentID := uuid.New()
 	sandboxID := uuid.New()
 	agent := &model.Employee{ID: agentID, OrgID: &orgID, Name: "Aria"}
-	onlyUser := []model.EmployeeMemoryEvent{
+	onlyUser := []model.EmployeeSessionEvent{
 		memoryEvent(t, orgID, agentID, sandboxID, "S1", "user.message.received", map[string]any{"text": "remember this later"}),
 	}
 	if _, ok := buildEmployeeRetainItem(agent, EmployeeMemoryRetainPayload{EmployeeID: agentID, SandboxID: sandboxID, SessionID: "S1"}, onlyUser); ok {
@@ -86,7 +86,7 @@ func TestBuildEmployeeRetainItem_SkipsPureBanterWithoutWorkSignal(t *testing.T) 
 	agentID := uuid.New()
 	sandboxID := uuid.New()
 	agent := &model.Employee{ID: agentID, OrgID: &orgID, Name: "Aria"}
-	events := []model.EmployeeMemoryEvent{
+	events := []model.EmployeeSessionEvent{
 		memoryEvent(t, orgID, agentID, sandboxID, "S1", "user.message.received", map[string]any{
 			"source": "slack", "channel": "C123", "user_display_name": "Kim",
 			"text": "Why did the database admin leave the party? Too many relationships.",
@@ -105,7 +105,7 @@ func TestBuildEmployeeRetainItem_PreservesExplicitRememberFactsWithoutTools(t *t
 	agentID := uuid.New()
 	sandboxID := uuid.New()
 	agent := &model.Employee{ID: agentID, OrgID: &orgID, Name: "Aria"}
-	events := []model.EmployeeMemoryEvent{
+	events := []model.EmployeeSessionEvent{
 		memoryEvent(t, orgID, agentID, sandboxID, "S1", "user.message.received", map[string]any{
 			"source": "slack", "channel": "C123", "user_display_name": "Nora",
 			"text": "Please remember this: Nora owns invoice-failure alerts, and billing answers must use live data when possible.",

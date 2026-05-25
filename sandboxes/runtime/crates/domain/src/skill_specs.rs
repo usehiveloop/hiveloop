@@ -1,7 +1,5 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{agent_definition::Limits, model_config::ModelConfig, tool_specs::ToolSpec};
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct SkillSpec {
@@ -31,33 +29,4 @@ pub struct SkillSpec {
 pub enum SkillTrigger {
     Always,
     Keyword { patterns: Vec<String> },
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
-pub struct SubagentSpec {
-    pub name: String,
-    pub description: String,
-    #[serde(default = "default_expose_as_tool")]
-    pub expose_as_tool: bool,
-    pub tool_name: String,
-    pub tool_description: String,
-    pub definition: SubagentDefinition,
-}
-
-fn default_expose_as_tool() -> bool {
-    true
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
-pub struct SubagentDefinition {
-    pub system_prompt: String,
-    pub model: ModelConfig,
-    #[serde(default)]
-    pub tools: Vec<ToolSpec>,
-    #[serde(default)]
-    pub mcp_inherit: Vec<String>,
-    #[serde(default)]
-    pub limits: Limits,
 }

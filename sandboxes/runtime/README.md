@@ -23,7 +23,7 @@ crates/
 - **Phase 0 — foundations:** trait contracts and shared types (current)
 - Phase 1 — five parallel tracks (HTTP gateway, agent, storage, api, webhooks)
 - Phase 2 — integration; HTTP gateway request → reply test
-- Phase 3 — tools, MCP, skills, subagents, rich HTTP events
+- Phase 3 — tools, MCP, skills, rich HTTP events
 - Phase 4 — observability and hardening
 
 ## Sentry

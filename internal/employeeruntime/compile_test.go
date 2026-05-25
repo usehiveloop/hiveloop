@@ -9,6 +9,7 @@ import (
 
 	"github.com/usehivy/hivy/internal/employeeprompts"
 	"github.com/usehivy/hivy/internal/model"
+	"github.com/usehivy/hivy/internal/specialists"
 )
 
 func TestBuildPromptSections_UsesTypedFields(t *testing.T) {
@@ -127,8 +128,67 @@ func TestBuildEmployeeSystemPrompt_CompilesAllRuntimePromptSegments(t *testing.T
 	if got := requireListSegment3Type(t, dynamic[2]); got != "skill_catalog" {
 		t.Fatalf("third dynamic segment = %q", got)
 	}
-	if len(dynamic) != 5 {
+	if len(dynamic) != 4 {
 		t.Fatalf("dynamic segment count = %d", len(dynamic))
+	}
+	if got := requireListSegment4Type(t, dynamic[3]); got != "mcp_tools" {
+		t.Fatalf("fourth dynamic segment = %q", got)
+	}
+}
+
+func TestBuildAvailableSpecialistsSection_ListsAttachedSpecialists(t *testing.T) {
+	catalog, err := specialists.NewCatalog([]specialists.Definition{
+		{
+			Slug:           "software-engineering-specialist",
+			Name:           "Software Engineering",
+			Description:    "Build and verify code changes.",
+			SpecialistType: "engineering",
+			Version:        1,
+			SystemPrompt:   "Do engineering work.",
+		},
+		{
+			Slug:           "business-research-specialist",
+			Name:           "Business Research",
+			Description:    "Research business questions.",
+			SpecialistType: "research",
+			Version:        1,
+			SystemPrompt:   "Do research work.",
+		},
+	})
+	if err != nil {
+		t.Fatalf("catalog: %v", err)
+	}
+	agent := &model.Employee{
+		AttachedSpecialists: []string{"software-engineering-specialist"},
+	}
+
+	section := buildAvailableSpecialistsSection(agent, catalog)
+
+	if section.Title != "Available specialists" {
+		t.Fatalf("section title = %q", section.Title)
+	}
+	if !strings.Contains(section.Content, "software-engineering-specialist: Build and verify code changes.") {
+		t.Fatalf("attached specialist missing from section: %q", section.Content)
+	}
+	if strings.Contains(section.Content, "business-research-specialist") {
+		t.Fatalf("unattached specialist leaked into section: %q", section.Content)
+	}
+	staleDelegationTerm := "sub" + "agent"
+	if strings.Contains(section.Content, staleDelegationTerm) {
+		t.Fatalf("section must use product terminology only: %q", section.Content)
+	}
+}
+
+func TestDefaultRuntimeSurfaceDoesNotExposeGenericDelegation(t *testing.T) {
+	for _, tool := range defaultTools() {
+		if got, _ := tool["type"].(string); got == "builtin.delegate" || got == "builtin.check_delegated_status" {
+			t.Fatalf("defaultTools exposed generic delegation tool %q", got)
+		}
+	}
+	for key := range defaultLimits() {
+		if strings.Contains(key, "sub"+"agent") {
+			t.Fatalf("defaultLimits exposed stale key %q", key)
+		}
 	}
 }
 
@@ -183,6 +243,15 @@ func requireListSegment3Type(t *testing.T, segment SystemPromptSegment) string {
 	listSegment, err := segment.AsSystemPromptSegment3()
 	if err != nil {
 		t.Fatalf("decode list segment: %v", err)
+	}
+	return string(listSegment.Type)
+}
+
+func requireListSegment4Type(t *testing.T, segment SystemPromptSegment) string {
+	t.Helper()
+	listSegment, err := segment.AsSystemPromptSegment4()
+	if err != nil {
+		t.Fatalf("decode mcp tools segment: %v", err)
 	}
 	return string(listSegment.Type)
 }

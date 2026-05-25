@@ -68,7 +68,7 @@ func (h *UploadsHandler) authEmployee(w http.ResponseWriter, r *http.Request) (*
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to verify credentials"})
 		return nil, nil, false
 	}
-	if subtle.ConstantTimeCompare([]byte(bearer), []byte(wantKey)) != 1 && !h.bearerMatchesEmployeeSubagentSandbox(r, agent.ID, bearer) {
+	if subtle.ConstantTimeCompare([]byte(bearer), []byte(wantKey)) != 1 && !h.bearerMatchesEmployeeSpecialistSandbox(r, agent.ID, bearer) {
 		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "invalid bridge api key"})
 		return nil, nil, false
 	}
@@ -76,7 +76,7 @@ func (h *UploadsHandler) authEmployee(w http.ResponseWriter, r *http.Request) (*
 	return &agent, &sandbox, true
 }
 
-func (h *UploadsHandler) bearerMatchesEmployeeSubagentSandbox(r *http.Request, employeeID uuid.UUID, bearer string) bool {
+func (h *UploadsHandler) bearerMatchesEmployeeSpecialistSandbox(r *http.Request, employeeID uuid.UUID, bearer string) bool {
 	if bearer == "" || h.encKey == nil {
 		return false
 	}
@@ -85,13 +85,13 @@ func (h *UploadsHandler) bearerMatchesEmployeeSubagentSandbox(r *http.Request, e
 		Joins("JOIN specialist_tasks ON specialist_tasks.sandbox_id = sandboxes.id").
 		Where("specialist_tasks.employee_id = ? AND sandboxes.status NOT IN (?, ?)", employeeID, "archived", "error").
 		Find(&sandboxes).Error; err != nil {
-		logging.FromContext(r.Context()).ErrorContext(r.Context(), "load employee subagent sandboxes for asset auth", "employee_id", employeeID, "error", err)
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "load employee specialist sandboxes for asset auth", "employee_id", employeeID, "error", err)
 		return false
 	}
 	for _, sandbox := range sandboxes {
 		wantKey, err := h.encKey.DecryptString(sandbox.EncryptedBridgeAPIKey)
 		if err != nil {
-			logging.FromContext(r.Context()).ErrorContext(r.Context(), "decrypt subagent bridge api key", "employee_id", employeeID, "sandbox_id", sandbox.ID, "error", err)
+			logging.FromContext(r.Context()).ErrorContext(r.Context(), "decrypt specialist bridge api key", "employee_id", employeeID, "sandbox_id", sandbox.ID, "error", err)
 			continue
 		}
 		if subtle.ConstantTimeCompare([]byte(bearer), []byte(wantKey)) == 1 {

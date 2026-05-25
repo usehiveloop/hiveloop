@@ -324,7 +324,6 @@ fn bootstrap_agent_definition() -> Result<AgentDefinition> {
         tools: default_builtin_tool_specs(),
         mcp_servers: Vec::new(),
         skills: Vec::new(),
-        subagents: Vec::new(),
         outbound_channels: Vec::new(),
     })
 }
@@ -353,13 +352,8 @@ fn bootstrap_system_prompt() -> SystemPromptConfig {
                 preamble: "Before using tools for a task, check this list and call skill_view(name) when a skill matches the user's request. Do not load unrelated skills.".into(),
                 item_template: "- {name}: {description}".into(),
             }),
-            SystemPromptSegment::LoadedMcpTools(ListPromptSegment {
-                title: "Currently loaded tools (use directly)".into(),
-                preamble: String::new(),
-                item_template: "- {name}".into(),
-            }),
-            SystemPromptSegment::UnloadedMcpTools(ListPromptSegment {
-                title: "Additional tools available to load via load_tools(tool_names=[...])".into(),
+            SystemPromptSegment::McpTools(ListPromptSegment {
+                title: "Available MCP tools (use directly)".into(),
                 preamble: String::new(),
                 item_template: "- {name}".into(),
             }),
@@ -401,7 +395,6 @@ fn default_builtin_tool_specs() -> Vec<ToolSpec> {
         ToolSpec::CheckDelegatedStatus,
         ToolSpec::CheckBashStatus,
         ToolSpec::Wake,
-        ToolSpec::LoadTools,
         ToolSpec::SkillsList,
         ToolSpec::SkillView,
         ToolSpec::SkillManage,

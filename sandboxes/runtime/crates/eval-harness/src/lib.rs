@@ -436,7 +436,6 @@ fn fake_agent_definition() -> AgentDefinition {
         tools: Vec::new(),
         mcp_servers: Vec::new(),
         skills: Vec::new(),
-        subagents: Vec::new(),
         outbound_channels: Vec::new(),
     }
 }

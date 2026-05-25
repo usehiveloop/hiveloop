@@ -335,28 +335,13 @@ func (e SystemPromptSegment3Type) Valid() bool {
 
 // Defines values for SystemPromptSegment4Type.
 const (
-	LoadedMcpTools SystemPromptSegment4Type = "loaded_mcp_tools"
+	McpTools SystemPromptSegment4Type = "mcp_tools"
 )
 
 // Valid indicates whether the value is a known member of the SystemPromptSegment4Type enum.
 func (e SystemPromptSegment4Type) Valid() bool {
 	switch e {
-	case LoadedMcpTools:
-		return true
-	default:
-		return false
-	}
-}
-
-// Defines values for SystemPromptSegment5Type.
-const (
-	UnloadedMcpTools SystemPromptSegment5Type = "unloaded_mcp_tools"
-)
-
-// Valid indicates whether the value is a known member of the SystemPromptSegment5Type enum.
-func (e SystemPromptSegment5Type) Valid() bool {
-	switch e {
-	case UnloadedMcpTools:
+	case McpTools:
 		return true
 	default:
 		return false
@@ -485,26 +470,11 @@ func (e ToolSpec7Type) Valid() bool {
 
 // Defines values for ToolSpec8Type.
 const (
-	BuiltinLoadTools ToolSpec8Type = "builtin.load_tools"
+	BuiltinSkillsList ToolSpec8Type = "builtin.skills_list"
 )
 
 // Valid indicates whether the value is a known member of the ToolSpec8Type enum.
 func (e ToolSpec8Type) Valid() bool {
-	switch e {
-	case BuiltinLoadTools:
-		return true
-	default:
-		return false
-	}
-}
-
-// Defines values for ToolSpec9Type.
-const (
-	BuiltinSkillsList ToolSpec9Type = "builtin.skills_list"
-)
-
-// Valid indicates whether the value is a known member of the ToolSpec9Type enum.
-func (e ToolSpec9Type) Valid() bool {
 	switch e {
 	case BuiltinSkillsList:
 		return true
@@ -513,13 +483,13 @@ func (e ToolSpec9Type) Valid() bool {
 	}
 }
 
-// Defines values for ToolSpec10Type.
+// Defines values for ToolSpec9Type.
 const (
-	BuiltinSkillView ToolSpec10Type = "builtin.skill_view"
+	BuiltinSkillView ToolSpec9Type = "builtin.skill_view"
 )
 
-// Valid indicates whether the value is a known member of the ToolSpec10Type enum.
-func (e ToolSpec10Type) Valid() bool {
+// Valid indicates whether the value is a known member of the ToolSpec9Type enum.
+func (e ToolSpec9Type) Valid() bool {
 	switch e {
 	case BuiltinSkillView:
 		return true
@@ -528,13 +498,13 @@ func (e ToolSpec10Type) Valid() bool {
 	}
 }
 
-// Defines values for ToolSpec11Type.
+// Defines values for ToolSpec10Type.
 const (
-	BuiltinSkillManage ToolSpec11Type = "builtin.skill_manage"
+	BuiltinSkillManage ToolSpec10Type = "builtin.skill_manage"
 )
 
-// Valid indicates whether the value is a known member of the ToolSpec11Type enum.
-func (e ToolSpec11Type) Valid() bool {
+// Valid indicates whether the value is a known member of the ToolSpec10Type enum.
+func (e ToolSpec10Type) Valid() bool {
 	switch e {
 	case BuiltinSkillManage:
 		return true
@@ -555,7 +525,6 @@ type AgentDefinition struct {
 	OutboundChannels  *[]OutboundChannelSpec `json:"outbound_channels,omitempty"`
 	Skills            *[]SkillSpec           `json:"skills,omitempty"`
 	SpecialistProfile *SpecialistProfile     `json:"specialist_profile,omitempty"`
-	Subagents         *[]SubagentSpec        `json:"subagents,omitempty"`
 	SystemPrompt      *SystemPromptConfig    `json:"system_prompt,omitempty"`
 	Tools             *[]ToolSpec            `json:"tools,omitempty"`
 }
@@ -650,7 +619,6 @@ type Limits struct {
 	InputTokenBudget       int32 `json:"input_token_budget"`
 	MaxTurnsPerSession     int32 `json:"max_turns_per_session"`
 	OutputTokenBudget      int32 `json:"output_token_budget"`
-	SubagentMaxDepth       int32 `json:"subagent_max_depth"`
 	ToolCallTimeoutSeconds int32 `json:"tool_call_timeout_seconds"`
 }
 
@@ -676,8 +644,6 @@ type McpSpec struct {
 type McpSpec0 struct {
 	Args                  *[]string          `json:"args,omitempty"`
 	Command               string             `json:"command"`
-	DefaultEnableAllTools *bool              `json:"default_enable_all_tools,omitempty"`
-	DefaultEnabledTools   *[]string          `json:"default_enabled_tools,omitempty"`
 	Env                   *map[string]string `json:"env,omitempty"`
 	Name                  string             `json:"name"`
 	StartupTimeoutSeconds *int32             `json:"startup_timeout_seconds,omitempty"`
@@ -690,13 +656,11 @@ type McpSpec0Transport string
 
 // McpSpec1 defines model for .
 type McpSpec1 struct {
-	DefaultEnableAllTools *bool              `json:"default_enable_all_tools,omitempty"`
-	DefaultEnabledTools   *[]string          `json:"default_enabled_tools,omitempty"`
-	Headers               *map[string]string `json:"headers,omitempty"`
-	Name                  string             `json:"name"`
-	ToolFilter            *ToolFilter        `json:"tool_filter,omitempty"`
-	Transport             McpSpec1Transport  `json:"transport"`
-	Url                   string             `json:"url"`
+	Headers    *map[string]string `json:"headers,omitempty"`
+	Name       string             `json:"name"`
+	ToolFilter *ToolFilter        `json:"tool_filter,omitempty"`
+	Transport  McpSpec1Transport  `json:"transport"`
+	Url        string             `json:"url"`
 }
 
 // McpSpec1Transport defines model for McpSpec.1.Transport.
@@ -704,13 +668,11 @@ type McpSpec1Transport string
 
 // McpSpec2 defines model for .
 type McpSpec2 struct {
-	DefaultEnableAllTools *bool              `json:"default_enable_all_tools,omitempty"`
-	DefaultEnabledTools   *[]string          `json:"default_enabled_tools,omitempty"`
-	Headers               *map[string]string `json:"headers,omitempty"`
-	Name                  string             `json:"name"`
-	ToolFilter            *ToolFilter        `json:"tool_filter,omitempty"`
-	Transport             McpSpec2Transport  `json:"transport"`
-	Url                   string             `json:"url"`
+	Headers    *map[string]string `json:"headers,omitempty"`
+	Name       string             `json:"name"`
+	ToolFilter *ToolFilter        `json:"tool_filter,omitempty"`
+	Transport  McpSpec2Transport  `json:"transport"`
+	Url        string             `json:"url"`
 }
 
 // McpSpec2Transport defines model for McpSpec.2.Transport.
@@ -933,25 +895,6 @@ type StaticPromptSegment struct {
 	Title   *string `json:"title,omitempty"`
 }
 
-// SubagentDefinition defines model for SubagentDefinition.
-type SubagentDefinition struct {
-	Limits       *Limits     `json:"limits,omitempty"`
-	McpInherit   *[]string   `json:"mcp_inherit,omitempty"`
-	Model        ModelConfig `json:"model"`
-	SystemPrompt string      `json:"system_prompt"`
-	Tools        *[]ToolSpec `json:"tools,omitempty"`
-}
-
-// SubagentSpec defines model for SubagentSpec.
-type SubagentSpec struct {
-	Definition      SubagentDefinition `json:"definition"`
-	Description     string             `json:"description"`
-	ExposeAsTool    *bool              `json:"expose_as_tool,omitempty"`
-	Name            string             `json:"name"`
-	ToolDescription string             `json:"tool_description"`
-	ToolName        string             `json:"tool_name"`
-}
-
 // SystemPromptConfig defines model for SystemPromptConfig.
 type SystemPromptConfig struct {
 	CacheableSegments *[]SystemPromptSegment `json:"cacheable_segments,omitempty"`
@@ -1007,15 +950,6 @@ type SystemPromptSegment4 struct {
 
 // SystemPromptSegment4Type defines model for SystemPromptSegment.4.Type.
 type SystemPromptSegment4Type string
-
-// SystemPromptSegment5 defines model for .
-type SystemPromptSegment5 struct {
-	Config ListPromptSegment        `json:"config"`
-	Type   SystemPromptSegment5Type `json:"type"`
-}
-
-// SystemPromptSegment5Type defines model for SystemPromptSegment.5.Type.
-type SystemPromptSegment5Type string
 
 // ToolFilter defines model for ToolFilter.
 type ToolFilter struct {
@@ -1118,14 +1052,6 @@ type ToolSpec10 struct {
 
 // ToolSpec10Type defines model for ToolSpec.10.Type.
 type ToolSpec10Type string
-
-// ToolSpec11 defines model for .
-type ToolSpec11 struct {
-	Type ToolSpec11Type `json:"type"`
-}
-
-// ToolSpec11Type defines model for ToolSpec.11.Type.
-type ToolSpec11Type string
 
 // ToolUsage defines model for ToolUsage.
 type ToolUsage struct {
@@ -1630,32 +1556,6 @@ func (t *SystemPromptSegment) MergeSystemPromptSegment4(v SystemPromptSegment4) 
 	return err
 }
 
-// AsSystemPromptSegment5 returns the union data inside the SystemPromptSegment as a SystemPromptSegment5
-func (t SystemPromptSegment) AsSystemPromptSegment5() (SystemPromptSegment5, error) {
-	var body SystemPromptSegment5
-	err := json.Unmarshal(t.union, &body)
-	return body, err
-}
-
-// FromSystemPromptSegment5 overwrites any union data inside the SystemPromptSegment as the provided SystemPromptSegment5
-func (t *SystemPromptSegment) FromSystemPromptSegment5(v SystemPromptSegment5) error {
-	b, err := json.Marshal(v)
-	t.union = b
-	return err
-}
-
-// MergeSystemPromptSegment5 performs a merge with any union data inside the SystemPromptSegment, using the provided SystemPromptSegment5
-func (t *SystemPromptSegment) MergeSystemPromptSegment5(v SystemPromptSegment5) error {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return err
-	}
-
-	merged, err := runtime.JSONMerge(t.union, b)
-	t.union = merged
-	return err
-}
-
 func (t SystemPromptSegment) MarshalJSON() ([]byte, error) {
 	b, err := t.union.MarshalJSON()
 	return b, err
@@ -1942,32 +1842,6 @@ func (t *ToolSpec) FromToolSpec10(v ToolSpec10) error {
 
 // MergeToolSpec10 performs a merge with any union data inside the ToolSpec, using the provided ToolSpec10
 func (t *ToolSpec) MergeToolSpec10(v ToolSpec10) error {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return err
-	}
-
-	merged, err := runtime.JSONMerge(t.union, b)
-	t.union = merged
-	return err
-}
-
-// AsToolSpec11 returns the union data inside the ToolSpec as a ToolSpec11
-func (t ToolSpec) AsToolSpec11() (ToolSpec11, error) {
-	var body ToolSpec11
-	err := json.Unmarshal(t.union, &body)
-	return body, err
-}
-
-// FromToolSpec11 overwrites any union data inside the ToolSpec as the provided ToolSpec11
-func (t *ToolSpec) FromToolSpec11(v ToolSpec11) error {
-	b, err := json.Marshal(v)
-	t.union = b
-	return err
-}
-
-// MergeToolSpec11 performs a merge with any union data inside the ToolSpec, using the provided ToolSpec11
-func (t *ToolSpec) MergeToolSpec11(v ToolSpec11) error {
 	b, err := json.Marshal(v)
 	if err != nil {
 		return err

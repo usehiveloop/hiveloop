@@ -1,14 +1,20 @@
 -- +goose Up
 -- Employee runtime, schedules, triggers, and generation tables
 
-CREATE TABLE employee_memory_events (
+CREATE TABLE employee_session_events (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     org_id uuid NOT NULL,
     employee_id uuid NOT NULL,
     sandbox_id uuid NOT NULL,
-    session_id character varying(255) NOT NULL,
+    employee_session_id uuid NOT NULL,
+    runtime_session_id character varying(255) NOT NULL,
+    event_id character varying(255) DEFAULT ''::character varying NOT NULL,
     event_type character varying(128) NOT NULL,
     source character varying(128) DEFAULT 'manual'::character varying NOT NULL,
+    mode character varying(64) DEFAULT 'employee'::character varying NOT NULL,
+    specialist_slug character varying(128) DEFAULT ''::character varying NOT NULL,
+    specialist_task_id uuid,
+    sequence_number bigint DEFAULT 0 NOT NULL,
     payload jsonb DEFAULT '{}'::jsonb NOT NULL,
     event_at timestamp with time zone NOT NULL,
     retained_at timestamp with time zone,
@@ -215,8 +221,8 @@ CREATE TABLE hindsight_banks (
     updated_at timestamp with time zone
 );
 
-ALTER TABLE ONLY employee_memory_events
-    ADD CONSTRAINT employee_memory_events_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY employee_session_events
+    ADD CONSTRAINT employee_session_events_pkey PRIMARY KEY (id);
 
 ALTER TABLE ONLY employee_sandbox_upgrades
     ADD CONSTRAINT employee_sandbox_upgrades_pkey PRIMARY KEY (id);
@@ -251,15 +257,27 @@ ALTER TABLE ONLY generations
 ALTER TABLE ONLY hindsight_banks
     ADD CONSTRAINT hindsight_banks_pkey PRIMARY KEY (id);
 
-CREATE INDEX idx_employee_memory_events_event_at ON employee_memory_events USING btree (event_at);
+CREATE INDEX idx_employee_session_events_event_at ON employee_session_events USING btree (event_at);
 
-CREATE INDEX idx_employee_memory_events_event_type ON employee_memory_events USING btree (event_type);
+CREATE INDEX idx_employee_session_events_employee_session_id ON employee_session_events USING btree (employee_session_id);
 
-CREATE INDEX idx_employee_memory_events_retained_at ON employee_memory_events USING btree (retained_at);
+CREATE INDEX idx_employee_session_events_event_id ON employee_session_events USING btree (event_id);
 
-CREATE INDEX idx_employee_memory_events_sandbox_id ON employee_memory_events USING btree (sandbox_id);
+CREATE INDEX idx_employee_session_events_event_type ON employee_session_events USING btree (event_type);
 
-CREATE INDEX idx_employee_memory_scope ON employee_memory_events USING btree (org_id, employee_id, session_id);
+CREATE INDEX idx_employee_session_events_mode ON employee_session_events USING btree (mode);
+
+CREATE INDEX idx_employee_session_events_retained_at ON employee_session_events USING btree (retained_at);
+
+CREATE INDEX idx_employee_session_events_sandbox_id ON employee_session_events USING btree (sandbox_id);
+
+CREATE INDEX idx_employee_session_events_sequence_number ON employee_session_events USING btree (sequence_number);
+
+CREATE INDEX idx_employee_session_events_specialist_slug ON employee_session_events USING btree (specialist_slug);
+
+CREATE INDEX idx_employee_session_events_specialist_task_id ON employee_session_events USING btree (specialist_task_id);
+
+CREATE INDEX idx_employee_session_event_scope ON employee_session_events USING btree (org_id, employee_id, runtime_session_id);
 
 CREATE INDEX idx_employee_org_id ON employees USING btree (org_id);
 
@@ -304,6 +322,8 @@ CREATE INDEX idx_employee_session_org_employee ON employee_sessions USING btree 
 CREATE INDEX idx_employee_sessions_credential_id ON employee_sessions USING btree (credential_id);
 
 CREATE INDEX idx_employee_sessions_runtime_conversation_id ON employee_sessions USING btree (runtime_conversation_id);
+
+CREATE UNIQUE INDEX idx_employee_sessions_runtime_scope ON employee_sessions USING btree (org_id, employee_id, sandbox_id, runtime_conversation_id);
 
 CREATE INDEX idx_employee_sessions_source ON employee_sessions USING btree (source);
 

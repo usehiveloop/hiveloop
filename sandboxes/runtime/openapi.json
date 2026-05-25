@@ -524,12 +524,6 @@
               }
             ]
           },
-          "subagents": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/SubagentSpec"
-            }
-          },
           "system_prompt": {
             "$ref": "#/components/schemas/SystemPromptConfig"
           },
@@ -1001,8 +995,7 @@
           "max_turns_per_session",
           "input_token_budget",
           "output_token_budget",
-          "tool_call_timeout_seconds",
-          "subagent_max_depth"
+          "tool_call_timeout_seconds"
         ],
         "properties": {
           "input_token_budget": {
@@ -1016,11 +1009,6 @@
             "minimum": 0
           },
           "output_token_budget": {
-            "type": "integer",
-            "format": "int32",
-            "minimum": 0
-          },
-          "subagent_max_depth": {
             "type": "integer",
             "format": "int32",
             "minimum": 0
@@ -1163,15 +1151,6 @@
               "command": {
                 "type": "string"
               },
-              "default_enable_all_tools": {
-                "type": "boolean"
-              },
-              "default_enabled_tools": {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                }
-              },
               "env": {
                 "type": "object",
                 "additionalProperties": {
@@ -1218,15 +1197,6 @@
               "transport"
             ],
             "properties": {
-              "default_enable_all_tools": {
-                "type": "boolean"
-              },
-              "default_enabled_tools": {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                }
-              },
               "headers": {
                 "type": "object",
                 "additionalProperties": {
@@ -1268,15 +1238,6 @@
               "transport"
             ],
             "properties": {
-              "default_enable_all_tools": {
-                "type": "boolean"
-              },
-              "default_enabled_tools": {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                }
-              },
               "headers": {
                 "type": "object",
                 "additionalProperties": {
@@ -1965,66 +1926,6 @@
           }
         }
       },
-      "SubagentDefinition": {
-        "type": "object",
-        "required": [
-          "system_prompt",
-          "model"
-        ],
-        "properties": {
-          "limits": {
-            "$ref": "#/components/schemas/Limits"
-          },
-          "mcp_inherit": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "model": {
-            "$ref": "#/components/schemas/ModelConfig"
-          },
-          "system_prompt": {
-            "type": "string"
-          },
-          "tools": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ToolSpec"
-            }
-          }
-        }
-      },
-      "SubagentSpec": {
-        "type": "object",
-        "required": [
-          "name",
-          "description",
-          "tool_name",
-          "tool_description",
-          "definition"
-        ],
-        "properties": {
-          "definition": {
-            "$ref": "#/components/schemas/SubagentDefinition"
-          },
-          "description": {
-            "type": "string"
-          },
-          "expose_as_tool": {
-            "type": "boolean"
-          },
-          "name": {
-            "type": "string"
-          },
-          "tool_description": {
-            "type": "string"
-          },
-          "tool_name": {
-            "type": "string"
-          }
-        }
-      },
       "SystemPromptConfig": {
         "type": "object",
         "properties": {
@@ -2129,25 +2030,7 @@
               "type": {
                 "type": "string",
                 "enum": [
-                  "loaded_mcp_tools"
-                ]
-              }
-            }
-          },
-          {
-            "type": "object",
-            "required": [
-              "config",
-              "type"
-            ],
-            "properties": {
-              "config": {
-                "$ref": "#/components/schemas/ListPromptSegment"
-              },
-              "type": {
-                "type": "string",
-                "enum": [
-                  "unloaded_mcp_tools"
+                  "mcp_tools"
                 ]
               }
             }
@@ -2299,20 +2182,6 @@
                 "type": "string",
                 "enum": [
                   "builtin.wake"
-                ]
-              }
-            }
-          },
-          {
-            "type": "object",
-            "required": [
-              "type"
-            ],
-            "properties": {
-              "type": {
-                "type": "string",
-                "enum": [
-                  "builtin.load_tools"
                 ]
               }
             }

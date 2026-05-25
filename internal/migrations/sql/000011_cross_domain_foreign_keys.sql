@@ -7,9 +7,6 @@ ALTER TABLE ONLY api_keys
 ALTER TABLE ONLY conversation_assets
     ADD CONSTRAINT fk_conversation_assets_conversation FOREIGN KEY (conversation_id) REFERENCES employee_sessions(id) ON DELETE CASCADE;
 
-ALTER TABLE ONLY conversation_events
-    ADD CONSTRAINT fk_conversation_events_conversation FOREIGN KEY (conversation_id) REFERENCES employee_sessions(id) ON DELETE CASCADE;
-
 ALTER TABLE ONLY credentials
     ADD CONSTRAINT fk_credentials_org FOREIGN KEY (org_id) REFERENCES orgs(id) ON DELETE CASCADE;
 
@@ -28,14 +25,20 @@ ALTER TABLE ONLY employee_assets
 ALTER TABLE ONLY employee_assets
     ADD CONSTRAINT fk_employee_assets_sandbox FOREIGN KEY (sandbox_id) REFERENCES sandboxes(id) ON DELETE CASCADE;
 
-ALTER TABLE ONLY employee_memory_events
-    ADD CONSTRAINT fk_employee_memory_events_employee FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE;
+ALTER TABLE ONLY employee_session_events
+    ADD CONSTRAINT fk_employee_session_events_employee FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE;
 
-ALTER TABLE ONLY employee_memory_events
-    ADD CONSTRAINT fk_employee_memory_events_org FOREIGN KEY (org_id) REFERENCES orgs(id) ON DELETE CASCADE;
+ALTER TABLE ONLY employee_session_events
+    ADD CONSTRAINT fk_employee_session_events_org FOREIGN KEY (org_id) REFERENCES orgs(id) ON DELETE CASCADE;
 
-ALTER TABLE ONLY employee_memory_events
-    ADD CONSTRAINT fk_employee_memory_events_sandbox FOREIGN KEY (sandbox_id) REFERENCES sandboxes(id) ON DELETE CASCADE;
+ALTER TABLE ONLY employee_session_events
+    ADD CONSTRAINT fk_employee_session_events_sandbox FOREIGN KEY (sandbox_id) REFERENCES sandboxes(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY employee_session_events
+    ADD CONSTRAINT fk_employee_session_events_session FOREIGN KEY (employee_session_id) REFERENCES employee_sessions(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY employee_session_events
+    ADD CONSTRAINT fk_employee_session_events_specialist_task FOREIGN KEY (specialist_task_id) REFERENCES specialist_tasks(id) ON DELETE SET NULL;
 
 ALTER TABLE ONLY employee_sandbox_upgrades
     ADD CONSTRAINT fk_employee_sandbox_upgrades_employee FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE;

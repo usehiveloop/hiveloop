@@ -9,8 +9,8 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/usehivy/hivy/internal/model"
+	"github.com/usehivy/hivy/internal/providergroups"
 	"github.com/usehivy/hivy/internal/registry"
-	subagents "github.com/usehivy/hivy/internal/sub-agents"
 )
 
 var ErrNoSystemCredential = errors.New("credentials: no system credential configured")
@@ -47,7 +47,7 @@ func (p *PostgresPicker) Pick(ctx context.Context, providerGroup string) (*model
 
 	matching := all[:0]
 	for _, c := range all {
-		if subagents.MapProviderToGroup(c.ProviderID, "") == providerGroup {
+		if providergroups.MapProviderToGroup(c.ProviderID, "") == providerGroup {
 			matching = append(matching, c)
 		}
 	}

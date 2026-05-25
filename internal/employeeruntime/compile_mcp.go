@@ -28,7 +28,6 @@ func buildEmployeeMCPServer(ctx context.Context, deps CompileDeps, agent *model.
 		"headers": map[string]string{
 			"Authorization": employeeMCPAuthorizationHeader(),
 		},
-		"default_enable_all_tools": true,
 	}
 }
 

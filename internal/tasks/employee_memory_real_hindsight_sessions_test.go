@@ -62,13 +62,13 @@ func productionMemorySessions() []productionSession {
 	}
 }
 
-func (s productionSession) toEvents(t *testing.T, orgID, agentID, sandboxID uuid.UUID, sessionID string, index int) []model.EmployeeMemoryEvent {
+func (s productionSession) toEvents(t *testing.T, orgID, agentID, sandboxID uuid.UUID, sessionID string, index int) []model.EmployeeSessionEvent {
 	t.Helper()
 	source := s.source
 	if source == "" {
 		source = "slack"
 	}
-	events := []model.EmployeeMemoryEvent{
+	events := []model.EmployeeSessionEvent{
 		memoryEvent(t, orgID, agentID, sandboxID, sessionID, "user.message.received", map[string]any{
 			"source": source, "channel": "C123", "thread_ts": "1770000000." + uuid.NewString()[:6], "user_display_name": s.user,
 			"text": s.text,
@@ -102,7 +102,7 @@ func distinctProductionSessionIDs(t *testing.T, db interface {
 	t.Helper()
 	var sessionIDs []string
 	if err := db.Raw(
-		"SELECT DISTINCT session_id FROM employee_memory_events WHERE employee_id = ? AND sandbox_id = ? ORDER BY session_id",
+		"SELECT DISTINCT runtime_session_id FROM employee_session_events WHERE employee_id = ? AND sandbox_id = ? ORDER BY runtime_session_id",
 		agentID, sandboxID,
 	).Scan(&sessionIDs).Error; err != nil {
 		t.Fatalf("load session ids: %v", err)

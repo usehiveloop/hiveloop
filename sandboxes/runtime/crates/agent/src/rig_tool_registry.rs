@@ -87,11 +87,6 @@ pub fn build_agent_tools(
                     tools.push(check_bash_status_tool(registry.clone()));
                 }
             }
-            ToolSpec::LoadTools => {
-                if let Some(registry) = &ctx.mcp_registry {
-                    tools.push(load_tools_tool(registry.clone(), session_id.clone()));
-                }
-            }
             ToolSpec::SkillsList => {
                 tools.push(skills_list_tool(ctx.workspace_root.clone()));
             }
@@ -241,35 +236,6 @@ fn wake_tool(repo: Arc<dyn CronJobRepo>, session_id: SessionId) -> Arc<dyn JsonT
                 };
                 repo.create(&job).await?;
                 Ok(json!({"job_id": id, "next_run_at": job.next_run_at.to_rfc3339()}))
-            })
-        },
-    ))
-}
-
-fn load_tools_tool(registry: Arc<McpRegistry>, session_id: SessionId) -> Arc<dyn JsonTool> {
-    Arc::new(DynamicTool::new(
-        ToolDefinition {
-            name: "load_tools".into(),
-            description: "Load MCP tool schemas into the agent for use.".into(),
-            parameters: json!({"type":"object","properties":{"tool_names":{"type":"array","items":{"type":"string"}}},"required":["tool_names"]}),
-        },
-        move |args| {
-            let registry = registry.clone();
-            let session_id = session_id.clone();
-            Box::pin(async move {
-                let names: Vec<String> = args
-                    .get("tool_names")
-                    .and_then(Value::as_array)
-                    .unwrap_or(&Vec::new())
-                    .iter()
-                    .filter_map(|v| v.as_str().map(ToString::to_string))
-                    .collect();
-                let loaded = registry.load_tools_for_session(session_id.as_str(), &names);
-                Ok(json!({
-                    "loaded": loaded,
-                    "total_loaded": registry.loaded_tool_names_for_session(session_id.as_str()).len(),
-                    "still_unloaded": registry.unloaded_tool_names_for_session(session_id.as_str()).len()
-                }))
             })
         },
     ))

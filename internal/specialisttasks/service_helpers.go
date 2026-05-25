@@ -61,7 +61,7 @@ func (s *Service) invalidSlugError(employee *model.Employee, message string) *To
 			}
 		}
 	}
-	err := newToolError("invalid_specialist_slug", message, "The requested specialist is missing, unknown, or not attached to this employee.", false, "Call specialist_launch_task again with one of the attached_specialist_slugs values.")
+	err := newToolError("invalid_specialist_slug", message, "The requested specialist is missing, unknown, or not attached to this employee.", false, "Call specialist_list, then call specialist_launch_task again with one of the attached specialist slugs.")
 	err.Details = map[string]any{"attached_specialist_slugs": attached}
 	return err
 }
@@ -86,7 +86,7 @@ func (s *Service) loadOwnedTask(ctx context.Context, token *model.Token, taskID 
 }
 
 func (s *Service) recentEvents(ctx context.Context, employee *model.Employee, task *model.SpecialistTask, limit int) ([]TaskEventBrief, *ToolError) {
-	var rows []model.EmployeeMemoryEvent
+	var rows []model.EmployeeSessionEvent
 	if err := s.db.WithContext(ctx).
 		Where("org_id = ? AND employee_id = ? AND specialist_task_id = ?", *employee.OrgID, employee.ID, task.ID).
 		Order("event_at DESC").

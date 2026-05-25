@@ -35,14 +35,14 @@ func captureEmployeeWebhookIngest(ctx context.Context, stage string, sb *model.S
 	logging.CaptureWithFields(ctx, fmt.Errorf("employee outbound webhook ingest %s: %w", stage, err), fields)
 }
 
-func captureEmployeeMemoryEventFailure(ctx context.Context, stage string, entry model.EmployeeMemoryEvent, err error) {
+func captureEmployeeSessionEventFailure(ctx context.Context, stage string, entry model.EmployeeSessionEvent, err error) {
 	if err == nil {
 		return
 	}
-	logging.CaptureWithFields(ctx, fmt.Errorf("employee memory event %s: %w", stage, err), employeeMemoryEventSentryFields(stage, entry))
+	logging.CaptureWithFields(ctx, fmt.Errorf("employee session event %s: %w", stage, err), employeeSessionEventSentryFields(stage, entry))
 }
 
-func employeeMemoryEventSentryFields(stage string, entry model.EmployeeMemoryEvent) map[string]any {
+func employeeSessionEventSentryFields(stage string, entry model.EmployeeSessionEvent) map[string]any {
 	return map[string]any{
 		"stage":       stage,
 		"org_id":      entry.OrgID.String(),

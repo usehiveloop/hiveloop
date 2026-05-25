@@ -39,7 +39,7 @@ func (f *Flusher) flushStream(ctx context.Context, convID string) {
 	}
 
 	msgs := streams[0].Messages
-	events := make([]model.ConversationEvent, 0, len(msgs))
+	events := make([]model.EmployeeSessionEvent, 0, len(msgs))
 	entryIDs := make([]string, 0, len(msgs))
 	recoveredMsgIDs := make([]string, 0)
 	recoveredReasoningIDs := make([]string, 0)
@@ -98,16 +98,30 @@ func (f *Flusher) flushStream(ctx context.Context, convID string) {
 			continue
 		}
 
-		dbEvent := model.ConversationEvent{
-			OrgID:                 conv.OrgID,
-			ConversationID:        conv.ID,
-			EventID:               full.EventID,
-			EventType:             eventType,
-			EmployeeID:            full.EmployeeID,
-			RuntimeConversationID: full.ConversationID,
-			Timestamp:             full.Timestamp,
-			SequenceNumber:        full.SequenceNumber,
-			Data:                  model.RawJSON(full.Data),
+		runtimeSessionID := full.ConversationID
+		if runtimeSessionID == "" {
+			runtimeSessionID = conv.RuntimeConversationID
+		}
+		source := conv.Source
+		if source == "" {
+			source = "manual"
+		}
+		eventAt := full.Timestamp
+		if eventAt.IsZero() {
+			eventAt = time.Now().UTC()
+		}
+		dbEvent := model.EmployeeSessionEvent{
+			OrgID:             conv.OrgID,
+			EmployeeID:        conv.EmployeeID,
+			SandboxID:         conv.SandboxID,
+			EmployeeSessionID: conv.ID,
+			SessionID:         runtimeSessionID,
+			EventID:           full.EventID,
+			EventType:         eventType,
+			Source:            source,
+			SequenceNumber:    full.SequenceNumber,
+			Payload:           model.RawJSON(full.Data),
+			EventAt:           eventAt,
 		}
 		entryIDs = append(entryIDs, msg.ID)
 
@@ -149,7 +163,7 @@ func (f *Flusher) flushStream(ctx context.Context, convID string) {
 
 	if err := f.db.CreateInBatches(events, 50).Error; err != nil {
 		logging.FromContext(ctx).ErrorContext(ctx, "flusher: batch insert failed", "conversation_id", convID, "count", len(events), "error", err)
-		captureTimelineFlush(ctx, "store_conversation_events", convID, err, map[string]any{
+		captureTimelineFlush(ctx, "store_employee_session_events", convID, err, map[string]any{
 			"event_count": len(events),
 			"entry_count": len(entryIDs),
 		})
@@ -183,8 +197,8 @@ func (f *Flusher) appendRecoveredReasoningEvents(
 	ctx context.Context,
 	convID string,
 	conv *model.EmployeeConversation,
-	terminal model.ConversationEvent,
-	events *[]model.ConversationEvent,
+	terminal model.EmployeeSessionEvent,
+	events *[]model.EmployeeSessionEvent,
 	recoveredMsgIDs *[]string,
 	recoveredSeen map[string]struct{},
 ) {
@@ -216,8 +230,8 @@ func (f *Flusher) appendRecoveredEvents(
 	ctx context.Context,
 	convID string,
 	conv *model.EmployeeConversation,
-	terminal model.ConversationEvent,
-	events *[]model.ConversationEvent,
+	terminal model.EmployeeSessionEvent,
+	events *[]model.EmployeeSessionEvent,
 	recoveredMsgIDs *[]string,
 	recoveredSeen map[string]struct{},
 ) {

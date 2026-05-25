@@ -19,8 +19,6 @@ const (
 	EventBackgroundTaskCompleted = "background_task_completed"
 	EventReasoningStarted        = "reasoning_started"
 	EventReasoningCompleted      = "reasoning_completed"
-	EventSubAgentStarted         = "sub_agent_started"
-	EventSubAgentCompleted       = "sub_agent_completed"
 )
 
 func IsTerminalEventType(eventType string) bool {

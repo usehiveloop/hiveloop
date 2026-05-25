@@ -40,7 +40,7 @@ var memoryFillerMessages = map[string]struct{}{
 	"yes":            {},
 }
 
-func employeeMemoryEventsContainSecret(events []model.EmployeeMemoryEvent) bool {
+func employeeSessionEventsContainSecret(events []model.EmployeeSessionEvent) bool {
 	for _, event := range events {
 		payload := employeeMemoryPayload(event)
 		for _, key := range []string{"text", "message", "result_summary"} {
@@ -52,7 +52,7 @@ func employeeMemoryEventsContainSecret(events []model.EmployeeMemoryEvent) bool 
 	return false
 }
 
-func employeeMemoryEventsHaveWorkSignal(events []model.EmployeeMemoryEvent) bool {
+func employeeSessionEventsHaveWorkSignal(events []model.EmployeeSessionEvent) bool {
 	for _, event := range events {
 		if event.EventType != "tool.invoked" {
 			continue
@@ -81,7 +81,7 @@ func isEmployeeMemoryFiller(text string) bool {
 	return ok
 }
 
-func meaningfulEmployeeMemoryTranscript(transcript string, events []model.EmployeeMemoryEvent) bool {
+func meaningfulEmployeeMemoryTranscript(transcript string, events []model.EmployeeSessionEvent) bool {
 	transcript = strings.TrimSpace(transcript)
 	if transcript == "" || memorySecretPattern.MatchString(transcript) {
 		return false
@@ -113,7 +113,7 @@ func employeeMemoryTags(agent *model.Employee, source string) []string {
 	return tags
 }
 
-func dominantEmployeeMemorySource(events []model.EmployeeMemoryEvent) string {
+func dominantEmployeeMemorySource(events []model.EmployeeSessionEvent) string {
 	counts := map[string]int{}
 	for _, event := range events {
 		source := strings.TrimSpace(event.Source)
@@ -142,7 +142,7 @@ func dominantEmployeeMemorySource(events []model.EmployeeMemoryEvent) string {
 	return pairs[0].source
 }
 
-func employeeMemoryPayload(event model.EmployeeMemoryEvent) map[string]any {
+func employeeMemoryPayload(event model.EmployeeSessionEvent) map[string]any {
 	var payload map[string]any
 	if len(event.Payload) > 0 {
 		_ = json.Unmarshal(event.Payload, &payload)

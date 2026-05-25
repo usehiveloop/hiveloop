@@ -62,8 +62,6 @@ mod openapi {
             domain::ToolFilter,
             domain::SkillSpec,
             domain::SkillTrigger,
-            domain::SubagentSpec,
-            domain::SubagentDefinition,
             domain::OutboundEvent,
             domain::OutboundChannelSpec,
             domain::OutboundChannelKind,

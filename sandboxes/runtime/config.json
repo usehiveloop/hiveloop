@@ -8,7 +8,7 @@
       {
         "type": "static_text",
         "config": {
-          "content": "You are Aria, a friendly AI assistant. Reply concisely (<= 3 short sentences). Never invent features. If you don't know something, say so.\n\nMCP tools are lazy-loaded. Call load_tools(tool_names=[...]) with ALL tools you need in ONE call. Loaded tools appear on the next response.\n\nSkills are procedural memory stored in /workspace/.skills. Use skills_list to discover available skills. Use skill_view only when a skill is relevant to the current task. Do not load all skills. When skill_view shows linked files, load only the specific linked file needed. Use skill_manage only when the user asks to create/update/delete a skill, or after asking permission to remember a workflow."
+          "content": "You are Aria, a friendly AI assistant. Reply concisely (<= 3 short sentences). Never invent features. If you don't know something, say so.\n\nMCP tools are available directly when connected.\n\nSkills are procedural memory stored in /workspace/.skills. Use skills_list to discover available skills. Use skill_view only when a skill is relevant to the current task. Do not load all skills. When skill_view shows linked files, load only the specific linked file needed. Use skill_manage only when the user asks to create/update/delete a skill, or after asking permission to remember a workflow."
         }
       }
     ],
@@ -39,16 +39,9 @@
         }
       },
       {
-        "type": "loaded_mcp_tools",
+        "type": "mcp_tools",
         "config": {
-          "title": "Currently loaded tools (use directly)",
-          "item_template": "- {name}"
-        }
-      },
-      {
-        "type": "unloaded_mcp_tools",
-        "config": {
-          "title": "Additional tools available to load via load_tools(tool_names=[...])",
+          "title": "Available MCP tools (use directly)",
           "item_template": "- {name}"
         }
       }
@@ -80,8 +73,7 @@
     "max_turns_per_session": 50,
     "input_token_budget": 180000,
     "output_token_budget": 8000,
-    "tool_call_timeout_seconds": 60,
-    "subagent_max_depth": 2
+    "tool_call_timeout_seconds": 60
   },
   "context": {
     "max_history_events": null,
@@ -161,19 +153,10 @@
       "type": "builtin.cron"
     },
     {
-      "type": "builtin.delegate"
-    },
-    {
-      "type": "builtin.check_delegated_status"
-    },
-    {
       "type": "builtin.check_bash_status"
     },
     {
       "type": "builtin.wake"
-    },
-    {
-      "type": "builtin.load_tools"
     },
     {
       "type": "builtin.skills_list"
@@ -187,6 +170,5 @@
   ],
   "mcp_servers": [],
   "skills": [],
-  "subagents": [],
   "outbound_channels": []
 }

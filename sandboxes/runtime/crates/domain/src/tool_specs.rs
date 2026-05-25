@@ -20,8 +20,6 @@ pub enum ToolSpec {
     CheckBashStatus,
     #[serde(rename = "builtin.wake")]
     Wake,
-    #[serde(rename = "builtin.load_tools")]
-    LoadTools,
     #[serde(rename = "builtin.skills_list")]
     SkillsList,
     #[serde(rename = "builtin.skill_view")]

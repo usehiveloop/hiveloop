@@ -83,13 +83,13 @@ func TestEmployeeOutboundWebhookBatch_IngestsCoalescedStreamWithoutPerDeltaRows(
 		t.Fatalf("expected 200, got %d: %s", rr.Code, rr.Body.String())
 	}
 	var count int64
-	db.Model(&model.EmployeeMemoryEvent{}).
-		Where("sandbox_id = ? AND session_id = ?", sandbox.ID, "C123-1779137680.936289").
+	db.Model(&model.EmployeeSessionEvent{}).
+		Where("sandbox_id = ? AND runtime_session_id = ?", sandbox.ID, "C123-1779137680.936289").
 		Count(&count)
 	if count != 2 {
 		t.Fatalf("stored event count = %d, want 2", count)
 	}
-	var stored model.EmployeeMemoryEvent
+	var stored model.EmployeeSessionEvent
 	if err := db.Where("sandbox_id = ? AND event_type = ?", sandbox.ID, "agent.stream.thinking").First(&stored).Error; err != nil {
 		t.Fatalf("load coalesced stream event: %v", err)
 	}

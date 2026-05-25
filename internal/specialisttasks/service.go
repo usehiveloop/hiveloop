@@ -51,6 +51,20 @@ type LaunchResponse struct {
 	NextAction        string `json:"next_action"`
 }
 
+type AvailableSpecialistsResponse struct {
+	Specialists []AvailableSpecialist `json:"specialists"`
+	Count       int                   `json:"count"`
+	NextAction  string                `json:"next_action"`
+}
+
+type AvailableSpecialist struct {
+	Slug        string `json:"slug"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Type        string `json:"type"`
+	Version     int    `json:"version"`
+}
+
 type TaskStatusResponse struct {
 	TaskID            string           `json:"task_id"`
 	SpecialistSlug    string           `json:"specialist_slug"`
@@ -76,6 +90,35 @@ type MessageResponse struct {
 	Status     string `json:"status"`
 	Message    string `json:"message"`
 	NextAction string `json:"next_action"`
+}
+
+func (s *Service) ListAvailable(ctx context.Context, token *model.Token) (*AvailableSpecialistsResponse, *ToolError) {
+	if err := s.requireReady(); err != nil {
+		return nil, err
+	}
+	employee, toolErr := s.employeeFromToken(ctx, token)
+	if toolErr != nil {
+		return nil, toolErr
+	}
+	attached := attachedSet(employee.AttachedSpecialists)
+	items := []AvailableSpecialist{}
+	for _, def := range s.catalog.List() {
+		if !attached[def.Slug] {
+			continue
+		}
+		items = append(items, AvailableSpecialist{
+			Slug:        def.Slug,
+			Name:        def.Name,
+			Description: def.Description,
+			Type:        def.SpecialistType,
+			Version:     def.Version,
+		})
+	}
+	return &AvailableSpecialistsResponse{
+		Specialists: items,
+		Count:       len(items),
+		NextAction:  "Use specialist_launch_task with one of these slugs when a bounded task should run in a separate specialist sandbox.",
+	}, nil
 }
 
 func (s *Service) Launch(ctx context.Context, req LaunchRequest) (*LaunchResponse, *ToolError) {

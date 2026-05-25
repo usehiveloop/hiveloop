@@ -27,12 +27,12 @@ func TestFlusher_RecoversChunksWhenCompletionMissing(t *testing.T) {
 
 	flusher.flushStream(ctx, convID.String())
 
-	var events []model.ConversationEvent
-	if err := db.Where("conversation_id = ?", convID).Find(&events).Error; err != nil {
+	var events []model.EmployeeSessionEvent
+	if err := db.Where("employee_session_id = ?", convID).Find(&events).Error; err != nil {
 		t.Fatalf("find events: %v", err)
 	}
 
-	var recovered *model.ConversationEvent
+	var recovered *model.EmployeeSessionEvent
 	for i := range events {
 		if events[i].EventType == "response_completed" {
 			recovered = &events[i]
@@ -43,7 +43,7 @@ func TestFlusher_RecoversChunksWhenCompletionMissing(t *testing.T) {
 	}
 
 	var data map[string]any
-	if err := json.Unmarshal(recovered.Data, &data); err != nil {
+	if err := json.Unmarshal(recovered.Payload, &data); err != nil {
 		t.Fatalf("unmarshal data: %v", err)
 	}
 	if got, want := data["full_response"], "Hello, world!"; got != want {
@@ -92,12 +92,12 @@ func TestFlusher_RecoversBridgeNativeChunksOnTurnCompleted(t *testing.T) {
 
 	flusher.flushStream(ctx, convID.String())
 
-	var event model.ConversationEvent
-	if err := db.Where("conversation_id = ? AND event_type = ?", convID, "response_completed").First(&event).Error; err != nil {
+	var event model.EmployeeSessionEvent
+	if err := db.Where("employee_session_id = ? AND event_type = ?", convID, "response_completed").First(&event).Error; err != nil {
 		t.Fatalf("expected synthesized response_completed: %v", err)
 	}
 	var data map[string]any
-	if err := json.Unmarshal(event.Data, &data); err != nil {
+	if err := json.Unmarshal(event.Payload, &data); err != nil {
 		t.Fatalf("unmarshal data: %v", err)
 	}
 	if data["message_id"] != firstChunkID {
@@ -154,8 +154,8 @@ func TestFlusher_SeparatesBridgeNativeChunksAcrossTurns(t *testing.T) {
 
 	flusher.flushStream(ctx, convID.String())
 
-	var events []model.ConversationEvent
-	if err := db.Where("conversation_id = ? AND event_type = ?", convID, "response_completed").Order("sequence_number ASC").Find(&events).Error; err != nil {
+	var events []model.EmployeeSessionEvent
+	if err := db.Where("employee_session_id = ? AND event_type = ?", convID, "response_completed").Order("sequence_number ASC").Find(&events).Error; err != nil {
 		t.Fatalf("find response_completed events: %v", err)
 	}
 	if len(events) != 2 {
@@ -165,7 +165,7 @@ func TestFlusher_SeparatesBridgeNativeChunksAcrossTurns(t *testing.T) {
 	got := map[string]string{}
 	for _, event := range events {
 		var data map[string]any
-		if err := json.Unmarshal(event.Data, &data); err != nil {
+		if err := json.Unmarshal(event.Payload, &data); err != nil {
 			t.Fatalf("unmarshal data: %v", err)
 		}
 		got[data["message_id"].(string)] = data["full_response"].(string)
@@ -196,8 +196,8 @@ func TestFlusher_DropsAccumulatorOnCompletion(t *testing.T) {
 	flusher.flushStream(ctx, convID.String())
 
 	var count int64
-	db.Model(&model.ConversationEvent{}).
-		Where("conversation_id = ? AND event_type = ?", convID, "response_completed").
+	db.Model(&model.EmployeeSessionEvent{}).
+		Where("employee_session_id = ? AND event_type = ?", convID, "response_completed").
 		Count(&count)
 	if count != 1 {
 		t.Fatalf("expected exactly 1 response_completed row, got %d", count)
@@ -242,12 +242,12 @@ func TestFlusher_RecoversReasoningDeltasOnTerminalEvent(t *testing.T) {
 
 	flusher.flushStream(ctx, convID.String())
 
-	var event model.ConversationEvent
-	if err := db.Where("conversation_id = ? AND event_type = ?", convID, "reasoning_completed").First(&event).Error; err != nil {
+	var event model.EmployeeSessionEvent
+	if err := db.Where("employee_session_id = ? AND event_type = ?", convID, "reasoning_completed").First(&event).Error; err != nil {
 		t.Fatalf("expected synthesized reasoning_completed: %v", err)
 	}
 	var data map[string]any
-	if err := json.Unmarshal(event.Data, &data); err != nil {
+	if err := json.Unmarshal(event.Payload, &data); err != nil {
 		t.Fatalf("unmarshal data: %v", err)
 	}
 	if data["message_id"] != firstDeltaID {

@@ -154,10 +154,20 @@ func (h *EmployeeOutboundWebhookHandler) storeAndMaybeEnqueue(ctx context.Contex
 			captureEmployeeWebhookIngest(ctx, "record_runtime_generation", sb, event, sessionID, source, err)
 		}
 	}
-	if !shouldStoreEmployeeMemoryEvent(event.EventType) {
+	if event.EventType == "skill.synced" {
+		if err := h.syncSkillEvent(ctx, sb, payload); err != nil {
+			captureEmployeeWebhookIngest(ctx, "sync_skill", sb, event, sessionID, source, err)
+		}
+	}
+	if !shouldStoreEmployeeSessionEvent(event.EventType) {
 		return
 	}
-	stored, ok := employeeMemoryEventFromOutbound(sb, event, payload, sessionID)
+	session, err := h.ensureEmployeeSession(ctx, sb, sessionID, source, payload, specialistTask)
+	if err != nil {
+		captureEmployeeWebhookIngest(ctx, "ensure_employee_session", sb, event, sessionID, source, err)
+		return
+	}
+	stored, ok := employeeSessionEventFromOutbound(sb, event, payload, session.ID, sessionID)
 	if !ok {
 		captureEmployeeWebhookIngest(ctx, "drop_missing_sandbox_owner", sb, event, sessionID, source, fmt.Errorf("employee sandbox missing org_id or employee_id"))
 		return
@@ -177,19 +187,17 @@ func (h *EmployeeOutboundWebhookHandler) storeAndMaybeEnqueue(ctx context.Contex
 				return err
 			}
 			if err := syncEmployeeScheduleEvent(tx, stored); err != nil {
-				captureEmployeeMemoryEventFailure(ctx, "sync_schedule", stored, err)
+				captureEmployeeSessionEventFailure(ctx, "sync_schedule", stored, err)
 			}
 			return nil
 		})
 		if err != nil {
-			captureEmployeeMemoryEventFailure(ctx, "store_memory_event", stored, err)
+			captureEmployeeSessionEventFailure(ctx, "store_memory_event", stored, err)
 			return
 		}
 	}
-	if event.EventType == "skill.synced" {
-		if err := h.syncSkillEvent(ctx, sb, payload); err != nil {
-			captureEmployeeWebhookIngest(ctx, "sync_skill", sb, event, sessionID, source, err)
-		}
+	if event.EventType == "session.completed" {
+		h.markEmployeeSessionEnded(ctx, session.ID, event.At)
 	}
 	if h.enqueuer == nil || sessionID == "" || !shouldTriggerEmployeeMemoryCheckpoint(event.EventType) {
 		return
@@ -225,24 +233,96 @@ func (h *EmployeeOutboundWebhookHandler) specialistTaskForSandbox(ctx context.Co
 	return &task, true
 }
 
-func employeeMemoryEventFromOutbound(sb *model.Sandbox, event *employeeOutboundEvent, payload map[string]any, sessionID string) (model.EmployeeMemoryEvent, bool) {
+func (h *EmployeeOutboundWebhookHandler) ensureEmployeeSession(ctx context.Context, sb *model.Sandbox, sessionID, source string, payload map[string]any, specialistTask *model.SpecialistTask) (*model.EmployeeConversation, error) {
 	if sb.OrgID == nil || sb.EmployeeID == nil {
-		return model.EmployeeMemoryEvent{}, false
+		return nil, fmt.Errorf("employee sandbox missing org_id or employee_id")
 	}
-	return model.EmployeeMemoryEvent{
-		OrgID:      *sb.OrgID,
-		EmployeeID: *sb.EmployeeID,
-		SandboxID:  sb.ID,
-		SessionID:  sessionID,
-		EventType:  event.EventType,
-		Source:     employeeEventSource(payload),
-		Mode:       stringValueDefault(payload, "mode", "employee"),
-		Payload:    model.RawJSON(event.Payload),
-		EventAt:    event.At.UTC(),
+	sessionID = strings.TrimSpace(sessionID)
+	if sessionID == "" {
+		return nil, fmt.Errorf("runtime session_id is required for employee session events")
+	}
+	if specialistTask != nil && specialistTask.ConversationID != nil {
+		var session model.EmployeeConversation
+		if err := h.db.WithContext(ctx).
+			Where("id = ? AND org_id = ? AND employee_id = ?", *specialistTask.ConversationID, *sb.OrgID, *sb.EmployeeID).
+			First(&session).Error; err != nil {
+			return nil, fmt.Errorf("load specialist employee session: %w", err)
+		}
+		return &session, nil
+	}
+	if source == "" {
+		source = employeeEventSource(payload)
+	}
+	session := model.EmployeeConversation{}
+	scope := model.EmployeeConversation{
+		OrgID:                 *sb.OrgID,
+		EmployeeID:            *sb.EmployeeID,
+		SandboxID:             sb.ID,
+		RuntimeConversationID: sessionID,
+	}
+	attrs := model.EmployeeConversation{
+		Source:            source,
+		SourceResourceKey: employeeSessionSourceResourceKey(payload, sessionID),
+		Status:            "active",
+		IntegrationScopes: model.JSON{},
+	}
+	if err := h.db.WithContext(ctx).Where(&scope).Attrs(attrs).FirstOrCreate(&session).Error; err != nil {
+		return nil, fmt.Errorf("upsert employee session: %w", err)
+	}
+	return &session, nil
+}
+
+func (h *EmployeeOutboundWebhookHandler) markEmployeeSessionEnded(ctx context.Context, sessionID uuid.UUID, at time.Time) {
+	if h == nil || h.db == nil || sessionID == uuid.Nil {
+		return
+	}
+	endedAt := at.UTC()
+	if endedAt.IsZero() {
+		endedAt = h.now().UTC()
+	}
+	if err := h.db.WithContext(ctx).Model(&model.EmployeeConversation{}).
+		Where("id = ?", sessionID).
+		Updates(map[string]any{"status": "ended", "ended_at": endedAt}).Error; err != nil {
+		logging.Capture(ctx, fmt.Errorf("employee outbound webhook: mark session ended: %w", err))
+	}
+}
+
+func employeeSessionSourceResourceKey(payload map[string]any, fallback string) string {
+	return firstNonEmpty(
+		stringValue(payload, "source_resource_key"),
+		stringValue(payload, "thread_ts"),
+		stringValue(payload, "channel"),
+		stringValue(payload, "conversation_id"),
+		stringValue(payload, "chat_id"),
+		fallback,
+	)
+}
+
+func employeeSessionEventFromOutbound(sb *model.Sandbox, event *employeeOutboundEvent, payload map[string]any, employeeSessionID uuid.UUID, sessionID string) (model.EmployeeSessionEvent, bool) {
+	if sb.OrgID == nil || sb.EmployeeID == nil {
+		return model.EmployeeSessionEvent{}, false
+	}
+	return model.EmployeeSessionEvent{
+		OrgID:             *sb.OrgID,
+		EmployeeID:        *sb.EmployeeID,
+		SandboxID:         sb.ID,
+		EmployeeSessionID: employeeSessionID,
+		SessionID:         sessionID,
+		EventID:           employeeSessionEventID(payload),
+		EventType:         event.EventType,
+		Source:            employeeEventSource(payload),
+		Mode:              stringValueDefault(payload, "mode", "employee"),
+		SequenceNumber:    int64Value(payload, "sequence"),
+		Payload:           model.RawJSON(event.Payload),
+		EventAt:           event.At.UTC(),
 	}, true
 }
 
-func shouldStoreEmployeeMemoryEvent(eventType string) bool {
+func employeeSessionEventID(payload map[string]any) string {
+	return firstNonEmpty(stringValue(payload, "event_id"), stringValue(payload, "id"))
+}
+
+func shouldStoreEmployeeSessionEvent(eventType string) bool {
 	switch {
 	case eventType == "session.created":
 		return false

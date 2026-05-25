@@ -12,7 +12,7 @@ import (
 	"github.com/usehivy/hivy/internal/model"
 )
 
-func syncEmployeeScheduleEvent(tx *gorm.DB, event model.EmployeeMemoryEvent) error {
+func syncEmployeeScheduleEvent(tx *gorm.DB, event model.EmployeeSessionEvent) error {
 	if !strings.HasPrefix(event.EventType, "schedule.") {
 		return nil
 	}
@@ -40,7 +40,7 @@ func syncEmployeeScheduleEvent(tx *gorm.DB, event model.EmployeeMemoryEvent) err
 	return nil
 }
 
-func upsertEmployeeScheduleFromEvent(tx *gorm.DB, event model.EmployeeMemoryEvent, payload map[string]any, jobID string) (*model.EmployeeSchedule, error) {
+func upsertEmployeeScheduleFromEvent(tx *gorm.DB, event model.EmployeeSessionEvent, payload map[string]any, jobID string) (*model.EmployeeSchedule, error) {
 	status := scheduleStatusFromEvent(event.EventType, payload)
 	cancelledAt := (*time.Time)(nil)
 	if event.EventType == "schedule.cancelled" {
@@ -97,7 +97,7 @@ func upsertEmployeeScheduleFromEvent(tx *gorm.DB, event model.EmployeeMemoryEven
 	return &schedule, nil
 }
 
-func upsertEmployeeScheduleRunFromEvent(tx *gorm.DB, event model.EmployeeMemoryEvent, payload map[string]any, schedule *model.EmployeeSchedule, jobID string) error {
+func upsertEmployeeScheduleRunFromEvent(tx *gorm.DB, event model.EmployeeSessionEvent, payload map[string]any, schedule *model.EmployeeSchedule, jobID string) error {
 	scheduledAt := timePtrFromPayload(payload, "scheduled_at")
 	runKey := stringValue(payload, "run_key")
 	if runKey == "" {

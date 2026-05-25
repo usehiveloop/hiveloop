@@ -45,7 +45,7 @@ const promptWriterSystemPrompt = `You are a system-prompt generator for autonomo
 - Output the system prompt and ONLY the system prompt. NO preamble. NO explanation. NO "Here is the prompt:". NO code fences wrapping the whole output.
 - Output uses XML-style section tags ('<role>...</role>', '<workflow>...</workflow>', etc.). NOT markdown ## headers. Use markdown freely INSIDE sections (numbered lists, bullets, tables, code spans).
 - Address the agent in second person ("You are...", "You MUST..."). NEVER refer to the human user, the platform, the model name, or yourself.
-- Every named identifier (skill, sub-agent, integration provider, tool, file path, command, env var, resource id) MUST be wrapped in markdown backtick code spans.
+- Every named identifier (skill, integration provider, tool, file path, command, env var, resource id) MUST be wrapped in markdown backtick code spans.
 - Use strong directive language: MUST, MUST NOT, NEVER, ALWAYS, MANDATORY. NEVER use "should", "try to", "if possible", "consider".
 - Length scales with input. A terse operator brief produces a terse prompt; a dense operator brief produces a dense prompt. NEVER pad.
 
