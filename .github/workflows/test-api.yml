@@ -16,95 +16,406 @@ concurrency:
 env:
   GO_VERSION: "1.25.10"
   CI: "true"
+  GOTOOLCHAIN: local
 
 jobs:
-  internal:
-    name: internal ${{ matrix.shard }}/16
+  internal-core:
+    name: internal core ${{ matrix.shard }}/24
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 8
+    services:
+      postgres:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_DB: hivy_test
+          POSTGRES_USER: hivy
+          POSTGRES_PASSWORD: localdev
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U hivy -d hivy_test"
+          --health-interval 2s
+          --health-timeout 5s
+          --health-retries 30
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 16279:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 2s
+          --health-timeout 5s
+          --health-retries 30
     strategy:
       fail-fast: false
       matrix:
-        shard: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+        shard: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23]
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-go@v6
         with:
           go-version: ${{ env.GO_VERSION }}
           cache: true
-      - name: start full stack
-        run: CI_WAIT_WEB=0 DEV_APP_SERVICES="api worker" make ci-up
-        timeout-minutes: 10
-      - name: test internal shard
-        run: make ci-test-internal SHARD_INDEX=${{ matrix.shard }} SHARD_TOTAL=16 RACE=1
+      - name: wait for services
+        run: make ci-wait-services
+        timeout-minutes: 2
+      - name: test internal core shard
+        run: make ci-test-internal-core SHARD_INDEX=${{ matrix.shard }} SHARD_TOTAL=24
         timeout-minutes: 3
-      - name: logs
-        if: failure()
-        run: docker compose logs --tail=300 || true
-      - name: cleanup
+
+  internal-handler:
+    name: internal handler ${{ matrix.shard }}/8
+    runs-on: ubuntu-latest
+    timeout-minutes: 9
+    services:
+      postgres:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_DB: hivy_test
+          POSTGRES_USER: hivy
+          POSTGRES_PASSWORD: localdev
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U hivy -d hivy_test"
+          --health-interval 2s
+          --health-timeout 5s
+          --health-retries 30
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 16279:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 2s
+          --health-timeout 5s
+          --health-retries 30
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3, 4, 5, 6, 7]
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+      - name: wait for services
+        run: make ci-wait-services
+        timeout-minutes: 2
+      - name: start minio
+        run: make ci-setup-minio
+        timeout-minutes: 2
+      - name: test handler shard
+        run: make ci-test-internal-handler SHARD_INDEX=${{ matrix.shard }} SHARD_TOTAL=8
+        timeout-minutes: 3
+      - name: cleanup containers
         if: always()
-        run: docker compose down -v --remove-orphans 2>/dev/null || true
+        run: make ci-cleanup-containers
+
+  internal-rag:
+    name: internal rag ${{ matrix.shard }}/6
+    runs-on: ubuntu-latest
+    timeout-minutes: 9
+    services:
+      postgres:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_DB: hivy_test
+          POSTGRES_USER: hivy
+          POSTGRES_PASSWORD: localdev
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U hivy -d hivy_test"
+          --health-interval 2s
+          --health-timeout 5s
+          --health-retries 30
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 16279:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 2s
+          --health-timeout 5s
+          --health-retries 30
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3, 4, 5]
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+      - name: wait for services
+        run: make ci-wait-services
+        timeout-minutes: 2
+      - name: start rag services
+        run: |
+          make ci-start-qdrant
+          make ci-setup-minio
+        timeout-minutes: 3
+      - name: test rag shard
+        run: make ci-test-internal-rag SHARD_INDEX=${{ matrix.shard }} SHARD_TOTAL=6
+        timeout-minutes: 3
+      - name: cleanup containers
+        if: always()
+        run: make ci-cleanup-containers
+
+  internal-tasks:
+    name: internal tasks ${{ matrix.shard }}/6
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_DB: hivy_test
+          POSTGRES_USER: hivy
+          POSTGRES_PASSWORD: localdev
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U hivy -d hivy_test"
+          --health-interval 2s
+          --health-timeout 5s
+          --health-retries 30
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 16279:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 2s
+          --health-timeout 5s
+          --health-retries 30
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3, 4, 5]
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+      - name: wait for services
+        run: make ci-wait-services
+        timeout-minutes: 2
+      - name: start hindsight
+        run: make ci-start-hindsight
+        timeout-minutes: 3
+      - name: test tasks shard
+        run: make ci-test-internal-tasks SHARD_INDEX=${{ matrix.shard }} SHARD_TOTAL=6
+        timeout-minutes: 3
+      - name: cleanup containers
+        if: always()
+        run: make ci-cleanup-containers
+
+  internal-hindsight:
+    name: internal hindsight
+    runs-on: ubuntu-latest
+    timeout-minutes: 9
+    services:
+      postgres:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_DB: hivy_test
+          POSTGRES_USER: hivy
+          POSTGRES_PASSWORD: localdev
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U hivy -d hivy_test"
+          --health-interval 2s
+          --health-timeout 5s
+          --health-retries 30
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 16279:6379
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+      - name: wait for services
+        run: make ci-wait-services
+        timeout-minutes: 2
+      - name: start hindsight
+        run: make ci-start-hindsight
+        timeout-minutes: 3
+      - name: test hindsight package
+        run: make ci-test-internal-hindsight
+        timeout-minutes: 3
+      - name: cleanup containers
+        if: always()
+        run: make ci-cleanup-containers
+
+  internal-integrations:
+    name: internal integrations
+    runs-on: ubuntu-latest
+    timeout-minutes: 9
+    services:
+      postgres:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_DB: hivy_test
+          POSTGRES_USER: hivy
+          POSTGRES_PASSWORD: localdev
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U hivy -d hivy_test"
+          --health-interval 2s
+          --health-timeout 5s
+          --health-retries 30
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 16279:6379
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+      - name: wait for services
+        run: make ci-wait-services
+        timeout-minutes: 2
+      - name: start nango
+        run: make ci-start-nango
+        timeout-minutes: 3
+      - name: test integrations and nango
+        run: make ci-test-internal-integrations SHARD_TOTAL=1
+        timeout-minutes: 3
+      - name: cleanup containers
+        if: always()
+        run: make ci-cleanup-containers
+
+  internal-storage:
+    name: internal storage
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    services:
+      postgres:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_DB: hivy_test
+          POSTGRES_USER: hivy
+          POSTGRES_PASSWORD: localdev
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U hivy -d hivy_test"
+          --health-interval 2s
+          --health-timeout 5s
+          --health-retries 30
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 16279:6379
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+      - name: wait for services
+        run: make ci-wait-services
+        timeout-minutes: 2
+      - name: start minio
+        run: make ci-setup-minio
+        timeout-minutes: 2
+      - name: test storage
+        run: make ci-test-internal-storage
+        timeout-minutes: 3
+      - name: cleanup containers
+        if: always()
+        run: make ci-cleanup-containers
 
   e2e:
-    name: e2e ${{ matrix.shard }}/4
+    name: e2e ${{ matrix.shard }}/6
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 8
+    services:
+      postgres:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_DB: hivy_test
+          POSTGRES_USER: hivy
+          POSTGRES_PASSWORD: localdev
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U hivy -d hivy_test"
+          --health-interval 2s
+          --health-timeout 5s
+          --health-retries 30
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 16279:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 2s
+          --health-timeout 5s
+          --health-retries 30
     strategy:
       fail-fast: false
       matrix:
-        shard: [0, 1, 2, 3]
+        shard: [0, 1, 2, 3, 4, 5]
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-go@v6
         with:
           go-version: ${{ env.GO_VERSION }}
           cache: true
-      - name: start full stack
-        run: CI_WAIT_WEB=0 DEV_APP_SERVICES="api worker" make ci-up
-        timeout-minutes: 10
+      - name: wait for services
+        run: make ci-wait-services
+        timeout-minutes: 2
       - name: test e2e shard
-        run: make ci-test-e2e SHARD_INDEX=${{ matrix.shard }} SHARD_TOTAL=4 RACE=1
+        run: make ci-test-e2e SHARD_INDEX=${{ matrix.shard }} SHARD_TOTAL=6
         timeout-minutes: 3
-      - name: logs
-        if: failure()
-        run: docker compose logs --tail=300 || true
-      - name: cleanup
-        if: always()
-        run: docker compose down -v --remove-orphans 2>/dev/null || true
+
+  e2e-fakebridge:
+    name: e2e fakebridge
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+      - name: test fakebridge
+        run: make ci-test-e2e-fakebridge
+        timeout-minutes: 3
 
   cmd:
     name: cmd packages
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-go@v6
         with:
           go-version: ${{ env.GO_VERSION }}
           cache: true
-      - name: start full stack
-        run: CI_WAIT_WEB=0 DEV_APP_SERVICES="api worker" make ci-up
-        timeout-minutes: 10
       - name: test cmd packages
         run: make ci-test-cmd
         timeout-minutes: 3
-      - name: logs
-        if: failure()
-        run: docker compose logs --tail=300 || true
-      - name: cleanup
-        if: always()
-        run: docker compose down -v --remove-orphans 2>/dev/null || true
 
   web:
     name: web
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 6
     steps:
       - uses: actions/checkout@v6
-      - uses: actions/setup-go@v6
-        with:
-          go-version: ${{ env.GO_VERSION }}
-          cache: true
       - uses: pnpm/action-setup@v6
         with:
           version: 10.18.2
@@ -113,27 +424,18 @@ jobs:
           node-version: 22
           cache: pnpm
           cache-dependency-path: apps/web/pnpm-lock.yaml
-      - name: start full stack
-        run: CI_WAIT_WEB=1 DEV_APP_SERVICES="api worker web" make ci-up
-        timeout-minutes: 10
-      - name: install web dependencies
+      - name: install dependencies
         run: pnpm install --frozen-lockfile
         working-directory: apps/web
         timeout-minutes: 3
-      - name: typecheck and build web
+      - name: typecheck and build
         run: make ci-test-web
         timeout-minutes: 3
-      - name: logs
-        if: failure()
-        run: docker compose logs --tail=300 || true
-      - name: cleanup
-        if: always()
-        run: docker compose down -v --remove-orphans 2>/dev/null || true
 
   runtime:
     name: sandbox runtime
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 8
     steps:
       - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@stable
@@ -162,19 +464,40 @@ jobs:
         run: make ci-quality
         timeout-minutes: 5
 
-  results:
+  result:
     name: ci result
     if: always()
     runs-on: ubuntu-latest
-    needs: [internal, e2e, cmd, web, runtime, quality]
+    needs:
+      - internal-core
+      - internal-handler
+      - internal-rag
+      - internal-tasks
+      - internal-hindsight
+      - internal-integrations
+      - internal-storage
+      - e2e
+      - e2e-fakebridge
+      - cmd
+      - web
+      - runtime
+      - quality
     steps:
       - name: check result
         run: |
-          if [ "${{ needs.internal.result }}" != "success" ] || \
-             [ "${{ needs.e2e.result }}" != "success" ] || \
-             [ "${{ needs.cmd.result }}" != "success" ] || \
-             [ "${{ needs.web.result }}" != "success" ] || \
-             [ "${{ needs.runtime.result }}" != "success" ] || \
-             [ "${{ needs.quality.result }}" != "success" ]; then
-            exit 1
-          fi
+          for result in \
+            "${{ needs.internal-core.result }}" \
+            "${{ needs.internal-handler.result }}" \
+            "${{ needs.internal-rag.result }}" \
+            "${{ needs.internal-tasks.result }}" \
+            "${{ needs.internal-hindsight.result }}" \
+            "${{ needs.internal-integrations.result }}" \
+            "${{ needs.internal-storage.result }}" \
+            "${{ needs.e2e.result }}" \
+            "${{ needs.e2e-fakebridge.result }}" \
+            "${{ needs.cmd.result }}" \
+            "${{ needs.web.result }}" \
+            "${{ needs.runtime.result }}" \
+            "${{ needs.quality.result }}"; do
+            test "$result" = success
+          done

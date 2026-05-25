@@ -1,4 +1,4 @@
-.PHONY: build test test-e2e test-handler-sharded lint check-file-length vet check ci-env ci-up ci-test-internal ci-test-e2e ci-test-cmd ci-test-web ci-test-runtime ci-quality infra-up app-up app-up-build up up-build down dev dev-build dev-nango dev-nango-secret dev-migrate clean fetch-actions generate docker-build docker-run migrate-up migrate-status migrate-version test-clean test-clean-auth test-clean-nango test-clean-proxy test-clean-connect test-clean-integrations test-auth test-nango test-real-nango test-proxy test-connect test-integrations test-connections test-sandbox-docker test-setup test-setup-nango openapi generate-auth-keys generate-bridge-client generate-sandbox-runtime-client build-sandbox-runtime-templates build-sandbox-runtime-specialist-templates employee-env-doctor employee-debug-pack employee-eval test-services-up test-services-down ragtest-slack-live ragtest-kb-search-live seed-test local-up local-down local-reset local-status login-test asynq-peek
+.PHONY: build test test-e2e test-handler-sharded lint check-file-length vet check ci-wait-services ci-start-nango ci-start-hindsight ci-start-qdrant ci-setup-minio ci-cleanup-containers ci-test-internal-core ci-test-internal-handler ci-test-internal-rag ci-test-internal-tasks ci-test-internal-hindsight ci-test-internal-integrations ci-test-internal-storage ci-test-e2e ci-test-e2e-fakebridge ci-test-cmd ci-test-web ci-test-runtime ci-quality infra-up app-up app-up-build up up-build down dev dev-build dev-nango dev-nango-secret dev-migrate clean fetch-actions generate docker-build docker-run migrate-up migrate-status migrate-version test-clean test-clean-auth test-clean-nango test-clean-proxy test-connect test-integrations test-connections test-sandbox-docker test-setup test-setup-nango openapi generate-auth-keys generate-bridge-client generate-sandbox-runtime-client build-sandbox-runtime-templates build-sandbox-runtime-specialist-templates employee-env-doctor employee-debug-pack employee-eval test-services-up test-services-down ragtest-slack-live ragtest-kb-search-live seed-test local-up local-down local-reset local-status login-test asynq-peek
 .PHONY: sandbox-runtime-build sandbox-runtime-native-release sandbox-runtime-linux-build sandbox-runtime-linux-build-amd64 sandbox-runtime-linux-build-arm64 sandbox-runtime-linux-build-all sandbox-runtime-release-all sandbox-runtime-test sandbox-runtime-fmt-check sandbox-runtime-clippy sandbox-runtime-openapi runtime-openapi sandbox-runtime-image sandbox-runtime-image-amd64 sandbox-runtime-image-arm64 sandbox-runtime-specialist-image sandbox-runtime-specialist-image-amd64 sandbox-runtime-specialist-image-arm64 sandbox-runtime-image-test
 
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
@@ -331,20 +331,50 @@ vet:
 # Run all checks: vet, lint, file-length, log-budget, test, build
 check: vet lint check-file-length check-log-budget test build
 
-ci-env:
-	./scripts/ci-write-env.sh
+ci-wait-services:
+	./scripts/ci-wait-services.sh
 
-ci-up:
-	$(MAKE) ci-env
-	docker compose down -v --remove-orphans
-	$(MAKE) up
-	./scripts/ci-wait-stack.sh
+ci-start-nango:
+	./scripts/ci-start-nango.sh
 
-ci-test-internal:
-	SHARD_INDEX="$(SHARD_INDEX)" SHARD_TOTAL="$(SHARD_TOTAL)" RACE="$(RACE)" ./scripts/ci-test-shard.sh internal
+ci-start-hindsight:
+	./scripts/ci-start-hindsight.sh
+
+ci-start-qdrant:
+	./scripts/ci-start-qdrant.sh
+
+ci-setup-minio:
+	./scripts/ci-setup-minio.sh
+
+ci-cleanup-containers:
+	./scripts/ci-cleanup-containers.sh
+
+ci-test-internal-core:
+	SHARD_INDEX="$(SHARD_INDEX)" SHARD_TOTAL="$(SHARD_TOTAL)" ./scripts/ci-test-shard.sh internal-core
+
+ci-test-internal-handler:
+	SHARD_INDEX="$(SHARD_INDEX)" SHARD_TOTAL="$(SHARD_TOTAL)" ./scripts/ci-test-shard.sh internal-handler
+
+ci-test-internal-rag:
+	SHARD_INDEX="$(SHARD_INDEX)" SHARD_TOTAL="$(SHARD_TOTAL)" ./scripts/ci-test-shard.sh internal-rag
+
+ci-test-internal-tasks:
+	SHARD_INDEX="$(SHARD_INDEX)" SHARD_TOTAL="$(SHARD_TOTAL)" ./scripts/ci-test-shard.sh internal-tasks
+
+ci-test-internal-hindsight:
+	SHARD_INDEX="$(SHARD_INDEX)" SHARD_TOTAL="$(SHARD_TOTAL)" ./scripts/ci-test-shard.sh internal-hindsight
+
+ci-test-internal-integrations:
+	SHARD_INDEX="$(SHARD_INDEX)" SHARD_TOTAL="$(SHARD_TOTAL)" ./scripts/ci-test-shard.sh internal-integrations
+
+ci-test-internal-storage:
+	SHARD_INDEX="$(SHARD_INDEX)" SHARD_TOTAL="$(SHARD_TOTAL)" ./scripts/ci-test-shard.sh internal-storage
 
 ci-test-e2e:
-	SHARD_INDEX="$(SHARD_INDEX)" SHARD_TOTAL="$(SHARD_TOTAL)" RACE="$(RACE)" ./scripts/ci-test-shard.sh e2e
+	SHARD_INDEX="$(SHARD_INDEX)" SHARD_TOTAL="$(SHARD_TOTAL)" ./scripts/ci-test-shard.sh e2e
+
+ci-test-e2e-fakebridge:
+	./scripts/ci-test-shard.sh e2e-fakebridge
 
 ci-test-cmd:
 	./scripts/ci-test-shard.sh cmd
