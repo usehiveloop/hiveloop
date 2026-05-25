@@ -1,4 +1,6 @@
 bin/
+!sandboxes/runtime/crates/runtime/src/bin/
+!sandboxes/runtime/crates/runtime/src/bin/gen_openapi.rs
 tmp/
 /server
 .env

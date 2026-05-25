@@ -17,6 +17,7 @@ import (
 	"github.com/usehivy/hivy/internal/email"
 	"github.com/usehivy/hivy/internal/employeeruntime"
 	"github.com/usehivy/hivy/internal/enqueue"
+	"github.com/usehivy/hivy/internal/gateway"
 	"github.com/usehivy/hivy/internal/goroutine"
 	"github.com/usehivy/hivy/internal/handler"
 	"github.com/usehivy/hivy/internal/hindsight"
@@ -126,6 +127,13 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 
 	employeeEventWriter := handler.NewEmployeeEventWriter(ctx, database, 20000)
 	employeeOutboundWebhookHandler := handler.NewEmployeeOutboundWebhookHandler(database, sandboxEncKey, enqueuer, employeeEventWriter)
+	var gatewayHTTPHandler *handler.GatewayHTTPHandler
+	if orchestrator != nil {
+		gatewayRuntime := gateway.NewOrchestratedRuntimeMessenger(database, orchestrator)
+		gatewayService := gateway.NewService(database, gatewayRuntime, gateway.NewFakeSlackAdapter(), gateway.NewHTTPAdapter(nil))
+		employeeOutboundWebhookHandler.SetGatewayService(gatewayService)
+		gatewayHTTPHandler = handler.NewGatewayHTTPHandler(gatewayService)
+	}
 	nangoWebhookHandler := handler.NewNangoWebhookHandler(database, cfg.NangoSecretKey, sandboxEncKey, enqueuer)
 
 	incomingWebhookHandler := handler.NewIncomingWebhookHandler(database, enqueuer)
@@ -200,7 +208,7 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 
 	rsaPub := rsaKey.Public().(*rsa.PublicKey)
 
-	setupPublicRoutes(r, cfg, database, redisClient, providerHandler, integrationHandler, actionsCatalog, orgInviteHandler, plansHandler, employeeOutboundWebhookHandler, nangoWebhookHandler, incomingWebhookHandler, nangoClient, sandboxEncKey, uploadsHandler, sqliteBackupHandler)
+	setupPublicRoutes(r, cfg, database, redisClient, providerHandler, integrationHandler, actionsCatalog, orgInviteHandler, plansHandler, employeeOutboundWebhookHandler, nangoWebhookHandler, incomingWebhookHandler, gatewayHTTPHandler, nangoClient, sandboxEncKey, uploadsHandler, sqliteBackupHandler)
 
 	r.Post("/incoming/triggers/{triggerID}", httpTriggerHandler.Handle)
 	setupAuthRoutes(r, ctx, cfg, rsaPub, authHandler, oauthHandler)

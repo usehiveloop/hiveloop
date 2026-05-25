@@ -20,6 +20,7 @@ import (
 
 	"github.com/usehivy/hivy/internal/crypto"
 	"github.com/usehivy/hivy/internal/enqueue"
+	"github.com/usehivy/hivy/internal/gateway"
 	"github.com/usehivy/hivy/internal/logging"
 	"github.com/usehivy/hivy/internal/model"
 	"github.com/usehivy/hivy/internal/tasks"
@@ -30,6 +31,7 @@ type EmployeeOutboundWebhookHandler struct {
 	encKey        *crypto.SymmetricKey
 	enqueuer      enqueue.TaskEnqueuer
 	writer        *EmployeeEventWriter
+	gateway       *gateway.Service
 	now           func() time.Time
 	maxBytes      int64
 	maxBatchBytes int64
@@ -54,6 +56,10 @@ func NewEmployeeOutboundWebhookHandler(db *gorm.DB, encKey *crypto.SymmetricKey,
 		h.writer = writers[0]
 	}
 	return h
+}
+
+func (h *EmployeeOutboundWebhookHandler) SetGatewayService(service *gateway.Service) {
+	h.gateway = service
 }
 
 func (h *EmployeeOutboundWebhookHandler) Handle(w http.ResponseWriter, r *http.Request) {
@@ -196,6 +202,20 @@ func (h *EmployeeOutboundWebhookHandler) storeAndMaybeEnqueue(ctx context.Contex
 			return
 		}
 	}
+	if event.EventType == "agent.message.sent" && source == gateway.Source && h.gateway != nil {
+		if _, err := h.gateway.HandleRuntimeFinal(ctx, gateway.AgentResponse{
+			EmployeeSession:  *session,
+			RuntimeSessionID: sessionID,
+			TraceID:          stringValue(payload, "trace_id"),
+			TurnID:           stringValue(payload, "turn_id"),
+			ChannelID:        stringValue(payload, "channel_id"),
+			ThreadID:         stringValue(payload, "thread_id"),
+			Text:             stringValue(payload, "text"),
+			Raw:              payload,
+		}); err != nil {
+			captureEmployeeWebhookIngest(ctx, "gateway_deliver_runtime_final", sb, event, sessionID, source, err)
+		}
+	}
 	if event.EventType == "session.completed" {
 		h.markEmployeeSessionEnded(ctx, session.ID, event.At)
 	}
@@ -231,117 +251,4 @@ func (h *EmployeeOutboundWebhookHandler) specialistTaskForSandbox(ctx context.Co
 		return nil, false
 	}
 	return &task, true
-}
-
-func (h *EmployeeOutboundWebhookHandler) ensureEmployeeSession(ctx context.Context, sb *model.Sandbox, sessionID, source string, payload map[string]any, specialistTask *model.SpecialistTask) (*model.EmployeeConversation, error) {
-	if sb.OrgID == nil || sb.EmployeeID == nil {
-		return nil, fmt.Errorf("employee sandbox missing org_id or employee_id")
-	}
-	sessionID = strings.TrimSpace(sessionID)
-	if sessionID == "" {
-		return nil, fmt.Errorf("runtime session_id is required for employee session events")
-	}
-	if specialistTask != nil && specialistTask.ConversationID != nil {
-		var session model.EmployeeConversation
-		if err := h.db.WithContext(ctx).
-			Where("id = ? AND org_id = ? AND employee_id = ?", *specialistTask.ConversationID, *sb.OrgID, *sb.EmployeeID).
-			First(&session).Error; err != nil {
-			return nil, fmt.Errorf("load specialist employee session: %w", err)
-		}
-		return &session, nil
-	}
-	if source == "" {
-		source = employeeEventSource(payload)
-	}
-	session := model.EmployeeConversation{}
-	scope := model.EmployeeConversation{
-		OrgID:                 *sb.OrgID,
-		EmployeeID:            *sb.EmployeeID,
-		SandboxID:             sb.ID,
-		RuntimeConversationID: sessionID,
-	}
-	attrs := model.EmployeeConversation{
-		Source:            source,
-		SourceResourceKey: employeeSessionSourceResourceKey(payload, sessionID),
-		Status:            "active",
-		IntegrationScopes: model.JSON{},
-	}
-	if err := h.db.WithContext(ctx).Where(&scope).Attrs(attrs).FirstOrCreate(&session).Error; err != nil {
-		return nil, fmt.Errorf("upsert employee session: %w", err)
-	}
-	return &session, nil
-}
-
-func (h *EmployeeOutboundWebhookHandler) markEmployeeSessionEnded(ctx context.Context, sessionID uuid.UUID, at time.Time) {
-	if h == nil || h.db == nil || sessionID == uuid.Nil {
-		return
-	}
-	endedAt := at.UTC()
-	if endedAt.IsZero() {
-		endedAt = h.now().UTC()
-	}
-	if err := h.db.WithContext(ctx).Model(&model.EmployeeConversation{}).
-		Where("id = ?", sessionID).
-		Updates(map[string]any{"status": "ended", "ended_at": endedAt}).Error; err != nil {
-		logging.Capture(ctx, fmt.Errorf("employee outbound webhook: mark session ended: %w", err))
-	}
-}
-
-func employeeSessionSourceResourceKey(payload map[string]any, fallback string) string {
-	return firstNonEmpty(
-		stringValue(payload, "source_resource_key"),
-		stringValue(payload, "thread_ts"),
-		stringValue(payload, "channel"),
-		stringValue(payload, "conversation_id"),
-		stringValue(payload, "chat_id"),
-		fallback,
-	)
-}
-
-func employeeSessionEventFromOutbound(sb *model.Sandbox, event *employeeOutboundEvent, payload map[string]any, employeeSessionID uuid.UUID, sessionID string) (model.EmployeeSessionEvent, bool) {
-	if sb.OrgID == nil || sb.EmployeeID == nil {
-		return model.EmployeeSessionEvent{}, false
-	}
-	return model.EmployeeSessionEvent{
-		OrgID:             *sb.OrgID,
-		EmployeeID:        *sb.EmployeeID,
-		SandboxID:         sb.ID,
-		EmployeeSessionID: employeeSessionID,
-		SessionID:         sessionID,
-		EventID:           employeeSessionEventID(payload),
-		EventType:         event.EventType,
-		Source:            employeeEventSource(payload),
-		Mode:              stringValueDefault(payload, "mode", "employee"),
-		SequenceNumber:    int64Value(payload, "sequence"),
-		Payload:           model.RawJSON(event.Payload),
-		EventAt:           event.At.UTC(),
-	}, true
-}
-
-func employeeSessionEventID(payload map[string]any) string {
-	return firstNonEmpty(stringValue(payload, "event_id"), stringValue(payload, "id"))
-}
-
-func shouldStoreEmployeeSessionEvent(eventType string) bool {
-	switch {
-	case eventType == "session.created":
-		return false
-	case eventType == "tool.invoked":
-		return false
-	case eventType == "agent.final_message":
-		return false
-	case strings.HasPrefix(eventType, "agent.run."):
-		return false
-	default:
-		return true
-	}
-}
-
-func shouldTriggerEmployeeMemoryCheckpoint(eventType string) bool {
-	switch eventType {
-	case "agent.message.sent", "session.completed":
-		return true
-	default:
-		return false
-	}
 }

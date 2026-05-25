@@ -169,6 +169,9 @@ var migratedTables = []string{
 	"drive_assets",
 	"email_verifications",
 	"employee_assets",
+	"employee_gateway_deliveries",
+	"employee_gateway_events",
+	"employee_gateway_routes",
 	"employee_session_events",
 	"employee_sandbox_upgrades",
 	"employee_schedule_runs",
@@ -214,4 +217,4 @@ var migratedTables = []string{
 	"users",
 }
 
-const latestMigrationVersion = 14
+const latestMigrationVersion = 15

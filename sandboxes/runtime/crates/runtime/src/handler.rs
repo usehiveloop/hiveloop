@@ -16,6 +16,7 @@ use domain::{
 use futures::StreamExt;
 use gateway::ChannelGateway;
 use outbound::OutboundEmitter;
+use serde_json::Value;
 use storage::SessionRepo;
 use tracing::{info, warn};
 
@@ -333,6 +334,42 @@ mod queue_tests {
         );
         assert_eq!(merged.inbound_handle.ts, "E1-queued");
     }
+
+    #[test]
+    fn gateway_inbound_source_and_final_metadata_are_preserved() {
+        let inbound = inbound(
+            "http-gateway-conversation",
+            "E1",
+            "hello",
+            serde_json::json!({
+                "source": "gateway",
+                "http_stream_id": "stream-1",
+                "trace_id": "trace-1",
+                "turn_id": "turn-1",
+                "raw": {
+                    "provider": "fake-slack",
+                    "route_id": "route-1",
+                    "thread_key": "fake-slack:T123:C123:100.000",
+                    "channel_id": "C123",
+                    "thread_id": "100.000"
+                }
+            }),
+        );
+        let mut payload = serde_json::json!({
+            "session_id": inbound.session_id.as_str(),
+            "source": inbound_event_source(&inbound),
+            "text": "done"
+        });
+
+        copy_inbound_metadata(&mut payload, &inbound);
+
+        assert_eq!(payload["source"], "gateway");
+        assert_eq!(payload["trace_id"], "trace-1");
+        assert_eq!(payload["turn_id"], "turn-1");
+        assert_eq!(payload["provider"], "fake-slack");
+        assert_eq!(payload["channel_id"], "C123");
+        assert_eq!(payload["thread_id"], "100.000");
+    }
 }
 
 async fn process_single_turn(
@@ -429,15 +466,14 @@ async fn process_single_turn(
             .set_status(&session_id, SessionStatus::Errored)
             .await;
     } else {
+        let mut payload = serde_json::json!({
+            "session_id": session_id.as_str(),
+            "source": event_source,
+            "text": reply_text_for_event,
+        });
+        copy_inbound_metadata(&mut payload, inbound);
         emitter
-            .emit(OutboundEvent::new(
-                event_types::AGENT_MESSAGE_SENT,
-                serde_json::json!({
-                    "session_id": session_id.as_str(),
-                    "source": event_source,
-                    "text": reply_text_for_event,
-                }),
-            ))
+            .emit(OutboundEvent::new(event_types::AGENT_MESSAGE_SENT, payload))
             .await;
     }
 
@@ -496,9 +532,44 @@ fn inbound_event_source(inbound: &InboundEvent) -> &'static str {
         "http" => "http",
         "trigger" => "trigger",
         "cron" => "cron",
+        "gateway" => "gateway",
         "specialist_callback" => "specialist_callback",
         _ if inbound.session_id.as_str().starts_with("http-") => "http",
         _ => "http",
+    }
+}
+
+fn copy_inbound_metadata(payload: &mut Value, inbound: &InboundEvent) {
+    let Some(map) = payload.as_object_mut() else {
+        return;
+    };
+    for key in [
+        "http_stream_id",
+        "trace_id",
+        "turn_id",
+        "conversation_id",
+        "provider",
+        "route_id",
+        "employee_session_id",
+        "gateway_event_id",
+        "dedupe_key",
+        "thread_key",
+        "channel_id",
+        "thread_id",
+        "external_message_id",
+        "callback_url",
+    ] {
+        if let Some(value) = inbound.raw.get(key) {
+            map.insert(key.to_string(), value.clone());
+        }
+        if let Some(value) = inbound
+            .raw
+            .get("raw")
+            .and_then(Value::as_object)
+            .and_then(|raw| raw.get(key))
+        {
+            map.insert(key.to_string(), value.clone());
+        }
     }
 }
 

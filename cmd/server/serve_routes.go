@@ -30,6 +30,7 @@ func setupPublicRoutes(
 	employeeOutboundWebhookHandler *handler.EmployeeOutboundWebhookHandler,
 	nangoWebhookHandler *handler.NangoWebhookHandler,
 	incomingWebhookHandler *handler.IncomingWebhookHandler,
+	gatewayHTTPHandler *handler.GatewayHTTPHandler,
 	nangoClient *nango.Client,
 	sandboxEncKey *crypto.SymmetricKey,
 	uploadsHandler *handler.UploadsHandler,
@@ -86,6 +87,9 @@ func setupPublicRoutes(
 
 	// Direct incoming webhooks for providers requiring manual webhook configuration
 	r.Post("/incoming/webhooks/{provider}/{connectionID}", incomingWebhookHandler.Handle)
+	if gatewayHTTPHandler != nil {
+		r.Post("/incoming/gateways/http/{routeID}", gatewayHTTPHandler.Handle)
+	}
 
 	// Conversation-scoped streaming asset uploads from inside the sandbox.
 	// Bearer auth = the sandbox's bridge API key (matches existing

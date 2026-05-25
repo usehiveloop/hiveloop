@@ -333,12 +333,18 @@ impl HttpGatewayState {
             .start_turn(&stream_id, session_id.as_str(), request.text.len())
             .await
             .unwrap_or_else(|| (format!("trace-{stream_id}"), format!("turn-{stream_id}")));
+        let source = request
+            .raw
+            .get("source")
+            .and_then(Value::as_str)
+            .filter(|value| *value == "gateway")
+            .unwrap_or("http");
         let raw = json!({
-            "source": "http",
+            "source": source,
             "http_stream_id": stream_id,
             "trace_id": trace_id,
             "turn_id": turn_id,
-            "conversation_id": request.conversation_id,
+            "conversation_id": conversation_id,
             "raw": request.raw,
         });
         let inbound = InboundEvent {
@@ -466,6 +472,42 @@ mod tests {
             events[1].event_type,
             ObservabilityEventType::TurnStarted
         ));
+    }
+
+    #[tokio::test]
+    async fn inject_message_preserves_gateway_source_and_metadata() {
+        let (tx, mut rx) = mpsc::channel(1);
+        let gateway = HttpGatewayState {
+            inbound_sink: tx,
+            broker: Arc::new(HttpStreamBroker::new()),
+        };
+
+        let response = gateway
+            .inject_message(HttpMessageRequest {
+                text: "hello from slack".to_string(),
+                conversation_id: Some("gateway-conversation".to_string()),
+                user: "U123".to_string(),
+                user_display_name: Some("Ada".to_string()),
+                attachments: Vec::new(),
+                raw: json!({
+                    "source": "gateway",
+                    "provider": "fake-slack",
+                    "route_id": "route-1",
+                    "thread_key": "fake-slack:T123:C123:100.000",
+                    "channel_id": "C123",
+                    "thread_id": "100.000"
+                }),
+            })
+            .await
+            .expect("inject gateway message");
+
+        let inbound = rx.recv().await.expect("inbound event");
+        assert_eq!(response.session_id, "http-gateway-conversation");
+        assert_eq!(inbound.raw["source"], "gateway");
+        assert_eq!(inbound.raw["conversation_id"], "gateway-conversation");
+        assert_eq!(inbound.raw["raw"]["provider"], "fake-slack");
+        assert_eq!(inbound.raw["raw"]["channel_id"], "C123");
+        assert_eq!(inbound.raw["raw"]["thread_id"], "100.000");
     }
 
     #[tokio::test]
