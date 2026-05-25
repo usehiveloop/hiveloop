@@ -182,7 +182,6 @@ func buildIntegrationImage(t *testing.T, ctx context.Context, driver *Driver, na
 		Tags:       []string{ref},
 		Dockerfile: "Dockerfile",
 		Remove:     true,
-		PullParent: true,
 	})
 	if err != nil {
 		t.Fatalf("ImageBuild %s: %v", ref, err)
@@ -236,10 +235,11 @@ func isIntegrationImageRef(ref string) bool {
 }
 
 func integrationRuntimeDockerfile() string {
-	return `FROM busybox:1.36
+	return `FROM redis:7-alpine
+ENTRYPOINT []
 RUN mkdir -p /www && echo ok > /www/index.html
 EXPOSE 8080
-CMD ["httpd", "-f", "-p", "8080", "-h", "/www"]
+CMD ["/bin/sh", "-lc", "while true; do printf 'HTTP/1.1 200 OK\r\nContent-Length: 3\r\n\r\nok\n' | nc -l -p 8080; done"]
 `
 }
 

@@ -138,7 +138,7 @@ jobs:
         run: make ci-cleanup-containers
 
   internal-rag:
-    name: internal rag ${{ matrix.shard }}/6
+    name: internal rag
     runs-on: ubuntu-latest
     timeout-minutes: 9
     services:
@@ -164,10 +164,6 @@ jobs:
           --health-interval 2s
           --health-timeout 5s
           --health-retries 30
-    strategy:
-      fail-fast: false
-      matrix:
-        shard: [0, 1, 2, 3, 4, 5]
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-go@v6
@@ -183,7 +179,7 @@ jobs:
           make ci-setup-minio
         timeout-minutes: 5
       - name: test rag shard
-        run: make ci-test-internal-rag SHARD_INDEX=${{ matrix.shard }} SHARD_TOTAL=6
+        run: make ci-test-internal-rag
         timeout-minutes: 5
       - name: cleanup containers
         if: always()
