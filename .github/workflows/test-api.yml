@@ -40,7 +40,7 @@ jobs:
         timeout-minutes: 3
       - name: logs
         if: failure()
-        run: docker compose logs --tail=300
+        run: docker compose logs --tail=300 || true
       - name: cleanup
         if: always()
         run: docker compose down -v --remove-orphans 2>/dev/null || true
@@ -67,7 +67,7 @@ jobs:
         timeout-minutes: 3
       - name: logs
         if: failure()
-        run: docker compose logs --tail=300
+        run: docker compose logs --tail=300 || true
       - name: cleanup
         if: always()
         run: docker compose down -v --remove-orphans 2>/dev/null || true
@@ -90,7 +90,7 @@ jobs:
         timeout-minutes: 3
       - name: logs
         if: failure()
-        run: docker compose logs --tail=300
+        run: docker compose logs --tail=300 || true
       - name: cleanup
         if: always()
         run: docker compose down -v --remove-orphans 2>/dev/null || true
@@ -125,7 +125,7 @@ jobs:
         timeout-minutes: 3
       - name: logs
         if: failure()
-        run: docker compose logs --tail=300
+        run: docker compose logs --tail=300 || true
       - name: cleanup
         if: always()
         run: docker compose down -v --remove-orphans 2>/dev/null || true

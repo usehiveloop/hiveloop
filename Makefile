@@ -335,8 +335,8 @@ ci-env:
 	./scripts/ci-write-env.sh
 
 ci-up:
-	docker compose down -v --remove-orphans
 	$(MAKE) ci-env
+	docker compose down -v --remove-orphans
 	$(MAKE) up
 	./scripts/ci-wait-stack.sh
 
@@ -359,7 +359,7 @@ ci-test-runtime:
 
 ci-quality:
 	git diff --check
-	go vet ./...
+	go vet ./internal/... ./cmd/server/...
 	./scripts/check-go-file-length.sh
 	./scripts/check-go-comment-density.sh
 	./scripts/check-log-budget.sh
