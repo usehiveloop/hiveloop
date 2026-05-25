@@ -29,6 +29,9 @@ wait_for "Qdrant" "curl -fsS http://localhost:6333/readyz"
 wait_for "Hindsight" "curl -fsS http://localhost:8888/health || curl -fsS http://localhost:8888"
 wait_for "API" "curl -fsS http://localhost:8080/healthz"
 wait_for "Worker" "curl -fsS http://localhost:8090/healthz"
-wait_for "Web" "curl -fsS http://localhost:30112/api/health || curl -fsS http://localhost:30112"
+
+if [ "${CI_WAIT_WEB:-0}" = "1" ]; then
+  wait_for "Web" "curl -fsS http://localhost:30112/api/health || curl -fsS http://localhost:30112"
+fi
 
 docker compose ps

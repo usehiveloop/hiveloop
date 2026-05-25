@@ -33,7 +33,7 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
           cache: true
       - name: start full stack
-        run: make ci-up
+        run: CI_WAIT_WEB=0 DEV_APP_SERVICES="api worker" make ci-up
         timeout-minutes: 10
       - name: test internal shard
         run: make ci-test-internal SHARD_INDEX=${{ matrix.shard }} SHARD_TOTAL=16 RACE=1
@@ -60,7 +60,7 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
           cache: true
       - name: start full stack
-        run: make ci-up
+        run: CI_WAIT_WEB=0 DEV_APP_SERVICES="api worker" make ci-up
         timeout-minutes: 10
       - name: test e2e shard
         run: make ci-test-e2e SHARD_INDEX=${{ matrix.shard }} SHARD_TOTAL=4 RACE=1
@@ -83,7 +83,7 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
           cache: true
       - name: start full stack
-        run: make ci-up
+        run: CI_WAIT_WEB=0 DEV_APP_SERVICES="api worker" make ci-up
         timeout-minutes: 10
       - name: test cmd packages
         run: make ci-test-cmd
@@ -114,7 +114,7 @@ jobs:
           cache: pnpm
           cache-dependency-path: apps/web/pnpm-lock.yaml
       - name: start full stack
-        run: make ci-up
+        run: CI_WAIT_WEB=1 DEV_APP_SERVICES="api worker web" make ci-up
         timeout-minutes: 10
       - name: install web dependencies
         run: pnpm install --frozen-lockfile
