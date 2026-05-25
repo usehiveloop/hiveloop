@@ -54,8 +54,8 @@ services:
       - "${HIVY_COMPOSE_MCP_PORT:-8081}:8081"
     volumes:
       - .:/workspace
-      - go-mod-cache:/go/pkg/mod
-      - go-build-cache:/root/.cache/go-build
+      - api-go-mod-cache:/go/pkg/mod
+      - api-go-build-cache:/root/.cache/go-build
       - /var/run/docker.sock:/var/run/docker.sock
     extra_hosts:
       - "host.docker.internal:host-gateway"
@@ -131,8 +131,8 @@ services:
       - "${HIVY_COMPOSE_WORKER_HEALTH_PORT:-8090}:8090"
     volumes:
       - .:/workspace
-      - go-mod-cache:/go/pkg/mod
-      - go-build-cache:/root/.cache/go-build
+      - worker-go-mod-cache:/go/pkg/mod
+      - worker-go-build-cache:/root/.cache/go-build
       - /var/run/docker.sock:/var/run/docker.sock
     extra_hosts:
       - "host.docker.internal:host-gateway"
@@ -374,8 +374,10 @@ volumes:
   redisdata:
   miniodata:
   qdrantdata:
-  go-mod-cache:
-  go-build-cache:
+  api-go-mod-cache:
+  api-go-build-cache:
+  worker-go-mod-cache:
+  worker-go-build-cache:
   web-node-modules:
   web-pnpm-store:
   web-next-cache:
