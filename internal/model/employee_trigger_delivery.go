@@ -21,20 +21,20 @@ type EmployeeTriggerDelivery struct {
 	TriggerID uuid.UUID       `gorm:"type:uuid;not null;index"`
 	Trigger   EmployeeTrigger `gorm:"foreignKey:TriggerID;constraint:OnDelete:CASCADE"`
 
-	ConnectionID *uuid.UUID    `gorm:"type:uuid;index"`
+	ConnectionID *uuid.UUID  `gorm:"type:uuid;index"`
 	Connection   *Connection `gorm:"foreignKey:ConnectionID;constraint:OnDelete:SET NULL"`
 
 	DeliveryID  string `gorm:"type:text;not null;index"`
 	EventKey    string `gorm:"type:text;not null;default:'';index"`
 	ResourceKey string `gorm:"type:text;not null;default:'';index"`
 
-	ConversationID        uuid.UUID            `gorm:"type:uuid;not null;index"`
-	Conversation          EmployeeConversation `gorm:"foreignKey:ConversationID;constraint:OnDelete:CASCADE"`
-	RuntimeConversationID string               `gorm:"type:text;not null;default:'';index"`
-	RuntimeSessionID      string               `gorm:"type:text;not null;default:'';index;index:idx_trigger_delivery_org_employee_session_created,priority:3"`
-	RuntimeStreamID       string               `gorm:"type:text;not null;default:''"`
-	RuntimeTraceID        string               `gorm:"type:text;not null;default:''"`
-	RuntimeTurnID         string               `gorm:"type:text;not null;default:''"`
+	ConversationID        uuid.UUID       `gorm:"type:uuid;not null;index"`
+	Conversation          EmployeeSession `gorm:"foreignKey:ConversationID;constraint:OnDelete:CASCADE"`
+	RuntimeConversationID string          `gorm:"type:text;not null;default:'';index"`
+	RuntimeSessionID      string          `gorm:"type:text;not null;default:'';index;index:idx_trigger_delivery_org_employee_session_created,priority:3"`
+	RuntimeStreamID       string          `gorm:"type:text;not null;default:''"`
+	RuntimeTraceID        string          `gorm:"type:text;not null;default:''"`
+	RuntimeTurnID         string          `gorm:"type:text;not null;default:''"`
 
 	Payload RawJSON `gorm:"type:jsonb;not null;default:'{}'"`
 

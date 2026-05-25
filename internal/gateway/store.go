@@ -12,8 +12,8 @@ import (
 	"github.com/usehivy/hivy/internal/model"
 )
 
-func (s *Service) loadActiveSessionByRuntimeID(ctx context.Context, runtimeID string) (model.EmployeeConversation, bool, error) {
-	var session model.EmployeeConversation
+func (s *Service) loadActiveSessionByRuntimeID(ctx context.Context, runtimeID string) (model.EmployeeSession, bool, error) {
+	var session model.EmployeeSession
 	err := s.db.WithContext(ctx).
 		Where("runtime_conversation_id = ? AND source = ? AND status = ?", runtimeID, Source, "active").
 		First(&session).Error
@@ -21,9 +21,9 @@ func (s *Service) loadActiveSessionByRuntimeID(ctx context.Context, runtimeID st
 		return session, true, nil
 	}
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return model.EmployeeConversation{}, false, nil
+		return model.EmployeeSession{}, false, nil
 	}
-	return model.EmployeeConversation{}, false, err
+	return model.EmployeeSession{}, false, err
 }
 
 func (s *Service) insertInboundEvent(ctx context.Context, route model.EmployeeGatewayRoute, inbound InboundEnvelope) (model.EmployeeGatewayEvent, bool, error) {
@@ -56,7 +56,7 @@ func (s *Service) insertInboundEvent(ctx context.Context, route model.EmployeeGa
 	return event, false, nil
 }
 
-func (s *Service) findOrCreateSession(ctx context.Context, route model.EmployeeGatewayRoute, threadKey string) (model.EmployeeConversation, string, error) {
+func (s *Service) findOrCreateSession(ctx context.Context, route model.EmployeeGatewayRoute, threadKey string) (model.EmployeeSession, string, error) {
 	conversationID := stableConversationID(route.ID, threadKey)
 	sessionID := runtimeSessionID(conversationID)
 	var sandbox model.Sandbox
@@ -64,10 +64,10 @@ func (s *Service) findOrCreateSession(ctx context.Context, route model.EmployeeG
 		Where("org_id = ? AND employee_id = ? AND status <> ?", route.OrgID, route.EmployeeID, "error").
 		Order("created_at DESC").
 		First(&sandbox).Error; err != nil {
-		return model.EmployeeConversation{}, "", fmt.Errorf("load employee sandbox: %w", err)
+		return model.EmployeeSession{}, "", fmt.Errorf("load employee sandbox: %w", err)
 	}
 	sourceID := route.ID
-	session := model.EmployeeConversation{}
+	session := model.EmployeeSession{}
 	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		err := tx.Where("org_id = ? AND employee_id = ? AND source = ? AND source_id = ? AND source_resource_key = ? AND status = ?",
 			route.OrgID, route.EmployeeID, Source, route.ID, threadKey, "active").
@@ -78,7 +78,7 @@ func (s *Service) findOrCreateSession(ctx context.Context, route model.EmployeeG
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
 			return err
 		}
-		session = model.EmployeeConversation{
+		session = model.EmployeeSession{
 			OrgID:                 route.OrgID,
 			EmployeeID:            route.EmployeeID,
 			SandboxID:             sandbox.ID,
@@ -93,7 +93,7 @@ func (s *Service) findOrCreateSession(ctx context.Context, route model.EmployeeG
 		return tx.Create(&session).Error
 	})
 	if err != nil {
-		return model.EmployeeConversation{}, "", fmt.Errorf("find or create gateway session: %w", err)
+		return model.EmployeeSession{}, "", fmt.Errorf("find or create gateway session: %w", err)
 	}
 	return session, conversationID, nil
 }
@@ -145,7 +145,7 @@ func (s *Service) loadLatestEventForSession(ctx context.Context, sessionID uuid.
 	return model.EmployeeGatewayEvent{}, false, fmt.Errorf("load latest gateway event: %w", err)
 }
 
-func (s *Service) insertDelivery(ctx context.Context, route model.EmployeeGatewayRoute, session model.EmployeeConversation, response AgentResponse, dedupe string, handles []MessageHandle, status string, errText string) (*model.EmployeeGatewayDelivery, error) {
+func (s *Service) insertDelivery(ctx context.Context, route model.EmployeeGatewayRoute, session model.EmployeeSession, response AgentResponse, dedupe string, handles []MessageHandle, status string, errText string) (*model.EmployeeGatewayDelivery, error) {
 	row := model.EmployeeGatewayDelivery{
 		OrgID:             route.OrgID,
 		EmployeeID:        route.EmployeeID,

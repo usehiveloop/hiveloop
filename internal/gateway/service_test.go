@@ -96,7 +96,7 @@ func TestServiceReceiveWebhookCreatesAndReusesGatewaySession(t *testing.T) {
 	}
 
 	var sessions int64
-	db.Model(&model.EmployeeConversation{}).Where("source = ? AND source_id = ?", Source, route.ID).Count(&sessions)
+	db.Model(&model.EmployeeSession{}).Where("source = ? AND source_id = ?", Source, route.ID).Count(&sessions)
 	if sessions != 1 {
 		t.Fatalf("gateway sessions = %d, want 1", sessions)
 	}
@@ -225,13 +225,13 @@ func connectGatewayTestDB(t *testing.T) *gorm.DB {
 	t.Helper()
 	baseDSN := os.Getenv("DATABASE_URL")
 	if baseDSN == "" {
-		baseDSN = "postgres://hivy:localdev@localhost:15432/hivy_test?sslmode=disable"
+		baseDSN = testdb.DefaultDatabaseURL
 	}
 	dbName := "hivy_gateway_test_" + strings.ReplaceAll(uuid.NewString(), "-", "")
 	maintenanceDSN, testDSN := gatewayTestDatabaseDSNs(t, baseDSN, dbName)
 	maintenanceDB, err := gorm.Open(postgres.Open(maintenanceDSN), &gorm.Config{})
 	if err != nil {
-		t.Skipf("postgres unavailable: %v", err)
+		t.Fatalf("connect postgres: %v", err)
 	}
 	maintenanceSQL, err := maintenanceDB.DB()
 	if err != nil {
@@ -239,7 +239,7 @@ func connectGatewayTestDB(t *testing.T) *gorm.DB {
 	}
 	if err := maintenanceDB.Exec(`CREATE DATABASE ` + dbName).Error; err != nil {
 		_ = maintenanceSQL.Close()
-		t.Skipf("create isolated test database: %v", err)
+		t.Fatalf("create isolated test database: %v", err)
 	}
 	db, err := gorm.Open(postgres.Open(testDSN), &gorm.Config{})
 	if err != nil {

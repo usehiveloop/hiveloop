@@ -35,17 +35,18 @@ func TestSkillsPassthrough_NewWireShape(t *testing.T) {
 	org := model.Org{Name: "sk-org-" + suffix}
 	h.db.Create(&org)
 	t.Cleanup(func() { h.db.Where("id = ?", org.ID).Delete(&model.Org{}) })
+	orgID := org.ID
 
 	encryptedAPIKey, _ := encKey.EncryptString("sk-test")
 	cred := model.Credential{
-		OrgID: org.ID, BaseURL: "https://api.anthropic.com", AuthScheme: "bearer",
+		OrgID: &orgID, BaseURL: "https://api.anthropic.com", AuthScheme: "bearer",
 		ProviderID: "anthropic", EncryptedKey: encryptedAPIKey, WrappedDEK: []byte("dek"),
 	}
 	h.db.Create(&cred)
 	t.Cleanup(func() { h.db.Where("id = ?", cred.ID).Delete(&model.Credential{}) })
 
 	agent := model.Employee{
-		OrgID: &org.ID, Name: "sk-agent-" + suffix,
+		OrgID: &orgID, Name: "sk-agent-" + suffix,
 		CredentialID: &cred.ID, SystemPrompt: "test", Model: "claude-sonnet-4-5",
 		Status: "active",
 	}

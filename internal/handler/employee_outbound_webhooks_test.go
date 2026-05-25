@@ -2,7 +2,6 @@ package handler
 
 import (
 	"encoding/json"
-	"os"
 	"strings"
 	"testing"
 	"time"
@@ -237,21 +236,14 @@ func TestIntegration_EmployeeSkillSync_UpsertsSkillAndAttachesAgent(t *testing.T
 
 func connectEmployeeSkillSyncTestDB(t *testing.T) *gorm.DB {
 	t.Helper()
-	dsn := os.Getenv("DATABASE_URL")
-	if dsn == "" {
-		dsn = "postgres://hivy:localdev@localhost:15432/hivy_test?sslmode=disable"
-	}
+	dsn := testdb.DatabaseURL("DATABASE_URL", "HIVY_DATABASE_URL", "TEST_DATABASE_URL")
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
-		t.Skipf("postgres unavailable: %v", err)
+		t.Fatalf("connect postgres: %v", err)
 	}
 	sqlDB, _ := db.DB()
 	sqlDB.SetMaxOpenConns(3)
 	sqlDB.SetMaxIdleConns(1)
-	if err := sqlDB.Ping(); err != nil {
-		sqlDB.Close()
-		t.Skipf("postgres unavailable: %v", err)
-	}
 	testdb.ApplyMigrations(t, db)
 	t.Cleanup(func() { sqlDB.Close() })
 	return db

@@ -1,9 +1,7 @@
 package handler_test
 
 import (
-	"context"
 	"fmt"
-	"os"
 	"testing"
 
 	"github.com/google/uuid"
@@ -11,21 +9,13 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
-	"github.com/usehivy/hivy/internal/testdb"
 	"github.com/usehivy/hivy/internal/model"
-)
-
-const (
-	testDBURL     = "postgres://hivy:localdev@localhost:15432/hivy_test?sslmode=disable" // #nosec G101 -- test fixture, not a real secret
-	testRedisAddr = "localhost:16379"
+	"github.com/usehivy/hivy/internal/testdb"
 )
 
 func connectTestDB(t *testing.T) *gorm.DB {
 	t.Helper()
-	dsn := os.Getenv("DATABASE_URL")
-	if dsn == "" {
-		dsn = testDBURL
-	}
+	dsn := testdb.DatabaseURL("DATABASE_URL", "HIVY_DATABASE_URL", "TEST_DATABASE_URL")
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		t.Fatalf("cannot connect to Postgres: %v", err)
@@ -33,9 +23,6 @@ func connectTestDB(t *testing.T) *gorm.DB {
 	sqlDB, _ := db.DB()
 	sqlDB.SetMaxOpenConns(3)
 	sqlDB.SetMaxIdleConns(1)
-	if err := sqlDB.Ping(); err != nil {
-		t.Fatalf("Postgres not reachable: %v", err)
-	}
 	testdb.ApplyMigrations(t, db)
 	t.Cleanup(func() { sqlDB.Close() })
 	return db
@@ -43,14 +30,8 @@ func connectTestDB(t *testing.T) *gorm.DB {
 
 func connectTestRedis(t *testing.T) *redis.Client {
 	t.Helper()
-	addr := os.Getenv("HIVY_REDIS_ADDR")
-	if addr == "" {
-		addr = testRedisAddr
-	}
+	addr := testdb.RedisAddr("HIVY_REDIS_ADDR", "TEST_REDIS_ADDR")
 	client := redis.NewClient(&redis.Options{Addr: addr})
-	if err := client.Ping(context.Background()).Err(); err != nil {
-		t.Fatalf("Redis not reachable: %v", err)
-	}
 	t.Cleanup(func() { client.Close() })
 	return client
 }

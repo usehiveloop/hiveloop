@@ -51,7 +51,7 @@ func loadManifests(dir string) ([]Manifest, error) {
 	resolved, err := resolveDir(dir)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return nil, nil
+			return nil, fmt.Errorf("global integrations dir %q not found", dir)
 		}
 		return nil, err
 	}

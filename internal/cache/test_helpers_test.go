@@ -3,7 +3,6 @@ package cache_test
 import (
 	"context"
 	"fmt"
-	"os"
 	"testing"
 	"time"
 
@@ -18,24 +17,12 @@ import (
 	"github.com/usehivy/hivy/internal/testdb"
 )
 
-const (
-	testDBURL     = "postgres://hivy:localdev@localhost:15432/hivy_test?sslmode=disable" // #nosec G101 -- local test DB fixture
-	testRedisAddr = "localhost:16379"
-)
-
 func connectTestDB(t *testing.T) *gorm.DB {
 	t.Helper()
-	dsn := os.Getenv("HIVY_DATABASE_URL")
-	if dsn == "" {
-		dsn = testDBURL
-	}
+	dsn := testdb.DatabaseURL("HIVY_DATABASE_URL", "DATABASE_URL", "TEST_DATABASE_URL")
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		t.Fatalf("cannot connect to Postgres: %v", err)
-	}
-	sqlDB, _ := db.DB()
-	if err := sqlDB.Ping(); err != nil {
-		t.Fatalf("Postgres not reachable: %v", err)
 	}
 	testdb.ApplyMigrations(t, db)
 	return db
@@ -43,14 +30,8 @@ func connectTestDB(t *testing.T) *gorm.DB {
 
 func connectTestRedis(t *testing.T) *redis.Client {
 	t.Helper()
-	addr := os.Getenv("HIVY_REDIS_ADDR")
-	if addr == "" {
-		addr = testRedisAddr
-	}
+	addr := testdb.RedisAddr("HIVY_REDIS_ADDR", "TEST_REDIS_ADDR")
 	client := redis.NewClient(&redis.Options{Addr: addr})
-	if err := client.Ping(context.Background()).Err(); err != nil {
-		t.Fatalf("Redis not reachable: %v", err)
-	}
 	t.Cleanup(func() { client.Close() })
 	return client
 }

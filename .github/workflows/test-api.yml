@@ -1,4 +1,4 @@
-name: test-api
+name: ci
 
 on:
   push:
@@ -9,135 +9,46 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
-  HIVY_ENVIRONMENT: development
-  HIVY_PORT: 8080
-  HIVY_LOG_LEVEL: info
-  HIVY_LOG_FORMAT: json
-  POSTGRES_USER: hivy
-  POSTGRES_PASSWORD: localdev
-  POSTGRES_DB: hivy
-  POSTGRES_PORT: 5433
-  HIVY_DB_HOST: localhost
-  HIVY_DB_PORT: 5433
-  HIVY_DB_USER: hivy
-  HIVY_DB_PASSWORD: localdev
-  HIVY_DB_NAME: hivy
-  HIVY_DB_SSLMODE: disable
-  HIVY_KMS_TYPE: aead
-  HIVY_KMS_KEY: OEx8eTY9N8RbDN6nM9Xwq3qP0c0w4uQ3Yl5o2l5P5Y8=
-  HIVY_REDIS_ADDR: localhost:6379
-  HIVY_REDIS_DB: 0
-  HIVY_REDIS_CACHE_TTL: 30m
-  HIVY_MEM_CACHE_TTL: 5m
-  HIVY_MEM_CACHE_MAX_SIZE: 10000
-  HIVY_QDRANT_HOST: localhost
-  HIVY_QDRANT_PORT: 6334
-  HIVY_JWT_SIGNING_KEY: local-dev-signing-key-for-tests-only
-  HIVY_CORS_ORIGINS: http://localhost:3000
-  # HIVY_AUTH_RSA_PRIVATE_KEY is generated per-job (see "Generate auth RSA key" steps)
-  HIVY_AUTH_ISSUER: hivy
-  HIVY_AUTH_AUDIENCE: https://api.usehivy.com
-  HIVY_NANGO_ENDPOINT: http://localhost:13003
-  HIVY_NANGO_SECRET_KEY: 00000000-0000-4000-8000-000000000001
-  OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
-  FIREWORKS_API_KEY: ${{ secrets.FIREWORKS_API_KEY }}
+  GO_VERSION: "1.25.10"
+  CI: "true"
 
 jobs:
-  test-auth:
+  internal:
+    name: internal ${{ matrix.shard }}/16
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-go@v6
         with:
-          go-version: "1.25.10"
+          go-version: ${{ env.GO_VERSION }}
           cache: true
-      - name: Generate auth RSA key
-        run: |
-          openssl genrsa 2048 2>/dev/null | base64 | tr -d '\n' > /tmp/auth_key_b64
-          echo "HIVY_AUTH_RSA_PRIVATE_KEY=$(cat /tmp/auth_key_b64)" >> $GITHUB_ENV
-      - name: start infrastructure
-        run: make test-setup
-        timeout-minutes: 5
-      - name: run auth tests
-        run: make test-auth
-        timeout-minutes: 5
+      - name: start full stack
+        run: make ci-up
+        timeout-minutes: 10
+      - name: test internal shard
+        run: make ci-test-internal SHARD_INDEX=${{ matrix.shard }} SHARD_TOTAL=16 RACE=1
+        timeout-minutes: 3
+      - name: logs
+        if: failure()
+        run: docker compose logs --tail=300
       - name: cleanup
         if: always()
         run: docker compose down -v --remove-orphans 2>/dev/null || true
 
-  test-nango:
+  e2e:
+    name: e2e ${{ matrix.shard }}/4
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-go@v6
-        with:
-          go-version: "1.25.10"
-          cache: true
-      - name: Generate auth RSA key
-        run: |
-          openssl genrsa 2048 2>/dev/null | base64 | tr -d '\n' > /tmp/auth_key_b64
-          echo "HIVY_AUTH_RSA_PRIVATE_KEY=$(cat /tmp/auth_key_b64)" >> $GITHUB_ENV
-      - name: start infrastructure
-        run: make test-setup-nango
-        timeout-minutes: 8
-      - name: run nango tests
-        run: make test-nango
-        timeout-minutes: 5
-      - name: cleanup
-        if: always()
-        run: docker compose down -v --remove-orphans 2>/dev/null || true
-
-  test-proxy:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-go@v6
-        with:
-          go-version: "1.25.10"
-          cache: true
-      - name: Generate auth RSA key
-        run: |
-          openssl genrsa 2048 2>/dev/null | base64 | tr -d '\n' > /tmp/auth_key_b64
-          echo "HIVY_AUTH_RSA_PRIVATE_KEY=$(cat /tmp/auth_key_b64)" >> $GITHUB_ENV
-      - name: start infrastructure
-        run: make test-setup
-        timeout-minutes: 5
-      - name: run proxy tests
-        run: make test-proxy
-        timeout-minutes: 5
-      - name: cleanup
-        if: always()
-        run: docker compose down -v --remove-orphans 2>/dev/null || true
-
-  test-connect:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-go@v6
-        with:
-          go-version: "1.25.10"
-          cache: true
-      - name: Generate auth RSA key
-        run: |
-          openssl genrsa 2048 2>/dev/null | base64 | tr -d '\n' > /tmp/auth_key_b64
-          echo "HIVY_AUTH_RSA_PRIVATE_KEY=$(cat /tmp/auth_key_b64)" >> $GITHUB_ENV
-      - name: start infrastructure
-        run: make test-setup
-        timeout-minutes: 5
-      - name: run connect tests
-        run: make test-connect
-        timeout-minutes: 5
-      - name: cleanup
-        if: always()
-        run: docker compose down -v --remove-orphans 2>/dev/null || true
-
-  # Sharded internal unit tests with -race. Total wall-clock target: <4 min.
-  # Packages are distributed round-robin (NR % N) across shards; imbalance is
-  # acceptable because the heavy packages (handler, streaming, proxy, sandbox)
-  # land in different shards by chance of alphabetical ordering.
-  test-core:
-    runs-on: ubuntu-latest
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
@@ -146,184 +57,124 @@ jobs:
       - uses: actions/checkout@v6
       - uses: actions/setup-go@v6
         with:
-          go-version: "1.25.10"
+          go-version: ${{ env.GO_VERSION }}
           cache: true
-      - name: Generate auth RSA key
-        run: |
-          openssl genrsa 2048 2>/dev/null | base64 | tr -d '\n' > /tmp/auth_key_b64
-          echo "HIVY_AUTH_RSA_PRIVATE_KEY=$(cat /tmp/auth_key_b64)" >> $GITHUB_ENV
-      - name: start infrastructure
-        run: make test-setup
-        timeout-minutes: 5
-      - name: run internal tests (shard ${{ matrix.shard }}/4)
-        run: |
-          # Live external-provider RAG tests remain opt-in behind env gates;
-          # local Postgres, Redis, MinIO, and Qdrant-backed tests run here.
-          PACKAGES=$(go list ./internal/... \
-            | grep -vE '^github.com/usehivy/hivy/internal/handler$' \
-            | awk -v s=${{ matrix.shard }} -v n=4 'NR % n == s')
-          echo "Running shard ${{ matrix.shard }} packages:"
-          echo "$PACKAGES"
-          go test $PACKAGES -race -count=1
+      - name: start full stack
+        run: make ci-up
         timeout-minutes: 10
-      - name: cleanup
-        if: always()
-        run: docker compose down -v --remove-orphans 2>/dev/null || true
-
-  # internal/handler dominates wall clock. Run it as fast sharded integration
-  # coverage; the remaining internal package shards keep -race enabled.
-  test-handler:
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        shard: [0, 1, 2, 3, 4, 5, 6, 7]
-    steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-go@v6
-        with:
-          go-version: "1.25.10"
-          cache: true
-      - name: Generate auth RSA key
-        run: |
-          openssl genrsa 2048 2>/dev/null | base64 | tr -d '\n' > /tmp/auth_key_b64
-          echo "HIVY_AUTH_RSA_PRIVATE_KEY=$(cat /tmp/auth_key_b64)" >> $GITHUB_ENV
-      - name: start infrastructure
-        run: make test-setup
-        timeout-minutes: 5
-      - name: run handler tests (shard ${{ matrix.shard }}/8)
-        run: |
-          TESTS=$(go test ./internal/handler -list '^Test' | awk -v s=${{ matrix.shard }} -v n=8 'NR % n == s')
-          echo "Running handler shard ${{ matrix.shard }} tests:"
-          echo "$TESTS"
-          if [ -z "$TESTS" ]; then
-            echo "No tests assigned to this shard"
-            exit 0
-          fi
-          PATTERN=$(printf '%s\n' "$TESTS" | paste -sd'|' -)
-          go test ./internal/handler -count=1 -v -run "^(${PATTERN})$"
-        timeout-minutes: 5
-      - name: cleanup
-        if: always()
-        run: docker compose down -v --remove-orphans 2>/dev/null || true
-
-  test-hindsight:
-    runs-on: ubuntu-latest
-    env:
-      HINDSIGHT_IMAGE: ghcr.io/vectorize-io/hindsight:latest
-      HIVY_HINDSIGHT_API_URL: http://localhost:8888
-      HIVY_HINDSIGHT_INTEGRATION: "1"
-    steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-go@v6
-        with:
-          go-version: "1.25.10"
-          cache: true
-      - name: Generate Hindsight env file
-        run: |
-          cat > .env <<EOF
-          HINDSIGHT_API_EMBEDDINGS_LOCAL_FORCE_CPU=true
-          HINDSIGHT_API_EMBEDDINGS_PROVIDER=local
-          HINDSIGHT_API_EMBEDDINGS_OPENAI_API_KEY=dummy
-          HINDSIGHT_API_EMBEDDINGS_OPENAI_MODEL=text-embedding-3-small
-          HINDSIGHT_API_HOST=0.0.0.0
-          HINDSIGHT_API_LLM_API_KEY=dummy
-          HINDSIGHT_API_LLM_BASE_URL=http://localhost
-          HINDSIGHT_API_LLM_MODEL=openai/gpt-oss-20b
-          HINDSIGHT_API_LLM_PROVIDER=none
-          HINDSIGHT_API_CONSOLIDATION_LLM_API_KEY=dummy
-          HINDSIGHT_API_CONSOLIDATION_LLM_MODEL=openai/gpt-oss-20b
-          HINDSIGHT_API_CONSOLIDATION_LLM_PROVIDER=none
-          HINDSIGHT_API_REFLECT_LLM_API_KEY=dummy
-          HINDSIGHT_API_REFLECT_LLM_MODEL=openai/gpt-oss-20b
-          HINDSIGHT_API_REFLECT_LLM_PROVIDER=none
-          HINDSIGHT_API_RETAIN_LLM_API_KEY=dummy
-          HINDSIGHT_API_RETAIN_LLM_MODEL=openai/gpt-oss-20b
-          HINDSIGHT_API_RETAIN_LLM_PROVIDER=none
-          HINDSIGHT_API_LOG_FORMAT=json
-          HINDSIGHT_API_LOG_LEVEL=info
-          HINDSIGHT_API_PORT=8888
-          HINDSIGHT_API_RERANKER_PROVIDER=rrf
-          HINDSIGHT_API_RERANKER_ZEROENTROPY_API_KEY=dummy
-          HINDSIGHT_API_RERANKER_ZEROENTROPY_MODEL=zerank-2
-          HINDSIGHT_API_RUN_MIGRATIONS_ON_STARTUP=true
-          HINDSIGHT_API_WORKERS=1
-          HINDSIGHT_API_WORKER_ENABLED=false
-          EOF
-      - name: start Hindsight
-        run: docker compose up -d hindsight
-        timeout-minutes: 5
-      - name: wait for Hindsight
-        run: |
-          for i in $(seq 1 60); do
-            if curl -fsS "$HIVY_HINDSIGHT_API_URL/health" >/dev/null 2>&1 || curl -fsS "$HIVY_HINDSIGHT_API_URL" >/dev/null 2>&1; then
-              echo "Hindsight is ready"
-              exit 0
-            fi
-            sleep 2
-          done
-          docker compose logs --tail=200 hindsight
-          exit 1
+      - name: test e2e shard
+        run: make ci-test-e2e SHARD_INDEX=${{ matrix.shard }} SHARD_TOTAL=4 RACE=1
         timeout-minutes: 3
-      - name: run real Hindsight tests
-        run: go test ./internal/hindsight -run 'TestRealHindsight' -count=1 -v -timeout=5m
-        timeout-minutes: 6
+      - name: logs
+        if: failure()
+        run: docker compose logs --tail=300
       - name: cleanup
         if: always()
         run: docker compose down -v --remove-orphans 2>/dev/null || true
 
-  # Remaining e2e tests not already covered by the cloud agent e2e jobs
-  # (test-auth, test-nango, test-proxy, test-connect).
-  test-e2e-core:
+  cmd:
+    name: cmd packages
     runs-on: ubuntu-latest
+    timeout-minutes: 12
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-go@v6
         with:
-          go-version: "1.25.10"
+          go-version: ${{ env.GO_VERSION }}
           cache: true
-      - name: Generate auth RSA key
-        run: |
-          openssl genrsa 2048 2>/dev/null | base64 | tr -d '\n' > /tmp/auth_key_b64
-          echo "HIVY_AUTH_RSA_PRIVATE_KEY=$(cat /tmp/auth_key_b64)" >> $GITHUB_ENV
-      - name: start infrastructure
-        run: make test-setup
-        timeout-minutes: 5
-      - name: run remaining e2e tests
-        run: |
-          go test ./e2e/... -race -count=1 -timeout=5m \
-            -skip '^(TestOrg|TestE2E_Integration|TestE2E_Proxy|TestE2E_Fireworks|TestE2E_Connect)'
-        timeout-minutes: 5
+      - name: start full stack
+        run: make ci-up
+        timeout-minutes: 10
+      - name: test cmd packages
+        run: make ci-test-cmd
+        timeout-minutes: 3
+      - name: logs
+        if: failure()
+        run: docker compose logs --tail=300
       - name: cleanup
         if: always()
         run: docker compose down -v --remove-orphans 2>/dev/null || true
+
+  web:
+    name: web
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 10.18.2
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: apps/web/pnpm-lock.yaml
+      - name: start full stack
+        run: make ci-up
+        timeout-minutes: 10
+      - name: install web dependencies
+        run: pnpm install --frozen-lockfile
+        working-directory: apps/web
+        timeout-minutes: 3
+      - name: typecheck and build web
+        run: make ci-test-web
+        timeout-minutes: 3
+      - name: logs
+        if: failure()
+        run: docker compose logs --tail=300
+      - name: cleanup
+        if: always()
+        run: docker compose down -v --remove-orphans 2>/dev/null || true
+
+  runtime:
+    name: sandbox runtime
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: sandboxes/runtime -> target
+      - name: runtime checks
+        run: make ci-test-runtime
+        timeout-minutes: 6
+
+  quality:
+    name: quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v6
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+      - name: quality checks
+        run: make ci-quality
+        timeout-minutes: 5
 
   results:
+    name: ci result
     if: always()
-    needs:
-      [
-        test-auth,
-        test-nango,
-        test-proxy,
-        test-connect,
-        test-core,
-        test-handler,
-        test-hindsight,
-        test-e2e-core,
-      ]
     runs-on: ubuntu-latest
+    needs: [internal, e2e, cmd, web, runtime, quality]
     steps:
-      - name: check results
+      - name: check result
         run: |
-          if [ "${{ needs.test-auth.result }}" != "success" ] || \
-             [ "${{ needs.test-nango.result }}" != "success" ] || \
-             [ "${{ needs.test-proxy.result }}" != "success" ] || \
-             [ "${{ needs.test-connect.result }}" != "success" ] || \
-             [ "${{ needs.test-core.result }}" != "success" ] || \
-             [ "${{ needs.test-handler.result }}" != "success" ] || \
-             [ "${{ needs.test-hindsight.result }}" != "success" ] || \
-             [ "${{ needs.test-e2e-core.result }}" != "success" ]; then
-            echo "One or more test jobs failed"
+          if [ "${{ needs.internal.result }}" != "success" ] || \
+             [ "${{ needs.e2e.result }}" != "success" ] || \
+             [ "${{ needs.cmd.result }}" != "success" ] || \
+             [ "${{ needs.web.result }}" != "success" ] || \
+             [ "${{ needs.runtime.result }}" != "success" ] || \
+             [ "${{ needs.quality.result }}" != "success" ]; then
             exit 1
           fi
-          echo "All test jobs passed"

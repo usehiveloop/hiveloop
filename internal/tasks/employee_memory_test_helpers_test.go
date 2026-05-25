@@ -3,7 +3,6 @@ package tasks
 import (
 	"encoding/base64"
 	"encoding/json"
-	"os"
 	"testing"
 	"time"
 
@@ -40,7 +39,7 @@ func memoryEvent(t *testing.T, orgID, agentID, sandboxID uuid.UUID, sessionID, e
 func createMemorySession(t *testing.T, db *gorm.DB, orgID, agentID, sandboxID uuid.UUID, sessionID string) uuid.UUID {
 	t.Helper()
 	id := memorySessionID(orgID, agentID, sandboxID, sessionID)
-	session := model.EmployeeConversation{
+	session := model.EmployeeSession{
 		ID:                    id,
 		OrgID:                 orgID,
 		EmployeeID:            agentID,
@@ -72,10 +71,7 @@ func hasTaskString(values []string, want string) bool {
 
 func openTasksMemoryTestDB(t *testing.T) *gorm.DB {
 	t.Helper()
-	dsn := os.Getenv("DATABASE_URL")
-	if dsn == "" {
-		dsn = "postgres://hivy:localdev@localhost:15432/hivy_test?sslmode=disable" // #nosec G101 -- local test fixture
-	}
+	dsn := testdb.DatabaseURL("DATABASE_URL", "HIVY_DATABASE_URL", "TEST_DATABASE_URL")
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		t.Fatalf("connect postgres: %v", err)
@@ -83,9 +79,6 @@ func openTasksMemoryTestDB(t *testing.T) *gorm.DB {
 	sqlDB, _ := db.DB()
 	sqlDB.SetMaxOpenConns(3)
 	sqlDB.SetMaxIdleConns(1)
-	if err := sqlDB.Ping(); err != nil {
-		t.Fatalf("ping postgres: %v", err)
-	}
 	testdb.ApplyMigrations(t, db)
 	return db
 }

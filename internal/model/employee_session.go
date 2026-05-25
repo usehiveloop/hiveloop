@@ -6,7 +6,7 @@ import (
 	"github.com/google/uuid"
 )
 
-type EmployeeConversation struct {
+type EmployeeSession struct {
 	ID                    uuid.UUID   `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
 	OrgID                 uuid.UUID   `gorm:"type:uuid;not null;index:idx_employee_session_org_employee"`
 	Org                   Org         `gorm:"foreignKey:OrgID;constraint:OnDelete:CASCADE"`
@@ -30,4 +30,4 @@ type EmployeeConversation struct {
 	EndedAt               *time.Time
 }
 
-func (EmployeeConversation) TableName() string { return "employee_sessions" }
+func (EmployeeSession) TableName() string { return "employee_sessions" }

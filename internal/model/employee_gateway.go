@@ -37,8 +37,8 @@ type EmployeeGatewayEvent struct {
 	EmployeeID uuid.UUID `gorm:"type:uuid;not null;index"`
 	RouteID    uuid.UUID `gorm:"type:uuid;not null;index"`
 
-	EmployeeSessionID *uuid.UUID            `gorm:"type:uuid;index"`
-	EmployeeSession   *EmployeeConversation `gorm:"foreignKey:EmployeeSessionID;constraint:OnDelete:SET NULL"`
+	EmployeeSessionID *uuid.UUID       `gorm:"type:uuid;index"`
+	EmployeeSession   *EmployeeSession `gorm:"foreignKey:EmployeeSessionID;constraint:OnDelete:SET NULL"`
 
 	Provider              string  `gorm:"not null;size:128;index"`
 	ExternalMessageID     string  `gorm:"type:text;not null;default:''"`

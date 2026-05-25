@@ -35,7 +35,7 @@ type assetsListHarness struct {
 
 // seedAssetRow inserts a ConversationAsset directly (no S3) so the listing
 // tests don't depend on MinIO being up. The list endpoint never touches S3.
-func seedAssetRow(t *testing.T, db *gorm.DB, conv model.EmployeeConversation, folder, filename string, createdAt time.Time) model.ConversationAsset {
+func seedAssetRow(t *testing.T, db *gorm.DB, conv model.EmployeeSession, folder, filename string, createdAt time.Time) model.ConversationAsset {
 	t.Helper()
 	key := fmt.Sprintf("pub/c/%s/%s", conv.ID, filename)
 	if folder != "" {
@@ -107,7 +107,7 @@ func newAssetsListHarness(t *testing.T) *assetsListHarness {
 	}
 	mkConv := func(orgID, agentID, sandboxID uuid.UUID) uuid.UUID {
 		id := uuid.New()
-		if err := db.Create(&model.EmployeeConversation{
+		if err := db.Create(&model.EmployeeSession{
 			ID:                    id,
 			OrgID:                 orgID,
 			EmployeeID:            agentID,
@@ -154,9 +154,9 @@ func (h *assetsListHarness) get(t *testing.T, query string, org *model.Org) *htt
 	return rr
 }
 
-func (h *assetsListHarness) loadConv(t *testing.T, id uuid.UUID) model.EmployeeConversation {
+func (h *assetsListHarness) loadConv(t *testing.T, id uuid.UUID) model.EmployeeSession {
 	t.Helper()
-	var c model.EmployeeConversation
+	var c model.EmployeeSession
 	if err := h.db.Where("id = ?", id).First(&c).Error; err != nil {
 		t.Fatalf("load conv: %v", err)
 	}

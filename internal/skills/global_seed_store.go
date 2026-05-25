@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"reflect"
+	"slices"
 	"time"
 
 	"github.com/google/uuid"
@@ -37,19 +39,69 @@ func upsertGlobalSkill(ctx context.Context, db *gorm.DB, loaded loadedGlobalSkil
 				return err
 			}
 			created = true
-		} else {
-			if err := updateGlobalSkill(tx, &skill, loaded.manifest, slug, description, now); err != nil {
+			if err := updateGlobalSkillBundle(tx, skill.ID, loaded.manifest.Name, raw, now); err != nil {
 				return err
+			}
+		} else {
+			changed = globalSkillChanged(skill, loaded.manifest, slug, description, raw)
+			if changed {
+				if err := updateGlobalSkill(tx, &skill, loaded.manifest, slug, description, now); err != nil {
+					return err
+				}
+				if err := updateGlobalSkillBundle(tx, skill.ID, loaded.manifest.Name, raw, now); err != nil {
+					return err
+				}
 			}
 		}
 
-		if err := updateGlobalSkillBundle(tx, skill.ID, loaded.manifest.Name, raw, now); err != nil {
-			return err
-		}
-		changed = !created
 		return archiveDuplicateGlobalSkills(tx, loaded.manifest.Name, skill.ID)
 	})
 	return created, changed, err
+}
+
+func globalSkillChanged(skill model.Skill, manifest globalSkillManifest, slug string, description string, raw []byte) bool {
+	if skill.Slug != slug || skill.Name != manifest.Name || derefSkillDescription(skill.Description) != description {
+		return true
+	}
+	if skill.Category != manifest.Category || skill.SourceType != model.SkillSourceInline || skill.RepoURL != nil || skill.RepoSubpath != nil || skill.RepoRef != "main" {
+		return true
+	}
+	if !sameStringList([]string(skill.Tags), manifest.Tags) || !sameStringList([]string(skill.IntegrationIDs), manifest.IntegrationIDs) {
+		return true
+	}
+	if skill.Hidden != manifest.Hidden || skill.Status != model.SkillStatusPublished || skill.PublishedAt == nil {
+		return true
+	}
+	if skill.HydratedCommitSHA != nil || skill.HydrationError != nil {
+		return true
+	}
+	return !rawJSONEqual(skill.Bundle, raw)
+}
+
+func sameStringList(left []string, right []string) bool {
+	if len(left) == 0 && len(right) == 0 {
+		return true
+	}
+	return slices.Equal(left, right)
+}
+
+func rawJSONEqual(left model.RawJSON, right []byte) bool {
+	var leftValue any
+	var rightValue any
+	if err := json.Unmarshal(left, &leftValue); err != nil {
+		return false
+	}
+	if err := json.Unmarshal(right, &rightValue); err != nil {
+		return false
+	}
+	return reflect.DeepEqual(leftValue, rightValue)
+}
+
+func derefSkillDescription(value *string) string {
+	if value == nil {
+		return ""
+	}
+	return *value
 }
 
 func createGlobalSkill(tx *gorm.DB, skill *model.Skill, manifest globalSkillManifest, slug, description string, now time.Time) error {

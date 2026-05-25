@@ -194,7 +194,7 @@ func (h *EmployeeTriggerDispatchHandler) deliver(ctx context.Context, payload Em
 	return nil
 }
 
-func (h *EmployeeTriggerDispatchHandler) enqueueStoreDelivery(ctx context.Context, payload EmployeeTriggerDispatchPayload, trigger model.EmployeeTrigger, conv *model.EmployeeConversation, compiled compiledTriggerMessage, resp *employeeruntime.HTTPMessageResponse) {
+func (h *EmployeeTriggerDispatchHandler) enqueueStoreDelivery(ctx context.Context, payload EmployeeTriggerDispatchPayload, trigger model.EmployeeTrigger, conv *model.EmployeeSession, compiled compiledTriggerMessage, resp *employeeruntime.HTTPMessageResponse) {
 	if h.enqueuer == nil {
 		logging.CaptureWithFields(ctx, fmt.Errorf("employee trigger delivery store enqueue skipped: enqueuer is nil"), triggerStoreEnqueueFields(payload, trigger, conv, compiled, resp))
 		return
@@ -227,7 +227,7 @@ func (h *EmployeeTriggerDispatchHandler) enqueueStoreDelivery(ctx context.Contex
 	}
 }
 
-func triggerStoreEnqueueFields(payload EmployeeTriggerDispatchPayload, trigger model.EmployeeTrigger, conv *model.EmployeeConversation, compiled compiledTriggerMessage, resp *employeeruntime.HTTPMessageResponse) map[string]any {
+func triggerStoreEnqueueFields(payload EmployeeTriggerDispatchPayload, trigger model.EmployeeTrigger, conv *model.EmployeeSession, compiled compiledTriggerMessage, resp *employeeruntime.HTTPMessageResponse) map[string]any {
 	fields := map[string]any{
 		"org_id":                  trigger.OrgID.String(),
 		"employee_id":             trigger.EmployeeID.String(),

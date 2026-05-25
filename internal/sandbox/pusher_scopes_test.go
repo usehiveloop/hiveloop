@@ -2,7 +2,6 @@ package sandbox
 
 import (
 	"encoding/base64"
-	"os"
 	"testing"
 
 	"gorm.io/driver/postgres"
@@ -13,7 +12,7 @@ import (
 	"github.com/usehivy/hivy/internal/testdb"
 )
 
-const pusherTestDBURL = "postgres://hivy:localdev@localhost:15432/hivy_test?sslmode=disable" // #nosec G101 -- local test DB fixture
+const pusherTestDBURL = testdb.DefaultDatabaseURL
 
 func TestBuildScopesFromIntegrations(t *testing.T) {
 	scopes := buildScopesFromIntegrations(model.JSON{})
@@ -96,18 +95,12 @@ func TestMergeAgentIntegrationsForAccess_InheritsEmployeeAndAllowsSpecialistOver
 
 func setupPusherTestDB(t *testing.T) *gorm.DB {
 	t.Helper()
-	dsn := os.Getenv("DATABASE_URL")
-	if dsn == "" {
-		dsn = pusherTestDBURL
-	}
+	dsn := testdb.DatabaseURL("DATABASE_URL", "HIVY_DATABASE_URL", "TEST_DATABASE_URL")
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
-		t.Skipf("DB not available: %v", err)
+		t.Fatalf("connect postgres: %v", err)
 	}
 	sqlDB, _ := db.DB()
-	if err := sqlDB.Ping(); err != nil {
-		t.Skipf("DB ping failed: %v", err)
-	}
 	testdb.ApplyMigrations(t, db)
 	t.Cleanup(func() { sqlDB.Close() })
 	return db

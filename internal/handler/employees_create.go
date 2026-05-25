@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
-	"github.com/lib/pq"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 
@@ -24,9 +23,6 @@ func ensureHivyEmployee(ctx context.Context, db *gorm.DB, orgID uuid.UUID) (*mod
 		Order("created_at ASC").
 		First(&existing).Error
 	if err == nil {
-		if err := ensureAutoAttachedSpecialists(ctx, db, &existing, specialistCatalogFromArgs().AutoAttachSlugs()); err != nil {
-			return nil, err
-		}
 		return &existing, nil
 	}
 	if !errors.Is(err, gorm.ErrRecordNotFound) {
@@ -54,32 +50,6 @@ func ensureHivyEmployee(ctx context.Context, db *gorm.DB, orgID uuid.UUID) (*mod
 		return nil, err
 	}
 	return out, nil
-}
-
-func ensureAutoAttachedSpecialists(ctx context.Context, db *gorm.DB, agent *model.Employee, slugs []string) error {
-	if agent == nil || len(slugs) == 0 {
-		return nil
-	}
-	next := append([]string(nil), agent.AttachedSpecialists...)
-	changed := false
-	for _, slug := range slugs {
-		before := len(next)
-		next = setAttachedSpecialist(next, slug, true)
-		if len(next) != before {
-			changed = true
-		}
-	}
-	if !changed {
-		return nil
-	}
-	if err := db.WithContext(ctx).
-		Model(&model.Employee{}).
-		Where("id = ?", agent.ID).
-		Update("attached_specialists", pq.StringArray(next)).Error; err != nil {
-		return fmt.Errorf("auto-attach specialists: %w", err)
-	}
-	agent.AttachedSpecialists = next
-	return nil
 }
 
 func createHivyEmployeeWithDefaultsTx(ctx context.Context, tx *gorm.DB, orgID uuid.UUID) (*model.Employee, error) {

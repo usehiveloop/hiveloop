@@ -18,7 +18,7 @@ import {
   SearchIcon,
   TextIcon,
 } from "@hugeicons/core-free-icons"
-import { CreateSkillDialog } from "@/app/w-old/settings/_components/create-skill-dialog"
+import { CreateSkillDialog } from "@/app/w/skills/_components/create-skill-dialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {

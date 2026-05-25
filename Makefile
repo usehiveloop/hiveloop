@@ -1,4 +1,4 @@
-.PHONY: build test test-e2e test-handler-sharded lint check-file-length vet check infra-up app-up app-up-build up up-build down dev dev-build dev-nango dev-nango-secret dev-migrate clean fetch-actions generate docker-build docker-run migrate-up migrate-status migrate-version test-clean test-clean-auth test-clean-nango test-clean-proxy test-clean-connect test-clean-integrations test-auth test-nango test-real-nango test-proxy test-connect test-integrations test-connections test-sandbox-docker test-setup test-setup-nango openapi generate-auth-keys generate-bridge-client generate-sandbox-runtime-client build-sandbox-runtime-templates build-sandbox-runtime-specialist-templates employee-env-doctor employee-debug-pack employee-eval test-services-up test-services-down ragtest-slack-live ragtest-kb-search-live seed-test local-up local-down local-reset local-status login-test asynq-peek
+.PHONY: build test test-e2e test-handler-sharded lint check-file-length vet check ci-env ci-up ci-test-internal ci-test-e2e ci-test-cmd ci-test-web ci-test-runtime ci-quality infra-up app-up app-up-build up up-build down dev dev-build dev-nango dev-nango-secret dev-migrate clean fetch-actions generate docker-build docker-run migrate-up migrate-status migrate-version test-clean test-clean-auth test-clean-nango test-clean-proxy test-clean-connect test-clean-integrations test-auth test-nango test-real-nango test-proxy test-connect test-integrations test-connections test-sandbox-docker test-setup test-setup-nango openapi generate-auth-keys generate-bridge-client generate-sandbox-runtime-client build-sandbox-runtime-templates build-sandbox-runtime-specialist-templates employee-env-doctor employee-debug-pack employee-eval test-services-up test-services-down ragtest-slack-live ragtest-kb-search-live seed-test local-up local-down local-reset local-status login-test asynq-peek
 .PHONY: sandbox-runtime-build sandbox-runtime-native-release sandbox-runtime-linux-build sandbox-runtime-linux-build-amd64 sandbox-runtime-linux-build-arm64 sandbox-runtime-linux-build-all sandbox-runtime-release-all sandbox-runtime-test sandbox-runtime-fmt-check sandbox-runtime-clippy sandbox-runtime-openapi runtime-openapi sandbox-runtime-image sandbox-runtime-image-amd64 sandbox-runtime-image-arm64 sandbox-runtime-specialist-image sandbox-runtime-specialist-image-amd64 sandbox-runtime-specialist-image-arm64 sandbox-runtime-image-test
 
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
@@ -18,11 +18,14 @@ DEV_COMPOSE_SERVICES ?= postgres redis nango qdrant minio minio-setup hindsight 
 DEV_INFRA_SERVICES ?= postgres redis nango qdrant minio minio-setup hindsight
 DEV_APP_SERVICES ?= api worker web
 NANGO_SECRET_SQL = SELECT secret_key FROM nango._nango_environments WHERE name='\''prod'\'' LIMIT 1
-TEST_DATABASE_URL ?= postgres://hivy:localdev@localhost:$(or $(HIVY_COMPOSE_POSTGRES_PORT),15432)/hivy_test?sslmode=disable
-TEST_REDIS_ADDR ?= localhost:$(or $(HIVY_COMPOSE_REDIS_PORT),16379)
+TEST_DATABASE_URL ?= postgres://hivy:localdev@localhost:$(or $(HIVY_COMPOSE_POSTGRES_PORT),5433)/hivy_test?sslmode=disable
+TEST_REDIS_ADDR ?= localhost:$(or $(HIVY_COMPOSE_REDIS_PORT),16279)
 TEST_ENV = DATABASE_URL="$(TEST_DATABASE_URL)" HIVY_DATABASE_URL="$(TEST_DATABASE_URL)" HIVY_REDIS_ADDR="$(TEST_REDIS_ADDR)"
 HANDLER_TEST_SHARDS ?= 8
 HANDLER_TEST_TIMEOUT ?= 5m
+SHARD_INDEX ?= 0
+SHARD_TOTAL ?= 1
+RACE ?= 0
 
 # Generate base64-encoded RSA private key for HIVY_AUTH_RSA_PRIVATE_KEY env var
 generate-auth-keys:
@@ -327,6 +330,39 @@ vet:
 
 # Run all checks: vet, lint, file-length, log-budget, test, build
 check: vet lint check-file-length check-log-budget test build
+
+ci-env:
+	./scripts/ci-write-env.sh
+
+ci-up:
+	docker compose down -v --remove-orphans
+	$(MAKE) ci-env
+	$(MAKE) up
+	./scripts/ci-wait-stack.sh
+
+ci-test-internal:
+	SHARD_INDEX="$(SHARD_INDEX)" SHARD_TOTAL="$(SHARD_TOTAL)" RACE="$(RACE)" ./scripts/ci-test-shard.sh internal
+
+ci-test-e2e:
+	SHARD_INDEX="$(SHARD_INDEX)" SHARD_TOTAL="$(SHARD_TOTAL)" RACE="$(RACE)" ./scripts/ci-test-shard.sh e2e
+
+ci-test-cmd:
+	./scripts/ci-test-shard.sh cmd
+
+ci-test-web:
+	cd apps/web && pnpm typecheck && HIVY_API_URL=http://localhost:8080 pnpm build
+
+ci-test-runtime:
+	$(MAKE) sandbox-runtime-fmt-check
+	$(MAKE) sandbox-runtime-clippy
+	$(MAKE) sandbox-runtime-test
+
+ci-quality:
+	git diff --check
+	go vet ./...
+	./scripts/check-go-file-length.sh
+	./scripts/check-go-comment-density.sh
+	./scripts/check-log-budget.sh
 
 # Start local Nango first and print the generated Hivy API secret.
 dev-nango:

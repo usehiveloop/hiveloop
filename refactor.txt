@@ -1,0 +1,53 @@
+# Hivy Codebase Refactor Register
+
+This file records the approved cleanup scope from the codebase audit. Do not
+add purge targets during execution without asking first.
+
+## Approved purge completed in this wave
+
+- Delete `apps/web/app/exploration-1/page.tsx`.
+- Move the still-used connection and skill modules out of `apps/web/app/w-old`.
+- Delete all remaining tracked files under `apps/web/app/w-old/**`.
+- Delete the local OpenRouter runtime proxy files:
+  - `sandboxes/runtime/openrouter-proxy/README.md`
+  - `sandboxes/runtime/openrouter-proxy/analyze_cache.py`
+  - `sandboxes/runtime/openrouter-proxy/config_for_proxy.py`
+  - `sandboxes/runtime/openrouter-proxy/export_conversations.py`
+  - `sandboxes/runtime/openrouter-proxy/proxy.py`
+
+## Refactors completed in this wave
+
+- `sandboxes/runtime/Makefile` now runs the runtime directly and no longer
+  starts or configures the removed OpenRouter proxy.
+- Integration test database and Redis defaults now live in `internal/testdb`.
+- Test helpers now use central `testdb.DatabaseURL`, `testdb.NangoDatabaseURL`,
+  and `testdb.RedisAddr` instead of copied localhost DSNs.
+- Missing `global/integrations` now fails seeding instead of treating the
+  missing directory as an empty manifest set that prunes managed integrations.
+- Global skill seeding now validates duplicate names/slugs before DB writes.
+- Global skill seeding now compares metadata and bundle JSON before updating.
+- Global specialist `auto_attach` is only used for new employee creation; boot
+  no longer forces detached specialists back onto existing employees.
+- `/spider` stays available for sandbox web tools and is now behind sandbox
+  proxy token auth.
+
+## Deferred findings
+
+- Central test DB isolation should continue from the new helper toward
+  per-test schema/database creation in packages that still share `hivy_test`.
+- `make up` is the human Docker development baseline; `make local-up` is the
+  agent sandbox baseline. Docs and CI still need a single explicit port table.
+- `test-clean` still needs target-specific env validation instead of requiring
+  unrelated external keys for every suite.
+- CI, eval, compose, and local scripts still disagree on several ports.
+- `local-down` can still kill unrelated port holders and should be changed to
+  recorded PID/process-group cleanup by default.
+- Native `local-init` still mutates the machine Postgres auth policy and should
+  become an explicit bootstrap path with rollback guidance.
+- Runtime demo files `sandboxes/runtime/config.json`,
+  `sandboxes/runtime/.env.example`, and `sandboxes/runtime/db-todos.txt` were
+  intentionally kept.
+- Legacy MCP SSE route was intentionally kept.
+- Ignored local files under `.claude/worktrees`, local `.env` files, and
+  `scripts/aws-credentials-*.env` should be cleaned by the developer outside
+  tracked code changes.

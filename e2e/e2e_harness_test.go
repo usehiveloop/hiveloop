@@ -32,8 +32,6 @@ import (
 )
 
 const (
-	testDBURL      = "postgres://hivy:localdev@localhost:15432/hivy_test?sslmode=disable" //nolint:gosec // G101: local-only test fixture, not a real credential
-	testRedisAddr  = "localhost:16379"
 	testSigningKey = "e2e-signing-key-for-tests"
 )
 
@@ -82,16 +80,10 @@ func newHarness(t *testing.T) *testHarness {
 	sqlDB, _ := db.DB()
 	sqlDB.SetMaxOpenConns(3)
 	sqlDB.SetMaxIdleConns(1)
-	if err := sqlDB.Ping(); err != nil {
-		t.Fatalf("Postgres not reachable: %v", err)
-	}
 	testdb.ApplyMigrations(t, db)
 	t.Cleanup(func() { sqlDB.Close() })
 
 	rc := redis.NewClient(&redis.Options{Addr: testRedisAddrOrEnv()})
-	if err := rc.Ping(context.Background()).Err(); err != nil {
-		t.Fatalf("Redis not reachable: %v", err)
-	}
 	t.Cleanup(func() { rc.Close() })
 
 	kms, err := crypto.NewAEADWrapper(t.Context(), "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=", "e2e-test-key")

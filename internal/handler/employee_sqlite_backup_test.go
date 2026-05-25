@@ -113,15 +113,6 @@ func newRealS3Client(t *testing.T) *storage.S3Client {
 	if endpoint == "" {
 		endpoint = testMinioEndpoint
 	}
-	hcReq, _ := http.NewRequestWithContext(t.Context(), http.MethodGet, endpoint+"/minio/health/ready", nil)
-	resp, err := http.DefaultClient.Do(hcReq)
-	if err != nil || resp.StatusCode >= 400 {
-		if resp != nil {
-			_ = resp.Body.Close()
-		}
-		t.Skipf("MinIO not reachable at %s: %v", endpoint, err)
-	}
-	_ = resp.Body.Close()
 
 	s3, err := storage.NewS3Client(testMinioBucket, "auto", endpoint, testMinioAccess, testMinioSecret)
 	if err != nil {

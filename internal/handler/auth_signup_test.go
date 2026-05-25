@@ -1,35 +1,25 @@
 package handler
 
 import (
-	"os"
 	"testing"
 
 	"github.com/google/uuid"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
-	"github.com/usehivy/hivy/internal/testdb"
 	"github.com/usehivy/hivy/internal/billing"
 	"github.com/usehivy/hivy/internal/model"
+	"github.com/usehivy/hivy/internal/testdb"
 )
-
-//nolint:gosec // G101: local-dev DSN, mirrors api_keys_test.go testDBURL.
-const internalTestDBURL = "postgres://hivy:localdev@localhost:15432/hivy_test?sslmode=disable"
 
 func connectInternalTestDB(t *testing.T) *gorm.DB {
 	t.Helper()
-	dsn := os.Getenv("DATABASE_URL")
-	if dsn == "" {
-		dsn = internalTestDBURL
-	}
+	dsn := testdb.DatabaseURL("DATABASE_URL", "HIVY_DATABASE_URL", "TEST_DATABASE_URL")
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		t.Fatalf("connect Postgres: %v", err)
 	}
 	sqlDB, _ := db.DB()
-	if err := sqlDB.Ping(); err != nil {
-		t.Fatalf("Postgres not reachable: %v", err)
-	}
 	testdb.ApplyMigrations(t, db)
 	t.Cleanup(func() { _ = sqlDB.Close() })
 	return db

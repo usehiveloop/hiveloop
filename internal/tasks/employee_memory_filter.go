@@ -11,35 +11,6 @@ import (
 
 var memorySecretPattern = regexp.MustCompile(`(?i)(ptok_|xox[baprs]-|sk-[a-z0-9]|api[_-]?key|secret|token|password)\s*[:=]\s*\S+`)
 
-var memoryFillerMessages = map[string]struct{}{
-	"+1":             {},
-	"ah":             {},
-	"better":         {},
-	"classic":        {},
-	"closer":         {},
-	"cool":           {},
-	"exactly":        {},
-	"fine":           {},
-	"good":           {},
-	"great":          {},
-	"handy":          {},
-	"hmm":            {},
-	"lol":            {},
-	"nice":           {},
-	"ok":             {},
-	"okay":           {},
-	"one sec":        {},
-	"please":         {},
-	"ship":           {},
-	"thanks":         {},
-	"threading here": {},
-	"ty":             {},
-	"ugh":            {},
-	"works locally":  {},
-	"yep":            {},
-	"yes":            {},
-}
-
 func employeeSessionEventsContainSecret(events []model.EmployeeSessionEvent) bool {
 	for _, event := range events {
 		payload := employeeMemoryPayload(event)
@@ -54,26 +25,15 @@ func employeeSessionEventsContainSecret(events []model.EmployeeSessionEvent) boo
 
 func shouldIncludeEmployeeMemoryMessage(text string) bool {
 	text = strings.TrimSpace(text)
-	if text == "" || isEmployeeMemoryFiller(text) || memorySecretPattern.MatchString(text) {
+	if text == "" || memorySecretPattern.MatchString(text) {
 		return false
 	}
 	return true
 }
 
-func isEmployeeMemoryFiller(text string) bool {
-	normalized := strings.ToLower(strings.TrimSpace(text))
-	normalized = strings.Trim(normalized, ".!?:; \t\n\r")
-	_, ok := memoryFillerMessages[normalized]
-	return ok
-}
-
 func meaningfulEmployeeMemoryTranscript(transcript string, events []model.EmployeeSessionEvent) bool {
 	transcript = strings.TrimSpace(transcript)
 	if transcript == "" || memorySecretPattern.MatchString(transcript) {
-		return false
-	}
-	lower := strings.ToLower(transcript)
-	if lower == "hi" || lower == "hello" || lower == "thanks" || lower == "thank you" {
 		return false
 	}
 	hasUser := false

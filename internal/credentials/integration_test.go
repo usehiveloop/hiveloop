@@ -1,7 +1,6 @@
 package credentials_test
 
 import (
-	"os"
 	"testing"
 	"time"
 
@@ -19,22 +18,11 @@ import (
 //
 // Helpers live here; per-area tests live in <area>_integration_test.go.
 
-// testDBURL mirrors the DSN used throughout the other integration-test packages
-// (internal/middleware/integration_test.go, internal/rag/testhelpers/db.go).
-// Password is a documented local-dev value; same one CI uses via env.
-//
-//nolint:gosec // G101: hardcoded local-dev DSN, mirrors sibling integration tests
-const testDBURL = "postgres://hivy:localdev@localhost:15432/hivy_test?sslmode=disable"
-
-// connectTestDB opens a real Postgres connection and runs goose migrations.
 // It follows the same shape as the sibling helpers but only migrates the core
 // schema — the rag schema isn't needed here.
 func connectTestDB(t *testing.T) *gorm.DB {
 	t.Helper()
-	dsn := os.Getenv("DATABASE_URL")
-	if dsn == "" {
-		dsn = testDBURL
-	}
+	dsn := testdb.DatabaseURL("DATABASE_URL", "HIVY_DATABASE_URL", "TEST_DATABASE_URL")
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		t.Fatalf("cannot connect to Postgres at %s (run `make test-setup` first): %v", dsn, err)
@@ -42,9 +30,6 @@ func connectTestDB(t *testing.T) *gorm.DB {
 	sqlDB, err := db.DB()
 	if err != nil {
 		t.Fatalf("underlying sql.DB: %v", err)
-	}
-	if err := sqlDB.Ping(); err != nil {
-		t.Fatalf("Postgres not reachable at %s: %v", dsn, err)
 	}
 	testdb.ApplyMigrations(t, db)
 	t.Cleanup(func() { _ = sqlDB.Close() })

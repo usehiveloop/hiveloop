@@ -130,6 +130,8 @@ func loadGlobalSkills(ctx context.Context, skillsDir string) ([]loadedGlobalSkil
 		return nil, fmt.Errorf("read global skills dir %q: %w", skillsDir, err)
 	}
 	out := make([]loadedGlobalSkill, 0, len(entries))
+	names := map[string]string{}
+	slugs := map[string]string{}
 	for _, entry := range entries {
 		if !entry.IsDir() {
 			continue
@@ -145,6 +147,16 @@ func loadGlobalSkills(ctx context.Context, skillsDir string) ([]loadedGlobalSkil
 		if manifest.Internal {
 			continue
 		}
+		nameKey := strings.ToLower(strings.TrimSpace(manifest.Name))
+		if prior := names[nameKey]; prior != "" {
+			return nil, fmt.Errorf("duplicate global skill name %q in %s and %s", manifest.Name, prior, dir)
+		}
+		names[nameKey] = dir
+		slugKey := model.GenerateSlug(manifest.Name)
+		if prior := slugs[slugKey]; prior != "" {
+			return nil, fmt.Errorf("duplicate global skill slug %q in %s and %s", slugKey, prior, dir)
+		}
+		slugs[slugKey] = dir
 		loaded, err := loadGlobalSkill(ctx, dir, manifest)
 		if err != nil {
 			return nil, err

@@ -33,15 +33,6 @@ func newRealPresigner(t *testing.T) *storage.S3Presigner {
 	if endpoint == "" {
 		endpoint = testMinioEndpoint
 	}
-	hcReq, _ := http.NewRequestWithContext(t.Context(), http.MethodGet, endpoint+"/minio/health/ready", nil)
-	if resp, err := http.DefaultClient.Do(hcReq); err != nil || resp.StatusCode >= 400 {
-		if resp != nil {
-			_ = resp.Body.Close()
-		}
-		t.Skipf("MinIO not reachable at %s: %v", endpoint, err)
-	} else {
-		_ = resp.Body.Close()
-	}
 	p, err := storage.NewS3Presigner(storage.PublicAssetsConfig{
 		Bucket:     testMinioBucket,
 		Region:     "auto",

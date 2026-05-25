@@ -94,7 +94,7 @@ func TestHTTPAdapterSendResponsePostsMarkdownCallback(t *testing.T) {
 	}
 	payload, err := adapter.RenderResponse(t.Context(), AgentResponse{
 		Route: route,
-		EmployeeSession: model.EmployeeConversation{
+		EmployeeSession: model.EmployeeSession{
 			SourceResourceKey: "http:" + route.ID.String() + ":thread-1",
 		},
 		ChannelID: route.ID.String(),

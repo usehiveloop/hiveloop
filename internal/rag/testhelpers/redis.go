@@ -2,24 +2,20 @@ package testhelpers
 
 import (
 	"context"
-	"os"
 	"testing"
 	"time"
 
 	"github.com/redis/go-redis/v9"
-)
 
-const testRedisAddr = "localhost:16379"
+	"github.com/usehivy/hivy/internal/testdb"
+)
 
 // testRedisDB steers test fixtures away from production's default DB 0
 // so developers can run `redis-cli` alongside the suite.
 const testRedisDB = 11
 
 func RedisAddr() string {
-	if v := os.Getenv("HIVY_REDIS_ADDR"); v != "" {
-		return v
-	}
-	return testRedisAddr
+	return testdb.RedisAddr("HIVY_REDIS_ADDR", "TEST_REDIS_ADDR")
 }
 
 func RedisDB() int { return testRedisDB }

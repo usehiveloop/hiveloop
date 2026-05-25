@@ -53,7 +53,7 @@ func (f *Flusher) flushStream(ctx context.Context, convID string) {
 		return
 	}
 
-	var conv model.EmployeeConversation
+	var conv model.EmployeeSession
 	if err := f.db.Where("id = ?", convUUID).First(&conv).Error; err != nil {
 		captureTimelineFlush(ctx, "conversation_not_found", convID, err, map[string]any{
 			"message_count": len(msgs),
@@ -196,7 +196,7 @@ func (f *Flusher) flushStream(ctx context.Context, convID string) {
 func (f *Flusher) appendRecoveredReasoningEvents(
 	ctx context.Context,
 	convID string,
-	conv *model.EmployeeConversation,
+	conv *model.EmployeeSession,
 	terminal model.EmployeeSessionEvent,
 	events *[]model.EmployeeSessionEvent,
 	recoveredMsgIDs *[]string,
@@ -229,7 +229,7 @@ func (f *Flusher) appendRecoveredReasoningEvents(
 func (f *Flusher) appendRecoveredEvents(
 	ctx context.Context,
 	convID string,
-	conv *model.EmployeeConversation,
+	conv *model.EmployeeSession,
 	terminal model.EmployeeSessionEvent,
 	events *[]model.EmployeeSessionEvent,
 	recoveredMsgIDs *[]string,

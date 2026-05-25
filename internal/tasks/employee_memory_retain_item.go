@@ -31,13 +31,17 @@ func buildEmployeeRetainItem(agent *model.Employee, payload EmployeeMemoryRetain
 	observationScopes := [][]string{{"company:" + agent.OrgID.String()}}
 	return hindsight.RetainItem{
 		Content:           digest,
-		Context:           fmt.Sprintf("Settled employee session transcript from %s source. It includes user and employee messages only. Extract durable people facts, stable channel user IDs or mention handles when present, company facts, decisions, preferences, ownership, policies, recurring workflows, and reusable technical context. Ignore greetings, active conversation framing, temporary task status, and ordinary completion chatter.", source),
+		Context:           employeeMemoryRetentionContext(source),
 		DocumentID:        employeeMemoryDocumentID(payload),
 		Tags:              tags,
 		Timestamp:         events[0].EventAt.UTC().Format(time.RFC3339),
 		Metadata:          employeeMemoryRetainMetadata(agent, payload, events),
 		ObservationScopes: observationScopes,
 	}, true
+}
+
+func employeeMemoryRetentionContext(source string) string {
+	return fmt.Sprintf("Settled employee session transcript from %s source. It includes user and employee messages only. Retain only information that will be useful in future work: stable people facts, stable channel user IDs or mention handles when present, company facts, decisions, preferences, ownership, policies, recurring workflows, and reusable technical context. If the transcript is only social chatter, jokes, acknowledgements, temporary status, active task framing, or ordinary completion chatter, retain nothing. Never retain secrets or pasted credential values.", source)
 }
 
 func employeeMemoryDocumentID(payload EmployeeMemoryRetainPayload) string {

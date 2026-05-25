@@ -12,7 +12,7 @@ import (
 	"github.com/usehivy/hivy/internal/model"
 )
 
-func (h *EmployeeOutboundWebhookHandler) ensureEmployeeSession(ctx context.Context, sb *model.Sandbox, sessionID, source string, payload map[string]any, specialistTask *model.SpecialistTask) (*model.EmployeeConversation, bool, error) {
+func (h *EmployeeOutboundWebhookHandler) ensureEmployeeSession(ctx context.Context, sb *model.Sandbox, sessionID, source string, payload map[string]any, specialistTask *model.SpecialistTask) (*model.EmployeeSession, bool, error) {
 	if sb.OrgID == nil || sb.EmployeeID == nil {
 		return nil, false, fmt.Errorf("employee sandbox missing org_id or employee_id")
 	}
@@ -21,7 +21,7 @@ func (h *EmployeeOutboundWebhookHandler) ensureEmployeeSession(ctx context.Conte
 		return nil, false, fmt.Errorf("runtime session_id is required for employee session events")
 	}
 	if specialistTask != nil && specialistTask.ConversationID != nil {
-		var session model.EmployeeConversation
+		var session model.EmployeeSession
 		if err := h.db.WithContext(ctx).
 			Where("id = ? AND org_id = ? AND employee_id = ?", *specialistTask.ConversationID, *sb.OrgID, *sb.EmployeeID).
 			First(&session).Error; err != nil {
@@ -32,14 +32,14 @@ func (h *EmployeeOutboundWebhookHandler) ensureEmployeeSession(ctx context.Conte
 	if source == "" {
 		source = employeeEventSource(payload)
 	}
-	session := model.EmployeeConversation{}
-	scope := model.EmployeeConversation{
+	session := model.EmployeeSession{}
+	scope := model.EmployeeSession{
 		OrgID:                 *sb.OrgID,
 		EmployeeID:            *sb.EmployeeID,
 		SandboxID:             sb.ID,
 		RuntimeConversationID: sessionID,
 	}
-	attrs := model.EmployeeConversation{
+	attrs := model.EmployeeSession{
 		Source:            source,
 		SourceResourceKey: employeeSessionSourceResourceKey(payload, sessionID),
 		Status:            "active",
@@ -60,7 +60,7 @@ func (h *EmployeeOutboundWebhookHandler) markEmployeeSessionEnded(ctx context.Co
 	if endedAt.IsZero() {
 		endedAt = h.now().UTC()
 	}
-	if err := h.db.WithContext(ctx).Model(&model.EmployeeConversation{}).
+	if err := h.db.WithContext(ctx).Model(&model.EmployeeSession{}).
 		Where("id = ?", sessionID).
 		Updates(map[string]any{"status": "ended", "ended_at": endedAt}).Error; err != nil {
 		logging.Capture(ctx, fmt.Errorf("employee outbound webhook: mark session ended: %w", err))

@@ -4,7 +4,6 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"fmt"
-	"os"
 	"testing"
 	"time"
 
@@ -12,13 +11,12 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
-	"github.com/usehivy/hivy/internal/testdb"
 	"github.com/usehivy/hivy/internal/auth"
 	"github.com/usehivy/hivy/internal/model"
+	"github.com/usehivy/hivy/internal/testdb"
 )
 
 const (
-	testDBURL      = "postgres://hivy:localdev@localhost:15432/hivy_test?sslmode=disable" // #nosec G101 -- local test DB fixture
 	testSigningKey = "local-dev-signing-key-change-in-prod"
 )
 
@@ -26,10 +24,7 @@ const (
 func connectTestDB(t *testing.T) *gorm.DB {
 	t.Helper()
 
-	dsn := os.Getenv("DATABASE_URL")
-	if dsn == "" {
-		dsn = testDBURL
-	}
+	dsn := testdb.DatabaseURL("DATABASE_URL", "HIVY_DATABASE_URL", "TEST_DATABASE_URL")
 
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
@@ -42,9 +37,6 @@ func connectTestDB(t *testing.T) *gorm.DB {
 	}
 	sqlDB.SetMaxOpenConns(3)
 	sqlDB.SetMaxIdleConns(1)
-	if err := sqlDB.Ping(); err != nil {
-		t.Fatalf("Postgres not reachable: %v", err)
-	}
 
 	testdb.ApplyMigrations(t, db)
 

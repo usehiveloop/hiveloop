@@ -3,23 +3,18 @@ package streaming
 import (
 	"context"
 	"encoding/json"
-	"os"
 	"testing"
 	"time"
 
 	"github.com/redis/go-redis/v9"
+
+	"github.com/usehivy/hivy/internal/testdb"
 )
 
 func setupTestRedis(t *testing.T) *redis.Client {
 	t.Helper()
-	addr := os.Getenv("HIVY_REDIS_ADDR")
-	if addr == "" {
-		addr = "localhost:16379"
-	}
+	addr := testdb.RedisAddr("HIVY_REDIS_ADDR", "TEST_REDIS_ADDR")
 	client := redis.NewClient(&redis.Options{Addr: addr, DB: 15})
-	if err := client.Ping(context.Background()).Err(); err != nil {
-		t.Skipf("Redis not available: %v", err)
-	}
 	t.Cleanup(func() {
 		client.FlushDB(context.Background())
 		client.Close()

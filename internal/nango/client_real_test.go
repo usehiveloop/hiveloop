@@ -3,26 +3,23 @@ package nango_test
 import (
 	"context"
 	"fmt"
-	"os"
 	"strings"
 	"testing"
 	"time"
 
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
+
 	"github.com/usehivy/hivy/internal/nango"
+	"github.com/usehivy/hivy/internal/testdb"
 )
 
 func TestRealNangoCreateIntegrationRequiresConcreteOAuthCredentials(t *testing.T) {
-	if os.Getenv("RUN_REAL_NANGO_TESTS") != "1" {
-		t.Skip("set RUN_REAL_NANGO_TESTS=1 to run against docker-compose Nango")
-	}
-	endpoint := os.Getenv("HIVY_NANGO_ENDPOINT")
-	secret := os.Getenv("HIVY_NANGO_SECRET_KEY")
-	if endpoint == "" || secret == "" {
-		t.Fatal("HIVY_NANGO_ENDPOINT and HIVY_NANGO_SECRET_KEY are required")
-	}
+	endpoint := "http://localhost:23003"
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
+	secret := discoverRealNangoSecret(t, ctx)
 
 	client := nango.NewClient(endpoint, secret)
 	uniqueKey := fmt.Sprintf("in_linear-profile-realtest-%d", time.Now().UnixNano())
@@ -65,4 +62,28 @@ func TestRealNangoCreateIntegrationRequiresConcreteOAuthCredentials(t *testing.T
 	if !strings.Contains(err.Error(), "client_id") || !strings.Contains(err.Error(), "client_secret") {
 		t.Fatalf("expected client_id/client_secret validation error, got %v", err)
 	}
+}
+
+func discoverRealNangoSecret(t *testing.T, ctx context.Context) string {
+	t.Helper()
+	db, err := gorm.Open(postgres.Open(testdb.NangoDatabaseURL()), &gorm.Config{})
+	if err != nil {
+		t.Fatalf("connect Nango database: %v", err)
+	}
+	sqlDB, err := db.DB()
+	if err != nil {
+		t.Fatalf("get Nango database handle: %v", err)
+	}
+	defer sqlDB.Close()
+
+	var secret string
+	if err := db.WithContext(ctx).
+		Raw(`SELECT secret_key FROM nango._nango_environments WHERE name = ? LIMIT 1`, "prod").
+		Scan(&secret).Error; err != nil {
+		t.Fatalf("query Nango secret: %v", err)
+	}
+	if strings.TrimSpace(secret) == "" {
+		t.Fatal("Nango prod secret is empty")
+	}
+	return secret
 }

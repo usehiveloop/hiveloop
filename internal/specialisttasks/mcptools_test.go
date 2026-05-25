@@ -3,7 +3,6 @@ package specialisttasks
 import (
 	"context"
 	"encoding/json"
-	"os"
 	"testing"
 	"time"
 
@@ -20,7 +19,7 @@ import (
 	"github.com/usehivy/hivy/internal/testdb"
 )
 
-const specialistTasksTestDBURL = "postgres://hivy:localdev@localhost:15432/hivy_test?sslmode=disable" // #nosec G101 -- test fixture, not a real secret
+const specialistTasksTestDBURL = testdb.DefaultDatabaseURL
 
 func TestSpecialistListToolReturnsAttachedSpecialists(t *testing.T) {
 	db := connectSpecialistTasksTestDB(t)
@@ -113,10 +112,7 @@ func TestSpecialistToolsHiddenForNonEmployeeRuntimeTokens(t *testing.T) {
 
 func connectSpecialistTasksTestDB(t *testing.T) *gorm.DB {
 	t.Helper()
-	dsn := os.Getenv("DATABASE_URL")
-	if dsn == "" {
-		dsn = specialistTasksTestDBURL
-	}
+	dsn := testdb.DatabaseURL("DATABASE_URL", "HIVY_DATABASE_URL", "TEST_DATABASE_URL")
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		t.Fatalf("connect postgres: %v", err)
@@ -124,9 +120,6 @@ func connectSpecialistTasksTestDB(t *testing.T) *gorm.DB {
 	sqlDB, _ := db.DB()
 	sqlDB.SetMaxOpenConns(3)
 	sqlDB.SetMaxIdleConns(1)
-	if err := sqlDB.Ping(); err != nil {
-		t.Fatalf("postgres not reachable: %v", err)
-	}
 	testdb.ApplyMigrations(t, db)
 	t.Cleanup(func() { sqlDB.Close() })
 	return db

@@ -20,10 +20,10 @@ type SpecialistTask struct {
 	SpecialistSlug    string `gorm:"not null;index;size:128"`
 	EmployeeSessionID string `gorm:"not null;index;size:255"`
 
-	SandboxID      uuid.UUID             `gorm:"type:uuid;not null"`
-	Sandbox        Sandbox               `gorm:"foreignKey:SandboxID;constraint:OnDelete:CASCADE"`
-	ConversationID *uuid.UUID            `gorm:"type:uuid"`
-	Conversation   *EmployeeConversation `gorm:"foreignKey:ConversationID;constraint:OnDelete:CASCADE"`
+	SandboxID      uuid.UUID        `gorm:"type:uuid;not null"`
+	Sandbox        Sandbox          `gorm:"foreignKey:SandboxID;constraint:OnDelete:CASCADE"`
+	ConversationID *uuid.UUID       `gorm:"type:uuid"`
+	Conversation   *EmployeeSession `gorm:"foreignKey:ConversationID;constraint:OnDelete:CASCADE"`
 
 	ParentConversationType string `gorm:"not null"`
 	ParentConversationID   string `gorm:"not null;index"`

@@ -17,9 +17,6 @@ import (
 func liveClient(t *testing.T) *qdrant.Client {
 	t.Helper()
 	host := os.Getenv("HIVY_QDRANT_HOST")
-	if host == "" {
-		t.Skip("HIVY_QDRANT_HOST not set; skipping live qdrant test")
-	}
 	port, _ := strconv.Atoi(os.Getenv("HIVY_QDRANT_PORT"))
 	useTLS, _ := strconv.ParseBool(os.Getenv("HIVY_QDRANT_USE_TLS"))
 	c, err := qdrant.New(qdrant.Config{

@@ -1,7 +1,6 @@
 package testhelpers
 
 import (
-	"os"
 	"testing"
 
 	"gorm.io/driver/postgres"
@@ -9,10 +8,6 @@ import (
 
 	"github.com/usehivy/hivy/internal/testdb"
 )
-
-// testDBURL mirrors internal/middleware/integration_test.go:26 — the
-// hivy_test database on the dev Postgres instance at localhost:15432.
-const testDBURL = "postgres://hivy:localdev@localhost:15432/hivy_test?sslmode=disable" // #nosec G101 -- local test DB fixture
 
 // ConnectTestDB opens a real Postgres connection, runs the core and
 // RAG goose migrations steps, and registers `t.Cleanup` to close the
@@ -23,10 +18,7 @@ const testDBURL = "postgres://hivy:localdev@localhost:15432/hivy_test?sslmode=di
 func ConnectTestDB(t *testing.T) *gorm.DB {
 	t.Helper()
 
-	dsn := os.Getenv("HIVY_DATABASE_URL")
-	if dsn == "" {
-		dsn = testDBURL
-	}
+	dsn := testdb.DatabaseURL("HIVY_DATABASE_URL", "DATABASE_URL", "TEST_DATABASE_URL")
 
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {

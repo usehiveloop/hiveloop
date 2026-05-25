@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"testing"
 	"time"
 
@@ -22,7 +21,7 @@ import (
 	"github.com/usehivy/hivy/internal/testdb"
 )
 
-const spiderTestDBURL = "postgres://hivy:localdev@localhost:15432/hivy_test?sslmode=disable" // #nosec G101 -- test fixture, not a real secret
+const spiderTestDBURL = testdb.DefaultDatabaseURL
 
 type spiderTestHarness struct {
 	db          *gorm.DB
@@ -36,13 +35,10 @@ type spiderTestHarness struct {
 func newSpiderHarness(t *testing.T, spiderHandler http.Handler) *spiderTestHarness {
 	t.Helper()
 
-	dsn := os.Getenv("DATABASE_URL")
-	if dsn == "" {
-		dsn = spiderTestDBURL
-	}
+	dsn := testdb.DatabaseURL("DATABASE_URL", "HIVY_DATABASE_URL", "TEST_DATABASE_URL")
 	database, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
-		t.Skipf("cannot connect to test database: %v", err)
+		t.Fatalf("cannot connect to test database: %v", err)
 	}
 	testdb.ApplyMigrations(t, database)
 

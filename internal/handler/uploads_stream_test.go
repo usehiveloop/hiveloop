@@ -84,7 +84,7 @@ func newStreamHarness(t *testing.T) *streamHarness {
 	}
 
 	convID := uuid.New()
-	if err := db.Create(&model.EmployeeConversation{
+	if err := db.Create(&model.EmployeeSession{
 		ID:                    convID,
 		OrgID:                 orgID,
 		EmployeeID:            agentID,

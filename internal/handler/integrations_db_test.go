@@ -2,7 +2,6 @@ package handler_test
 
 import (
 	"net/url"
-	"os"
 	"strings"
 	"testing"
 
@@ -15,10 +14,7 @@ import (
 
 func connectFreshMigratedTestDB(t *testing.T) *gorm.DB {
 	t.Helper()
-	baseDSN := os.Getenv("DATABASE_URL")
-	if baseDSN == "" {
-		baseDSN = testDBURL
-	}
+	baseDSN := testdb.DatabaseURL("DATABASE_URL", "HIVY_DATABASE_URL", "TEST_DATABASE_URL")
 	dbName := "hivy_test_codex_" + strings.ReplaceAll(uuid.NewString(), "-", "")
 	maintenanceDSN, testDSN := testDatabaseDSNs(t, baseDSN, dbName)
 

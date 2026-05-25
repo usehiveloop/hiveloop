@@ -18,10 +18,7 @@ import (
 
 func connectIntegrationTestDB(t *testing.T) *gorm.DB {
 	t.Helper()
-	dsn := os.Getenv("HIVY_DATABASE_URL")
-	if dsn == "" {
-		dsn = testDBURL
-	}
+	dsn := testdb.DatabaseURL("HIVY_DATABASE_URL", "DATABASE_URL", "TEST_DATABASE_URL")
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{DisableForeignKeyConstraintWhenMigrating: true})
 	if err != nil {
 		t.Fatalf("cannot connect to Postgres: %v", err)

@@ -3,7 +3,6 @@ package streaming
 import (
 	"context"
 	"encoding/json"
-	"os"
 	"testing"
 
 	"github.com/google/uuid"
@@ -18,13 +17,10 @@ import (
 
 func setupTestDB(t *testing.T) *gorm.DB {
 	t.Helper()
-	dsn := os.Getenv("DATABASE_URL")
-	if dsn == "" {
-		dsn = "postgres://hivy:localdev@localhost:15432/hivy_test?sslmode=disable" // #nosec G101 -- local test DB fixture
-	}
+	dsn := testdb.DatabaseURL("DATABASE_URL", "HIVY_DATABASE_URL", "TEST_DATABASE_URL")
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{Logger: logger.Discard})
 	if err != nil {
-		t.Skipf("Postgres not available: %v", err)
+		t.Fatalf("connect postgres: %v", err)
 	}
 	testdb.ApplyMigrations(t, db)
 	return db
@@ -85,7 +81,7 @@ func createTestConversation(t *testing.T, db *gorm.DB) (uuid.UUID, uuid.UUID) {
 		t.Fatalf("create agent: %v", err)
 	}
 
-	conv := model.EmployeeConversation{
+	conv := model.EmployeeSession{
 		ID: convID, OrgID: orgID, EmployeeID: agentID, SandboxID: sandboxID,
 		RuntimeConversationID: "bridge-" + suffix, Status: "active",
 	}

@@ -7,9 +7,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"gorm.io/driver/postgres"
-	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
 )
 
 func TestFlusher_AcksAfterFlush(t *testing.T) {
@@ -31,11 +28,13 @@ func TestFlusher_AcksAfterFlush(t *testing.T) {
 
 func TestFlusher_DoesNotAckOnDBError(t *testing.T) {
 	rc := setupTestRedis(t)
-	badDB, err := gorm.Open(postgres.Open("postgres://bad:bad@localhost:1/bad?sslmode=disable"), &gorm.Config{Logger: logger.Discard})
-	if err == nil {
-		_ = badDB
-	} else {
-		t.Skip("cannot test DB error scenario")
+	badDB := setupTestDB(t)
+	sqlDB, err := badDB.DB()
+	if err != nil {
+		t.Fatalf("get sql db: %v", err)
+	}
+	if err := sqlDB.Close(); err != nil {
+		t.Fatalf("close sql db: %v", err)
 	}
 
 	bus := NewEventBus(rc)

@@ -14,9 +14,6 @@ import (
 )
 
 func TestBatch_LargeBatchEndToEnd(t *testing.T) {
-	if testing.Short() {
-		t.Skip("large batch test")
-	}
 	db := connectDB(t)
 
 	// 5 orgs × 250 generations = 1250 rows. The handler caps at billingBatchSize (1000)

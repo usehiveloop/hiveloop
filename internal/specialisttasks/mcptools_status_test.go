@@ -32,7 +32,7 @@ func TestSpecialistStatusToolReturnsCompactText(t *testing.T) {
 	if err := db.Create(&sb).Error; err != nil {
 		t.Fatalf("create sandbox: %v", err)
 	}
-	session := model.EmployeeConversation{
+	session := model.EmployeeSession{
 		ID:                    uuid.New(),
 		OrgID:                 org.ID,
 		EmployeeID:            employee.ID,
@@ -90,7 +90,7 @@ func TestSpecialistStatusToolReturnsCompactText(t *testing.T) {
 	}
 }
 
-func seedSpecialistStatusEvents(t *testing.T, db *gorm.DB, orgID, employeeID, sandboxID uuid.UUID, session model.EmployeeConversation, task model.SpecialistTask) {
+func seedSpecialistStatusEvents(t *testing.T, db *gorm.DB, orgID, employeeID, sandboxID uuid.UUID, session model.EmployeeSession, task model.SpecialistTask) {
 	t.Helper()
 	now := time.Now().UTC()
 	events := []model.EmployeeSessionEvent{
@@ -102,7 +102,7 @@ func seedSpecialistStatusEvents(t *testing.T, db *gorm.DB, orgID, employeeID, sa
 	}
 }
 
-func specialistStatusEvent(orgID, employeeID, sandboxID uuid.UUID, session model.EmployeeConversation, task model.SpecialistTask, eventType string, payload model.RawJSON, eventAt time.Time) model.EmployeeSessionEvent {
+func specialistStatusEvent(orgID, employeeID, sandboxID uuid.UUID, session model.EmployeeSession, task model.SpecialistTask, eventType string, payload model.RawJSON, eventAt time.Time) model.EmployeeSessionEvent {
 	return model.EmployeeSessionEvent{
 		OrgID:             orgID,
 		EmployeeID:        employeeID,

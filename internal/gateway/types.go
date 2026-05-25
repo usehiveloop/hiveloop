@@ -41,7 +41,7 @@ type AgentRequest struct {
 type AgentResponse struct {
 	RouteID          uuid.UUID
 	Route            model.EmployeeGatewayRoute
-	EmployeeSession  model.EmployeeConversation
+	EmployeeSession  model.EmployeeSession
 	RuntimeSessionID string
 	TraceID          string
 	TurnID           string
@@ -53,7 +53,7 @@ type AgentResponse struct {
 
 type ProviderResponsePayload struct {
 	Route     model.EmployeeGatewayRoute
-	Session   model.EmployeeConversation
+	Session   model.EmployeeSession
 	ChannelID string
 	ThreadID  string
 	Text      string
@@ -78,7 +78,7 @@ type Adapter interface {
 
 type RuntimeMessage struct {
 	Route                model.EmployeeGatewayRoute
-	Session              model.EmployeeConversation
+	Session              model.EmployeeSession
 	Text                 string
 	User                 string
 	UserDisplayName      string
@@ -106,7 +106,7 @@ type RuntimeMessenger interface {
 
 type ReceiveResult struct {
 	Event     model.EmployeeGatewayEvent
-	Session   model.EmployeeConversation
+	Session   model.EmployeeSession
 	Runtime   RuntimeDelivery
 	Duplicate bool
 	Ignored   bool

@@ -7,15 +7,15 @@ import (
 )
 
 type EmployeeSessionEvent struct {
-	ID                uuid.UUID            `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
-	OrgID             uuid.UUID            `gorm:"type:uuid;not null;index:idx_employee_session_event_scope"`
-	Org               Org                  `gorm:"foreignKey:OrgID;constraint:OnDelete:CASCADE"`
-	EmployeeID        uuid.UUID            `gorm:"type:uuid;not null;index:idx_employee_session_event_scope"`
-	Employee          Employee             `gorm:"foreignKey:EmployeeID;constraint:OnDelete:CASCADE"`
-	SandboxID         uuid.UUID            `gorm:"type:uuid;not null;index"`
-	Sandbox           Sandbox              `gorm:"foreignKey:SandboxID;constraint:OnDelete:CASCADE"`
-	EmployeeSessionID uuid.UUID            `gorm:"type:uuid;not null;index"`
-	EmployeeSession   EmployeeConversation `gorm:"foreignKey:EmployeeSessionID;constraint:OnDelete:CASCADE"`
+	ID                uuid.UUID       `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
+	OrgID             uuid.UUID       `gorm:"type:uuid;not null;index:idx_employee_session_event_scope"`
+	Org               Org             `gorm:"foreignKey:OrgID;constraint:OnDelete:CASCADE"`
+	EmployeeID        uuid.UUID       `gorm:"type:uuid;not null;index:idx_employee_session_event_scope"`
+	Employee          Employee        `gorm:"foreignKey:EmployeeID;constraint:OnDelete:CASCADE"`
+	SandboxID         uuid.UUID       `gorm:"type:uuid;not null;index"`
+	Sandbox           Sandbox         `gorm:"foreignKey:SandboxID;constraint:OnDelete:CASCADE"`
+	EmployeeSessionID uuid.UUID       `gorm:"type:uuid;not null;index"`
+	EmployeeSession   EmployeeSession `gorm:"foreignKey:EmployeeSessionID;constraint:OnDelete:CASCADE"`
 
 	SessionID        string     `gorm:"column:runtime_session_id;not null;index:idx_employee_session_event_scope;size:255"`
 	EventID          string     `gorm:"not null;default:'';index;size:255"`

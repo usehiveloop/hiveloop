@@ -75,15 +75,15 @@ func (f *Flusher) accumulateDelta(ctx context.Context, kind, convID, dataStr str
 	}
 }
 
-func buildRecoveredEvent(conv *model.EmployeeConversation, terminal model.EmployeeSessionEvent, messageID, content string) model.EmployeeSessionEvent {
+func buildRecoveredEvent(conv *model.EmployeeSession, terminal model.EmployeeSessionEvent, messageID, content string) model.EmployeeSessionEvent {
 	return buildRecoveredAccumulatedEvent(conv, terminal, messageID, content, bridgeevents.EventResponseCompleted, "full_response")
 }
 
-func buildRecoveredReasoningEvent(conv *model.EmployeeConversation, terminal model.EmployeeSessionEvent, messageID, content string) model.EmployeeSessionEvent {
+func buildRecoveredReasoningEvent(conv *model.EmployeeSession, terminal model.EmployeeSessionEvent, messageID, content string) model.EmployeeSessionEvent {
 	return buildRecoveredAccumulatedEvent(conv, terminal, messageID, content, bridgeevents.EventReasoningCompleted, "full_reasoning")
 }
 
-func buildRecoveredAccumulatedEvent(conv *model.EmployeeConversation, terminal model.EmployeeSessionEvent, messageID, content, eventType, contentField string) model.EmployeeSessionEvent {
+func buildRecoveredAccumulatedEvent(conv *model.EmployeeSession, terminal model.EmployeeSessionEvent, messageID, content, eventType, contentField string) model.EmployeeSessionEvent {
 	data, _ := json.Marshal(map[string]any{
 		"message_id": messageID,
 		contentField: content,

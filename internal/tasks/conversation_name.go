@@ -50,7 +50,7 @@ func (handler *ConversationNameHandler) Handle(ctx context.Context, task *asynq.
 		return fmt.Errorf("unmarshal payload: %w", err)
 	}
 
-	var conv model.EmployeeConversation
+	var conv model.EmployeeSession
 	if err := handler.db.WithContext(ctx).
 		Where("id = ?", payload.ConversationID).
 		First(&conv).Error; err != nil {
@@ -108,7 +108,7 @@ func (handler *ConversationNameHandler) Handle(ctx context.Context, task *asynq.
 	}
 
 	result := handler.db.WithContext(ctx).
-		Model(&model.EmployeeConversation{}).
+		Model(&model.EmployeeSession{}).
 		Where("id = ? AND (name IS NULL OR name = '')", conv.ID).
 		Update("name", title)
 	if result.Error != nil {

@@ -47,8 +47,8 @@ func TestSeedGlobalSkills_CreatesPublishedOrgNullSkillAndOverridesContent(t *tes
 	if err != nil {
 		t.Fatalf("seed unchanged: %v", err)
 	}
-	if result.Updated != 1 {
-		t.Fatalf("second seed should refresh existing content, got %+v", result)
+	if result.Unchanged != 1 {
+		t.Fatalf("second seed should leave unchanged content alone, got %+v", result)
 	}
 	if err := db.Where("org_id IS NULL AND name = ?", name).First(&skill).Error; err != nil {
 		t.Fatalf("reload seeded skill: %v", err)
@@ -277,9 +277,6 @@ func TestSeedGlobalSkills_ArchivesObsoleteUploadSkillNames(t *testing.T) {
 }
 
 func TestSeedGlobalSkills_RealBundledDirectory(t *testing.T) {
-	if os.Getenv("RUN_REAL_GLOBAL_SKILLS_SEED") != "1" {
-		t.Skip("set RUN_REAL_GLOBAL_SKILLS_SEED=1 to seed the real global/skills directory")
-	}
 	db := connectDB(t)
 
 	result, err := skills.SeedGlobalSkills(context.Background(), db, "global/skills")

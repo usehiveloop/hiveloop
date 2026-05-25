@@ -23,12 +23,12 @@ import (
 
 func connectHTTPTriggerTestDB(t *testing.T) *gorm.DB {
 	t.Helper()
-	dsn := "postgres://hivy:localdev@localhost:15432/hivy_test?sslmode=disable" // #nosec G101 -- test fixture, not a real secret
+	dsn := testdb.DefaultDatabaseURL
 	database, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
 		Logger: gormlogger.Discard,
 	})
 	if err != nil {
-		t.Skipf("skipping: test database not available: %v", err)
+		t.Fatalf("connect postgres: %v", err)
 	}
 
 	testdb.ApplyMigrations(t, database)

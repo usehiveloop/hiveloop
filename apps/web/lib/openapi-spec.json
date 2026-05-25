@@ -2334,615 +2334,6 @@
         }
       }
     },
-    "/v1/conversations/{convID}": {
-      "get": {
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "description": "Returns a conversation by ID.",
-        "tags": [
-          "conversations"
-        ],
-        "summary": "Get a conversation",
-        "parameters": [
-          {
-            "description": "Conversation ID",
-            "name": "convID",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/conversationResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          },
-          "410": {
-            "description": "Conversation has ended",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          }
-        }
-      },
-      "delete": {
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "description": "Permanently ends a conversation. Subsequent operations return 410.",
-        "tags": [
-          "conversations"
-        ],
-        "summary": "End a conversation",
-        "parameters": [
-          {
-            "description": "Conversation ID",
-            "name": "convID",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": {
-                    "type": "string"
-                  }
-                }
-              }
-            }
-          },
-          "410": {
-            "description": "Gone",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/conversations/{convID}/abort": {
-      "post": {
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "description": "Cancels the current in-flight LLM call or tool execution.",
-        "tags": [
-          "conversations"
-        ],
-        "summary": "Abort current turn",
-        "parameters": [
-          {
-            "description": "Conversation ID",
-            "name": "convID",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": {
-                    "type": "string"
-                  }
-                }
-              }
-            }
-          },
-          "410": {
-            "description": "Gone",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/conversations/{convID}/approvals": {
-      "get": {
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "description": "Returns pending tool approval requests for the conversation.",
-        "tags": [
-          "conversations"
-        ],
-        "summary": "List pending tool approvals",
-        "parameters": [
-          {
-            "description": "Conversation ID",
-            "name": "convID",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "additionalProperties": true
-                  }
-                }
-              }
-            }
-          },
-          "410": {
-            "description": "Gone",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/conversations/{convID}/approvals/{requestID}": {
-      "post": {
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "description": "Approves or denies a pending tool execution request.",
-        "tags": [
-          "conversations"
-        ],
-        "summary": "Resolve a tool approval",
-        "parameters": [
-          {
-            "description": "Conversation ID",
-            "name": "convID",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Approval request ID",
-            "name": "requestID",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "decision": {
-                    "type": "string"
-                  }
-                }
-              }
-            }
-          },
-          "description": "Decision: approve or deny",
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": {
-                    "type": "string"
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          },
-          "410": {
-            "description": "Gone",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/conversations/{convID}/events": {
-      "get": {
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "description": "Returns webhook events persisted for the conversation, ordered by sequence_number DESC (newest first). Pagination cursor is the lowest sequence_number on the current page; pass it back to fetch the next older page. Filterable by event type.",
-        "tags": [
-          "conversations"
-        ],
-        "summary": "List conversation events",
-        "parameters": [
-          {
-            "description": "Conversation ID",
-            "name": "convID",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by event type (e.g. message_received, response_completed)",
-            "name": "type",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Page size (default 50, max 100)",
-            "name": "limit",
-            "in": "query",
-            "schema": {
-              "type": "integer"
-            }
-          },
-          {
-            "description": "Pagination cursor \u2014 sequence_number from previous page's tail. Returns events with sequence_number strictly less than this value.",
-            "name": "cursor",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/paginatedResponse-handler_conversationEventResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/conversations/{convID}/history": {
-      "get": {
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "description": "Returns persisted conversation events in chronological order, intended for hydrating a UI before opening the SSE stream. Paginated via since=<event_id>. Unlike GET /events, this endpoint sorts events ASC by sequence_number so the caller can render in order.",
-        "tags": [
-          "conversations"
-        ],
-        "summary": "Hydrate conversation history",
-        "parameters": [
-          {
-            "description": "Conversation ID",
-            "name": "convID",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Return events with sequence_number greater than this event_id",
-            "name": "since",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Page size (default 200, max 1000)",
-            "name": "limit",
-            "in": "query",
-            "schema": {
-              "type": "integer"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/conversationHistoryResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/conversations/{convID}/messages": {
-      "get": {
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "description": "Returns chat-ready messages aggregated from raw events. Consecutive same-name tool calls are grouped (e.g. \"bash\" called 11 times in a row \u2192 one group with 11 calls). Pagination is by sequence_number; aggregation is per-page so a tool call split across pages will not pair.",
-        "tags": [
-          "conversations"
-        ],
-        "summary": "List conversation messages",
-        "parameters": [
-          {
-            "description": "Conversation ID",
-            "name": "convID",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Max events scanned per page (default 200, max 1000). Aggregated message count may be smaller.",
-            "name": "limit",
-            "in": "query",
-            "schema": {
-              "type": "integer"
-            }
-          },
-          {
-            "description": "Sequence number from the previous page's tail. Returns events with sequence_number strictly greater than this value.",
-            "name": "cursor",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/conversationMessagesResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          }
-        }
-      },
-      "post": {
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "description": "Sends a message to the agent in the conversation. Returns 202 immediately; response streams via SSE.",
-        "tags": [
-          "conversations"
-        ],
-        "summary": "Send a message",
-        "parameters": [
-          {
-            "description": "Conversation ID",
-            "name": "convID",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "content": {
-                    "type": "string"
-                  }
-                }
-              }
-            }
-          },
-          "description": "Message content",
-          "required": true
-        },
-        "responses": {
-          "202": {
-            "description": "Accepted",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": {
-                    "type": "string"
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          },
-          "410": {
-            "description": "Gone",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/conversations/{convID}/stream": {
-      "get": {
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "description": "Opens a Server-Sent Events stream for real-time agent responses. Defaults to live-only (cursor \"$\"); clients that want history should hydrate via GET /v1/conversations/{convID}/history first. Resumes from Last-Event-ID when provided.",
-        "tags": [
-          "conversations"
-        ],
-        "summary": "Stream conversation events (SSE)",
-        "parameters": [
-          {
-            "description": "Conversation ID",
-            "name": "convID",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "SSE event stream",
-            "content": {
-              "text/event-stream": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "410": {
-            "description": "Gone",
-            "content": {
-              "text/event-stream": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/v1/credentials": {
       "get": {
         "security": [
@@ -3980,71 +3371,6 @@
             }
           }
         }
-      },
-      "post": {
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "description": "Creates a new Hivy employee session.",
-        "tags": [
-          "employees"
-        ],
-        "summary": "Create an employee session",
-        "parameters": [
-          {
-            "description": "Employee ID",
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": "Created",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/conversationResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Service Unavailable",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/errorResponse"
-                }
-              }
-            }
-          }
-        }
       }
     },
     "/v1/employees/{id}/skills": {
@@ -4430,6 +3756,101 @@
                   "additionalProperties": {
                     "type": "string"
                   }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/errorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Sets or clears the model override for a specialist attached to Hivy.",
+        "tags": [
+          "employees"
+        ],
+        "summary": "Update an employee specialist config",
+        "parameters": [
+          {
+            "description": "Employee ID",
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Specialist slug",
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/updateEmployeeSpecialistRequest"
+              }
+            }
+          },
+          "description": "Specialist config patch",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/employeeSpecialistResponse"
                 }
               }
             }
@@ -5518,7 +4939,7 @@
         "tags": [
           "plans"
         ],
-        "summary": "List all active plans",
+        "summary": "List all public active plans",
         "responses": {
           "200": {
             "description": "OK",
@@ -8767,176 +8188,6 @@
           }
         }
       },
-      "conversationEventResponse": {
-        "type": "object",
-        "properties": {
-          "created_at": {
-            "type": "string"
-          },
-          "data": {
-            "type": "array",
-            "items": {
-              "type": "integer"
-            }
-          },
-          "employee_id": {
-            "type": "string"
-          },
-          "event_id": {
-            "type": "string"
-          },
-          "event_type": {
-            "type": "string"
-          },
-          "id": {
-            "type": "string"
-          },
-          "runtime_conversation_id": {
-            "type": "string"
-          },
-          "sequence_number": {
-            "type": "integer"
-          },
-          "timestamp": {
-            "type": "string"
-          }
-        }
-      },
-      "conversationHistoryResponse": {
-        "type": "object",
-        "properties": {
-          "conversation_id": {
-            "type": "string"
-          },
-          "events": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/conversationEventResponse"
-            }
-          },
-          "has_more": {
-            "type": "boolean"
-          },
-          "last_event_id": {
-            "description": "LastEventID is the event_id of the last event in this page. Clients\ncan pass it as the `Last-Event-ID` header when opening the SSE stream\nto resume from exactly where history ended.",
-            "type": "string"
-          }
-        }
-      },
-      "conversationMessageResponse": {
-        "type": "object",
-        "properties": {
-          "author": {
-            "type": "string"
-          },
-          "body": {
-            "type": "string"
-          },
-          "id": {
-            "type": "string"
-          },
-          "timestamp": {
-            "type": "string"
-          },
-          "tool_groups": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/conversationToolGroupResponse"
-            }
-          }
-        }
-      },
-      "conversationMessagesResponse": {
-        "type": "object",
-        "properties": {
-          "data": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/conversationMessageResponse"
-            }
-          },
-          "has_more": {
-            "type": "boolean"
-          },
-          "latest_todos": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/conversationTodoItem"
-            }
-          },
-          "next_cursor": {
-            "type": "string"
-          }
-        }
-      },
-      "conversationResponse": {
-        "type": "object",
-        "properties": {
-          "created_at": {
-            "type": "string"
-          },
-          "employee_id": {
-            "type": "string"
-          },
-          "id": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
-          "status": {
-            "type": "string"
-          },
-          "stream_url": {
-            "type": "string"
-          }
-        }
-      },
-      "conversationTodoItem": {
-        "type": "object",
-        "properties": {
-          "content": {
-            "type": "string"
-          },
-          "priority": {
-            "type": "string"
-          },
-          "status": {
-            "type": "string"
-          }
-        }
-      },
-      "conversationToolCallResponse": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "status": {
-            "type": "string"
-          },
-          "summary": {
-            "type": "string"
-          },
-          "title": {
-            "type": "string"
-          }
-        }
-      },
-      "conversationToolGroupResponse": {
-        "type": "object",
-        "properties": {
-          "calls": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/conversationToolCallResponse"
-            }
-          },
-          "name": {
-            "type": "string"
-          }
-        }
-      },
       "createAPIKeyRequest": {
         "type": "object",
         "properties": {
@@ -9606,7 +8857,16 @@
           "attached": {
             "type": "boolean"
           },
+          "configured_model": {
+            "type": "string"
+          },
+          "default_model": {
+            "type": "string"
+          },
           "description": {
+            "type": "string"
+          },
+          "effective_model": {
             "type": "string"
           },
           "name": {
@@ -9629,7 +8889,16 @@
           "avatar_url": {
             "type": "string"
           },
+          "configured_model": {
+            "type": "string"
+          },
+          "default_model": {
+            "type": "string"
+          },
           "description": {
+            "type": "string"
+          },
+          "effective_model": {
             "type": "string"
           },
           "id": {
@@ -9749,6 +9018,9 @@
       "generationResponse": {
         "type": "object",
         "properties": {
+          "billing_cost_source": {
+            "type": "string"
+          },
           "cached_tokens": {
             "type": "integer"
           },
@@ -9760,6 +9032,9 @@
           },
           "credential_id": {
             "type": "string"
+          },
+          "credits_debited": {
+            "type": "integer"
           },
           "error_message": {
             "type": "string"
@@ -10339,23 +9614,6 @@
           }
         }
       },
-      "paginatedResponse-conversationResponse": {
-        "type": "object",
-        "properties": {
-          "data": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/conversationResponse"
-            }
-          },
-          "has_more": {
-            "type": "boolean"
-          },
-          "next_cursor": {
-            "type": "string"
-          }
-        }
-      },
       "paginatedResponse-credentialResponse": {
         "type": "object",
         "properties": {
@@ -10431,23 +9689,6 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/auditEntryResponse"
-            }
-          },
-          "has_more": {
-            "type": "boolean"
-          },
-          "next_cursor": {
-            "type": "string"
-          }
-        }
-      },
-      "paginatedResponse-handler_conversationEventResponse": {
-        "type": "object",
-        "properties": {
-          "data": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/conversationEventResponse"
             }
           },
           "has_more": {
@@ -12016,6 +11257,17 @@
         "properties": {
           "bundle": {
             "$ref": "#/components/schemas/Bundle"
+          }
+        }
+      },
+      "updateEmployeeSpecialistRequest": {
+        "type": "object",
+        "properties": {
+          "model": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
           }
         }
       },

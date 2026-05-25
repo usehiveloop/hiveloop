@@ -2,7 +2,6 @@ package employeeruntime
 
 import (
 	"context"
-	"os"
 	"testing"
 
 	"gorm.io/driver/postgres"
@@ -12,7 +11,7 @@ import (
 	"github.com/usehivy/hivy/internal/testdb"
 )
 
-const compileTestDBURL = "postgres://hivy:localdev@localhost:15432/hivy_test?sslmode=disable" // #nosec G101 -- test fixture, not a real secret
+const compileTestDBURL = testdb.DefaultDatabaseURL
 
 func containsString(values []string, want string) bool {
 	for _, value := range values {
@@ -25,10 +24,7 @@ func containsString(values []string, want string) bool {
 
 func connectCompileTestDB(t *testing.T) *gorm.DB {
 	t.Helper()
-	dsn := os.Getenv("DATABASE_URL")
-	if dsn == "" {
-		dsn = compileTestDBURL
-	}
+	dsn := testdb.DatabaseURL("DATABASE_URL", "HIVY_DATABASE_URL", "TEST_DATABASE_URL")
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		t.Fatalf("cannot connect to Postgres: %v", err)
@@ -36,9 +32,6 @@ func connectCompileTestDB(t *testing.T) *gorm.DB {
 	sqlDB, _ := db.DB()
 	sqlDB.SetMaxOpenConns(3)
 	sqlDB.SetMaxIdleConns(1)
-	if err := sqlDB.Ping(); err != nil {
-		t.Fatalf("Postgres not reachable: %v", err)
-	}
 	testdb.ApplyMigrations(t, db)
 	t.Cleanup(func() {
 		sqlDB.Close()

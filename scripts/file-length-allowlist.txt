@@ -15,3 +15,7 @@ internal/email/templates.go
 # Existing long integration handler tests predating the file-length check.
 internal/handler/connections_create_test.go
 internal/handler/connections_revoke_test.go
+
+# Existing long files predating CI enforcement; split in focused refactors.
+internal/evals/setup.go
+internal/employeeruntime/compile.go

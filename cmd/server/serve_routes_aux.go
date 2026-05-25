@@ -60,12 +60,13 @@ func setupProxyAndAuxRoutes(
 	if deps.SpiderClient != nil {
 		spiderHandler := handler.NewSpiderHandler(deps.SpiderClient, deps.ToolUsageWriter, database)
 		r.Route("/spider", func(r chi.Router) {
+			r.Use(middleware.TokenAuth(signingKey, database))
 			r.Post("/crawl", spiderHandler.Crawl)
 			r.Post("/search", spiderHandler.Search)
 			r.Post("/links", spiderHandler.Links)
 			r.Post("/screenshot", spiderHandler.Screenshot)
 			r.Post("/transform", spiderHandler.Transform)
 		})
-		slog.Warn("spider routes registered without authentication", "path", "/spider", "note", "temporary")
+		slog.Info("spider routes registered", "path", "/spider")
 	}
 }

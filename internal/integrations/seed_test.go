@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -14,9 +15,8 @@ import (
 
 	"github.com/usehivy/hivy/internal/model"
 	"github.com/usehivy/hivy/internal/nango"
+	"github.com/usehivy/hivy/internal/testdb"
 )
-
-const testDBURL = "postgres://hivy:localdev@localhost:15432/hivy_test?sslmode=disable" // #nosec G101 -- test fixture, not a real secret
 
 func TestSeedGlobalIntegrations_RealNangoCreateUpdateAndSkip(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 45*time.Second)
@@ -98,6 +98,16 @@ func TestSeedGlobalIntegrations_RealNangoCreateUpdateAndSkip(t *testing.T) {
 	}
 	if result.Updated != 1 {
 		t.Fatalf("expected one update, got %+v", result)
+	}
+}
+
+func TestLoadManifests_MissingDirectoryFails(t *testing.T) {
+	_, err := loadManifests(filepath.Join(t.TempDir(), "missing"))
+	if err == nil {
+		t.Fatal("expected missing global integrations directory to fail")
+	}
+	if !strings.Contains(err.Error(), "global integrations dir") {
+		t.Fatalf("error = %v, want global integrations dir context", err)
 	}
 }
 
@@ -252,7 +262,7 @@ func realNangoClient(t *testing.T, ctx context.Context) *nango.Client {
 func discoverComposeNangoSecret(ctx context.Context) (string, error) {
 	dsn := os.Getenv("HIVY_NANGO_DATABASE_URL")
 	if dsn == "" {
-		dsn = "postgres://hivy:localdev@localhost:15432/nango?sslmode=disable" // #nosec G101 -- local compose test fixture
+		dsn = testdb.NangoDatabaseURL()
 	}
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {

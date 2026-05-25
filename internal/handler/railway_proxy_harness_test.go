@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"testing"
 
 	"github.com/go-chi/chi/v5"
@@ -18,7 +17,7 @@ import (
 	"github.com/usehivy/hivy/internal/testdb"
 )
 
-const railwayTestDBURL = "postgres://hivy:localdev@localhost:15432/hivy_test?sslmode=disable" // #nosec G101 -- test fixture, not a real secret
+const railwayTestDBURL = testdb.DefaultDatabaseURL
 
 type railwayTestHarness struct {
 	db          *gorm.DB
@@ -33,13 +32,10 @@ type railwayTestHarness struct {
 func newRailwayHarness(t *testing.T, nangoHandler http.Handler, railwayHandler http.Handler) *railwayTestHarness {
 	t.Helper()
 
-	dsn := os.Getenv("DATABASE_URL")
-	if dsn == "" {
-		dsn = railwayTestDBURL
-	}
+	dsn := testdb.DatabaseURL("DATABASE_URL", "HIVY_DATABASE_URL", "TEST_DATABASE_URL")
 	database, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
-		t.Skipf("cannot connect to test database: %v", err)
+		t.Fatalf("cannot connect to test database: %v", err)
 	}
 	testdb.ApplyMigrations(t, database)
 

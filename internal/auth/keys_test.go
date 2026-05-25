@@ -1,22 +1,23 @@
 package auth
 
 import (
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/x509"
 	"encoding/base64"
-	"os"
-	"path/filepath"
+	"encoding/pem"
 	"testing"
 )
 
 func TestLoadRSAPrivateKey_FromBase64(t *testing.T) {
-	keyPath := filepath.Join("..", "..", "certs", "auth.key")
-	if _, err := os.Stat(keyPath); os.IsNotExist(err) {
-		t.Skip("certs/auth.key not found — run 'make generate-auth-keys'")
-	}
-
-	pemBytes, err := os.ReadFile(keyPath)
+	generated, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
-		t.Fatalf("reading key file: %v", err)
+		t.Fatalf("generate rsa key: %v", err)
 	}
+	pemBytes := pem.EncodeToMemory(&pem.Block{
+		Type:  "RSA PRIVATE KEY",
+		Bytes: x509.MarshalPKCS1PrivateKey(generated),
+	})
 
 	b64 := base64.StdEncoding.EncodeToString(pemBytes)
 	key, err := LoadRSAPrivateKey(b64)

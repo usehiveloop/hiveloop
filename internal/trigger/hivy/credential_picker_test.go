@@ -17,7 +17,7 @@ func TestPickerScoring_CheapestToolCallModel(t *testing.T) {
 	// Verify the registry has models with ToolCall and Cost.
 	openaiProvider, ok := reg.GetProvider("openai")
 	if !ok {
-		t.Skip("openai provider not in registry")
+		t.Fatal("openai provider not in registry")
 	}
 
 	var cheapestModel string
@@ -32,7 +32,7 @@ func TestPickerScoring_CheapestToolCallModel(t *testing.T) {
 		}
 	}
 	if cheapestModel == "" {
-		t.Skip("no openai model with ToolCall + Cost in registry")
+		t.Fatal("no openai model with ToolCall + Cost in registry")
 	}
 
 	t.Logf("cheapest openai tool-call model: %s ($%.2f/M output)", cheapestModel, cheapestCost)
@@ -67,7 +67,7 @@ func TestPickerScoring_SkipsModelsWithoutToolCall(t *testing.T) {
 		}
 	}
 	if toolCallCount == totalModels {
-		t.Skip("all models have ToolCall=true, no filtering to test")
+		t.Fatal("all models have ToolCall=true, no filtering to test")
 	}
 	t.Logf("registry: %d total models, %d with ToolCall", totalModels, toolCallCount)
 }
@@ -77,7 +77,7 @@ func TestPickerScoring_AnthropicSelected(t *testing.T) {
 
 	anthropicProvider, ok := reg.GetProvider("anthropic")
 	if !ok {
-		t.Skip("anthropic provider not in registry")
+		t.Fatal("anthropic provider not in registry")
 	}
 
 	var cheapestModel string
@@ -92,7 +92,7 @@ func TestPickerScoring_AnthropicSelected(t *testing.T) {
 		}
 	}
 	if cheapestModel == "" {
-		t.Skip("no anthropic model with ToolCall + Cost in registry")
+		t.Fatal("no anthropic model with ToolCall + Cost in registry")
 	}
 
 	t.Logf("cheapest anthropic tool-call model: %s ($%.2f/M output)", cheapestModel, cheapestCost)
@@ -127,7 +127,7 @@ func TestPickerScoring_CrossProvider(t *testing.T) {
 		}
 	}
 	if providersWithToolCall < 2 {
-		t.Skipf("need at least 2 providers with tool-call models, got %d", providersWithToolCall)
+		t.Fatalf("need at least 2 providers with tool-call models, got %d", providersWithToolCall)
 	}
 	t.Logf("providers with tool-call models: %d", providersWithToolCall)
 }

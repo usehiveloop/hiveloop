@@ -16,7 +16,7 @@ type EmployeeTrigger struct {
 	Employee     Employee       `gorm:"foreignKey:EmployeeID;constraint:OnDelete:CASCADE"`
 	TriggerType  string         `gorm:"not null;default:'webhook';size:32;index"` // webhook or http
 	ConnectionID *uuid.UUID     `gorm:"type:uuid;index"`
-	Connection   *Connection  `gorm:"foreignKey:ConnectionID;constraint:OnDelete:CASCADE"`
+	Connection   *Connection    `gorm:"foreignKey:ConnectionID;constraint:OnDelete:CASCADE"`
 	TriggerKeys  pq.StringArray `gorm:"type:text[];not null;default:'{}'"` // e.g. {"issues.opened","issues.reopened"}
 	Enabled      bool           `gorm:"not null;default:true"`
 	Conditions   RawJSON        `gorm:"type:jsonb"`                    // TriggerMatch JSON

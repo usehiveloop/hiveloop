@@ -131,8 +131,8 @@ func (h *EmployeeMemoryRetainHandler) loadPendingEvents(ctx context.Context, pay
 	return events, nil
 }
 
-func (h *EmployeeMemoryRetainHandler) loadSession(ctx context.Context, payload EmployeeMemoryRetainPayload) (*model.EmployeeConversation, error) {
-	var session model.EmployeeConversation
+func (h *EmployeeMemoryRetainHandler) loadSession(ctx context.Context, payload EmployeeMemoryRetainPayload) (*model.EmployeeSession, error) {
+	var session model.EmployeeSession
 	query := h.db.WithContext(ctx).Where("employee_id = ? AND sandbox_id = ?", payload.EmployeeID, payload.SandboxID)
 	if payload.EmployeeSessionID != uuid.Nil {
 		query = query.Where("id = ?", payload.EmployeeSessionID)

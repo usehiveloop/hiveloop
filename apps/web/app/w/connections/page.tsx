@@ -12,9 +12,9 @@ import {
   RefreshIcon,
   Search01Icon,
 } from "@hugeicons/core-free-icons"
-import { CredentialsForm } from "@/app/w-old/connections/_components/credentials-form"
-import { useConnectIntegration } from "@/app/w-old/connections/_hooks/use-connect-integration"
-import { useReconnectIntegration } from "@/app/w-old/connections/_hooks/use-reconnect-integration"
+import { CredentialsForm } from "@/app/w/connections/_components/credentials-form"
+import { useConnectIntegration } from "@/app/w/connections/_hooks/use-connect-integration"
+import { useReconnectIntegration } from "@/app/w/connections/_hooks/use-reconnect-integration"
 import { ConfirmDialog } from "@/components/confirm-dialog"
 import { IntegrationLogo } from "@/components/integration-logo"
 import { Button } from "@/components/ui/button"
