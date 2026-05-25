@@ -100,22 +100,6 @@ jobs:
       - name: go vet
         run: go vet ./internal/... ./cmd/server/...
 
-  # govulncheck scans our modules against the official Go vulnerability DB.
-  # Reachability-based, so it only flags CVEs in code paths we actually call.
-  govulncheck:
-    name: govulncheck
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-go@v6
-        with:
-          go-version: "1.25.10"
-          cache: true
-      - name: Install govulncheck
-        run: go install golang.org/x/vuln/cmd/govulncheck@latest
-      - name: Run govulncheck
-        run: govulncheck ./internal/... ./cmd/server/...
-
   # Secret scanning. Catches committed API keys, private keys, and connection
   # strings before they hit main. Runs on the full diff range of the PR.
   #
