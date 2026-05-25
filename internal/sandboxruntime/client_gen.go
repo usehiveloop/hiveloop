@@ -513,6 +513,21 @@ func (e ToolSpec10Type) Valid() bool {
 	}
 }
 
+// Defines values for ToolSpec11Type.
+const (
+	BuiltinSearchSessions ToolSpec11Type = "builtin.search_sessions"
+)
+
+// Valid indicates whether the value is a known member of the ToolSpec11Type enum.
+func (e ToolSpec11Type) Valid() bool {
+	switch e {
+	case BuiltinSearchSessions:
+		return true
+	default:
+		return false
+	}
+}
+
 // AgentDefinition defines model for AgentDefinition.
 type AgentDefinition struct {
 	Agent             AgentMeta              `json:"agent"`
@@ -1052,6 +1067,14 @@ type ToolSpec10 struct {
 
 // ToolSpec10Type defines model for ToolSpec.10.Type.
 type ToolSpec10Type string
+
+// ToolSpec11 defines model for .
+type ToolSpec11 struct {
+	Type ToolSpec11Type `json:"type"`
+}
+
+// ToolSpec11Type defines model for ToolSpec.11.Type.
+type ToolSpec11Type string
 
 // ToolUsage defines model for ToolUsage.
 type ToolUsage struct {
@@ -1842,6 +1865,32 @@ func (t *ToolSpec) FromToolSpec10(v ToolSpec10) error {
 
 // MergeToolSpec10 performs a merge with any union data inside the ToolSpec, using the provided ToolSpec10
 func (t *ToolSpec) MergeToolSpec10(v ToolSpec10) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsToolSpec11 returns the union data inside the ToolSpec as a ToolSpec11
+func (t ToolSpec) AsToolSpec11() (ToolSpec11, error) {
+	var body ToolSpec11
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromToolSpec11 overwrites any union data inside the ToolSpec as the provided ToolSpec11
+func (t *ToolSpec) FromToolSpec11(v ToolSpec11) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeToolSpec11 performs a merge with any union data inside the ToolSpec, using the provided ToolSpec11
+func (t *ToolSpec) MergeToolSpec11(v ToolSpec11) error {
 	b, err := json.Marshal(v)
 	if err != nil {
 		return err

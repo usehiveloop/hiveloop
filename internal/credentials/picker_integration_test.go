@@ -87,6 +87,21 @@ func TestIntegration_Picker_PickByModelUsesCanonicalRoutes(t *testing.T) {
 	}
 }
 
+func TestIntegration_Picker_PickByModelHonorsRoutePreference(t *testing.T) {
+	db := connectTestDB(t)
+	seedSystemCred(t, db, "openrouter", false)
+	openai := seedSystemCred(t, db, "openai", false)
+
+	picker := credentials.NewPicker(db)
+	got, err := picker.PickByModel(context.Background(), "gpt-4o-mini")
+	if err != nil {
+		t.Fatalf("PickByModel: %v", err)
+	}
+	if got.ID != openai.ID {
+		t.Fatalf("picked %s, want preferred openai credential %s", got.ID, openai.ID)
+	}
+}
+
 func TestIntegration_Picker_PickByModelUsesOpenRouterWhenDirectProviderMissing(t *testing.T) {
 	db := connectTestDB(t)
 	openrouter := seedSystemCred(t, db, "openrouter", false)

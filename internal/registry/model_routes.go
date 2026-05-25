@@ -64,6 +64,21 @@ func (r *Registry) CanonicalModel(canonicalID string) (RoutedModel, bool) {
 	return RoutedModel{}, false
 }
 
+func (r *Registry) ProviderPreferenceForModel(canonicalID string) []string {
+	hivyModel, ok := hivyModelsByID[canonicalID]
+	if !ok {
+		return nil
+	}
+	providerIDs := make([]string, 0, len(hivyModel.Routes))
+	for _, route := range hivyModel.Routes {
+		if _, ok := r.providerModel(route.ProviderID, route.ModelID); !ok {
+			continue
+		}
+		providerIDs = appendIfMissing(providerIDs, route.ProviderID)
+	}
+	return providerIDs
+}
+
 func (r *Registry) CanonicalModelsForProviders(providerIDs []string) []RoutedModel {
 	allowed := map[string]bool{}
 	for _, providerID := range providerIDs {

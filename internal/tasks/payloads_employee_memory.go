@@ -10,11 +10,12 @@ import (
 )
 
 type EmployeeMemoryRetainPayload struct {
-	EmployeeID  uuid.UUID `json:"employee_id"`
-	SandboxID   uuid.UUID `json:"sandbox_id"`
-	SessionID   string    `json:"session_id"`
-	Reason      string    `json:"reason,omitempty"`
-	SourceEvent string    `json:"source_event,omitempty"`
+	EmployeeID        uuid.UUID `json:"employee_id"`
+	SandboxID         uuid.UUID `json:"sandbox_id"`
+	EmployeeSessionID uuid.UUID `json:"employee_session_id,omitempty"`
+	SessionID         string    `json:"session_id"`
+	Reason            string    `json:"reason,omitempty"`
+	SourceEvent       string    `json:"source_event,omitempty"`
 }
 
 func NewEmployeeMemoryRetainTask(payload EmployeeMemoryRetainPayload) (*asynq.Task, error) {

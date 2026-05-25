@@ -46,7 +46,7 @@ func NewDirector(cacheManager *cache.Manager) func(req *http.Request) {
 		// SSRF hardening: drop cloud-metadata-related headers.
 		// CF-* and X-Forwarded-*: the inbound is fronted by Cloudflare, so those
 		// headers are added by CF on the way in. Forwarding them to a different
-		// CF-protected upstream (e.g. crof.ai, openai via CF) trips Cloudflare
+		// CF-protected upstream (e.g. openai via CF) trips Cloudflare
 		// Error 1000 ("DNS points to prohibited IP") because CF treats incoming
 		// CF-Connecting-IP from a non-CF source as a forged header.
 		for _, h := range []string{
@@ -124,7 +124,7 @@ func stripProxyPrefix(path string) string {
 
 // joinUpstreamPath concatenates the upstream base path with the client-emitted
 // path, deduping a leading version segment when the base already ends with it.
-// Example: cred.BaseURL "https://crof.ai/v1" yields basePath "/v1"; an OpenAI-
+// Example: cred.BaseURL "https://api.example.com/v1" yields basePath "/v1"; an OpenAI-
 // shape client emits "/v1/chat/completions"; naive concat produces
 // "/v1/v1/chat/completions" → upstream 404.
 func joinUpstreamPath(basePath, upstreamPath string) string {

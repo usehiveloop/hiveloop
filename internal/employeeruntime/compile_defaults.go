@@ -40,7 +40,7 @@ func defaultTools() []map[string]any {
 		{"type": "builtin.read_file", "config": map[string]any{"allowed_roots": []string{}, "max_file_size_bytes": 5 * 1024 * 1024, "deny_globs": []string{}}},
 		{"type": "builtin.write_file", "config": map[string]any{"allowed_roots": []string{}, "max_file_size_bytes": 5 * 1024 * 1024, "deny_globs": []string{}, "atomic": true}},
 		{"type": "builtin.cron"},
-		{"type": "builtin.check_bash_status"}, {"type": "builtin.wake"},
+		{"type": "builtin.check_bash_status"}, {"type": "builtin.search_sessions"}, {"type": "builtin.wake"},
 		{"type": "builtin.skills_list"}, {"type": "builtin.skill_view"}, {"type": "builtin.skill_manage"},
 	}
 }

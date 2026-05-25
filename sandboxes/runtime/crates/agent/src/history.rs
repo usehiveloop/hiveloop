@@ -184,6 +184,15 @@ mod tests {
             events.reverse();
             Ok(events)
         }
+
+        async fn search_sessions(
+            &self,
+            _query: &str,
+            _session_id: Option<&SessionId>,
+            _limit: u32,
+        ) -> storage::Result<Vec<storage::SessionSearchResult>> {
+            Ok(Vec::new())
+        }
     }
 
     #[tokio::test]

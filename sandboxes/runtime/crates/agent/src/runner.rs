@@ -114,6 +114,7 @@ impl AgentRunner for RigAgentRunner {
         tool_context.runtime_env = runtime_env;
         let gateway = self.gateway.clone();
         let cron_repo = self.cron_repo.clone();
+        let event_repo_for_tools = self.event_repo.clone();
         let process_registry = self.tool_context.process_registry.clone();
         let mcp_registry = self.mcp_registry.clone();
 
@@ -124,6 +125,7 @@ impl AgentRunner for RigAgentRunner {
             &ToolContext {
                 gateway: gateway.clone(),
                 cron_repo: cron_repo.clone(),
+                event_repo: event_repo_for_tools.clone(),
                 process_registry: Some(process_registry.clone()),
                 mcp_registry: mcp_registry.clone(),
                 workspace_root: tool_context.workspace_root.clone(),

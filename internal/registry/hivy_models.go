@@ -97,6 +97,13 @@ var supportedHivyModels = []HivyModel{
 		},
 	},
 	{
+		ID: "gpt-4o-mini",
+		Routes: []ModelRoute{
+			{ProviderID: "openai", ModelID: "gpt-4o-mini"},
+			{ProviderID: "openrouter", ModelID: "openai/gpt-4o-mini"},
+		},
+	},
+	{
 		ID: "gpt-5.3-codex",
 		Routes: []ModelRoute{
 			{ProviderID: "openai", ModelID: "gpt-5.3-codex"},
@@ -140,14 +147,12 @@ var supportedHivyModels = []HivyModel{
 	{
 		ID: "deepseek-v4-pro",
 		Routes: []ModelRoute{
-			{ProviderID: "crof", ModelID: "deepseek-v4-pro"},
 			{ProviderID: "openrouter", ModelID: "deepseek/deepseek-v4-pro"},
 		},
 	},
 	{
 		ID: "deepseek-v4-flash",
 		Routes: []ModelRoute{
-			{ProviderID: "crof", ModelID: "deepseek-v4-flash"},
 			{ProviderID: "openrouter", ModelID: "deepseek/deepseek-v4-flash"},
 		},
 	},
@@ -178,14 +183,12 @@ var supportedHivyModels = []HivyModel{
 	{
 		ID: "qwen3.6-27b",
 		Routes: []ModelRoute{
-			{ProviderID: "crof", ModelID: "qwen3.6-27b"},
 			{ProviderID: "openrouter", ModelID: "qwen/qwen3.6-27b"},
 		},
 	},
 	{
 		ID: "kimi-k2.6",
 		Routes: []ModelRoute{
-			{ProviderID: "crof", ModelID: "kimi-k2.6"},
 			{ProviderID: "moonshotai", ModelID: "kimi-k2.6"},
 			{ProviderID: "openrouter", ModelID: "moonshotai/kimi-k2.6"},
 		},
@@ -211,7 +214,6 @@ var supportedHivyModels = []HivyModel{
 	{
 		ID: "glm-5.1",
 		Routes: []ModelRoute{
-			{ProviderID: "crof", ModelID: "glm-5.1"},
 			{ProviderID: "openrouter", ModelID: "z-ai/glm-5.1"},
 		},
 	},
@@ -224,14 +226,31 @@ var supportedHivyModels = []HivyModel{
 	{
 		ID: "glm-5",
 		Routes: []ModelRoute{
-			{ProviderID: "crof", ModelID: "glm-5"},
 			{ProviderID: "openrouter", ModelID: "z-ai/glm-5"},
+		},
+	},
+	{
+		ID: "glm-4.7",
+		Routes: []ModelRoute{
+			{ProviderID: "openrouter", ModelID: "z-ai/glm-4.7"},
+		},
+	},
+	{
+		ID: "glm-4.7-flash",
+		Routes: []ModelRoute{
+			{ProviderID: "openrouter", ModelID: "z-ai/glm-4.7-flash"},
 		},
 	},
 	{
 		ID: "mistral-small-4",
 		Routes: []ModelRoute{
 			{ProviderID: "openrouter", ModelID: "mistralai/mistral-small-2603"},
+		},
+	},
+	{
+		ID: "minimax-m2.5",
+		Routes: []ModelRoute{
+			{ProviderID: "openrouter", ModelID: "minimax/minimax-m2.5"},
 		},
 	},
 	{
@@ -243,7 +262,6 @@ var supportedHivyModels = []HivyModel{
 	{
 		ID: "kimi-k2.5",
 		Routes: []ModelRoute{
-			{ProviderID: "crof", ModelID: "kimi-k2.5"},
 			{ProviderID: "moonshotai", ModelID: "kimi-k2.5"},
 			{ProviderID: "openrouter", ModelID: "moonshotai/kimi-k2.5"},
 		},

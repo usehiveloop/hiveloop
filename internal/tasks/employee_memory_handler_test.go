@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -54,6 +55,7 @@ func TestEmployeeMemoryRetainHandler_CallsHindsight(t *testing.T) {
 		memoryEvent(t, orgID, agentID, sandboxID, "S1", "tool.invoked", map[string]any{"source": "slack", "tool": "memory_retain", "result_summary": "retained deployment policy"}),
 		memoryEvent(t, orgID, agentID, sandboxID, "S1", "agent.message.sent", map[string]any{"source": "slack", "text": "Done."}),
 	} {
+		event.EventAt = time.Now().UTC().Add(-5 * time.Minute)
 		if err := db.Create(&event).Error; err != nil {
 			t.Fatalf("create event: %v", err)
 		}
@@ -90,6 +92,42 @@ func TestEmployeeMemoryRetainHandler_CallsHindsight(t *testing.T) {
 	}
 	if refreshedAgent.MemoryRefreshError != "" {
 		t.Fatalf("memory refresh error = %q", refreshedAgent.MemoryRefreshError)
+	}
+}
+
+func TestEmployeeMemoryRetainHandler_RequeuesActiveSession(t *testing.T) {
+	orgID := uuid.New()
+	agentID := uuid.New()
+	sandboxID := uuid.New()
+	db := openTasksMemoryTestDB(t)
+	agent := model.Employee{ID: agentID, OrgID: &orgID, Name: "Aria", IsEmployee: true}
+	if err := db.Create(&model.Org{ID: orgID, Name: "mem-org-" + uuid.NewString()[:8], Active: true}).Error; err != nil {
+		t.Fatalf("create org: %v", err)
+	}
+	if err := db.Create(&agent).Error; err != nil {
+		t.Fatalf("create agent: %v", err)
+	}
+	if err := db.Create(&model.Sandbox{ID: sandboxID, OrgID: &orgID, EmployeeID: &agentID, ExternalID: "sb", BridgeURL: "http://bridge", EncryptedBridgeAPIKey: []byte("x"), Status: "running"}).Error; err != nil {
+		t.Fatalf("create sandbox: %v", err)
+	}
+	sessionID := createMemorySession(t, db, orgID, agentID, sandboxID, "S1")
+	event := memoryEvent(t, orgID, agentID, sandboxID, "S1", "user.message.received", map[string]any{"source": "slack", "text": "Recent update"})
+	if err := db.Create(&event).Error; err != nil {
+		t.Fatalf("create event: %v", err)
+	}
+
+	enq := &enqueue.MockClient{}
+	handler := NewEmployeeMemoryRetainHandler(db, hindsight.NewClient("http://127.0.0.1:1"), enq)
+	task, err := NewEmployeeMemoryRetainTask(EmployeeMemoryRetainPayload{EmployeeID: agentID, SandboxID: sandboxID, EmployeeSessionID: sessionID, SessionID: "S1"})
+	if err != nil {
+		t.Fatalf("task: %v", err)
+	}
+	if err := handler.Handle(context.Background(), task); err != nil {
+		t.Fatalf("handle: %v", err)
+	}
+	tasks := enq.Tasks()
+	if len(tasks) != 1 || tasks[0].TypeName != TypeEmployeeMemoryRetain {
+		t.Fatalf("expected retain requeue, got %#v", tasks)
 	}
 }
 

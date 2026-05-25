@@ -2227,6 +2227,20 @@
                 ]
               }
             }
+          },
+          {
+            "type": "object",
+            "required": [
+              "type"
+            ],
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "builtin.search_sessions"
+                ]
+              }
+            }
           }
         ]
       },

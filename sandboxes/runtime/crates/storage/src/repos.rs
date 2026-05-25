@@ -55,6 +55,17 @@ pub struct SessionListFilter {
     pub search: Option<String>,
 }
 
+#[derive(Debug, Clone)]
+pub struct SessionSearchResult {
+    pub session_id: String,
+    pub event_id: String,
+    pub kind: String,
+    pub content: String,
+    pub snippet: String,
+    pub created_at: DateTime<Utc>,
+    pub score: f64,
+}
+
 #[async_trait]
 pub trait SessionRepo: Send + Sync + 'static {
     async fn get(&self, id: &SessionId) -> Result<Option<Session>>;
@@ -85,6 +96,12 @@ pub trait EventRepo: Send + Sync + 'static {
         session_id: &SessionId,
         limit: u32,
     ) -> Result<Vec<SessionEvent>>;
+    async fn search_sessions(
+        &self,
+        query: &str,
+        session_id: Option<&SessionId>,
+        limit: u32,
+    ) -> Result<Vec<SessionSearchResult>>;
 }
 
 #[derive(Debug, Clone)]

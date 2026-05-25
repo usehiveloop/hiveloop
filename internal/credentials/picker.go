@@ -58,6 +58,10 @@ func (p *PostgresPicker) PickByModel(ctx context.Context, canonicalModelID strin
 	if canonicalModelID == "" {
 		return nil, fmt.Errorf("credentials: PickByModel requires a non-empty model id")
 	}
+	reg := p.reg
+	if reg == nil {
+		reg = registry.Global()
+	}
 
 	var all []model.Credential
 	if err := p.db.WithContext(ctx).
@@ -67,10 +71,12 @@ func (p *PostgresPicker) PickByModel(ctx context.Context, canonicalModelID strin
 		return nil, fmt.Errorf("list system credentials: %w", err)
 	}
 
-	for _, c := range all {
-		if _, ok := p.reg.ResolveModel(c.ProviderID, canonicalModelID); ok {
-			chosen := c
-			return &chosen, nil
+	for _, providerID := range reg.ProviderPreferenceForModel(canonicalModelID) {
+		for _, c := range all {
+			if c.ProviderID == providerID {
+				chosen := c
+				return &chosen, nil
+			}
 		}
 	}
 	return nil, fmt.Errorf("%w: model=%q", ErrNoSystemCredential, canonicalModelID)

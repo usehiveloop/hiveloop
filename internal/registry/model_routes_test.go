@@ -46,6 +46,24 @@ func TestResolveModel_ExplicitSameProviderRoute(t *testing.T) {
 	}
 }
 
+func TestResolveModel_GPT4OMiniRoutes(t *testing.T) {
+	openai, ok := Global().ResolveModel("openai", "gpt-4o-mini")
+	if !ok {
+		t.Fatal("openai gpt-4o-mini route not found")
+	}
+	if openai.UpstreamID != "gpt-4o-mini" {
+		t.Fatalf("openai upstream = %q, want gpt-4o-mini", openai.UpstreamID)
+	}
+
+	openrouter, ok := Global().ResolveModel("openrouter", "gpt-4o-mini")
+	if !ok {
+		t.Fatal("openrouter gpt-4o-mini route not found")
+	}
+	if openrouter.UpstreamID != "openai/gpt-4o-mini" {
+		t.Fatalf("openrouter upstream = %q, want openai/gpt-4o-mini", openrouter.UpstreamID)
+	}
+}
+
 func TestResolveModel_RejectsProviderModelNotInHivyCatalog(t *testing.T) {
 	if _, ok := Global().ResolveModel("openai", "gpt-5-thinking"); ok {
 		t.Fatal("provider model resolved without explicit Hivy catalog entry")

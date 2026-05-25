@@ -527,6 +527,15 @@ impl EventRepo for NoopEventRepo {
     ) -> storage::Result<Vec<SessionEvent>> {
         Ok(Vec::new())
     }
+
+    async fn search_sessions(
+        &self,
+        _query: &str,
+        _session_id: Option<&SessionId>,
+        _limit: u32,
+    ) -> storage::Result<Vec<storage::SessionSearchResult>> {
+        Ok(Vec::new())
+    }
 }
 
 #[cfg(test)]

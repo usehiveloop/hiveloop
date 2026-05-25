@@ -19,7 +19,7 @@ const (
 	testInputTokens  = 30_000
 	testOutputTokens = 4_000
 	testCostPerGen   = 0.03071
-	testModel        = "glm-5.1-precision"
+	testModel        = "deepseek-v4-flash"
 )
 
 // genFixture is the projection we read back to assert state.

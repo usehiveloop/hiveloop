@@ -30,11 +30,6 @@ func runWork(ctx context.Context, deps *bootstrap.Deps) error {
 
 	goroutine.Go(ctx, func(ctx context.Context) { deps.Flusher.Run(ctx) })
 
-	if deps.Retainer != nil {
-		goroutine.Go(ctx, func(ctx context.Context) { deps.Retainer.Run(ctx) })
-		slog.Info("hindsight memory retainer started")
-	}
-
 	redisOpt := cfg.AsynqRedisOpt()
 
 	var workerSender email.Sender = &email.LogSender{}

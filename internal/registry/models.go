@@ -208,370 +208,6 @@ var curatedProviders = []Provider{
 		},
 	},
 	// cohere, deepseek removed — not in supported provider set
-	{ // crof — Crof
-		ID:   "crof",
-		Name: "Crof",
-		API:  "https://crof.ai/v1",
-		Models: map[string]Model{
-			"kimi-k2.6": {
-				ID:          "kimi-k2.6",
-				Name:        "Kimi K2.6",
-				Family:      "kimi",
-				ToolCall:    true,
-				OpenWeights: true,
-				Description: "Great for complex workflows and coding tasks.",
-				Modalities: &Modalities{
-					Input:  []string{"text"},
-					Output: []string{"text"},
-				},
-				Cost: &Cost{
-					Input:  0.5,
-					Output: 1.99,
-				},
-				Limit: &Limit{
-					Context: 262144,
-					Output:  262144,
-				},
-			},
-			"kimi-k2.6-precision": {
-				ID:          "kimi-k2.6-precision",
-				Name:        "Kimi K2.6 (Precision)",
-				Family:      "kimi",
-				ToolCall:    true,
-				OpenWeights: true,
-				Description: "Higher precision Kimi for tougher tasks.",
-				Modalities: &Modalities{
-					Input:  []string{"text"},
-					Output: []string{"text"},
-				},
-				Cost: &Cost{
-					Input:  0.55,
-					Output: 2.7,
-				},
-				Limit: &Limit{
-					Context: 262144,
-					Output:  262144,
-				},
-			},
-			"kimi-k2.5": {
-				ID:          "kimi-k2.5",
-				Name:        "Kimi K2.5",
-				Family:      "kimi",
-				ToolCall:    true,
-				OpenWeights: true,
-				Description: "Older Kimi — solid for everyday tasks.",
-				Modalities: &Modalities{
-					Input:  []string{"text"},
-					Output: []string{"text"},
-				},
-				Cost: &Cost{
-					Input:  0.35,
-					Output: 1.7,
-				},
-				Limit: &Limit{
-					Context: 262144,
-					Output:  262144,
-				},
-			},
-			"kimi-k2.5-lightning": {
-				ID:          "kimi-k2.5-lightning",
-				Name:        "Kimi K2.5 (Lightning)",
-				Family:      "kimi",
-				Reasoning:   true,
-				ToolCall:    true,
-				OpenWeights: true,
-				Description: "Fast reasoning for quick coding tasks.",
-				Modalities: &Modalities{
-					Input:  []string{"text"},
-					Output: []string{"text"},
-				},
-				Cost: &Cost{
-					Input:  1,
-					Output: 3,
-				},
-				Limit: &Limit{
-					Context: 131072,
-					Output:  32768,
-				},
-			},
-			"glm-5.1": {
-				ID:          "glm-5.1",
-				Name:        "GLM 5.1",
-				Family:      "glm",
-				ToolCall:    true,
-				OpenWeights: true,
-				Description: "Great for basic coding tasks and day to day problems.",
-				Modalities: &Modalities{
-					Input:  []string{"text"},
-					Output: []string{"text"},
-				},
-				Cost: &Cost{
-					Input:  0.45,
-					Output: 2.1,
-				},
-				Limit: &Limit{
-					Context: 202752,
-					Output:  202752,
-				},
-			},
-			"glm-5.1-precision": {
-				ID:          "glm-5.1-precision",
-				Name:        "GLM 5.1 (Precision)",
-				Family:      "glm",
-				ToolCall:    true,
-				OpenWeights: true,
-				Description: "Higher precision GLM for tougher tasks.",
-				Modalities: &Modalities{
-					Input:  []string{"text"},
-					Output: []string{"text"},
-				},
-				Cost: &Cost{
-					Input:  0.75,
-					Output: 2.9,
-				},
-				Limit: &Limit{
-					Context: 202752,
-					Output:  202752,
-				},
-			},
-			"glm-5": {
-				ID:          "glm-5",
-				Name:        "GLM 5",
-				Family:      "glm",
-				ToolCall:    true,
-				OpenWeights: true,
-				Description: "Older GLM — solid all-rounder.",
-				Modalities: &Modalities{
-					Input:  []string{"text"},
-					Output: []string{"text"},
-				},
-				Cost: &Cost{
-					Input:  0.48,
-					Output: 1.9,
-				},
-				Limit: &Limit{
-					Context: 202752,
-					Output:  202752,
-				},
-			},
-			"glm-4.7": {
-				ID:          "glm-4.7",
-				Name:        "GLM 4.7",
-				Family:      "glm",
-				ToolCall:    true,
-				OpenWeights: true,
-				Description: "Capable workflows at a great budget.",
-				Modalities: &Modalities{
-					Input:  []string{"text"},
-					Output: []string{"text"},
-				},
-				Cost: &Cost{
-					Input:  0.25,
-					Output: 1.1,
-				},
-				Limit: &Limit{
-					Context: 202752,
-					Output:  202752,
-				},
-			},
-			"glm-4.7-flash": {
-				ID:          "glm-4.7-flash",
-				Name:        "GLM 4.7 Flash",
-				Family:      "glm-flash",
-				ToolCall:    true,
-				OpenWeights: true,
-				Description: "Free option for simple coding tasks.",
-				Modalities: &Modalities{
-					Input:  []string{"text"},
-					Output: []string{"text"},
-				},
-				Limit: &Limit{
-					Context: 202752,
-					Output:  131072,
-				},
-			},
-			"minimax-m2.5": {
-				ID:          "minimax-m2.5",
-				Name:        "MiniMax M2.5",
-				Family:      "minimax",
-				ToolCall:    true,
-				OpenWeights: true,
-				Description: "Fast and cheap for multi-step workflows.",
-				Modalities: &Modalities{
-					Input:  []string{"text"},
-					Output: []string{"text"},
-				},
-				Cost: &Cost{
-					Input:  0.11,
-					Output: 0.95,
-				},
-				Limit: &Limit{
-					Context: 204800,
-					Output:  131072,
-				},
-			},
-			"qwen3.6-27b": {
-				ID:          "qwen3.6-27b",
-				Name:        "Qwen3.6 27B",
-				Family:      "qwen",
-				Reasoning:   true,
-				ToolCall:    true,
-				OpenWeights: true,
-				Description: "Cheap reasoning for everyday workflows.",
-				Modalities: &Modalities{
-					Input:  []string{"text"},
-					Output: []string{"text"},
-				},
-				Cost: &Cost{
-					Input:  0.2,
-					Output: 1.5,
-				},
-				Limit: &Limit{
-					Context: 262144,
-					Output:  262144,
-				},
-			},
-			"qwen3.5-397b-a17b": {
-				ID:          "qwen3.5-397b-a17b",
-				Name:        "Qwen3.5 397B A17B",
-				Family:      "qwen",
-				Reasoning:   true,
-				ToolCall:    true,
-				OpenWeights: true,
-				Description: "Large model for complex workflows.",
-				Modalities: &Modalities{
-					Input:  []string{"text"},
-					Output: []string{"text"},
-				},
-				Cost: &Cost{
-					Input:  0.35,
-					Output: 1.75,
-				},
-				Limit: &Limit{
-					Context: 262144,
-					Output:  262144,
-				},
-			},
-			"qwen3.5-9b": {
-				ID:          "qwen3.5-9b",
-				Name:        "Qwen3.5 9B",
-				Family:      "qwen",
-				Reasoning:   true,
-				ToolCall:    true,
-				OpenWeights: true,
-				Description: "Free option for simple reasoning tasks.",
-				Modalities: &Modalities{
-					Input:  []string{"text"},
-					Output: []string{"text"},
-				},
-				Limit: &Limit{
-					Context: 262144,
-					Output:  262144,
-				},
-			},
-			"qwen3.5-9b-chat": {
-				ID:          "qwen3.5-9b-chat",
-				Name:        "Qwen3.5 9B (Chat)",
-				Family:      "qwen",
-				Reasoning:   true,
-				ToolCall:    true,
-				OpenWeights: true,
-				Description: "Cheapest pick for chat and simple coding.",
-				Modalities: &Modalities{
-					Input:  []string{"text"},
-					Output: []string{"text"},
-				},
-				Cost: &Cost{
-					Input:  0.04,
-					Output: 0.15,
-				},
-				Limit: &Limit{
-					Context: 262144,
-					Output:  262144,
-				},
-			},
-			"deepseek-v4-pro": {
-				ID:          "deepseek-v4-pro",
-				Name:        "DeepSeek V4 Pro",
-				Family:      "deepseek",
-				ToolCall:    true,
-				OpenWeights: true,
-				Description: "Great for long running tasks at a budget.",
-				Modalities: &Modalities{
-					Input:  []string{"text"},
-					Output: []string{"text"},
-				},
-				Cost: &Cost{
-					Input:  0.4,
-					Output: 0.85,
-				},
-				Limit: &Limit{
-					Context: 1000000,
-					Output:  131072,
-				},
-			},
-			"deepseek-v4-pro-precision": {
-				ID:          "deepseek-v4-pro-precision",
-				Name:        "DeepSeek V4 Pro (Precision)",
-				Family:      "deepseek",
-				ToolCall:    true,
-				OpenWeights: true,
-				Description: "Higher precision pick for long running tasks.",
-				Modalities: &Modalities{
-					Input:  []string{"text"},
-					Output: []string{"text"},
-				},
-				Cost: &Cost{
-					Input:  1.25,
-					Output: 2.5,
-				},
-				Limit: &Limit{
-					Context: 1000000,
-					Output:  131072,
-				},
-			},
-			"deepseek-v4-flash": {
-				ID:          "deepseek-v4-flash",
-				Name:        "DeepSeek V4 Flash",
-				Family:      "deepseek",
-				ToolCall:    true,
-				OpenWeights: true,
-				Description: "Cheap pick for long running day to day tasks.",
-				Modalities: &Modalities{
-					Input:  []string{"text"},
-					Output: []string{"text"},
-				},
-				Cost: &Cost{
-					Input:  0.12,
-					Output: 0.21,
-				},
-				Limit: &Limit{
-					Context: 1000000,
-					Output:  131072,
-				},
-			},
-			"deepseek-v3.2": {
-				ID:          "deepseek-v3.2",
-				Name:        "DeepSeek V3.2",
-				Family:      "deepseek",
-				ToolCall:    true,
-				OpenWeights: true,
-				Description: "Older DeepSeek — cheap and solid.",
-				Modalities: &Modalities{
-					Input:  []string{"text"},
-					Output: []string{"text"},
-				},
-				Cost: &Cost{
-					Input:  0.28,
-					Output: 0.38,
-				},
-				Limit: &Limit{
-					Context: 163840,
-					Output:  163840,
-				},
-			},
-		},
-	},
 	{ // fireworks-ai — Fireworks AI
 		ID:   "fireworks-ai",
 		Name: "Fireworks AI",
@@ -1224,6 +860,27 @@ var curatedProviders = []Provider{
 					Output:  128000,
 				},
 			},
+			"gpt-4o-mini": {
+				ID:               "gpt-4o-mini",
+				Name:             "GPT-4o Mini",
+				Family:           "gpt",
+				ToolCall:         true,
+				StructuredOutput: true,
+				Knowledge:        "2023-10-01",
+				ReleaseDate:      "2024-07-18",
+				Modalities: &Modalities{
+					Input:  []string{"text", "image"},
+					Output: []string{"text"},
+				},
+				Cost: &Cost{
+					Input:  0.15,
+					Output: 0.6,
+				},
+				Limit: &Limit{
+					Context: 128000,
+					Output:  16384,
+				},
+			},
 			"gpt-5.3-codex-spark": {
 				ID:          "gpt-5.3-codex-spark",
 				Name:        "GPT-5.3 Codex Spark",
@@ -1853,6 +1510,26 @@ var curatedProviders = []Provider{
 				Limit: &Limit{
 					Context: 400000,
 					Output:  128000,
+				},
+			},
+			"openai/gpt-4o-mini": {
+				ID:               "openai/gpt-4o-mini",
+				Name:             "GPT-4o Mini",
+				Family:           "gpt",
+				ToolCall:         true,
+				StructuredOutput: true,
+				ReleaseDate:      "2024-07-18",
+				Modalities: &Modalities{
+					Input:  []string{"text", "image"},
+					Output: []string{"text"},
+				},
+				Cost: &Cost{
+					Input:  0.15,
+					Output: 0.6,
+				},
+				Limit: &Limit{
+					Context: 128000,
+					Output:  16384,
 				},
 			},
 			"openai/gpt-5.4": {

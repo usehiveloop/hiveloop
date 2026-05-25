@@ -17,17 +17,13 @@ import (
 )
 
 func TestEmployeeOutboundMemoryCheckpoints(t *testing.T) {
-	if shouldTriggerEmployeeMemoryCheckpoint("user.message.received") {
-		t.Fatal("user message alone should not trigger retain")
+	if !shouldTriggerEmployeeMemoryCheckpoint("session.created") {
+		t.Fatal("session creation should schedule delayed retain")
 	}
-	if !shouldTriggerEmployeeMemoryCheckpoint("agent.message.sent") {
-		t.Fatal("agent message should trigger retain checkpoint")
-	}
-	if shouldTriggerEmployeeMemoryCheckpoint("agent.stream.token") {
-		t.Fatal("stream tokens should be stored but should not trigger retain")
-	}
-	if shouldTriggerEmployeeMemoryCheckpoint("error.model") {
-		t.Fatal("errors should be stored but should not trigger retain")
+	for _, eventType := range []string{"user.message.received", "agent.message.sent", "agent.stream.token", "error.model"} {
+		if shouldTriggerEmployeeMemoryCheckpoint(eventType) {
+			t.Fatalf("%s should not directly trigger retain", eventType)
+		}
 	}
 }
 

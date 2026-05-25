@@ -12,7 +12,7 @@ use gateway::ChannelGateway;
 use mcp::McpRegistry;
 use outbound::OutboundEmitter;
 use serde_json::{json, Value};
-use storage::CronJobRepo;
+use storage::{CronJobRepo, EventRepo};
 use tools::{JsonTool, ProcessRegistry, ToolDefinition};
 
 pub type ToolFuture = Pin<Box<dyn Future<Output = Result<Value>> + Send>>;
@@ -48,6 +48,7 @@ impl JsonTool for DynamicTool {
 pub struct ToolContext {
     pub gateway: Option<Arc<dyn ChannelGateway>>,
     pub cron_repo: Option<Arc<dyn CronJobRepo>>,
+    pub event_repo: Option<Arc<dyn EventRepo>>,
     pub process_registry: Option<Arc<ProcessRegistry>>,
     pub mcp_registry: Option<Arc<McpRegistry>>,
     pub workspace_root: PathBuf,
@@ -85,6 +86,11 @@ pub fn build_agent_tools(
             ToolSpec::CheckBashStatus => {
                 if let Some(registry) = &ctx.process_registry {
                     tools.push(check_bash_status_tool(registry.clone()));
+                }
+            }
+            ToolSpec::SearchSessions => {
+                if let Some(repo) = &ctx.event_repo {
+                    tools.push(search_sessions_tool(repo.clone()));
                 }
             }
             ToolSpec::SkillsList => {
@@ -170,6 +176,81 @@ fn event_source_from_session(session_id: &SessionId) -> &'static str {
     } else {
         "unknown"
     }
+}
+
+fn search_sessions_tool(repo: Arc<dyn EventRepo>) -> Arc<dyn JsonTool> {
+    Arc::new(DynamicTool::new(
+        ToolDefinition {
+            name: "search_sessions".into(),
+            description: "Search recent local conversation history from this sandbox. Use it to find prior user messages, agent replies, and compact tool summaries before relying on memory.".into(),
+            parameters: json!({
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": "Search terms for recent conversations"
+                    },
+                    "session_id": {
+                        "type": "string",
+                        "description": "Optional exact session id to search within"
+                    },
+                    "limit": {
+                        "type": "integer",
+                        "description": "Maximum matches to return, default 8, max 20"
+                    }
+                },
+                "required": ["query"]
+            }),
+        },
+        move |args| {
+            let repo = repo.clone();
+            Box::pin(async move {
+                let query = args
+                    .get("query")
+                    .and_then(Value::as_str)
+                    .map(str::trim)
+                    .filter(|value| !value.is_empty())
+                    .ok_or_else(|| anyhow!("query required"))?;
+                let limit = args
+                    .get("limit")
+                    .and_then(Value::as_u64)
+                    .unwrap_or(8)
+                    .clamp(1, 20) as u32;
+                let session_id = args
+                    .get("session_id")
+                    .and_then(Value::as_str)
+                    .map(str::trim)
+                    .filter(|value| !value.is_empty())
+                    .map(SessionId::from);
+                let matches = repo
+                    .search_sessions(query, session_id.as_ref(), limit)
+                    .await?;
+                let items: Vec<Value> = matches
+                    .into_iter()
+                    .map(|item| {
+                        json!({
+                            "session_id": item.session_id,
+                            "event_id": item.event_id,
+                            "event_kind": item.kind,
+                            "created_at": item.created_at.to_rfc3339(),
+                            "score": item.score,
+                            "snippet": item.snippet,
+                            "text": truncate_search_text(&item.content, 700),
+                        })
+                    })
+                    .collect();
+                Ok(json!({ "matches": items }))
+            })
+        },
+    ))
+}
+
+fn truncate_search_text(value: &str, max_chars: usize) -> String {
+    let mut out = String::new();
+    for ch in value.chars().take(max_chars) {
+        out.push(ch);
+    }
+    out
 }
 
 fn cron_tool(
@@ -979,6 +1060,7 @@ mod tests {
         let ctx = ToolContext {
             gateway: None,
             cron_repo: None,
+            event_repo: None,
             process_registry: None,
             mcp_registry: None,
             workspace_root: workspace,

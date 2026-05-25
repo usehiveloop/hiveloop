@@ -52,20 +52,6 @@ func employeeSessionEventsContainSecret(events []model.EmployeeSessionEvent) boo
 	return false
 }
 
-func employeeSessionEventsHaveWorkSignal(events []model.EmployeeSessionEvent) bool {
-	for _, event := range events {
-		if event.EventType != "tool.invoked" {
-			continue
-		}
-		payload := employeeMemoryPayload(event)
-		tool := firstPayloadString(payload, "tool")
-		if strings.TrimSpace(tool) != "" {
-			return true
-		}
-	}
-	return false
-}
-
 func shouldIncludeEmployeeMemoryMessage(text string) bool {
 	text = strings.TrimSpace(text)
 	if text == "" || isEmployeeMemoryFiller(text) || memorySecretPattern.MatchString(text) {

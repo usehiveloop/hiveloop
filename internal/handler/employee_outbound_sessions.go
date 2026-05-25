@@ -12,22 +12,22 @@ import (
 	"github.com/usehivy/hivy/internal/model"
 )
 
-func (h *EmployeeOutboundWebhookHandler) ensureEmployeeSession(ctx context.Context, sb *model.Sandbox, sessionID, source string, payload map[string]any, specialistTask *model.SpecialistTask) (*model.EmployeeConversation, error) {
+func (h *EmployeeOutboundWebhookHandler) ensureEmployeeSession(ctx context.Context, sb *model.Sandbox, sessionID, source string, payload map[string]any, specialistTask *model.SpecialistTask) (*model.EmployeeConversation, bool, error) {
 	if sb.OrgID == nil || sb.EmployeeID == nil {
-		return nil, fmt.Errorf("employee sandbox missing org_id or employee_id")
+		return nil, false, fmt.Errorf("employee sandbox missing org_id or employee_id")
 	}
 	sessionID = strings.TrimSpace(sessionID)
 	if sessionID == "" {
-		return nil, fmt.Errorf("runtime session_id is required for employee session events")
+		return nil, false, fmt.Errorf("runtime session_id is required for employee session events")
 	}
 	if specialistTask != nil && specialistTask.ConversationID != nil {
 		var session model.EmployeeConversation
 		if err := h.db.WithContext(ctx).
 			Where("id = ? AND org_id = ? AND employee_id = ?", *specialistTask.ConversationID, *sb.OrgID, *sb.EmployeeID).
 			First(&session).Error; err != nil {
-			return nil, fmt.Errorf("load specialist employee session: %w", err)
+			return nil, false, fmt.Errorf("load specialist employee session: %w", err)
 		}
-		return &session, nil
+		return &session, false, nil
 	}
 	if source == "" {
 		source = employeeEventSource(payload)
@@ -45,10 +45,11 @@ func (h *EmployeeOutboundWebhookHandler) ensureEmployeeSession(ctx context.Conte
 		Status:            "active",
 		IntegrationScopes: model.JSON{},
 	}
-	if err := h.db.WithContext(ctx).Where(&scope).Attrs(attrs).FirstOrCreate(&session).Error; err != nil {
-		return nil, fmt.Errorf("upsert employee session: %w", err)
+	result := h.db.WithContext(ctx).Where(&scope).Attrs(attrs).FirstOrCreate(&session)
+	if result.Error != nil {
+		return nil, false, fmt.Errorf("upsert employee session: %w", result.Error)
 	}
-	return &session, nil
+	return &session, result.RowsAffected > 0, nil
 }
 
 func (h *EmployeeOutboundWebhookHandler) markEmployeeSessionEnded(ctx context.Context, sessionID uuid.UUID, at time.Time) {
@@ -117,10 +118,5 @@ func shouldStoreEmployeeSessionEvent(eventType string) bool {
 }
 
 func shouldTriggerEmployeeMemoryCheckpoint(eventType string) bool {
-	switch eventType {
-	case "agent.message.sent", "session.completed":
-		return true
-	default:
-		return false
-	}
+	return eventType == "session.created"
 }

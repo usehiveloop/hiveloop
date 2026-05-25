@@ -1,4 +1,4 @@
-.PHONY: build test test-e2e test-handler-sharded lint check-file-length vet check infra-up app-up app-up-build up up-build down dev dev-build dev-nango dev-nango-secret dev-migrate clean fetch-actions generate docker-build docker-run migrate-up migrate-status migrate-version test-clean test-clean-auth test-clean-nango test-clean-proxy test-clean-connect test-clean-integrations test-auth test-nango test-real-nango test-proxy test-connect test-integrations test-connections test-sandbox-docker test-setup test-setup-nango openapi generate-auth-keys generate-bridge-client generate-sandbox-runtime-client build-sandbox-runtime-templates build-sandbox-runtime-specialist-templates employee-env-doctor employee-debug-pack test-services-up test-services-down ragtest-slack-live ragtest-kb-search-live seed-test local-up local-down local-reset local-status login-test asynq-peek
+.PHONY: build test test-e2e test-handler-sharded lint check-file-length vet check infra-up app-up app-up-build up up-build down dev dev-build dev-nango dev-nango-secret dev-migrate clean fetch-actions generate docker-build docker-run migrate-up migrate-status migrate-version test-clean test-clean-auth test-clean-nango test-clean-proxy test-clean-connect test-clean-integrations test-auth test-nango test-real-nango test-proxy test-connect test-integrations test-connections test-sandbox-docker test-setup test-setup-nango openapi generate-auth-keys generate-bridge-client generate-sandbox-runtime-client build-sandbox-runtime-templates build-sandbox-runtime-specialist-templates employee-env-doctor employee-debug-pack employee-eval test-services-up test-services-down ragtest-slack-live ragtest-kb-search-live seed-test local-up local-down local-reset local-status login-test asynq-peek
 .PHONY: sandbox-runtime-build sandbox-runtime-native-release sandbox-runtime-linux-build sandbox-runtime-linux-build-amd64 sandbox-runtime-linux-build-arm64 sandbox-runtime-linux-build-all sandbox-runtime-release-all sandbox-runtime-test sandbox-runtime-fmt-check sandbox-runtime-clippy sandbox-runtime-openapi runtime-openapi sandbox-runtime-image sandbox-runtime-image-amd64 sandbox-runtime-image-arm64 sandbox-runtime-specialist-image sandbox-runtime-specialist-image-amd64 sandbox-runtime-specialist-image-arm64 sandbox-runtime-image-test
 
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
@@ -12,7 +12,7 @@ SANDBOX_RUNTIME_LINUX_BINARY := dist/hivy-sandboxes-runtime-$(SANDBOX_RUNTIME_LI
 SANDBOX_RUNTIME_LINUX_AMD64_BINARY := dist/hivy-sandboxes-runtime-$(SANDBOX_RUNTIME_LINUX_AMD64_TARGET)
 SANDBOX_RUNTIME_LINUX_ARM64_BINARY := dist/hivy-sandboxes-runtime-$(SANDBOX_RUNTIME_LINUX_ARM64_TARGET)
 SANDBOX_RUNTIME_IMAGE ?= hivy-sandboxes-runtime:runtime
-SANDBOX_RUNTIME_SPECIALIST_IMAGE ?= hivy-sandboxes-runtime-specialist:runtime
+SANDBOX_RUNTIME_SPECIALIST_IMAGE ?= hivy-sandboxes-runtime-specialist:latest
 GO_BIN ?= $(shell if command -v go >/dev/null 2>&1; then command -v go; elif [ -x /opt/homebrew/bin/go ]; then echo /opt/homebrew/bin/go; elif [ -x /usr/local/go/bin/go ]; then echo /usr/local/go/bin/go; else echo go; fi)
 DEV_COMPOSE_SERVICES ?= postgres redis nango qdrant minio minio-setup hindsight api worker web
 DEV_INFRA_SERVICES ?= postgres redis nango qdrant minio minio-setup hindsight
@@ -77,6 +77,20 @@ DOCTOR_INCLUDE_UNEXPECTED ?= 1
 DOCTOR_SENSITIVE ?= 0
 DOCTOR_ENV_FILE ?= .env
 DOCTOR_PID ?=
+EVAL_SUITE ?= evals/employee-delegation-v1.yaml
+EVAL_MODELS ?=
+EVAL_RUNS ?= 1
+EVAL_PARALLEL ?= 6
+EVAL_API_URL ?= http://localhost:8080
+EVAL_OUT ?=
+EVAL_JUDGE_MODEL ?= gpt-4o-mini
+EVAL_DB_HOST ?= localhost
+EVAL_DB_PORT ?= 5433
+EVAL_REDIS_ADDR ?= localhost:16279
+EVAL_NANGO_ENDPOINT ?= http://localhost:23003
+EVAL_NANGO_SECRET_KEY ?=
+EVAL_HINDSIGHT_API_URL ?= http://localhost:8888
+EVAL_S3_ENDPOINT ?= http://localhost:9000
 employee-env-doctor:
 	@test -n "$(SANDBOX_ID)" || (echo "error: SANDBOX_ID is required (e.g. make employee-env-doctor SANDBOX_ID=48a54bb8-cd44-4454-845d-3be611f9090b)" && exit 1)
 	@flags="-id $(SANDBOX_ID) -json=$(DOCTOR_JSON) -env-file=$(DOCTOR_ENV_FILE)"; \
@@ -98,6 +112,26 @@ employee-debug-pack:
 	@flags="-id $(SANDBOX_ID) -env-file=$(DEBUG_ENV_FILE) -local-dir=$(DEBUG_LOCAL_DIR) -timeout=$(DEBUG_TIMEOUT)"; \
 	if [ "$(DEBUG_SENSITIVE)" = "1" ]; then flags="$$flags --sensitive"; fi; \
 	go run ./cmd/employee-debug-pack $$flags
+
+employee-eval:
+	@flags="-suite $(EVAL_SUITE) -runs $(EVAL_RUNS) -parallel $(EVAL_PARALLEL) -api-url $(EVAL_API_URL) -judge-model $(EVAL_JUDGE_MODEL)"; \
+	if [ -n "$(EVAL_MODELS)" ]; then flags="$$flags -models $(EVAL_MODELS)"; fi; \
+	if [ -n "$(EVAL_OUT)" ]; then flags="$$flags -out $(EVAL_OUT)"; fi; \
+	set -a; . ./.env; set +a; \
+	nango_secret="$(EVAL_NANGO_SECRET_KEY)"; \
+	if [ -z "$$nango_secret" ]; then \
+		nango_secret="$$(docker compose exec -T postgres psql -U hivy -d nango -Atc "SELECT secret_key FROM nango._nango_environments WHERE name='prod' LIMIT 1" 2>/dev/null || true)"; \
+	fi; \
+	if [ -z "$$nango_secret" ]; then nango_secret="$$HIVY_NANGO_SECRET_KEY"; fi; \
+	HIVY_DB_HOST="$(EVAL_DB_HOST)" \
+	HIVY_DB_PORT="$(EVAL_DB_PORT)" \
+	HIVY_REDIS_ADDR="$(EVAL_REDIS_ADDR)" \
+	HIVY_NANGO_ENDPOINT="$(EVAL_NANGO_ENDPOINT)" \
+	HIVY_NANGO_SECRET_KEY="$$nango_secret" \
+	HIVY_HINDSIGHT_API_URL="$(EVAL_HINDSIGHT_API_URL)" \
+	HIVY_AWS_ENDPOINT_URL="$(EVAL_S3_ENDPOINT)" \
+	HIVY_PUBLIC_ASSETS_S3_ENDPOINT="$(EVAL_S3_ENDPOINT)" \
+	go run ./cmd/employee-eval $$flags
 
 # Generate Bridge Go client from OpenAPI spec.
 # Bridge emits OpenAPI 3.1 schemas oapi-codegen can't handle:

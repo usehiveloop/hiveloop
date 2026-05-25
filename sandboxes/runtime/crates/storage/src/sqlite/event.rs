@@ -5,7 +5,9 @@ use chrono::{DateTime, Utc};
 use domain::{EventKind, SessionEvent, SessionId};
 use sqlx::{Row, SqlitePool};
 
-use crate::repos::{notify_write, EventRepo, Result, SharedWriteNotifier, StorageError};
+use crate::repos::{
+    notify_write, EventRepo, Result, SessionSearchResult, SharedWriteNotifier, StorageError,
+};
 
 pub struct SqliteEventRepo {
     pool: Arc<SqlitePool>,
@@ -61,6 +63,104 @@ fn parse_timestamp(raw: &str) -> Result<DateTime<Utc>> {
         .map_err(|e| StorageError::Other(anyhow::anyhow!("parse timestamp `{raw}`: {e}")))
 }
 
+fn searchable_content(kind: EventKind, payload: &serde_json::Value) -> Option<String> {
+    match kind {
+        EventKind::UserMessage | EventKind::AssistantMessage | EventKind::ToolResult => {
+            message_text(payload)
+        }
+        EventKind::ToolCall => tool_call_summary(payload),
+        EventKind::RunEvent | EventKind::SpecialistEvent | EventKind::Error => None,
+    }
+}
+
+fn message_text(payload: &serde_json::Value) -> Option<String> {
+    let parts = payload.get("message")?.get("parts")?.as_array()?;
+    let mut out = String::new();
+    for part in parts {
+        if let Some(text) = part.get("text").and_then(|v| v.as_str()) {
+            if !out.is_empty() {
+                out.push('\n');
+            }
+            out.push_str(text.trim());
+        }
+    }
+    non_empty(out)
+}
+
+fn tool_call_summary(payload: &serde_json::Value) -> Option<String> {
+    let calls = payload.get("message")?.get("tool_calls")?.as_array()?;
+    let mut out = String::new();
+    for call in calls {
+        let name = call.get("name").and_then(|v| v.as_str()).unwrap_or("tool");
+        let args = call
+            .get("arguments")
+            .map(|v| v.to_string())
+            .unwrap_or_default();
+        if !out.is_empty() {
+            out.push('\n');
+        }
+        out.push_str(name);
+        if !args.is_empty() {
+            out.push_str(": ");
+            out.push_str(&args);
+        }
+    }
+    non_empty(out)
+}
+
+fn non_empty(value: String) -> Option<String> {
+    let value = value.trim().to_string();
+    if value.is_empty() {
+        None
+    } else {
+        Some(value)
+    }
+}
+
+async fn index_search_row(
+    tx: &mut sqlx::Transaction<'_, sqlx::Sqlite>,
+    event_id: i64,
+    session_id: &SessionId,
+    kind: EventKind,
+    payload: &serde_json::Value,
+    created_at: &str,
+) -> Result<()> {
+    let Some(content) = searchable_content(kind, payload) else {
+        return Ok(());
+    };
+    sqlx::query(
+        "INSERT INTO session_event_search (event_id, session_id, kind, content, created_at) \
+         VALUES (?, ?, ?, ?, ?)",
+    )
+    .bind(event_id.to_string())
+    .bind(session_id.as_str())
+    .bind(kind_to_str(kind))
+    .bind(content)
+    .bind(created_at)
+    .execute(&mut **tx)
+    .await?;
+    Ok(())
+}
+
+fn build_fts_query(raw: &str) -> Option<String> {
+    let mut terms = Vec::new();
+    for token in raw.split_whitespace() {
+        let cleaned: String = token
+            .chars()
+            .filter(|ch| ch.is_alphanumeric() || *ch == '_' || *ch == '-')
+            .collect();
+        let cleaned = cleaned.trim_matches('-').trim_matches('_').to_lowercase();
+        if cleaned.len() >= 2 {
+            terms.push(format!("\"{}\"*", cleaned.replace('"', "\"\"")));
+        }
+    }
+    if terms.is_empty() {
+        None
+    } else {
+        Some(terms.join(" AND "))
+    }
+}
+
 #[async_trait]
 impl EventRepo for SqliteEventRepo {
     async fn append(
@@ -88,6 +188,15 @@ impl EventRepo for SqliteEventRepo {
         .bind(&payload_json)
         .bind(&created_at)
         .fetch_one(&mut *tx)
+        .await?;
+        index_search_row(
+            &mut tx,
+            inserted_id,
+            session_id,
+            kind,
+            &payload,
+            &created_at,
+        )
         .await?;
         tx.commit().await?;
         notify_write(&self.write_notifier);
@@ -144,6 +253,15 @@ impl EventRepo for SqliteEventRepo {
                 .bind(idempotency_key)
                 .execute(&mut *tx)
                 .await?;
+            index_search_row(
+                &mut tx,
+                inserted_id,
+                session_id,
+                kind,
+                &payload,
+                &created_at,
+            )
+            .await?;
         }
         tx.commit().await?;
         if inserted_id.is_some() {
@@ -194,5 +312,66 @@ impl EventRepo for SqliteEventRepo {
         let mut events = self.list_recent(session_id, limit).await?;
         events.reverse();
         Ok(events)
+    }
+
+    async fn search_sessions(
+        &self,
+        query: &str,
+        session_id: Option<&SessionId>,
+        limit: u32,
+    ) -> Result<Vec<SessionSearchResult>> {
+        let Some(fts_query) = build_fts_query(query) else {
+            return Ok(Vec::new());
+        };
+        let limit = limit.clamp(1, 20);
+        let rows = if let Some(session_id) = session_id {
+            sqlx::query(
+                "SELECT event_id, session_id, kind, content, created_at, bm25(session_event_search) AS score, \
+                 snippet(session_event_search, 3, '[', ']', '...', 18) AS snippet \
+                 FROM session_event_search \
+                 WHERE session_event_search MATCH ? AND session_id = ? \
+                 ORDER BY score ASC, created_at DESC \
+                 LIMIT ?",
+            )
+            .bind(&fts_query)
+            .bind(session_id.as_str())
+            .bind(limit as i64)
+            .fetch_all(self.pool.as_ref())
+            .await?
+        } else {
+            sqlx::query(
+                "SELECT event_id, session_id, kind, content, created_at, bm25(session_event_search) AS score, \
+                 snippet(session_event_search, 3, '[', ']', '...', 18) AS snippet \
+                 FROM session_event_search \
+                 WHERE session_event_search MATCH ? \
+                 ORDER BY score ASC, created_at DESC \
+                 LIMIT ?",
+            )
+            .bind(&fts_query)
+            .bind(limit as i64)
+            .fetch_all(self.pool.as_ref())
+            .await?
+        };
+
+        let mut out = Vec::with_capacity(rows.len());
+        for row in &rows {
+            let event_id: String = row.try_get("event_id")?;
+            let session_id: String = row.try_get("session_id")?;
+            let kind: String = row.try_get("kind")?;
+            let content: String = row.try_get("content")?;
+            let snippet: String = row.try_get("snippet")?;
+            let created_at_raw: String = row.try_get("created_at")?;
+            let score: f64 = row.try_get("score")?;
+            out.push(SessionSearchResult {
+                session_id,
+                event_id,
+                kind,
+                content,
+                snippet,
+                created_at: parse_timestamp(&created_at_raw)?,
+                score,
+            });
+        }
+        Ok(out)
     }
 }

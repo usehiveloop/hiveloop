@@ -1,0 +1,158 @@
+id: employee-delegation-v1
+timeout_seconds: 60
+models:
+  - deepseek-v4-flash
+
+business:
+  name: Luma Cakes
+  industry: premium bakery and events catering
+  profile: |
+    Luma Cakes sells custom celebration cakes, dessert tables, and corporate catering in Austin.
+    The team is small, margin-sensitive, and wants practical execution over long strategy documents.
+    Wedding season drives most revenue, corporate catering is an emerging growth bet, and the owner
+    wants concise updates with evidence and clear next actions.
+
+employee:
+  name: Ari
+  role: operations employee
+
+memories:
+  - type: project
+    content: Luma Cakes is preparing a wedding-season landing page campaign for custom cakes and dessert tables.
+  - type: preference
+    content: The founder prefers concise updates with clear next actions and does not want long strategy memos.
+  - type: technical
+    content: The Shopify site is not connected locally; engineering prototypes should be standalone unless integrations are present.
+  - type: business
+    content: Corporate catering may become a larger revenue stream, but the team has not validated demand or pricing yet.
+
+cases:
+  - id: vague-bakery-site
+    message: Can you take care of the page we need for wedding season?
+    expected_behavior: clarify
+
+  - id: wedding-page-detailed
+    message: Please create a standalone landing page prototype for our wedding-season custom cakes campaign. It should feature custom wedding cakes, dessert tables, Austin delivery, and a short lead form mockup. No Shopify integration is connected locally, so a static prototype is fine.
+    expected_behavior: delegate
+    expected_specialist: software-engineering-specialist
+
+  - id: flaky-site
+    message: The site keeps acting weird after our last changes and I need someone to sort it out.
+    expected_behavior: clarify
+
+  - id: corporate-catering
+    message: I keep hearing corporate catering could be bigger for us. Can you look into it?
+    expected_behavior: delegate
+    expected_specialist: business-research-specialist
+
+  - id: competitor-check
+    message: We have a pricing meeting tomorrow and I need to know what nearby premium bakeries are doing.
+    expected_behavior: delegate
+    expected_specialist: business-research-specialist
+
+  - id: simple-intro
+    message: Who are you?
+    expected_behavior: direct
+
+  - id: too-ambiguous
+    message: Can you help with the thing we talked about?
+    expected_behavior: clarify
+
+  - id: clarify-then-dispatch-page
+    message: Can you handle the launch page?
+    expected_initial_behavior: clarify
+    expected_behavior: delegate
+    expected_specialist: software-engineering-specialist
+    follow_up:
+      mode: llm
+      context: |
+        We need a standalone static HTML landing page prototype for Luma Cakes' corporate catering launch.
+        It should target Austin office managers, include breakfast boxes, dessert tables, delivery windows,
+        starting-at pricing placeholders, and a short lead form mockup. No integrations are connected locally.
+    assertions:
+      required_brief_contains:
+        - corporate catering
+        - standalone
+      forbidden_final_text:
+        - task_id
+        - runtime
+
+  - id: memory-actionable-wedding-page
+    message: Please finish the Sweet Vows page.
+    expected_behavior: delegate
+    expected_specialist: software-engineering-specialist
+    memories:
+      - type: project
+        content: |
+          The Sweet Vows page is Luma Cakes' wedding-season standalone landing page prototype.
+          It should be a static page for custom wedding cakes and dessert tables in Austin, with a short inquiry form mockup.
+          No Shopify integration is connected locally, so a standalone HTML prototype is the right deliverable.
+    assertions:
+      required_brief_contains:
+        - Sweet Vows
+        - standalone
+      forbidden_final_text:
+        - task_id
+        - runtime
+
+  - id: forget-bad-price-target
+    message: Forget the old wedding mini-cake target memory and use $350 instead. What target price will you use for the wedding mini-cake package?
+    expected_behavior: direct
+    memories:
+      - type: business
+        document_id: eval-memory-{{case_id}}-{{run_index}}-bad-target
+        content: |
+          Stale pricing memory. Exact document_id for deletion: eval-memory-{{case_id}}-{{run_index}}-bad-target.
+          The wedding mini-cake package target price is $200.
+          If the user corrects this price, delete this exact memory document and follow the user's corrected price.
+    assertions:
+      required_tool_calls:
+        - memory_forget
+      required_final_text:
+        - "$350"
+      forbidden_final_text:
+        - "$200"
+
+  - id: pricing-position-research
+    message: Can you check if our Austin premium bakery pricing is positioned correctly for corporate catering before tomorrow's meeting?
+    expected_behavior: delegate
+    expected_specialist: business-research-specialist
+    assertions:
+      forbidden_brief_contains:
+        - build a page
+      forbidden_final_text:
+        - task_id
+        - runtime
+
+  - id: margin-calculator-build
+    message: Build a standalone HTML margin calculator for corporate catering packages. It should let us enter servings, cost per serving, delivery cost, and target margin, then show recommended package price.
+    expected_behavior: delegate
+    expected_specialist: software-engineering-specialist
+    assertions:
+      required_brief_contains:
+        - margin calculator
+        - standalone
+      forbidden_final_text:
+        - task_id
+        - runtime
+
+  - id: trivial-copy-edit
+    message: "Rewrite this in one warmer sentence: We can make cakes for your office party. Contact us for pricing."
+    expected_behavior: direct
+    assertions:
+      forbidden_tool_calls:
+        - specialist_launch_task
+
+  - id: long-running-specialist-wake
+    message: Please build and verify a polished Rails landing page prototype for our corporate catering launch. Use the latest Rails version, install whatever dependencies are needed, run it locally, and capture evidence when it works. This will probably take a while, so just keep this thread updated when there is something real to report.
+    expected_behavior: delegate
+    expected_specialist: software-engineering-specialist
+    timeout_seconds: 75
+    assertions:
+      observe_after_delegate_seconds: 20
+      required_tool_calls:
+        - wake
+      max_status_checks_before_wake: 1
+      forbidden_final_text:
+        - task_id
+        - runtime

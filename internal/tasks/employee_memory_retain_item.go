@@ -18,9 +18,6 @@ func buildEmployeeRetainItem(agent *model.Employee, payload EmployeeMemoryRetain
 	if employeeSessionEventsContainSecret(events) {
 		return hindsight.RetainItem{}, false
 	}
-	if !employeeSessionEventsHaveWorkSignal(events) {
-		return hindsight.RetainItem{}, false
-	}
 	digest := employeeMemoryRetentionDigest(agent.Name, events)
 	if !meaningfulEmployeeMemoryTranscript(digest, events) {
 		return hindsight.RetainItem{}, false
@@ -34,13 +31,20 @@ func buildEmployeeRetainItem(agent *model.Employee, payload EmployeeMemoryRetain
 	observationScopes := [][]string{{"company:" + agent.OrgID.String()}}
 	return hindsight.RetainItem{
 		Content:           digest,
-		Context:           fmt.Sprintf("Filtered employee memory digest from %s source. It intentionally omits routine tool use and transient task chatter. Retain durable people facts, including teammate names and stable channel user IDs or mention handles when present, plus company facts, decisions, preferences, ownership, policies, recurring workflows, and reusable technical context. Do not retain active conversation framing or temporary task status as durable facts.", source),
-		DocumentID:        "employee-session:" + payload.SandboxID.String() + ":" + payload.SessionID,
+		Context:           fmt.Sprintf("Settled employee session transcript from %s source. It includes user and employee messages only. Extract durable people facts, stable channel user IDs or mention handles when present, company facts, decisions, preferences, ownership, policies, recurring workflows, and reusable technical context. Ignore greetings, active conversation framing, temporary task status, and ordinary completion chatter.", source),
+		DocumentID:        employeeMemoryDocumentID(payload),
 		Tags:              tags,
 		Timestamp:         events[0].EventAt.UTC().Format(time.RFC3339),
 		Metadata:          employeeMemoryRetainMetadata(agent, payload, events),
 		ObservationScopes: observationScopes,
 	}, true
+}
+
+func employeeMemoryDocumentID(payload EmployeeMemoryRetainPayload) string {
+	if payload.EmployeeSessionID != uuid.Nil {
+		return "employee-session:" + payload.EmployeeSessionID.String()
+	}
+	return "employee-session:" + payload.SandboxID.String() + ":" + payload.SessionID
 }
 
 func employeeMemoryRetentionDigest(agentName string, events []model.EmployeeSessionEvent) string {
@@ -68,10 +72,7 @@ func employeeMemoryRetentionDigest(agentName string, events []model.EmployeeSess
 		return ""
 	}
 	var buf strings.Builder
-	buf.WriteString("Durable memory extraction input. This omits raw tool calls, internal commands, and execution trace.\n")
-	buf.WriteString("Retain durable people facts, including teammate names, stable channel user IDs or mention handles, roles, ownership, preferences, decisions, policies, recurring workflows, business/customer/team/project facts, and stable technical/company context.\n")
-	buf.WriteString("Do not retain active-conversation framing as facts: who is currently talking to the employee, who asked in this thread, temporary task progress, status chatter, one-off execution state, or ordinary completion messages.\n")
-	buf.WriteString("Use speaker names and channel IDs as attribution context and as durable people identity only when they identify real teammates, roles, ownership, or preferences.\n\n")
+	buf.WriteString("Settled session transcript for memory extraction. This omits raw tool calls, internal commands, execution trace, and streamed partial output.\n\n")
 	for _, line := range lines {
 		buf.WriteString("- ")
 		buf.WriteString(line)
@@ -106,11 +107,12 @@ func employeeMemorySlackMention(userID string) string {
 
 func employeeMemoryRetainMetadata(agent *model.Employee, payload EmployeeMemoryRetainPayload, events []model.EmployeeSessionEvent) map[string]string {
 	meta := map[string]string{
-		"employee_id":  agent.ID.String(),
-		"sandbox_id":   payload.SandboxID.String(),
-		"session_id":   payload.SessionID,
-		"event_count":  fmt.Sprintf("%d", len(events)),
-		"source_event": payload.SourceEvent,
+		"employee_id":         agent.ID.String(),
+		"sandbox_id":          payload.SandboxID.String(),
+		"employee_session_id": payload.EmployeeSessionID.String(),
+		"session_id":          payload.SessionID,
+		"event_count":         fmt.Sprintf("%d", len(events)),
+		"source_event":        payload.SourceEvent,
 	}
 	for _, key := range []string{"source", "channel", "thread_ts", "user", "user_display_name", "tool"} {
 		if value := firstEmployeePayloadString(events, key); value != "" {

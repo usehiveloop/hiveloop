@@ -165,13 +165,27 @@ func (h *EmployeeOutboundWebhookHandler) storeAndMaybeEnqueue(ctx context.Contex
 			captureEmployeeWebhookIngest(ctx, "sync_skill", sb, event, sessionID, source, err)
 		}
 	}
+	if event.EventType == "session.created" {
+		session, createdSession, err := h.ensureEmployeeSession(ctx, sb, sessionID, source, payload, specialistTask)
+		if err != nil {
+			captureEmployeeWebhookIngest(ctx, "ensure_employee_session", sb, event, sessionID, source, err)
+			return
+		}
+		if createdSession {
+			h.enqueueEmployeeMemoryRetain(ctx, sb, session, sessionID, "session_created", "session.created")
+		}
+		return
+	}
 	if !shouldStoreEmployeeSessionEvent(event.EventType) {
 		return
 	}
-	session, err := h.ensureEmployeeSession(ctx, sb, sessionID, source, payload, specialistTask)
+	session, createdSession, err := h.ensureEmployeeSession(ctx, sb, sessionID, source, payload, specialistTask)
 	if err != nil {
 		captureEmployeeWebhookIngest(ctx, "ensure_employee_session", sb, event, sessionID, source, err)
 		return
+	}
+	if createdSession {
+		h.enqueueEmployeeMemoryRetain(ctx, sb, session, sessionID, "session_created", "session.created")
 	}
 	stored, ok := employeeSessionEventFromOutbound(sb, event, payload, session.ID, sessionID)
 	if !ok {
@@ -219,26 +233,29 @@ func (h *EmployeeOutboundWebhookHandler) storeAndMaybeEnqueue(ctx context.Contex
 	if event.EventType == "session.completed" {
 		h.markEmployeeSessionEnded(ctx, session.ID, event.At)
 	}
-	if h.enqueuer == nil || sessionID == "" || !shouldTriggerEmployeeMemoryCheckpoint(event.EventType) {
+}
+
+func (h *EmployeeOutboundWebhookHandler) enqueueEmployeeMemoryRetain(ctx context.Context, sb *model.Sandbox, session *model.EmployeeConversation, sessionID, reason, sourceEvent string) {
+	if h.enqueuer == nil || sb == nil || session == nil || sb.EmployeeID == nil || sessionID == "" {
 		return
 	}
 	task, err := tasks.NewEmployeeMemoryRetainTask(tasks.EmployeeMemoryRetainPayload{
-		EmployeeID:  *sb.EmployeeID,
-		SandboxID:   sb.ID,
-		SessionID:   sessionID,
-		Reason:      "employee_outbound_checkpoint",
-		SourceEvent: event.EventType,
+		EmployeeID:        *sb.EmployeeID,
+		SandboxID:         sb.ID,
+		EmployeeSessionID: session.ID,
+		SessionID:         sessionID,
+		Reason:            reason,
+		SourceEvent:       sourceEvent,
 	})
 	if err != nil {
-		captureEmployeeWebhookIngest(ctx, "build_memory_retain_task", sb, event, sessionID, source, err)
+		captureEmployeeWebhookIngest(ctx, "build_memory_retain_task", sb, nil, sessionID, session.Source, err)
 		return
 	}
 	if _, err := h.enqueuer.EnqueueContext(ctx, task,
-		asynq.ProcessIn(3*time.Second),
-		asynq.Unique(90*time.Second),
-		asynq.TaskID("employee-memory-retain:"+sb.ID.String()+":"+sessionID),
+		asynq.ProcessIn(10*time.Minute),
+		asynq.TaskID("employee-memory-retain:"+session.ID.String()),
 	); err != nil && !errors.Is(err, asynq.ErrDuplicateTask) {
-		captureEmployeeWebhookIngest(ctx, "enqueue_memory_retain", sb, event, sessionID, source, err)
+		captureEmployeeWebhookIngest(ctx, "enqueue_memory_retain", sb, nil, sessionID, session.Source, err)
 	}
 }
 

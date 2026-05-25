@@ -118,6 +118,7 @@ pub fn build_builtin_tools(
             | ToolSpec::CheckDelegatedStatus
             | ToolSpec::CheckBashStatus
             | ToolSpec::Wake
+            | ToolSpec::SearchSessions
             | ToolSpec::SkillsList
             | ToolSpec::SkillView
             | ToolSpec::SkillManage => {}

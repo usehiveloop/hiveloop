@@ -50,7 +50,7 @@ func TestBuildEmployeeRetainItem_BundlesSessionAtCheckpoint(t *testing.T) {
 	if !strings.Contains(item.Content, "Teammate Kim (<@U123>)") {
 		t.Fatalf("retain content should preserve Slack user identity: %q", item.Content)
 	}
-	if !strings.Contains(item.Context, "stable channel user IDs") || !strings.Contains(item.Content, "Do not retain active-conversation framing") {
+	if !strings.Contains(item.Context, "stable channel user IDs") || !strings.Contains(item.Content, "Settled session transcript") {
 		t.Fatalf("retain instructions should distinguish people facts from session state: context=%q content=%q", item.Context, item.Content)
 	}
 	if strings.Contains(item.Content, "Tool ") || strings.Contains(item.Content, "bash") || strings.Contains(item.Content, "Checked deployment docs") {
@@ -81,25 +81,6 @@ func TestBuildEmployeeRetainItem_SkipsNoCheckpointAndSecrets(t *testing.T) {
 	}
 }
 
-func TestBuildEmployeeRetainItem_SkipsPureBanterWithoutWorkSignal(t *testing.T) {
-	orgID := uuid.New()
-	agentID := uuid.New()
-	sandboxID := uuid.New()
-	agent := &model.Employee{ID: agentID, OrgID: &orgID, Name: "Aria"}
-	events := []model.EmployeeSessionEvent{
-		memoryEvent(t, orgID, agentID, sandboxID, "S1", "user.message.received", map[string]any{
-			"source": "slack", "channel": "C123", "user_display_name": "Kim",
-			"text": "Why did the database admin leave the party? Too many relationships.",
-		}),
-		memoryEvent(t, orgID, agentID, sandboxID, "S1", "agent.message.sent", map[string]any{
-			"source": "slack", "text": "Painfully relational.",
-		}),
-	}
-	if _, ok := buildEmployeeRetainItem(agent, EmployeeMemoryRetainPayload{EmployeeID: agentID, SandboxID: sandboxID, SessionID: "S1"}, events); ok {
-		t.Fatal("pure banter without a work/tool signal should not retain")
-	}
-}
-
 func TestBuildEmployeeRetainItem_PreservesExplicitRememberFactsWithoutTools(t *testing.T) {
 	orgID := uuid.New()
 	agentID := uuid.New()
@@ -109,9 +90,6 @@ func TestBuildEmployeeRetainItem_PreservesExplicitRememberFactsWithoutTools(t *t
 		memoryEvent(t, orgID, agentID, sandboxID, "S1", "user.message.received", map[string]any{
 			"source": "slack", "channel": "C123", "user_display_name": "Nora",
 			"text": "Please remember this: Nora owns invoice-failure alerts, and billing answers must use live data when possible.",
-		}),
-		memoryEvent(t, orgID, agentID, sandboxID, "S1", "tool.invoked", map[string]any{
-			"source": "slack", "tool": "bash", "result_summary": "Queried invoices table and found alert owner metadata.",
 		}),
 		memoryEvent(t, orgID, agentID, sandboxID, "S1", "agent.message.sent", map[string]any{
 			"source": "slack", "text": "Remembered. Nora owns invoice-failure alerts, and billing answers should use live data when possible.",
@@ -129,7 +107,7 @@ func TestBuildEmployeeRetainItem_PreservesExplicitRememberFactsWithoutTools(t *t
 			t.Fatalf("retain content missing %q: %s", want, item.Content)
 		}
 	}
-	if strings.Contains(item.Content, "Queried invoices") || strings.Contains(item.Content, "Tool ") || strings.Contains(item.Content, "bash") {
+	if strings.Contains(item.Content, "Tool ") || strings.Contains(item.Content, "bash") {
 		t.Fatalf("retain content leaked tool execution trace: %s", item.Content)
 	}
 }

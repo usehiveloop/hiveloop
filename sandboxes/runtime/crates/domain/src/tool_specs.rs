@@ -26,6 +26,8 @@ pub enum ToolSpec {
     SkillView,
     #[serde(rename = "builtin.skill_manage")]
     SkillManage,
+    #[serde(rename = "builtin.search_sessions")]
+    SearchSessions,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
