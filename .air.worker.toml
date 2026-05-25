@@ -2,7 +2,7 @@ root = "."
 tmp_dir = "tmp/air-worker"
 
 [build]
-  cmd = "CGO_ENABLED=0 /usr/local/go/bin/go build -o ./tmp/air-worker/hivy ./cmd/server"
+  cmd = "CGO_ENABLED=0 /usr/local/go/bin/go build -buildvcs=false -o ./tmp/air-worker/hivy ./cmd/server"
   bin = "./tmp/air-worker/hivy"
   full_bin = "./tmp/air-worker/hivy work"
   include_ext = ["go", "json", "yaml", "yml", "toml"]
