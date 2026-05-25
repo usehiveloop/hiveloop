@@ -21,6 +21,10 @@ type skillBundle struct {
 }
 
 func buildSkills(ctx context.Context, db *gorm.DB, agentID uuid.UUID) ([]SkillSpec, error) {
+	return buildSkillsWithDefaultNames(ctx, db, agentID, nil)
+}
+
+func buildSkillsWithDefaultNames(ctx context.Context, db *gorm.DB, agentID uuid.UUID, defaultNames []string) ([]SkillSpec, error) {
 	if db == nil {
 		return []SkillSpec{}, nil
 	}
@@ -28,7 +32,8 @@ func buildSkills(ctx context.Context, db *gorm.DB, agentID uuid.UUID) ([]SkillSp
 	if err := db.WithContext(ctx).Where("employee_id = ?", agentID).Find(&links).Error; err != nil {
 		return nil, err
 	}
-	if len(links) == 0 {
+	defaultNames = normalizeSkillNames(defaultNames)
+	if len(links) == 0 && len(defaultNames) == 0 {
 		return []SkillSpec{}, nil
 	}
 	ids := make([]uuid.UUID, 0, len(links))
@@ -36,9 +41,26 @@ func buildSkills(ctx context.Context, db *gorm.DB, agentID uuid.UUID) ([]SkillSp
 		ids = append(ids, link.SkillID)
 	}
 	var skills []model.Skill
-	if err := db.WithContext(ctx).Where("id IN ?", ids).Find(&skills).Error; err != nil {
-		return nil, err
+	if len(ids) > 0 {
+		if err := db.WithContext(ctx).Where("id IN ?", ids).Find(&skills).Error; err != nil {
+			return nil, err
+		}
 	}
+	if len(defaultNames) > 0 {
+		var defaultSkills []model.Skill
+		if err := db.WithContext(ctx).
+			Where("org_id IS NULL AND status = ? AND (name IN ? OR slug IN ?)", model.SkillStatusPublished, defaultNames, defaultNames).
+			Find(&defaultSkills).Error; err != nil {
+			return nil, err
+		}
+		skills = appendMissingSkills(skills, defaultSkills)
+	}
+	sort.SliceStable(skills, func(i, j int) bool {
+		if skills[i].Slug == skills[j].Slug {
+			return skills[i].ID.String() < skills[j].ID.String()
+		}
+		return skills[i].Slug < skills[j].Slug
+	})
 	out := make([]SkillSpec, 0, len(skills))
 	for _, skill := range skills {
 		if len(skill.Bundle) == 0 {
@@ -71,6 +93,42 @@ func buildSkills(ctx context.Context, db *gorm.DB, agentID uuid.UUID) ([]SkillSp
 		})
 	}
 	return out, nil
+}
+
+func appendMissingSkills(existing []model.Skill, candidates []model.Skill) []model.Skill {
+	seenIDs := make(map[uuid.UUID]bool, len(existing)+len(candidates))
+	seenSlugs := make(map[string]bool, len(existing)+len(candidates))
+	for _, skill := range existing {
+		seenIDs[skill.ID] = true
+		seenSlugs[skill.Slug] = true
+	}
+	for _, skill := range candidates {
+		if seenIDs[skill.ID] || seenSlugs[skill.Slug] {
+			continue
+		}
+		existing = append(existing, skill)
+		seenIDs[skill.ID] = true
+		seenSlugs[skill.Slug] = true
+	}
+	return existing
+}
+
+func normalizeSkillNames(values []string) []string {
+	if len(values) == 0 {
+		return []string{}
+	}
+	seen := make(map[string]bool, len(values))
+	out := make([]string, 0, len(values))
+	for _, value := range values {
+		value = strings.TrimSpace(value)
+		if value == "" || seen[value] {
+			continue
+		}
+		seen[value] = true
+		out = append(out, value)
+	}
+	sort.Strings(out)
+	return out
 }
 
 func normalizeRequiredEnvironmentVariables(values []string) []string {

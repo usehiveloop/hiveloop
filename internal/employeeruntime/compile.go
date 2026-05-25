@@ -245,7 +245,7 @@ func CompileSpecialist(ctx context.Context, deps CompileDeps, employee *model.Em
 	if employee == nil || employee.OrgID == nil {
 		return nil, fmt.Errorf("specialist runtime compile: employee must have org_id")
 	}
-	skills, err := buildSkills(ctx, deps.DB, employee.ID)
+	skills, err := buildSkillsWithDefaultNames(ctx, deps.DB, employee.ID, def.DefaultSkillNames)
 	if err != nil {
 		return nil, err
 	}
