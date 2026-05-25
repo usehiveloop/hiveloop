@@ -1,4 +1,5 @@
 use similar::TextDiff;
+use std::cmp::Reverse;
 use unicode_normalization::UnicodeNormalization;
 
 #[derive(Debug, thiserror::Error)]
@@ -45,7 +46,7 @@ pub fn apply_edits(content: &str, edits: &[PendingEdit]) -> Result<String, EditM
             return Err(EditMatchError::Overlap(window[1].0));
         }
     }
-    resolved.sort_by(|left, right| right.1.start.cmp(&left.1.start));
+    resolved.sort_by_key(|(_, edit)| Reverse(edit.start));
     let mut result = content.to_string();
     for (_, edit) in resolved {
         result.replace_range(edit.start..edit.end, &edit.new_text);
