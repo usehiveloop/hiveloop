@@ -23,6 +23,9 @@ func TestLoadGlobalSpecialists(t *testing.T) {
 	if !def.AutoAttach {
 		t.Fatalf("AutoAttach = false, want true")
 	}
+	if def.DefaultModel != "qwen3.7-max" {
+		t.Fatalf("DefaultModel = %q, want qwen3.7-max", def.DefaultModel)
+	}
 	if !strings.Contains(def.SystemPrompt, "Software Engineering Specialist") {
 		t.Fatalf("SystemPrompt does not contain migrated prompt")
 	}
@@ -50,6 +53,7 @@ func TestLoadRejectsMissingPrompt(t *testing.T) {
   "description":"Bad specialist",
   "specialist_type":"bad",
   "version":1,
+  "default_model":"qwen3.7-max",
   "prompt_path":"missing.md"
 }`), 0o644); err != nil {
 		t.Fatal(err)
@@ -71,6 +75,7 @@ func writeSpecialist(t *testing.T, dir string, slug string) {
   "description":"Test specialist",
   "specialist_type":"test",
   "version":1,
+  "default_model":"qwen3.7-max",
   "prompt_path":"prompt.md"
 }`), 0o644); err != nil {
 		t.Fatal(err)

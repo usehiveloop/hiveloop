@@ -224,8 +224,13 @@ func (h *EmployeeProxyTokenRefreshHandler) revokeOlderTokens(ctx context.Context
 	}
 	now := time.Now().UTC()
 	if err := h.db.WithContext(ctx).Model(&model.Token{}).
-		Where("org_id = ? AND meta->>'employee_id' = ? AND meta->>'type' = ? AND meta->>'harness' = ? AND jti != ? AND revoked_at IS NULL",
-			*agent.OrgID, agent.ID.String(), "employee_proxy", "employee-sandbox", keepJTI).
+		Where("org_id = ? AND meta->>? = ? AND meta->>? = ? AND meta->>? = ? AND meta->>? = ? AND jti != ? AND revoked_at IS NULL",
+			*agent.OrgID,
+			model.TokenMetaEmployeeID, agent.ID.String(),
+			model.TokenMetaType, model.TokenTypeEmployeeProxy,
+			model.TokenMetaHarness, model.TokenHarnessEmployeeSandbox,
+			model.TokenMetaRuntimeMode, model.TokenRuntimeModeEmployee,
+			keepJTI).
 		Update("revoked_at", now).Error; err != nil {
 		return fmt.Errorf("revoke older employee proxy tokens: %w", err)
 	}
@@ -250,9 +255,13 @@ func nextEmployeeProxyTokenRefreshAt(ctx context.Context, db *gorm.DB, agent *mo
 	}
 	var tok model.Token
 	err := db.WithContext(ctx).
-		Where("org_id = ? AND meta->>'employee_id' = ? AND meta->>'type' = ? AND meta->>'harness' = ? AND revoked_at IS NULL",
-			*agent.OrgID, agent.ID.String(), "employee_proxy", "employee-sandbox").
-		Where("COALESCE(meta->>'sandbox_id', '') IN (?, '')", sandboxID.String()).
+		Where("org_id = ? AND meta->>? = ? AND meta->>? = ? AND meta->>? = ? AND meta->>? = ? AND revoked_at IS NULL",
+			*agent.OrgID,
+			model.TokenMetaEmployeeID, agent.ID.String(),
+			model.TokenMetaType, model.TokenTypeEmployeeProxy,
+			model.TokenMetaHarness, model.TokenHarnessEmployeeSandbox,
+			model.TokenMetaRuntimeMode, model.TokenRuntimeModeEmployee).
+		Where("COALESCE(meta->>?, '') IN (?, '')", model.TokenMetaSandboxID, sandboxID.String()).
 		Order("created_at DESC").
 		First(&tok).Error
 	if err == nil {

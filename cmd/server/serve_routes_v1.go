@@ -150,6 +150,7 @@ func setupV1Routes(
 					r.Get("/employees/{id}", employeeHandler.Get)
 					r.Get("/employees/{id}/sessions", employeeHandler.ListSessions)
 					r.Get("/employees/{id}/specialists", employeeHandler.ListSpecialists)
+					r.Patch("/employees/{id}/specialists/{slug}", employeeHandler.UpdateSpecialist)
 					r.Post("/employees/{id}/specialists/{slug}", employeeHandler.EnableSpecialist)
 					r.Delete("/employees/{id}/specialists/{slug}", employeeHandler.DisableSpecialist)
 					r.Route("/employees/{id}/skills", func(r chi.Router) {

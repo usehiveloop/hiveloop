@@ -2842,120 +2842,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/conversations/{convID}/events": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List conversation events
-         * @description Returns webhook events persisted for the conversation, ordered by sequence_number DESC (newest first). Pagination cursor is the lowest sequence_number on the current page; pass it back to fetch the next older page. Filterable by event type.
-         */
-        get: {
-            parameters: {
-                query?: {
-                    /** @description Filter by event type (e.g. message_received, response_completed) */
-                    type?: string;
-                    /** @description Page size (default 50, max 100) */
-                    limit?: number;
-                    /** @description Pagination cursor — sequence_number from previous page's tail. Returns events with sequence_number strictly less than this value. */
-                    cursor?: string;
-                };
-                header?: never;
-                path: {
-                    /** @description Conversation ID */
-                    convID: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["paginatedResponse-handler_conversationEventResponse"];
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/conversations/{convID}/history": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Hydrate conversation history
-         * @description Returns persisted conversation events in chronological order, intended for hydrating a UI before opening the SSE stream. Paginated via since=<event_id>. Unlike GET /events, this endpoint sorts events ASC by sequence_number so the caller can render in order.
-         */
-        get: {
-            parameters: {
-                query?: {
-                    /** @description Return events with sequence_number greater than this event_id */
-                    since?: string;
-                    /** @description Page size (default 200, max 1000) */
-                    limit?: number;
-                };
-                header?: never;
-                path: {
-                    /** @description Conversation ID */
-                    convID: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["conversationHistoryResponse"];
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/v1/conversations/{convID}/messages": {
         parameters: {
             query?: never;
@@ -2963,47 +2849,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /**
-         * List conversation messages
-         * @description Returns chat-ready messages aggregated from raw events. Consecutive same-name tool calls are grouped (e.g. "bash" called 11 times in a row → one group with 11 calls). Pagination is by sequence_number; aggregation is per-page so a tool call split across pages will not pair.
-         */
-        get: {
-            parameters: {
-                query?: {
-                    /** @description Max events scanned per page (default 200, max 1000). Aggregated message count may be smaller. */
-                    limit?: number;
-                    /** @description Sequence number from the previous page's tail. Returns events with sequence_number strictly greater than this value. */
-                    cursor?: string;
-                };
-                header?: never;
-                path: {
-                    /** @description Conversation ID */
-                    convID: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["conversationMessagesResponse"];
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["errorResponse"];
-                    };
-                };
-            };
-        };
+        get?: never;
         put?: never;
         /**
          * Send a message
@@ -4515,7 +4361,76 @@ export interface paths {
         };
         options?: never;
         head?: never;
-        patch?: never;
+        /**
+         * Update an employee specialist config
+         * @description Sets or clears the model override for a specialist attached to Hivy.
+         */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Employee ID */
+                    id: string;
+                    /** @description Specialist slug */
+                    slug: string;
+                };
+                cookie?: never;
+            };
+            /** @description Specialist config patch */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["updateEmployeeSpecialistRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["employeeSpecialistResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["errorResponse"];
+                    };
+                };
+            };
+        };
         trace?: never;
     };
     "/v1/employees/{id}/sync": {
@@ -5600,7 +5515,7 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * List all active plans
+         * List all public active plans
          * @description Returns the public catalog of billing plans, ordered by price
          *     ascending (free first). Public — no authentication required.
          */
@@ -8276,41 +8191,6 @@ export interface components {
             updated_at?: string;
             webhook_configured?: boolean;
         };
-        conversationEventResponse: {
-            created_at?: string;
-            data?: number[];
-            employee_id?: string;
-            event_id?: string;
-            event_type?: string;
-            id?: string;
-            runtime_conversation_id?: string;
-            sequence_number?: number;
-            timestamp?: string;
-        };
-        conversationHistoryResponse: {
-            conversation_id?: string;
-            events?: components["schemas"]["conversationEventResponse"][];
-            has_more?: boolean;
-            /**
-             * @description LastEventID is the event_id of the last event in this page. Clients
-             *     can pass it as the `Last-Event-ID` header when opening the SSE stream
-             *     to resume from exactly where history ended.
-             */
-            last_event_id?: string;
-        };
-        conversationMessageResponse: {
-            author?: string;
-            body?: string;
-            id?: string;
-            timestamp?: string;
-            tool_groups?: components["schemas"]["conversationToolGroupResponse"][];
-        };
-        conversationMessagesResponse: {
-            data?: components["schemas"]["conversationMessageResponse"][];
-            has_more?: boolean;
-            latest_todos?: components["schemas"]["conversationTodoItem"][];
-            next_cursor?: string;
-        };
         conversationResponse: {
             created_at?: string;
             employee_id?: string;
@@ -8318,21 +8198,6 @@ export interface components {
             name?: string;
             status?: string;
             stream_url?: string;
-        };
-        conversationTodoItem: {
-            content?: string;
-            priority?: string;
-            status?: string;
-        };
-        conversationToolCallResponse: {
-            id?: string;
-            status?: string;
-            summary?: string;
-            title?: string;
-        };
-        conversationToolGroupResponse: {
-            calls?: components["schemas"]["conversationToolCallResponse"][];
-            name?: string;
         };
         createAPIKeyRequest: {
             expires_in?: string;
@@ -8559,7 +8424,10 @@ export interface components {
         };
         employeeSpecialistResponse: {
             attached?: boolean;
+            configured_model?: string;
+            default_model?: string;
             description?: string;
+            effective_model?: string;
             name?: string;
             slug?: string;
             specialist_type?: string;
@@ -8567,7 +8435,10 @@ export interface components {
         };
         employeeSpecialistSummary: {
             avatar_url?: string;
+            configured_model?: string;
+            default_model?: string;
             description?: string;
+            effective_model?: string;
             id?: string;
             name?: string;
             status?: string;
@@ -8612,10 +8483,12 @@ export interface components {
             email?: string;
         };
         generationResponse: {
+            billing_cost_source?: string;
             cached_tokens?: number;
             cost?: number;
             created_at?: string;
             credential_id?: string;
+            credits_debited?: number;
             error_message?: string;
             error_type?: string;
             id?: string;
@@ -8838,11 +8711,6 @@ export interface components {
         };
         "paginatedResponse-handler_auditEntryResponse": {
             data?: components["schemas"]["auditEntryResponse"][];
-            has_more?: boolean;
-            next_cursor?: string;
-        };
-        "paginatedResponse-handler_conversationEventResponse": {
-            data?: components["schemas"]["conversationEventResponse"][];
             has_more?: boolean;
             next_cursor?: string;
         };
@@ -9370,6 +9238,9 @@ export interface components {
         };
         updateContentRequest: {
             bundle?: components["schemas"]["Bundle"];
+        };
+        updateEmployeeSpecialistRequest: {
+            model?: number[];
         };
         updateOrgRequest: {
             logo_url?: string;

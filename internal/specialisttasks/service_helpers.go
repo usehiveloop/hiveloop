@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -25,9 +26,10 @@ func (s *Service) employeeFromToken(ctx context.Context, token *model.Token) (*m
 	if token == nil {
 		return nil, newToolError("missing_token", "No MCP token was available for this call.", "The control plane could not identify the calling employee.", false, "Retry from inside the employee runtime using the Hivy MCP tools.")
 	}
-	tokenType, _ := token.Meta["type"].(string)
-	employeeIDRaw, _ := token.Meta["employee_id"].(string)
-	if tokenType != "employee_proxy" || strings.TrimSpace(employeeIDRaw) == "" {
+	tokenType, _ := token.Meta[model.TokenMetaType].(string)
+	runtimeMode, _ := token.Meta[model.TokenMetaRuntimeMode].(string)
+	employeeIDRaw, _ := token.Meta[model.TokenMetaEmployeeID].(string)
+	if tokenType != model.TokenTypeEmployeeProxy || runtimeMode != model.TokenRuntimeModeEmployee || strings.TrimSpace(employeeIDRaw) == "" {
 		return nil, newToolError("invalid_token_scope", "Specialist tools can only be used by an employee runtime proxy token.", "The MCP token is not scoped to an employee runtime.", false, "Use this tool only from inside the employee runtime conversation.")
 	}
 	employeeID, err := uuid.Parse(employeeIDRaw)
@@ -85,26 +87,116 @@ func (s *Service) loadOwnedTask(ctx context.Context, token *model.Token, taskID 
 	return &task, employee, nil
 }
 
-func (s *Service) recentEvents(ctx context.Context, employee *model.Employee, task *model.SpecialistTask, limit int) ([]TaskEventBrief, *ToolError) {
+type taskActivity struct {
+	LastActivityAt  *time.Time
+	MessageCount    int
+	ToolCallCount   int
+	ToolResultCount int
+	ErrorCount      int
+	LatestMessage   string
+	LatestError     string
+}
+
+func (a taskActivity) Summary() string {
+	parts := []string{}
+	if a.MessageCount > 0 {
+		parts = append(parts, fmt.Sprintf("%d message(s)", a.MessageCount))
+	}
+	if a.ToolCallCount > 0 {
+		parts = append(parts, fmt.Sprintf("%d tool call(s)", a.ToolCallCount))
+	}
+	if a.ToolResultCount > 0 {
+		parts = append(parts, fmt.Sprintf("%d tool result(s)", a.ToolResultCount))
+	}
+	if a.ErrorCount > 0 {
+		parts = append(parts, fmt.Sprintf("%d error event(s)", a.ErrorCount))
+	}
+	if len(parts) == 0 {
+		return "no specialist events have been recorded yet"
+	}
+	return strings.Join(parts, ", ")
+}
+
+func (s *Service) taskActivity(ctx context.Context, employee *model.Employee, task *model.SpecialistTask, limit int) (taskActivity, *ToolError) {
 	var rows []model.EmployeeSessionEvent
 	if err := s.db.WithContext(ctx).
 		Where("org_id = ? AND employee_id = ? AND specialist_task_id = ?", *employee.OrgID, employee.ID, task.ID).
 		Order("event_at DESC").
 		Limit(limit).
 		Find(&rows).Error; err != nil {
-		return nil, wrapToolError("event_load_failed", "Could not load recent specialist events.", err, true, "Retry specialist_task_status. If it repeats, report that task events are unavailable.")
+		return taskActivity{}, wrapToolError("event_load_failed", "Could not load recent specialist events.", err, true, "Retry specialist_task_status. If it repeats, report that task events are unavailable.")
 	}
-	out := make([]TaskEventBrief, 0, len(rows))
-	for i := len(rows) - 1; i >= 0; i-- {
-		row := rows[i]
-		out = append(out, TaskEventBrief{
-			EventType: row.EventType,
-			Source:    row.Source,
-			Payload:   json.RawMessage(row.Payload),
-			EventAt:   row.EventAt,
-		})
+	activity := taskActivity{}
+	for i, row := range rows {
+		if i == 0 {
+			lastActivityAt := row.EventAt
+			activity.LastActivityAt = &lastActivityAt
+		}
+		switch {
+		case row.EventType == "agent.message.sent":
+			activity.MessageCount++
+			if activity.LatestMessage == "" {
+				activity.LatestMessage = compactText(payloadString(row.Payload, "text", "message", "content"), 600)
+			}
+		case row.EventType == "agent.tool.call":
+			activity.ToolCallCount++
+		case row.EventType == "agent.tool.result":
+			activity.ToolResultCount++
+		}
+		if strings.Contains(row.EventType, "error") || strings.Contains(row.EventType, "failed") {
+			activity.ErrorCount++
+			if activity.LatestError == "" {
+				activity.LatestError = compactText(payloadString(row.Payload, "error", "message", "reason", "cause"), 400)
+			}
+		}
 	}
-	return out, nil
+	return activity, nil
+}
+
+func payloadString(payload model.RawJSON, keys ...string) string {
+	var value any
+	if err := json.Unmarshal([]byte(payload), &value); err != nil {
+		return ""
+	}
+	return nestedString(value, keys...)
+}
+
+func nestedString(value any, keys ...string) string {
+	switch typed := value.(type) {
+	case string:
+		return typed
+	case map[string]any:
+		for _, key := range keys {
+			if found, ok := typed[key]; ok {
+				if text := nestedString(found, keys...); text != "" {
+					return text
+				}
+			}
+		}
+		for _, found := range typed {
+			if text := nestedString(found, keys...); text != "" {
+				return text
+			}
+		}
+	case []any:
+		for _, item := range typed {
+			if text := nestedString(item, keys...); text != "" {
+				return text
+			}
+		}
+	}
+	return ""
+}
+
+func compactText(text string, max int) string {
+	text = strings.Join(strings.Fields(text), " ")
+	if max <= 0 || len(text) <= max {
+		return text
+	}
+	if max <= 3 {
+		return text[:max]
+	}
+	return text[:max-3] + "..."
 }
 
 func attachedSet(slugs []string) map[string]bool {

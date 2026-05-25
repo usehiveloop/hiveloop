@@ -242,6 +242,7 @@ func newEmployeeHarness(t *testing.T) *employeeHarness {
 		r.Get("/", h.List)
 		r.Get("/{id}", h.Get)
 		r.Get("/{id}/specialists", h.ListSpecialists)
+		r.Patch("/{id}/specialists/{slug}", h.UpdateSpecialist)
 		r.Group(func(r chi.Router) {
 			r.Use(middleware.RequireOrgAdmin(db))
 			r.Post("/{id}/sync", h.Sync)

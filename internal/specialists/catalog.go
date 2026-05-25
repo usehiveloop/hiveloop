@@ -12,6 +12,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/usehivy/hivy/internal/model"
+	"github.com/usehivy/hivy/internal/registry"
 )
 
 const defaultDir = "global/specialists"
@@ -23,6 +24,7 @@ type Definition struct {
 	SpecialistType    string
 	Version           int
 	AutoAttach        bool
+	DefaultModel      string
 	DefaultSkillNames []string
 	SystemPrompt      string
 }
@@ -39,6 +41,7 @@ type manifest struct {
 	SpecialistType    string   `json:"specialist_type"`
 	Version           int      `json:"version"`
 	AutoAttach        bool     `json:"auto_attach"`
+	DefaultModel      string   `json:"default_model"`
 	DefaultSkillNames []string `json:"default_skill_names"`
 	PromptPath        string   `json:"prompt_path"`
 }
@@ -190,6 +193,7 @@ func loadDefinition(dir string) (Definition, error) {
 		SpecialistType:    m.SpecialistType,
 		Version:           m.Version,
 		AutoAttach:        m.AutoAttach,
+		DefaultModel:      m.DefaultModel,
 		DefaultSkillNames: append([]string(nil), m.DefaultSkillNames...),
 		SystemPrompt:      string(prompt),
 	}
@@ -208,8 +212,13 @@ func validateDefinition(def Definition) error {
 		return fmt.Errorf("specialist %q specialist_type is required", def.Slug)
 	case def.Version <= 0:
 		return fmt.Errorf("specialist %q version must be positive", def.Slug)
+	case strings.TrimSpace(def.DefaultModel) == "":
+		return fmt.Errorf("specialist %q default_model is required", def.Slug)
 	case strings.TrimSpace(def.SystemPrompt) == "":
 		return fmt.Errorf("specialist %q prompt is required", def.Slug)
+	}
+	if err := registry.Global().ValidateCanonicalModel(strings.TrimSpace(def.DefaultModel)); err != nil {
+		return fmt.Errorf("specialist %q default_model: %w", def.Slug, err)
 	}
 	for _, name := range def.DefaultSkillNames {
 		if strings.TrimSpace(name) == "" {

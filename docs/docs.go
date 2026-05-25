@@ -2232,167 +2232,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/v1/conversations/{convID}/events": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Returns webhook events persisted for the conversation, ordered by sequence_number DESC (newest first). Pagination cursor is the lowest sequence_number on the current page; pass it back to fetch the next older page. Filterable by event type.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "conversations"
-                ],
-                "summary": "List conversation events",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Conversation ID",
-                        "name": "convID",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Filter by event type (e.g. message_received, response_completed)",
-                        "name": "type",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "description": "Page size (default 50, max 100)",
-                        "name": "limit",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Pagination cursor — sequence_number from previous page's tail. Returns events with sequence_number strictly less than this value.",
-                        "name": "cursor",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/paginatedResponse-handler_conversationEventResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/errorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/conversations/{convID}/history": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Returns persisted conversation events in chronological order, intended for hydrating a UI before opening the SSE stream. Paginated via since=\u003cevent_id\u003e. Unlike GET /events, this endpoint sorts events ASC by sequence_number so the caller can render in order.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "conversations"
-                ],
-                "summary": "Hydrate conversation history",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Conversation ID",
-                        "name": "convID",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Return events with sequence_number greater than this event_id",
-                        "name": "since",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "description": "Page size (default 200, max 1000)",
-                        "name": "limit",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/conversationHistoryResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/errorResponse"
-                        }
-                    }
-                }
-            }
-        },
         "/v1/conversations/{convID}/messages": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Returns chat-ready messages aggregated from raw events. Consecutive same-name tool calls are grouped (e.g. \"bash\" called 11 times in a row → one group with 11 calls). Pagination is by sequence_number; aggregation is per-page so a tool call split across pages will not pair.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "conversations"
-                ],
-                "summary": "List conversation messages",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Conversation ID",
-                        "name": "convID",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "integer",
-                        "description": "Max events scanned per page (default 200, max 1000). Aggregated message count may be smaller.",
-                        "name": "limit",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Sequence number from the previous page's tail. Returns events with sequence_number strictly greater than this value.",
-                        "name": "cursor",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/conversationMessagesResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/errorResponse"
-                        }
-                    }
-                }
-            },
             "post": {
                 "security": [
                     {
@@ -3700,6 +3540,81 @@ const docTemplate = `{
                         }
                     }
                 }
+            },
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Sets or clears the model override for a specialist attached to Hivy.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "employees"
+                ],
+                "summary": "Update an employee specialist config",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Employee ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Specialist slug",
+                        "name": "slug",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Specialist config patch",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/updateEmployeeSpecialistRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/employeeSpecialistResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/errorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/errorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/errorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/errorResponse"
+                        }
+                    }
+                }
             }
         },
         "/v1/employees/{id}/sync": {
@@ -4554,7 +4469,7 @@ const docTemplate = `{
                 "tags": [
                     "plans"
                 ],
-                "summary": "List all active plans",
+                "summary": "List all public active plans",
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -7360,108 +7275,6 @@ const docTemplate = `{
                 }
             }
         },
-        "conversationEventResponse": {
-            "type": "object",
-            "properties": {
-                "created_at": {
-                    "type": "string"
-                },
-                "data": {
-                    "type": "array",
-                    "items": {
-                        "type": "integer"
-                    }
-                },
-                "employee_id": {
-                    "type": "string"
-                },
-                "event_id": {
-                    "type": "string"
-                },
-                "event_type": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "runtime_conversation_id": {
-                    "type": "string"
-                },
-                "sequence_number": {
-                    "type": "integer"
-                },
-                "timestamp": {
-                    "type": "string"
-                }
-            }
-        },
-        "conversationHistoryResponse": {
-            "type": "object",
-            "properties": {
-                "conversation_id": {
-                    "type": "string"
-                },
-                "events": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/conversationEventResponse"
-                    }
-                },
-                "has_more": {
-                    "type": "boolean"
-                },
-                "last_event_id": {
-                    "description": "LastEventID is the event_id of the last event in this page. Clients\ncan pass it as the ` + "`" + `Last-Event-ID` + "`" + ` header when opening the SSE stream\nto resume from exactly where history ended.",
-                    "type": "string"
-                }
-            }
-        },
-        "conversationMessageResponse": {
-            "type": "object",
-            "properties": {
-                "author": {
-                    "type": "string"
-                },
-                "body": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "timestamp": {
-                    "type": "string"
-                },
-                "tool_groups": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/conversationToolGroupResponse"
-                    }
-                }
-            }
-        },
-        "conversationMessagesResponse": {
-            "type": "object",
-            "properties": {
-                "data": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/conversationMessageResponse"
-                    }
-                },
-                "has_more": {
-                    "type": "boolean"
-                },
-                "latest_todos": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/conversationTodoItem"
-                    }
-                },
-                "next_cursor": {
-                    "type": "string"
-                }
-            }
-        },
         "conversationResponse": {
             "type": "object",
             "properties": {
@@ -7481,51 +7294,6 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "stream_url": {
-                    "type": "string"
-                }
-            }
-        },
-        "conversationTodoItem": {
-            "type": "object",
-            "properties": {
-                "content": {
-                    "type": "string"
-                },
-                "priority": {
-                    "type": "string"
-                },
-                "status": {
-                    "type": "string"
-                }
-            }
-        },
-        "conversationToolCallResponse": {
-            "type": "object",
-            "properties": {
-                "id": {
-                    "type": "string"
-                },
-                "status": {
-                    "type": "string"
-                },
-                "summary": {
-                    "type": "string"
-                },
-                "title": {
-                    "type": "string"
-                }
-            }
-        },
-        "conversationToolGroupResponse": {
-            "type": "object",
-            "properties": {
-                "calls": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/conversationToolCallResponse"
-                    }
-                },
-                "name": {
                     "type": "string"
                 }
             }
@@ -8199,7 +7967,16 @@ const docTemplate = `{
                 "attached": {
                     "type": "boolean"
                 },
+                "configured_model": {
+                    "type": "string"
+                },
+                "default_model": {
+                    "type": "string"
+                },
                 "description": {
+                    "type": "string"
+                },
+                "effective_model": {
                     "type": "string"
                 },
                 "name": {
@@ -8222,7 +7999,16 @@ const docTemplate = `{
                 "avatar_url": {
                     "type": "string"
                 },
+                "configured_model": {
+                    "type": "string"
+                },
+                "default_model": {
+                    "type": "string"
+                },
                 "description": {
+                    "type": "string"
+                },
+                "effective_model": {
                     "type": "string"
                 },
                 "id": {
@@ -8342,6 +8128,9 @@ const docTemplate = `{
         "generationResponse": {
             "type": "object",
             "properties": {
+                "billing_cost_source": {
+                    "type": "string"
+                },
                 "cached_tokens": {
                     "type": "integer"
                 },
@@ -8353,6 +8142,9 @@ const docTemplate = `{
                 },
                 "credential_id": {
                     "type": "string"
+                },
+                "credits_debited": {
+                    "type": "integer"
                 },
                 "error_message": {
                     "type": "string"
@@ -9024,23 +8816,6 @@ const docTemplate = `{
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/auditEntryResponse"
-                    }
-                },
-                "has_more": {
-                    "type": "boolean"
-                },
-                "next_cursor": {
-                    "type": "string"
-                }
-            }
-        },
-        "paginatedResponse-handler_conversationEventResponse": {
-            "type": "object",
-            "properties": {
-                "data": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/conversationEventResponse"
                     }
                 },
                 "has_more": {
@@ -10609,6 +10384,17 @@ const docTemplate = `{
             "properties": {
                 "bundle": {
                     "$ref": "#/definitions/Bundle"
+                }
+            }
+        },
+        "updateEmployeeSpecialistRequest": {
+            "type": "object",
+            "properties": {
+                "model": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
                 }
             }
         },

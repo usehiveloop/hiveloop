@@ -21,6 +21,9 @@ type employeeSpecialistSummary struct {
 	Status                 string  `json:"status"`
 	TemplateSlug           *string `json:"template_slug,omitempty"`
 	TemplateSpecialistType *string `json:"template_specialist_type,omitempty"`
+	DefaultModel           string  `json:"default_model"`
+	ConfiguredModel        *string `json:"configured_model,omitempty"`
+	EffectiveModel         string  `json:"effective_model"`
 }
 
 type employeeSandboxSummary struct {
@@ -221,6 +224,7 @@ func (h *EmployeeHandler) employeeAttachedSpecialistSummaries(employee model.Emp
 		slug := def.Slug
 		specialistType := def.SpecialistType
 		desc := def.Description
+		configuredModel, effectiveModel := h.employeeSpecialistModels(employee, def.Slug, def.DefaultModel)
 		out = append(out, employeeSpecialistSummary{
 			ID:                     def.Slug,
 			Name:                   def.Name,
@@ -228,6 +232,9 @@ func (h *EmployeeHandler) employeeAttachedSpecialistSummaries(employee model.Emp
 			Status:                 "active",
 			TemplateSlug:           &slug,
 			TemplateSpecialistType: &specialistType,
+			DefaultModel:           def.DefaultModel,
+			ConfiguredModel:        configuredModel,
+			EffectiveModel:         effectiveModel,
 		})
 	}
 	return out

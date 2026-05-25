@@ -15,13 +15,14 @@ import (
 	"github.com/usehivy/hivy/internal/hindsight"
 	"github.com/usehivy/hivy/internal/model"
 	"github.com/usehivy/hivy/internal/nango"
+	"github.com/usehivy/hivy/internal/registry"
 	"github.com/usehivy/hivy/internal/specialists"
 	"github.com/usehivy/hivy/internal/token"
 )
 
 const (
 	DefaultEmployeeModel           = "deepseek-v4-flash"
-	DefaultEmployeeSpecialistModel = "deepseek-v4-pro"
+	DefaultEmployeeSpecialistModel = "qwen3.7-max"
 	DefaultEmployeeMultimodalModel = "gemini-3-flash-preview"
 	proxyTokenTTL                  = 24 * time.Hour
 	managedEmployeeName            = "Hivy"
@@ -123,7 +124,24 @@ func PrepareStartup(ctx context.Context, deps CompileDeps, agent *model.Employee
 	if agent == nil || agent.OrgID == nil {
 		return nil, fmt.Errorf("employee runtime startup: agent must have org_id")
 	}
-	proxyToken, err := MintProxyToken(ctx, deps, agent, uuid.Nil)
+	proxyToken, err := mintProxyToken(ctx, deps, agent, uuid.Nil, model.TokenRuntimeModeEmployee, "")
+	if err != nil {
+		return nil, err
+	}
+	return &StartupSecrets{
+		ProxyToken: proxyToken.Token,
+	}, nil
+}
+
+func PrepareSpecialistStartup(ctx context.Context, deps CompileDeps, agent *model.Employee, specialistSlug string) (*StartupSecrets, error) {
+	if agent == nil || agent.OrgID == nil {
+		return nil, fmt.Errorf("specialist runtime startup: agent must have org_id")
+	}
+	specialistSlug = strings.TrimSpace(specialistSlug)
+	if specialistSlug == "" {
+		return nil, fmt.Errorf("specialist runtime startup: specialist slug is required")
+	}
+	proxyToken, err := mintProxyToken(ctx, deps, agent, uuid.Nil, model.TokenRuntimeModeSpecialist, specialistSlug)
 	if err != nil {
 		return nil, err
 	}
@@ -133,6 +151,10 @@ func PrepareStartup(ctx context.Context, deps CompileDeps, agent *model.Employee
 }
 
 func MintProxyToken(ctx context.Context, deps CompileDeps, agent *model.Employee, sandboxID uuid.UUID) (*ProxyTokenResult, error) {
+	return mintProxyToken(ctx, deps, agent, sandboxID, model.TokenRuntimeModeEmployee, "")
+}
+
+func mintProxyToken(ctx context.Context, deps CompileDeps, agent *model.Employee, sandboxID uuid.UUID, runtimeMode string, specialistSlug string) (*ProxyTokenResult, error) {
 	if agent == nil || agent.OrgID == nil {
 		return nil, fmt.Errorf("employee runtime proxy token: agent must have org_id")
 	}
@@ -157,9 +179,17 @@ func MintProxyToken(ctx context.Context, deps CompileDeps, agent *model.Employee
 		return nil, fmt.Errorf("mint proxy token: %w", err)
 	}
 	now := time.Now().UTC()
-	meta := model.JSON{"employee_id": agent.ID.String(), "type": "employee_proxy", "harness": "employee-sandbox"}
+	meta := model.JSON{
+		model.TokenMetaEmployeeID:  agent.ID.String(),
+		model.TokenMetaType:        model.TokenTypeEmployeeProxy,
+		model.TokenMetaHarness:     model.TokenHarnessEmployeeSandbox,
+		model.TokenMetaRuntimeMode: runtimeMode,
+	}
 	if sandboxID != uuid.Nil {
-		meta["sandbox_id"] = sandboxID.String()
+		meta[model.TokenMetaSandboxID] = sandboxID.String()
+	}
+	if specialistSlug != "" {
+		meta[model.TokenMetaSpecialistSlug] = specialistSlug
 	}
 	expiresAt := now.Add(proxyTokenTTL)
 	dbToken := model.Token{
@@ -181,13 +211,29 @@ func MintProxyToken(ctx context.Context, deps CompileDeps, agent *model.Employee
 }
 
 func AttachLatestProxyTokenToSandbox(ctx context.Context, deps CompileDeps, agent *model.Employee, sandboxID uuid.UUID) error {
+	return attachLatestProxyTokenToSandbox(ctx, deps, agent, sandboxID, model.TokenRuntimeModeEmployee, "")
+}
+
+func AttachLatestSpecialistProxyTokenToSandbox(ctx context.Context, deps CompileDeps, agent *model.Employee, sandboxID uuid.UUID, specialistSlug string) error {
+	return attachLatestProxyTokenToSandbox(ctx, deps, agent, sandboxID, model.TokenRuntimeModeSpecialist, specialistSlug)
+}
+
+func attachLatestProxyTokenToSandbox(ctx context.Context, deps CompileDeps, agent *model.Employee, sandboxID uuid.UUID, runtimeMode string, specialistSlug string) error {
 	if agent == nil || agent.OrgID == nil || sandboxID == uuid.Nil || deps.DB == nil {
 		return nil
 	}
 	var tok model.Token
-	if err := deps.DB.WithContext(ctx).
-		Where("org_id = ? AND meta->>'employee_id' = ? AND meta->>'type' = ? AND meta->>'harness' = ?",
-			*agent.OrgID, agent.ID.String(), "employee_proxy", "employee-sandbox").
+	q := deps.DB.WithContext(ctx).
+		Where("org_id = ? AND meta->>? = ? AND meta->>? = ? AND meta->>? = ? AND meta->>? = ?",
+			*agent.OrgID,
+			model.TokenMetaEmployeeID, agent.ID.String(),
+			model.TokenMetaType, model.TokenTypeEmployeeProxy,
+			model.TokenMetaHarness, model.TokenHarnessEmployeeSandbox,
+			model.TokenMetaRuntimeMode, runtimeMode)
+	if specialistSlug != "" {
+		q = q.Where("meta->>? = ?", model.TokenMetaSpecialistSlug, specialistSlug)
+	}
+	if err := q.
 		Order("created_at DESC").
 		First(&tok).Error; err != nil {
 		return nil
@@ -196,7 +242,7 @@ func AttachLatestProxyTokenToSandbox(ctx context.Context, deps CompileDeps, agen
 	if meta == nil {
 		meta = model.JSON{}
 	}
-	meta["sandbox_id"] = sandboxID.String()
+	meta[model.TokenMetaSandboxID] = sandboxID.String()
 	return deps.DB.WithContext(ctx).Model(&tok).Update("meta", meta).Error
 }
 
@@ -209,7 +255,7 @@ func Compile(ctx context.Context, deps CompileDeps, agent *model.Employee) (*Emp
 		return nil, err
 	}
 	mcpServers := jsonArray(agent.McpServers)
-	if ourMCP := buildEmployeeMCPServer(ctx, deps, agent); ourMCP != nil {
+	if ourMCP := buildHivyMCPServer(ctx, deps, agent, model.TokenRuntimeModeEmployee, ""); ourMCP != nil {
 		mcpServers = upsertHivyMCPServer(mcpServers, ourMCP)
 	}
 	description := managedEmployeeDescription
@@ -250,13 +296,16 @@ func CompileSpecialist(ctx context.Context, deps CompileDeps, employee *model.Em
 		return nil, err
 	}
 	mcpServers := jsonArray(employee.McpServers)
-	if ourMCP := buildEmployeeMCPServer(ctx, deps, employee); ourMCP != nil {
+	if ourMCP := buildHivyMCPServer(ctx, deps, employee, model.TokenRuntimeModeSpecialist, def.Slug); ourMCP != nil {
 		mcpServers = upsertHivyMCPServer(mcpServers, ourMCP)
 	}
 	fragments := buildPromptSections(ctx, deps.DB, employee, def.Description)
-	modelID := strings.TrimSpace(employee.Model)
+	modelID := EffectiveSpecialistModel(employee.RuntimeConfig, def.Slug, def.DefaultModel)
 	if modelID == "" {
-		modelID = DefaultEmployeeSpecialistModel
+		return nil, fmt.Errorf("specialist runtime compile: default model missing for %s", def.Slug)
+	}
+	if err := registry.Global().ValidateCanonicalModel(modelID); err != nil {
+		return nil, fmt.Errorf("specialist runtime compile: model %q for %s: %w", modelID, def.Slug, err)
 	}
 	return &EmployeeDefinition{
 		Agent: AgentMeta{

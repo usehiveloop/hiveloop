@@ -67,6 +67,50 @@ func TestSpecialistListToolReturnsAttachedSpecialists(t *testing.T) {
 	}
 }
 
+func TestSpecialistToolsHiddenForNonEmployeeRuntimeTokens(t *testing.T) {
+	db := connectSpecialistTasksTestDB(t)
+	catalog := specialistTestCatalog(t)
+	org, _, token := createSpecialistToolScope(t, db)
+	t.Cleanup(func() { db.Where("id = ?", org.ID).Delete(&model.Org{}) })
+
+	for _, tc := range []struct {
+		name string
+		meta model.JSON
+	}{
+		{
+			name: "specialist runtime",
+			meta: model.JSON{
+				model.TokenMetaType:        model.TokenTypeEmployeeProxy,
+				model.TokenMetaRuntimeMode: model.TokenRuntimeModeSpecialist,
+			},
+		},
+		{
+			name: "missing runtime mode",
+			meta: model.JSON{
+				model.TokenMetaType: model.TokenTypeEmployeeProxy,
+			},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			scopedToken := token
+			scopedToken.Meta = tc.meta
+			service := NewService(db, &sandbox.Orchestrator{}, employeeruntimeCompileDepsForTest(), catalog)
+			server := mcp.NewServer(&mcp.Implementation{Name: "specialist-test", Version: "v1"}, nil)
+			NewToolsFunc(service)(server, &scopedToken)
+			session, cleanup := connectSpecialistMCPTestSession(t, server)
+			defer cleanup()
+
+			tools, err := session.ListTools(context.Background(), &mcp.ListToolsParams{})
+			if err != nil {
+				t.Fatalf("list tools: %v", err)
+			}
+			if len(tools.Tools) != 0 {
+				t.Fatalf("specialist tools should be hidden, got %#v", tools.Tools)
+			}
+		})
+	}
+}
+
 func connectSpecialistTasksTestDB(t *testing.T) *gorm.DB {
 	t.Helper()
 	dsn := os.Getenv("DATABASE_URL")
@@ -97,6 +141,7 @@ func specialistTestCatalog(t *testing.T) *specialists.Catalog {
 			Description:    "Build and verify code changes.",
 			SpecialistType: "engineering",
 			Version:        1,
+			DefaultModel:   "deepseek-v4-pro",
 			SystemPrompt:   "Do engineering work.",
 		},
 		{
@@ -105,6 +150,7 @@ func specialistTestCatalog(t *testing.T) *specialists.Catalog {
 			Description:    "Research business questions.",
 			SpecialistType: "research",
 			Version:        1,
+			DefaultModel:   "deepseek-v4-pro",
 			SystemPrompt:   "Do research work.",
 		},
 	})
@@ -149,8 +195,9 @@ func createSpecialistToolScope(t *testing.T, db *gorm.DB) (model.Org, model.Empl
 		ExpiresAt:    time.Now().Add(time.Hour),
 		Scopes:       model.JSON{},
 		Meta: model.JSON{
-			"type":        "employee_proxy",
-			"employee_id": employee.ID.String(),
+			model.TokenMetaType:        model.TokenTypeEmployeeProxy,
+			model.TokenMetaRuntimeMode: model.TokenRuntimeModeEmployee,
+			model.TokenMetaEmployeeID:  employee.ID.String(),
 		},
 	}
 	if err := db.Create(&token).Error; err != nil {

@@ -10,6 +10,7 @@ import (
 
 	"github.com/usehivy/hivy/internal/config"
 	"github.com/usehivy/hivy/internal/model"
+	"github.com/usehivy/hivy/internal/specialists"
 )
 
 func TestControlPlaneOutboundChannels_EmitsEmployeeWebhookSpec(t *testing.T) {
@@ -104,5 +105,84 @@ func TestCompile_UsesAgentModelWithDefaultFallback(t *testing.T) {
 	}
 	if def.Model.ModelID != DefaultEmployeeModel {
 		t.Fatalf("blank model fallback = %q, want %q", def.Model.ModelID, DefaultEmployeeModel)
+	}
+}
+
+func TestCompileSpecialist_UsesDefinitionDefaultModel(t *testing.T) {
+	orgID := uuid.New()
+	agent := &model.Employee{
+		ID:            uuid.New(),
+		OrgID:         &orgID,
+		Name:          "Hivy",
+		Model:         "deepseek-v4-flash",
+		RuntimeConfig: model.JSON{},
+	}
+	def, err := CompileSpecialist(context.Background(), CompileDeps{Cfg: &config.Config{}}, agent, specialists.Definition{
+		Slug:           "software-engineering-specialist",
+		Name:           "Software Engineering Specialist",
+		Description:    "Build and verify code changes.",
+		SpecialistType: "software_engineering",
+		Version:        1,
+		DefaultModel:   "deepseek-v4-pro",
+		SystemPrompt:   "Do engineering work.",
+	})
+	if err != nil {
+		t.Fatalf("compile specialist: %v", err)
+	}
+	if def.Model.ModelID != "deepseek-v4-pro" {
+		t.Fatalf("specialist model = %q, want definition default deepseek-v4-pro", def.Model.ModelID)
+	}
+}
+
+func TestCompileSpecialist_UsesRuntimeConfigModelOverride(t *testing.T) {
+	orgID := uuid.New()
+	agent := &model.Employee{
+		ID:    uuid.New(),
+		OrgID: &orgID,
+		RuntimeConfig: model.JSON{
+			"specialists": map[string]any{
+				"software-engineering-specialist": map[string]any{"model": "gpt-5.4-mini"},
+			},
+		},
+	}
+	def, err := CompileSpecialist(context.Background(), CompileDeps{Cfg: &config.Config{}}, agent, specialists.Definition{
+		Slug:           "software-engineering-specialist",
+		Name:           "Software Engineering Specialist",
+		Description:    "Build and verify code changes.",
+		SpecialistType: "software_engineering",
+		Version:        1,
+		DefaultModel:   "deepseek-v4-pro",
+		SystemPrompt:   "Do engineering work.",
+	})
+	if err != nil {
+		t.Fatalf("compile specialist: %v", err)
+	}
+	if def.Model.ModelID != "gpt-5.4-mini" {
+		t.Fatalf("specialist model = %q, want override gpt-5.4-mini", def.Model.ModelID)
+	}
+}
+
+func TestCompileSpecialist_RejectsInvalidRuntimeConfigModelOverride(t *testing.T) {
+	orgID := uuid.New()
+	agent := &model.Employee{
+		ID:    uuid.New(),
+		OrgID: &orgID,
+		RuntimeConfig: model.JSON{
+			"specialists": map[string]any{
+				"software-engineering-specialist": map[string]any{"model": "not-a-model"},
+			},
+		},
+	}
+	_, err := CompileSpecialist(context.Background(), CompileDeps{Cfg: &config.Config{}}, agent, specialists.Definition{
+		Slug:           "software-engineering-specialist",
+		Name:           "Software Engineering Specialist",
+		Description:    "Build and verify code changes.",
+		SpecialistType: "software_engineering",
+		Version:        1,
+		DefaultModel:   "deepseek-v4-pro",
+		SystemPrompt:   "Do engineering work.",
+	})
+	if err == nil {
+		t.Fatal("compile specialist error = nil, want invalid model error")
 	}
 }

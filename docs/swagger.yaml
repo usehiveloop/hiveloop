@@ -438,76 +438,6 @@ definitions:
       webhook_configured:
         type: boolean
     type: object
-  conversationEventResponse:
-    properties:
-      created_at:
-        type: string
-      data:
-        items:
-          type: integer
-        type: array
-      employee_id:
-        type: string
-      event_id:
-        type: string
-      event_type:
-        type: string
-      id:
-        type: string
-      runtime_conversation_id:
-        type: string
-      sequence_number:
-        type: integer
-      timestamp:
-        type: string
-    type: object
-  conversationHistoryResponse:
-    properties:
-      conversation_id:
-        type: string
-      events:
-        items:
-          $ref: '#/definitions/conversationEventResponse'
-        type: array
-      has_more:
-        type: boolean
-      last_event_id:
-        description: |-
-          LastEventID is the event_id of the last event in this page. Clients
-          can pass it as the `Last-Event-ID` header when opening the SSE stream
-          to resume from exactly where history ended.
-        type: string
-    type: object
-  conversationMessageResponse:
-    properties:
-      author:
-        type: string
-      body:
-        type: string
-      id:
-        type: string
-      timestamp:
-        type: string
-      tool_groups:
-        items:
-          $ref: '#/definitions/conversationToolGroupResponse'
-        type: array
-    type: object
-  conversationMessagesResponse:
-    properties:
-      data:
-        items:
-          $ref: '#/definitions/conversationMessageResponse'
-        type: array
-      has_more:
-        type: boolean
-      latest_todos:
-        items:
-          $ref: '#/definitions/conversationTodoItem'
-        type: array
-      next_cursor:
-        type: string
-    type: object
   conversationResponse:
     properties:
       created_at:
@@ -521,35 +451,6 @@ definitions:
       status:
         type: string
       stream_url:
-        type: string
-    type: object
-  conversationTodoItem:
-    properties:
-      content:
-        type: string
-      priority:
-        type: string
-      status:
-        type: string
-    type: object
-  conversationToolCallResponse:
-    properties:
-      id:
-        type: string
-      status:
-        type: string
-      summary:
-        type: string
-      title:
-        type: string
-    type: object
-  conversationToolGroupResponse:
-    properties:
-      calls:
-        items:
-          $ref: '#/definitions/conversationToolCallResponse'
-        type: array
-      name:
         type: string
     type: object
   createAPIKeyRequest:
@@ -989,7 +890,13 @@ definitions:
     properties:
       attached:
         type: boolean
+      configured_model:
+        type: string
+      default_model:
+        type: string
       description:
+        type: string
+      effective_model:
         type: string
       name:
         type: string
@@ -1004,7 +911,13 @@ definitions:
     properties:
       avatar_url:
         type: string
+      configured_model:
+        type: string
+      default_model:
+        type: string
       description:
+        type: string
+      effective_model:
         type: string
       id:
         type: string
@@ -1085,6 +998,8 @@ definitions:
     type: object
   generationResponse:
     properties:
+      billing_cost_source:
+        type: string
       cached_tokens:
         type: integer
       cost:
@@ -1093,6 +1008,8 @@ definitions:
         type: string
       credential_id:
         type: string
+      credits_debited:
+        type: integer
       error_message:
         type: string
       error_type:
@@ -1530,17 +1447,6 @@ definitions:
       data:
         items:
           $ref: '#/definitions/auditEntryResponse'
-        type: array
-      has_more:
-        type: boolean
-      next_cursor:
-        type: string
-    type: object
-  paginatedResponse-handler_conversationEventResponse:
-    properties:
-      data:
-        items:
-          $ref: '#/definitions/conversationEventResponse'
         type: array
       has_more:
         type: boolean
@@ -2568,6 +2474,13 @@ definitions:
     properties:
       bundle:
         $ref: '#/definitions/Bundle'
+    type: object
+  updateEmployeeSpecialistRequest:
+    properties:
+      model:
+        items:
+          type: integer
+        type: array
     type: object
   updateOrgRequest:
     properties:
@@ -4174,121 +4087,7 @@ paths:
       summary: Resolve a tool approval
       tags:
       - conversations
-  /v1/conversations/{convID}/events:
-    get:
-      description: Returns webhook events persisted for the conversation, ordered
-        by sequence_number DESC (newest first). Pagination cursor is the lowest sequence_number
-        on the current page; pass it back to fetch the next older page. Filterable
-        by event type.
-      parameters:
-      - description: Conversation ID
-        in: path
-        name: convID
-        required: true
-        type: string
-      - description: Filter by event type (e.g. message_received, response_completed)
-        in: query
-        name: type
-        type: string
-      - description: Page size (default 50, max 100)
-        in: query
-        name: limit
-        type: integer
-      - description: Pagination cursor — sequence_number from previous page's tail.
-          Returns events with sequence_number strictly less than this value.
-        in: query
-        name: cursor
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/paginatedResponse-handler_conversationEventResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/errorResponse'
-      security:
-      - BearerAuth: []
-      summary: List conversation events
-      tags:
-      - conversations
-  /v1/conversations/{convID}/history:
-    get:
-      description: Returns persisted conversation events in chronological order, intended
-        for hydrating a UI before opening the SSE stream. Paginated via since=<event_id>.
-        Unlike GET /events, this endpoint sorts events ASC by sequence_number so the
-        caller can render in order.
-      parameters:
-      - description: Conversation ID
-        in: path
-        name: convID
-        required: true
-        type: string
-      - description: Return events with sequence_number greater than this event_id
-        in: query
-        name: since
-        type: string
-      - description: Page size (default 200, max 1000)
-        in: query
-        name: limit
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/conversationHistoryResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/errorResponse'
-      security:
-      - BearerAuth: []
-      summary: Hydrate conversation history
-      tags:
-      - conversations
   /v1/conversations/{convID}/messages:
-    get:
-      description: Returns chat-ready messages aggregated from raw events. Consecutive
-        same-name tool calls are grouped (e.g. "bash" called 11 times in a row → one
-        group with 11 calls). Pagination is by sequence_number; aggregation is per-page
-        so a tool call split across pages will not pair.
-      parameters:
-      - description: Conversation ID
-        in: path
-        name: convID
-        required: true
-        type: string
-      - description: Max events scanned per page (default 200, max 1000). Aggregated
-          message count may be smaller.
-        in: query
-        name: limit
-        type: integer
-      - description: Sequence number from the previous page's tail. Returns events
-          with sequence_number strictly greater than this value.
-        in: query
-        name: cursor
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/conversationMessagesResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/errorResponse'
-      security:
-      - BearerAuth: []
-      summary: List conversation messages
-      tags:
-      - conversations
     post:
       consumes:
       - application/json
@@ -5101,6 +4900,56 @@ paths:
       summary: Detach an employee specialist
       tags:
       - employees
+    patch:
+      consumes:
+      - application/json
+      description: Sets or clears the model override for a specialist attached to
+        Hivy.
+      parameters:
+      - description: Employee ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Specialist slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: Specialist config patch
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/updateEmployeeSpecialistRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/employeeSpecialistResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update an employee specialist config
+      tags:
+      - employees
     post:
       description: Adds a global specialist slug to Hivy's attached specialist list.
       parameters:
@@ -5710,7 +5559,7 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/errorResponse'
-      summary: List all active plans
+      summary: List all public active plans
       tags:
       - plans
   /v1/providers:

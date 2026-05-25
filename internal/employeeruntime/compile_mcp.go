@@ -10,12 +10,24 @@ import (
 )
 
 func buildEmployeeMCPServer(ctx context.Context, deps CompileDeps, agent *model.Employee) any {
+	return buildHivyMCPServer(ctx, deps, agent, model.TokenRuntimeModeEmployee, "")
+}
+
+func buildHivyMCPServer(ctx context.Context, deps CompileDeps, agent *model.Employee, runtimeMode string, specialistSlug string) any {
 	if deps.DB == nil || deps.Cfg == nil || deps.Cfg.MCPBaseURL == "" || agent.OrgID == nil {
 		return nil
 	}
 	var tok model.Token
-	if err := deps.DB.WithContext(ctx).
-		Where("org_id = ? AND expires_at > ? AND revoked_at IS NULL AND meta->>'employee_id' = ? AND meta->>'type' = ?", *agent.OrgID, time.Now(), agent.ID.String(), "employee_proxy").
+	q := deps.DB.WithContext(ctx).
+		Where("org_id = ? AND expires_at > ? AND revoked_at IS NULL", *agent.OrgID, time.Now()).
+		Where("meta->>? = ? AND meta->>? = ? AND meta->>? = ?",
+			model.TokenMetaEmployeeID, agent.ID.String(),
+			model.TokenMetaType, model.TokenTypeEmployeeProxy,
+			model.TokenMetaRuntimeMode, runtimeMode)
+	if specialistSlug != "" {
+		q = q.Where("meta->>? = ?", model.TokenMetaSpecialistSlug, specialistSlug)
+	}
+	if err := q.
 		Order("created_at DESC").
 		First(&tok).Error; err != nil {
 		return nil

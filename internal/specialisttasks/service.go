@@ -2,7 +2,6 @@ package specialisttasks
 
 import (
 	"context"
-	"encoding/json"
 	"strings"
 	"time"
 
@@ -66,23 +65,16 @@ type AvailableSpecialist struct {
 }
 
 type TaskStatusResponse struct {
-	TaskID            string           `json:"task_id"`
-	SpecialistSlug    string           `json:"specialist_slug"`
-	EmployeeSessionID string           `json:"employee_session_id"`
-	SandboxID         string           `json:"sandbox_id"`
-	Status            string           `json:"status"`
-	Brief             string           `json:"brief"`
-	CreatedAt         time.Time        `json:"created_at"`
-	EndedAt           *time.Time       `json:"ended_at,omitempty"`
-	RecentEvents      []TaskEventBrief `json:"recent_events"`
-	NextAction        string           `json:"next_action"`
-}
-
-type TaskEventBrief struct {
-	EventType string          `json:"event_type"`
-	Source    string          `json:"source"`
-	Payload   json.RawMessage `json:"payload"`
-	EventAt   time.Time       `json:"event_at"`
+	TaskID          string     `json:"task_id"`
+	SpecialistSlug  string     `json:"specialist_slug"`
+	Status          string     `json:"status"`
+	CreatedAt       time.Time  `json:"created_at"`
+	EndedAt         *time.Time `json:"ended_at,omitempty"`
+	LastActivityAt  *time.Time `json:"last_activity_at,omitempty"`
+	ActivitySummary string     `json:"activity_summary,omitempty"`
+	LatestMessage   string     `json:"latest_message,omitempty"`
+	LatestError     string     `json:"latest_error,omitempty"`
+	NextAction      string     `json:"next_action"`
 }
 
 type MessageResponse struct {
@@ -146,7 +138,7 @@ func (s *Service) Launch(ctx context.Context, req LaunchRequest) (*LaunchRespons
 		return nil, toolErr
 	}
 
-	secrets, err := employeeruntime.PrepareStartup(ctx, s.compileDeps, employee)
+	secrets, err := employeeruntime.PrepareSpecialistStartup(ctx, s.compileDeps, employee, def.Slug)
 	if err != nil {
 		return nil, wrapToolError("proxy_token_failed", "Could not prepare specialist runtime credentials.", err, true, "Retry the task. If it fails again, report that the control plane could not mint runtime credentials.")
 	}
@@ -154,7 +146,7 @@ func (s *Service) Launch(ctx context.Context, req LaunchRequest) (*LaunchRespons
 	if err != nil {
 		return nil, wrapToolError("sandbox_create_failed", "Could not create the specialist runtime sandbox.", err, true, "Retry later. If this repeats, report the sandbox provisioning error to the user.")
 	}
-	if err := employeeruntime.AttachLatestProxyTokenToSandbox(ctx, s.compileDeps, employee, sb.ID); err != nil {
+	if err := employeeruntime.AttachLatestSpecialistProxyTokenToSandbox(ctx, s.compileDeps, employee, sb.ID, def.Slug); err != nil {
 		return nil, wrapToolError("proxy_token_attach_failed", "The specialist runtime was created, but the control plane could not bind its proxy token to the sandbox.", err, true, "Retry later. If this repeats, report that specialist startup failed after sandbox creation.")
 	}
 	runtimeDef, err := employeeruntime.CompileSpecialist(ctx, s.compileDeps, employee, *def)
@@ -218,21 +210,21 @@ func (s *Service) Status(ctx context.Context, token *model.Token, taskID uuid.UU
 	if toolErr != nil {
 		return nil, toolErr
 	}
-	events, toolErr := s.recentEvents(ctx, employee, task, 30)
+	activity, toolErr := s.taskActivity(ctx, employee, task, 30)
 	if toolErr != nil {
 		return nil, toolErr
 	}
 	return &TaskStatusResponse{
-		TaskID:            task.ID.String(),
-		SpecialistSlug:    task.SpecialistSlug,
-		EmployeeSessionID: task.EmployeeSessionID,
-		SandboxID:         task.SandboxID.String(),
-		Status:            task.Status,
-		Brief:             task.Brief,
-		CreatedAt:         task.CreatedAt,
-		EndedAt:           task.EndedAt,
-		RecentEvents:      events,
-		NextAction:        "If the task is still running, wait and call specialist_task_status again. If more context is needed, call specialist_task_send_message with this task_id.",
+		TaskID:          task.ID.String(),
+		SpecialistSlug:  task.SpecialistSlug,
+		Status:          task.Status,
+		CreatedAt:       task.CreatedAt,
+		EndedAt:         task.EndedAt,
+		LastActivityAt:  activity.LastActivityAt,
+		ActivitySummary: activity.Summary(),
+		LatestMessage:   activity.LatestMessage,
+		LatestError:     activity.LatestError,
+		NextAction:      "If the task is still running, wait and call specialist_task_status again. If more context is needed, call specialist_task_send_message with this task_id.",
 	}, nil
 }
 

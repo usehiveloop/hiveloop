@@ -16,7 +16,9 @@ func NewToolsFunc(service *Service) func(server *mcp.Server, token *model.Token)
 		if token == nil || token.Meta == nil {
 			return
 		}
-		if tokenType, _ := token.Meta["type"].(string); tokenType != "employee_proxy" {
+		tokenType, _ := token.Meta[model.TokenMetaType].(string)
+		runtimeMode, _ := token.Meta[model.TokenMetaRuntimeMode].(string)
+		if tokenType != model.TokenTypeEmployeeProxy || runtimeMode != model.TokenRuntimeModeEmployee {
 			return
 		}
 		registerListTool(server, service, token)
@@ -120,7 +122,7 @@ Use this after specialist_launch_task returns a task_id, or when you need to dec
 		if toolErr != nil {
 			return toolErrorJSON(toolErr), nil
 		}
-		return toolJSON(resp)
+		return &mcp.CallToolResult{Content: []mcp.Content{&mcp.TextContent{Text: resp.Text()}}}, nil
 	})
 }
 

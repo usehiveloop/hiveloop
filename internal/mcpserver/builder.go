@@ -169,7 +169,7 @@ func BuildServer(
 	}
 
 	if addMemoryTools != nil {
-		agentID, _ := token.Meta["employee_id"].(string)
+		agentID, _ := token.Meta[model.TokenMetaEmployeeID].(string)
 		if agentID != "" {
 			addMemoryTools(server, agentID, db)
 		}
@@ -183,11 +183,20 @@ func BuildServer(
 		addKnowledgeTools(server, token)
 	}
 
-	if addSpecialistTools != nil {
+	if addSpecialistTools != nil && isEmployeeRuntimeToken(token) {
 		addSpecialistTools(server, token)
 	}
 
 	return server, nil
+}
+
+func isEmployeeRuntimeToken(token *model.Token) bool {
+	if token == nil || token.Meta == nil {
+		return false
+	}
+	tokenType, _ := token.Meta[model.TokenMetaType].(string)
+	runtimeMode, _ := token.Meta[model.TokenMetaRuntimeMode].(string)
+	return tokenType == model.TokenTypeEmployeeProxy && runtimeMode == model.TokenRuntimeModeEmployee
 }
 
 // buildInputSchema converts the JSON Schema from the catalog into a format
