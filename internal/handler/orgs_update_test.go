@@ -27,7 +27,7 @@ func newOrgUpdateHarness(t *testing.T) *orgUpdateHarness {
 	t.Helper()
 	db := connectTestDB(t)
 
-	orgHandler := handler.NewOrgHandler(db)
+	orgHandler := handler.NewOrgHandler(db, nil)
 
 	r := chi.NewRouter()
 	r.Route("/v1/orgs", func(r chi.Router) {

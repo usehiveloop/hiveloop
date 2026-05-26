@@ -58,6 +58,7 @@ func (d *Deps) HandleIngest(ctx context.Context, t *asynq.Task) error {
 		if handled, handleErr := handleConnectorBuildError(ctx, deps.DB, src, err); handled {
 			return handleErr
 		}
+		logging.Capture(ctx, fmt.Errorf("ingest: build connector source=%s kind=%s: %w", src.ID, src.SourceKind(), err))
 		return err
 	}
 	runnable, ok := conn.(RunnableCheckpointed)

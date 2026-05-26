@@ -31,7 +31,7 @@ func TestConnectionHandler_Get_Success(t *testing.T) {
 	nangoClient := nango.NewClient(nangoSrv.URL, "test-secret-key")
 	_ = nangoClient.FetchProviders(context.Background())
 
-	h := handler.NewConnectionHandler(db, nangoClient, catalog.Global())
+	h := handler.NewConnectionHandler(db, nangoClient, catalog.Global(), nil)
 	r := chi.NewRouter()
 	r.Get("/v1/connections/{id}", h.Get)
 
@@ -70,7 +70,7 @@ func TestConnectionHandler_Get_NotFound(t *testing.T) {
 	nangoClient := nango.NewClient(nangoSrv.URL, "test-secret-key")
 	_ = nangoClient.FetchProviders(context.Background())
 
-	h := handler.NewConnectionHandler(db, nangoClient, catalog.Global())
+	h := handler.NewConnectionHandler(db, nangoClient, catalog.Global(), nil)
 	r := chi.NewRouter()
 	r.Get("/v1/connections/{id}", h.Get)
 
@@ -100,7 +100,7 @@ func TestConnectionHandler_Get_WrongUser(t *testing.T) {
 	nangoClient := nango.NewClient(nangoSrv.URL, "test-secret-key")
 	_ = nangoClient.FetchProviders(context.Background())
 
-	h := handler.NewConnectionHandler(db, nangoClient, catalog.Global())
+	h := handler.NewConnectionHandler(db, nangoClient, catalog.Global(), nil)
 	r := chi.NewRouter()
 	r.Get("/v1/connections/{id}", h.Get)
 
@@ -137,7 +137,7 @@ func TestConnectionHandler_Get_RevokedNotFound(t *testing.T) {
 	nangoClient := nango.NewClient(nangoSrv.URL, "test-secret-key")
 	_ = nangoClient.FetchProviders(context.Background())
 
-	h := handler.NewConnectionHandler(db, nangoClient, catalog.Global())
+	h := handler.NewConnectionHandler(db, nangoClient, catalog.Global(), nil)
 	r := chi.NewRouter()
 	r.Get("/v1/connections/{id}", h.Get)
 
@@ -174,7 +174,7 @@ func TestConnectionHandler_Get_WithNangoProviderConfig(t *testing.T) {
 	nangoClient := nango.NewClient(nangoSrv.URL, "test-secret-key")
 	_ = nangoClient.FetchProviders(context.Background())
 
-	h := handler.NewConnectionHandler(db, nangoClient, catalog.Global())
+	h := handler.NewConnectionHandler(db, nangoClient, catalog.Global(), nil)
 	r := chi.NewRouter()
 	r.Get("/v1/connections/{id}", h.Get)
 
@@ -220,7 +220,7 @@ func TestConnectionHandler_Get_NangoFailure(t *testing.T) {
 	nangoClient := nango.NewClient(nangoSrv.URL, "test-secret-key")
 	_ = nangoClient.FetchProviders(context.Background())
 
-	h := handler.NewConnectionHandler(db, nangoClient, catalog.Global())
+	h := handler.NewConnectionHandler(db, nangoClient, catalog.Global(), nil)
 	r := chi.NewRouter()
 	r.Get("/v1/connections/{id}", h.Get)
 

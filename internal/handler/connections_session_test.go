@@ -31,7 +31,7 @@ func TestConnectionHandler_CreateConnectSession_Success(t *testing.T) {
 	nangoClient := nango.NewClient(nangoSrv.URL, "test-secret-key")
 	_ = nangoClient.FetchProviders(context.Background())
 
-	h := handler.NewConnectionHandler(db, nangoClient, catalog.Global())
+	h := handler.NewConnectionHandler(db, nangoClient, catalog.Global(), nil)
 	r := chi.NewRouter()
 	r.Post("/v1/integrations/{id}/connect-session", h.CreateConnectSession)
 
@@ -87,7 +87,7 @@ func TestConnectionHandler_CreateConnectSession_IntegrationNotFound(t *testing.T
 	nangoClient := nango.NewClient(nangoSrv.URL, "test-secret-key")
 	_ = nangoClient.FetchProviders(context.Background())
 
-	h := handler.NewConnectionHandler(db, nangoClient, catalog.Global())
+	h := handler.NewConnectionHandler(db, nangoClient, catalog.Global(), nil)
 	r := chi.NewRouter()
 	r.Post("/v1/integrations/{id}/connect-session", h.CreateConnectSession)
 
@@ -119,7 +119,7 @@ func TestConnectionHandler_CreateConnectSession_NangoFailure(t *testing.T) {
 	nangoClient := nango.NewClient(nangoSrv.URL, "test-secret-key")
 	_ = nangoClient.FetchProviders(context.Background())
 
-	h := handler.NewConnectionHandler(db, nangoClient, catalog.Global())
+	h := handler.NewConnectionHandler(db, nangoClient, catalog.Global(), nil)
 	r := chi.NewRouter()
 	r.Post("/v1/integrations/{id}/connect-session", h.CreateConnectSession)
 

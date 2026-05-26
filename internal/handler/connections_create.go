@@ -1,16 +1,23 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
+	"github.com/hibiken/asynq"
 	"gorm.io/gorm"
 
 	"github.com/usehivy/hivy/internal/logging"
 	"github.com/usehivy/hivy/internal/middleware"
 	"github.com/usehivy/hivy/internal/model"
+	ragmodel "github.com/usehivy/hivy/internal/rag/model"
+	ragtasks "github.com/usehivy/hivy/internal/rag/tasks"
 )
 
 // @Summary Create an connection
@@ -116,5 +123,62 @@ func (h *ConnectionHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	conn.Integration = integ
 	logging.FromContext(r.Context()).InfoContext(r.Context(), "connection created", "connection_id", conn.ID, "org_id", org.ID, "user_id", user.ID, "provider", integ.Provider)
+
+	h.autoCreateRAGSourceForConnection(r.Context(), &conn, user.ID, org.ID)
+
 	writeJSON(w, http.StatusCreated, h.toConnectionResponse(conn))
+}
+
+// autoCreateRAGSourceForConnection creates a RAG source when a
+// connection's integration supports it. Failure is logged but never
+// fails the connection creation — the user can always create one
+// manually later.
+func (h *ConnectionHandler) autoCreateRAGSourceForConnection(
+	ctx context.Context,
+	conn *model.Connection,
+	userID uuid.UUID,
+	orgID uuid.UUID,
+) {
+	if !conn.Integration.SupportsRAGSource {
+		return
+	}
+	// Slack requires the user to configure which channels to index
+	// before ingesting — skip auto-creation.
+	if conn.Integration.Provider == "slack" {
+		return
+	}
+	if h.enq == nil {
+		return
+	}
+
+	src := &ragmodel.RAGSource{
+		OrgIDValue: orgID,
+		KindValue:  ragmodel.RAGSourceKindIntegration,
+		Name:       conn.Integration.DisplayName,
+		Status:     ragmodel.RAGSourceStatusInitialIndexing,
+		Enabled:    true,
+		AccessType: ragmodel.AccessTypeSync,
+		RefreshFreqSeconds:  intPtr(3600),
+	}
+	src.ConnectionID = &conn.ID
+
+	if err := h.db.Create(src).Error; err != nil {
+		if isDuplicateKeyError(err) {
+			return
+		}
+		logging.Capture(ctx, fmt.Errorf("auto-create rag source for connection %s: %w", conn.ID, err))
+		return
+	}
+
+	task, err := ragtasks.NewIngestTask(ragtasks.IngestPayload{RAGSourceID: src.ID})
+	if err != nil {
+		logging.Capture(ctx, fmt.Errorf("auto-create rag source: build ingest task for %s: %w", src.ID, err))
+		return
+	}
+	if _, err := h.enq.Enqueue(task, asynq.Unique(60*time.Second)); err != nil {
+		if errors.Is(err, asynq.ErrDuplicateTask) {
+			return
+		}
+		logging.Capture(ctx, fmt.Errorf("auto-create rag source: enqueue ingest for %s: %w", src.ID, err))
+	}
 }

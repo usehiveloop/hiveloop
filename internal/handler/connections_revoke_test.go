@@ -32,7 +32,7 @@ func TestConnectionHandler_Revoke_Success(t *testing.T) {
 	nangoClient := nango.NewClient(nangoSrv.URL, "test-secret-key")
 	_ = nangoClient.FetchProviders(context.Background())
 
-	h := handler.NewConnectionHandler(db, nangoClient, catalog.Global())
+	h := handler.NewConnectionHandler(db, nangoClient, catalog.Global(), nil)
 	r := chi.NewRouter()
 	r.Delete("/v1/connections/{id}", h.Revoke)
 
@@ -80,7 +80,7 @@ func TestConnectionHandler_Revoke_NotFound(t *testing.T) {
 	nangoClient := nango.NewClient(nangoSrv.URL, "test-secret-key")
 	_ = nangoClient.FetchProviders(context.Background())
 
-	h := handler.NewConnectionHandler(db, nangoClient, catalog.Global())
+	h := handler.NewConnectionHandler(db, nangoClient, catalog.Global(), nil)
 	r := chi.NewRouter()
 	r.Delete("/v1/connections/{id}", h.Revoke)
 
@@ -110,7 +110,7 @@ func TestConnectionHandler_Revoke_WrongUser(t *testing.T) {
 	nangoClient := nango.NewClient(nangoSrv.URL, "test-secret-key")
 	_ = nangoClient.FetchProviders(context.Background())
 
-	h := handler.NewConnectionHandler(db, nangoClient, catalog.Global())
+	h := handler.NewConnectionHandler(db, nangoClient, catalog.Global(), nil)
 	r := chi.NewRouter()
 	r.Delete("/v1/connections/{id}", h.Revoke)
 
@@ -147,7 +147,7 @@ func TestConnectionHandler_Revoke_AlreadyRevoked(t *testing.T) {
 	nangoClient := nango.NewClient(nangoSrv.URL, "test-secret-key")
 	_ = nangoClient.FetchProviders(context.Background())
 
-	h := handler.NewConnectionHandler(db, nangoClient, catalog.Global())
+	h := handler.NewConnectionHandler(db, nangoClient, catalog.Global(), nil)
 	r := chi.NewRouter()
 	r.Delete("/v1/connections/{id}", h.Revoke)
 
@@ -185,7 +185,7 @@ func TestConnectionHandler_Revoke_NangoFailure(t *testing.T) {
 	nangoClient := nango.NewClient(nangoSrv.URL, "test-secret-key")
 	_ = nangoClient.FetchProviders(context.Background())
 
-	h := handler.NewConnectionHandler(db, nangoClient, catalog.Global())
+	h := handler.NewConnectionHandler(db, nangoClient, catalog.Global(), nil)
 	r := chi.NewRouter()
 	r.Delete("/v1/connections/{id}", h.Revoke)
 
@@ -226,7 +226,7 @@ func TestConnectionHandler_RevokeDetachesIntegrationManagedSkillWhenLastConnecti
 	nangoClient := nango.NewClient(nangoSrv.URL, "test-secret-key")
 	_ = nangoClient.FetchProviders(context.Background())
 
-	h := handler.NewConnectionHandler(db, nangoClient, catalog.Global())
+	h := handler.NewConnectionHandler(db, nangoClient, catalog.Global(), nil)
 	r := chi.NewRouter()
 	r.Delete("/v1/connections/{id}", h.Revoke)
 
@@ -281,7 +281,7 @@ func TestConnectionHandler_RevokeKeepsSkillRequiredByAnotherActiveIntegration(t 
 	nangoClient := nango.NewClient(nangoSrv.URL, "test-secret-key")
 	_ = nangoClient.FetchProviders(context.Background())
 
-	h := handler.NewConnectionHandler(db, nangoClient, catalog.Global())
+	h := handler.NewConnectionHandler(db, nangoClient, catalog.Global(), nil)
 	r := chi.NewRouter()
 	r.Delete("/v1/connections/{id}", h.Revoke)
 

@@ -9,7 +9,7 @@ import (
 )
 
 func TestSlackChannelHandler_AvailableChannels_PublicAndJoinedPrivate(t *testing.T) {
-	h := NewSlackChannelHandler(nil, nil)
+	h := NewSlackChannelHandler(nil, nil, nil)
 	h.listPublicChannels = func(context.Context, string) ([]slackapp.Channel, error) {
 		return []slackapp.Channel{
 			{ID: "C1", Name: "general", IsMember: false},
@@ -51,7 +51,7 @@ func TestSlackChannelHandler_AvailableChannels_PublicAndJoinedPrivate(t *testing
 }
 
 func TestSlackChannelHandler_JoinRequestedChannels(t *testing.T) {
-	h := NewSlackChannelHandler(nil, nil)
+	h := NewSlackChannelHandler(nil, nil, nil)
 	h.listPublicChannels = func(context.Context, string) ([]slackapp.Channel, error) {
 		return []slackapp.Channel{
 			{ID: "C1", Name: "general"},
@@ -89,7 +89,7 @@ func TestSlackChannelHandler_JoinRequestedChannels(t *testing.T) {
 }
 
 func TestSlackChannelHandler_JoinRequestedChannels_AllSelectedReady(t *testing.T) {
-	h := NewSlackChannelHandler(nil, nil)
+	h := NewSlackChannelHandler(nil, nil, nil)
 	h.listPublicChannels = func(context.Context, string) ([]slackapp.Channel, error) {
 		return []slackapp.Channel{
 			{ID: "C1", Name: "general"},
@@ -124,7 +124,7 @@ func TestSlackChannelHandler_JoinRequestedChannels_AllSelectedReady(t *testing.T
 }
 
 func TestSlackChannelHandler_JoinAllPublic(t *testing.T) {
-	h := NewSlackChannelHandler(nil, nil)
+	h := NewSlackChannelHandler(nil, nil, nil)
 	h.listPublicChannels = func(context.Context, string) ([]slackapp.Channel, error) {
 		return []slackapp.Channel{
 			{ID: "C1", Name: "general"},
@@ -154,7 +154,7 @@ func TestSlackChannelHandler_JoinAllPublic(t *testing.T) {
 }
 
 func TestSlackChannelHandler_JoinedPrivateDoesNotCompleteOnboarding(t *testing.T) {
-	h := NewSlackChannelHandler(nil, nil)
+	h := NewSlackChannelHandler(nil, nil, nil)
 	h.listPublicChannels = func(context.Context, string) ([]slackapp.Channel, error) {
 		return []slackapp.Channel{{ID: "C1", Name: "general"}}, nil
 	}

@@ -92,8 +92,8 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 	providerHandler := handler.NewProviderHandler(reg, database)
 	customDomainHandler := handler.NewCustomDomainHandler(database, cfg)
 	integrationHandler := handler.NewIntegrationHandler(database, nangoClient, actionsCatalog)
-	connectionHandler := handler.NewConnectionHandler(database, nangoClient, actionsCatalog)
-	orgHandler := handler.NewOrgHandler(database)
+	connectionHandler := handler.NewConnectionHandler(database, nangoClient, actionsCatalog, enqueuer)
+	orgHandler := handler.NewOrgHandler(database, enqueuer)
 	plansHandler := handler.NewPlansHandler(database)
 	var emailSender email.Sender = &email.LogSender{}
 	if enqueuer != nil && cfg.ResendAPIKey != "" {
@@ -190,7 +190,7 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 	billingHandler := handler.NewBillingHandler(database, deps.BillingRegistry, deps.Credits)
 	subscriptionHandler := handler.NewSubscriptionHandler(database, deps.BillingRegistry, deps.Credits)
 	dashboardHandler := handler.NewDashboardHandler(database, deps.Credits)
-	slackChannelHandler := handler.NewSlackChannelHandler(database, nangoClient)
+	slackChannelHandler := handler.NewSlackChannelHandler(database, nangoClient, enqueuer)
 
 	r := chi.NewRouter()
 	r.Use(chimw.RequestID)

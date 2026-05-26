@@ -3,6 +3,7 @@ package handler
 import (
 	"time"
 
+	"github.com/usehivy/hivy/internal/enqueue"
 	"github.com/usehivy/hivy/internal/mcp/catalog"
 	"github.com/usehivy/hivy/internal/model"
 	"github.com/usehivy/hivy/internal/nango"
@@ -15,14 +16,16 @@ type ConnectionHandler struct {
 	nango     *nango.Client
 	catalog   *catalog.Catalog
 	discovery *resources.Discovery
+	enq       enqueue.TaskEnqueuer
 }
 
-func NewConnectionHandler(db *gorm.DB, nangoClient *nango.Client, cat *catalog.Catalog) *ConnectionHandler {
+func NewConnectionHandler(db *gorm.DB, nangoClient *nango.Client, cat *catalog.Catalog, enq enqueue.TaskEnqueuer) *ConnectionHandler {
 	return &ConnectionHandler{
 		db:        db,
 		nango:     nangoClient,
 		catalog:   cat,
 		discovery: resources.NewDiscovery(cat, nangoClient),
+		enq:       enq,
 	}
 }
 

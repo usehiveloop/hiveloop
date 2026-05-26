@@ -32,7 +32,7 @@ func TestConnectionHandler_Create_Success(t *testing.T) {
 	nangoClient := nango.NewClient(nangoSrv.URL, "test-secret-key")
 	_ = nangoClient.FetchProviders(context.Background())
 
-	h := handler.NewConnectionHandler(db, nangoClient, catalog.Global())
+	h := handler.NewConnectionHandler(db, nangoClient, catalog.Global(), nil)
 	r := chi.NewRouter()
 	r.Post("/v1/integrations/{id}/connections", h.Create)
 
@@ -87,7 +87,7 @@ func TestConnectionHandler_CreateSlackKeepsOnboardingOpenAndEnsuresHivy(t *testi
 	nangoClient := nango.NewClient(nangoSrv.URL, "test-secret-key")
 	_ = nangoClient.FetchProviders(context.Background())
 
-	h := handler.NewConnectionHandler(db, nangoClient, catalog.Global())
+	h := handler.NewConnectionHandler(db, nangoClient, catalog.Global(), nil)
 	r := chi.NewRouter()
 	r.Post("/v1/integrations/{id}/connections", h.Create)
 
@@ -136,7 +136,7 @@ func TestConnectionHandler_CreateAttachesIntegrationManagedSkill(t *testing.T) {
 	nangoClient := nango.NewClient(nangoSrv.URL, "test-secret-key")
 	_ = nangoClient.FetchProviders(context.Background())
 
-	h := handler.NewConnectionHandler(db, nangoClient, catalog.Global())
+	h := handler.NewConnectionHandler(db, nangoClient, catalog.Global(), nil)
 	r := chi.NewRouter()
 	r.Post("/v1/integrations/{id}/connections", h.Create)
 
@@ -237,7 +237,7 @@ func TestConnectionHandler_Create_DuplicateUserIntegration(t *testing.T) {
 	nangoClient := nango.NewClient(nangoSrv.URL, "test-secret-key")
 	_ = nangoClient.FetchProviders(context.Background())
 
-	h := handler.NewConnectionHandler(db, nangoClient, catalog.Global())
+	h := handler.NewConnectionHandler(db, nangoClient, catalog.Global(), nil)
 	r := chi.NewRouter()
 	r.Post("/v1/integrations/{id}/connections", h.Create)
 
@@ -284,7 +284,7 @@ func TestConnectionHandler_Create_WithMeta(t *testing.T) {
 	nangoClient := nango.NewClient(nangoSrv.URL, "test-secret-key")
 	_ = nangoClient.FetchProviders(context.Background())
 
-	h := handler.NewConnectionHandler(db, nangoClient, catalog.Global())
+	h := handler.NewConnectionHandler(db, nangoClient, catalog.Global(), nil)
 	r := chi.NewRouter()
 	r.Post("/v1/integrations/{id}/connections", h.Create)
 

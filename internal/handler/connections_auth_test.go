@@ -29,7 +29,7 @@ func TestConnectionHandler_MissingUserContext(t *testing.T) {
 	nangoClient := nango.NewClient(nangoSrv.URL, "test-secret-key")
 	_ = nangoClient.FetchProviders(context.Background())
 
-	h := handler.NewConnectionHandler(db, nangoClient, catalog.Global())
+	h := handler.NewConnectionHandler(db, nangoClient, catalog.Global(), nil)
 	r := chi.NewRouter()
 	r.Get("/v1/connections", h.List)
 	r.Get("/v1/connections/{id}", h.Get)

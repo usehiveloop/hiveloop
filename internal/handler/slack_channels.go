@@ -3,32 +3,39 @@ package handler
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
+	"github.com/hibiken/asynq"
 	"gorm.io/gorm"
 
+	"github.com/usehivy/hivy/internal/enqueue"
 	"github.com/usehivy/hivy/internal/logging"
 	"github.com/usehivy/hivy/internal/middleware"
 	"github.com/usehivy/hivy/internal/model"
 	"github.com/usehivy/hivy/internal/nango"
+	ragmodel "github.com/usehivy/hivy/internal/rag/model"
+	ragtasks "github.com/usehivy/hivy/internal/rag/tasks"
 	"github.com/usehivy/hivy/internal/slackapp"
 )
 
 type SlackChannelHandler struct {
 	db                 *gorm.DB
 	nango              *nango.Client
+	enq                enqueue.TaskEnqueuer
 	loadBotToken       func(context.Context, uuid.UUID) (string, error)
 	listPublicChannels func(context.Context, string) ([]slackapp.Channel, error)
 	listBotChannels    func(context.Context, string) ([]slackapp.Channel, error)
 	joinChannel        func(context.Context, string, string) (slackapp.Channel, error)
 }
 
-func NewSlackChannelHandler(db *gorm.DB, nangoClient *nango.Client) *SlackChannelHandler {
-	h := &SlackChannelHandler{db: db, nango: nangoClient}
+func NewSlackChannelHandler(db *gorm.DB, nangoClient *nango.Client, enq enqueue.TaskEnqueuer) *SlackChannelHandler {
+	h := &SlackChannelHandler{db: db, nango: nangoClient, enq: enq}
 	h.loadBotToken = h.loadSlackBotToken
 	h.listPublicChannels = slackapp.ListPublicChannels
 	h.listBotChannels = slackapp.ListBotChannels
@@ -141,6 +148,11 @@ func (h *SlackChannelHandler) JoinChannels(w http.ResponseWriter, r *http.Reques
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to join Slack channels"})
 		return
 	}
+
+	if result.Joined > 0 {
+		h.autoCreateSlackRAGSource(r.Context(), org.ID)
+	}
+
 	writeJSON(w, http.StatusOK, result)
 }
 
@@ -277,4 +289,59 @@ func (h *SlackChannelHandler) loadSlackBotToken(ctx context.Context, orgID uuid.
 		}
 	}
 	return "", fmt.Errorf("Slack connection credentials do not include a bot token")
+}
+
+func (h *SlackChannelHandler) autoCreateSlackRAGSource(ctx context.Context, orgID uuid.UUID) {
+	if h.enq == nil {
+		return
+	}
+	connID, err := h.activeSlackConnectionID(ctx, orgID)
+	if err != nil {
+		logging.Capture(ctx, fmt.Errorf("auto-create slack rag: %w", err))
+		return
+	}
+
+	src := &ragmodel.RAGSource{
+		OrgIDValue: orgID,
+		KindValue:  ragmodel.RAGSourceKindIntegration,
+		Name:       "Slack",
+		Status:     ragmodel.RAGSourceStatusInitialIndexing,
+		Enabled:    true,
+		AccessType: ragmodel.AccessTypeSync,
+		RefreshFreqSeconds: intPtr(3600),
+	}
+	src.ConnectionID = &connID
+
+	// Only create if one doesn't already exist for this connection.
+	if err := h.db.Create(src).Error; err != nil {
+		if isDuplicateKeyError(err) {
+			return
+		}
+		logging.Capture(ctx, fmt.Errorf("auto-create slack rag source for org %s: %w", orgID, err))
+		return
+	}
+
+	task, err := ragtasks.NewIngestTask(ragtasks.IngestPayload{RAGSourceID: src.ID})
+	if err != nil {
+		logging.Capture(ctx, fmt.Errorf("auto-create slack rag: build ingest task for %s: %w", src.ID, err))
+		return
+	}
+	if _, err := h.enq.Enqueue(task, asynq.Unique(60*time.Second)); err != nil {
+		if errors.Is(err, asynq.ErrDuplicateTask) {
+			return
+		}
+		logging.Capture(ctx, fmt.Errorf("auto-create slack rag: enqueue ingest for %s: %w", src.ID, err))
+	}
+}
+
+func (h *SlackChannelHandler) activeSlackConnectionID(ctx context.Context, orgID uuid.UUID) (uuid.UUID, error) {
+	var conn model.Connection
+	if err := h.db.WithContext(ctx).
+		Joins("JOIN integrations ON integrations.id = connections.integration_id AND integrations.deleted_at IS NULL").
+		Where("connections.org_id = ? AND connections.revoked_at IS NULL AND integrations.provider = ?", orgID, slackapp.Provider).
+		Order("connections.created_at ASC").
+		First(&conn).Error; err != nil {
+		return uuid.Nil, fmt.Errorf("no active Slack connection: %w", err)
+	}
+	return conn.ID, nil
 }

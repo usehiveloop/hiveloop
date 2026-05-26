@@ -7,10 +7,10 @@ import (
 )
 
 const (
-	defaultIngestTick      = 15 * time.Second
-	defaultPermSyncTick    = 30 * time.Second
-	defaultPruneTick       = 60 * time.Second
-	defaultWatchdogTick    = 60 * time.Second
+	defaultIngestTick      = 30 * time.Minute
+	defaultPermSyncTick    = 60 * time.Minute
+	defaultPruneTick       = 90 * time.Minute
+	defaultWatchdogTick    = 90 * time.Minute
 	defaultWatchdogTimeout = 30 * time.Minute
 	defaultUniqueSlack     = 30 * time.Second
 	defaultEnqueueLimit    = 500

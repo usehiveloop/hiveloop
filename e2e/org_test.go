@@ -51,7 +51,7 @@ func newOrgHarness(t *testing.T) *orgHarness {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	authHandler.StartCleanup(ctx)
-	orgHandler := handler.NewOrgHandler(h.db)
+	orgHandler := handler.NewOrgHandler(h.db, nil)
 
 	r := chi.NewRouter()
 

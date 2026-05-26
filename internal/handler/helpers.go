@@ -13,6 +13,7 @@ import (
 )
 
 func boolPtr(v bool) *bool { return &v }
+func intPtr(v int) *int    { return &v }
 
 // trimmedRef returns nil for empty/whitespace inputs so we don't store empty
 // strings; some model columns are nullable.
