@@ -155,12 +155,12 @@ func (h *EmployeeTriggerDispatchHandler) deliver(ctx context.Context, payload Em
 		}
 	}
 
-	apiKey, err := h.compileDeps.EncKey.DecryptString(sb.EncryptedBridgeAPIKey)
+	apiKey, err := h.compileDeps.EncKey.DecryptString(sb.EncryptedRuntimeSecret)
 	if err != nil {
 		captureTriggerDispatchBoundary(ctx, "decrypt_employee_runtime_key", payload, trigger, "", "", err)
 		return fmt.Errorf("decrypt employee runtime key: %w", err)
 	}
-	client := employeeruntime.NewClient(sb.BridgeURL, apiKey)
+	client := employeeruntime.NewClient(sb.RuntimeURL, apiKey)
 	if err := client.Healthz(ctx); err != nil {
 		captureTriggerDispatchBoundary(ctx, "employee_runtime_healthz", payload, trigger, "", "", err)
 		return fmt.Errorf("employee runtime healthz: %w", err)

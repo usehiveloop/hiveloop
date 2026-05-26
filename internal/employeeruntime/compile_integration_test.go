@@ -229,7 +229,7 @@ func TestCompile_PreservesSkillRequiredEnvironmentVariables(t *testing.T) {
 			"description":"Upload generated artifacts.",
 			"content":"Use the upload endpoint.",
 			"files":{},
-			"required_environment_variables":["UPLOAD_BEARER","HIVY_DRIVE_UPLOAD_URL","UPLOAD_BEARER"]
+			"required_environment_variables":["HIVY_UPLOAD_BEARER","HIVY_DRIVE_UPLOAD_URL","HIVY_UPLOAD_BEARER"]
 		}`),
 	}
 	if err := db.Create(&skill).Error; err != nil {

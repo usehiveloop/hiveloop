@@ -147,7 +147,7 @@ func newEmployeeHarness(t *testing.T) *employeeHarness {
 				body := append([]byte(nil), stub.lastConfigBody...)
 				stub.mu.Unlock()
 				if len(body) == 0 {
-					body = []byte(`{}`)
+					body = []byte(`{"agent":{"name":"Hivy"},"system_prompt":{"cacheable_segments":[{"type":"static_text","config":{"content":"test"}}],"dynamic_segments":[]},"model":{"provider":"openai_compatible","base_url":"https://proxy.test/v1","model_id":"test","api_key_env":"HIVY_PROXY_API_KEY","temperature":0,"max_output_tokens":1000},"tools":[]}`)
 				}
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(http.StatusOK)
@@ -162,6 +162,19 @@ func newEmployeeHarness(t *testing.T) *employeeHarness {
 				stub.lastConfigBody = body
 				status := stub.syncConfigStatus
 				errs := append([]string(nil), stub.syncConfigErrors...)
+				var payload struct {
+					RuntimeEnv map[string]string `json:"runtime_env"`
+					Definition json.RawMessage   `json:"definition"`
+				}
+				if err := json.Unmarshal(body, &payload); err == nil && len(payload.RuntimeEnv) > 0 {
+					stub.syncEnvCalls++
+					stub.lastEnvBearer = r.Header.Get("Authorization")
+					envBody, _ := json.Marshal(payload.RuntimeEnv)
+					stub.lastEnvBody = envBody
+					if len(payload.Definition) > 0 {
+						stub.lastConfigBody = payload.Definition
+					}
+				}
 				stub.mu.Unlock()
 				if status == 0 {
 					status = http.StatusOK
@@ -169,7 +182,7 @@ func newEmployeeHarness(t *testing.T) *employeeHarness {
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(status)
 				respBody := map[string]any{
-					"applied": 3, "deleted": 0, "repos_cloned": 1, "restart_triggered": true,
+					"applied_at": "2026-01-01T00:00:00Z", "env_key_count": len(payload.RuntimeEnv), "secret_rotated": false,
 				}
 				if len(errs) > 0 {
 					respBody["errors"] = errs

@@ -25,7 +25,7 @@ func init() {
 
 // @title Hivy API
 // @version 1.0
-// @description Proxy bridge for LLM API credentials.
+// @description Proxy runtime for LLM API credentials.
 // @host api.dev.usehivy.com
 // @BasePath /
 // @schemes https

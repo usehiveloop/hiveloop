@@ -27,10 +27,10 @@ func TestRunResourceCheck_UpdatesSandboxFields(t *testing.T) {
 
 	// Seed a running sandbox directly in DB
 	sb := model.Sandbox{
-		ExternalID:            "mock-rc-1",
-		BridgeURL:             "https://mock.test",
-		EncryptedBridgeAPIKey: []byte("enc"),
-		Status:                "running",
+		ExternalID:             "mock-rc-1",
+		RuntimeURL:             "https://mock.test",
+		EncryptedRuntimeSecret: []byte("enc"),
+		Status:                 "running",
 	}
 	if err := db.Create(&sb).Error; err != nil {
 		t.Fatalf("create sandbox: %v", err)
@@ -87,10 +87,10 @@ func TestRunResourceCheck_SkipsStoppedSandboxes(t *testing.T) {
 	}
 
 	sb := model.Sandbox{
-		ExternalID:            targetExternalID,
-		BridgeURL:             "https://mock.test",
-		EncryptedBridgeAPIKey: []byte("enc"),
-		Status:                "stopped",
+		ExternalID:             targetExternalID,
+		RuntimeURL:             "https://mock.test",
+		EncryptedRuntimeSecret: []byte("enc"),
+		Status:                 "stopped",
 	}
 	db.Create(&sb)
 	t.Cleanup(func() { db.Where("id = ?", sb.ID).Delete(&model.Sandbox{}) })
@@ -110,10 +110,10 @@ func TestRunResourceCheck_HandlesExecuteError(t *testing.T) {
 	}
 
 	sb := model.Sandbox{
-		ExternalID:            "mock-rc-err",
-		BridgeURL:             "https://mock.test",
-		EncryptedBridgeAPIKey: []byte("enc"),
-		Status:                "running",
+		ExternalID:             "mock-rc-err",
+		RuntimeURL:             "https://mock.test",
+		EncryptedRuntimeSecret: []byte("enc"),
+		Status:                 "running",
 	}
 	db.Create(&sb)
 	provider.registerSandbox(sb.ExternalID, StatusRunning)
@@ -151,10 +151,10 @@ func TestRunResourceCheck_MultipleSandboxes(t *testing.T) {
 	var sandboxIDs []uuid.UUID
 	for i := 0; i < 3; i++ {
 		sb := model.Sandbox{
-			ExternalID:            fmt.Sprintf("mock-rc-multi-%d-%s", i, uuid.New().String()[:8]),
-			BridgeURL:             "https://mock.test",
-			EncryptedBridgeAPIKey: []byte("enc"),
-			Status:                "running",
+			ExternalID:             fmt.Sprintf("mock-rc-multi-%d-%s", i, uuid.New().String()[:8]),
+			RuntimeURL:             "https://mock.test",
+			EncryptedRuntimeSecret: []byte("enc"),
+			Status:                 "running",
 		}
 		db.Create(&sb)
 		provider.registerSandbox(sb.ExternalID, StatusRunning)

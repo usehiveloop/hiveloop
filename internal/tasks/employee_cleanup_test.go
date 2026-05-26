@@ -66,7 +66,7 @@ func TestEmployeeCleanup_HardDeletesActiveAgent(t *testing.T) {
 	db := connectDB(t)
 	agent := createAgent(t, db)
 
-	handler := tasks.NewEmployeeCleanupHandler(db, nil, nil)
+	handler := tasks.NewEmployeeCleanupHandler(db, nil)
 	task := makeTask(t, agent.ID)
 
 	if err := handler.Handle(context.Background(), task); err != nil {
@@ -83,7 +83,7 @@ func TestEmployeeCleanup_HardDeletesActiveAgent(t *testing.T) {
 func TestEmployeeCleanup_AlreadyDeletedIsIdempotent(t *testing.T) {
 	db := connectDB(t)
 
-	handler := tasks.NewEmployeeCleanupHandler(db, nil, nil)
+	handler := tasks.NewEmployeeCleanupHandler(db, nil)
 	task := makeTask(t, uuid.New())
 
 	if err := handler.Handle(context.Background(), task); err != nil {
@@ -95,7 +95,7 @@ func TestEmployeeCleanup_NilOrchestratorHandledGracefully(t *testing.T) {
 	db := connectDB(t)
 
 	agent := createAgent(t, db)
-	handler := tasks.NewEmployeeCleanupHandler(db, nil, nil)
+	handler := tasks.NewEmployeeCleanupHandler(db, nil)
 
 	if err := handler.Handle(context.Background(), makeTask(t, agent.ID)); err != nil {
 		t.Fatalf("cleanup with nil orchestrator should not error: %v", err)

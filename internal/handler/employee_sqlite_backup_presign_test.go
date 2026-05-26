@@ -12,7 +12,7 @@ import (
 	"github.com/google/uuid"
 )
 
-func (h *sqliteBackupHarness) presignBackup(t *testing.T, body any, bridgeKey string) *httptest.ResponseRecorder {
+func (h *sqliteBackupHarness) presignBackup(t *testing.T, body any, runtimeSecret string) *httptest.ResponseRecorder {
 	t.Helper()
 	var payload io.Reader
 	if body != nil {
@@ -23,8 +23,8 @@ func (h *sqliteBackupHarness) presignBackup(t *testing.T, body any, bridgeKey st
 		payload = bytes.NewReader(raw)
 	}
 	req := httptest.NewRequest(http.MethodPost, "/internal/employees/"+h.agentID.String()+"/sqlite-backup/presign", payload)
-	if bridgeKey != "" {
-		req.Header.Set("Authorization", "Bearer "+bridgeKey)
+	if runtimeSecret != "" {
+		req.Header.Set("Authorization", "Bearer "+runtimeSecret)
 	}
 	req.Header.Set("Content-Type", "application/json")
 	rr := httptest.NewRecorder()
@@ -32,15 +32,15 @@ func (h *sqliteBackupHarness) presignBackup(t *testing.T, body any, bridgeKey st
 	return rr
 }
 
-func (h *sqliteBackupHarness) confirmBackup(t *testing.T, body any, bridgeKey string) *httptest.ResponseRecorder {
+func (h *sqliteBackupHarness) confirmBackup(t *testing.T, body any, runtimeSecret string) *httptest.ResponseRecorder {
 	t.Helper()
 	raw, err := json.Marshal(body)
 	if err != nil {
 		t.Fatalf("marshal confirm body: %v", err)
 	}
 	req := httptest.NewRequest(http.MethodPost, "/internal/employees/"+h.agentID.String()+"/sqlite-backup/confirm", bytes.NewReader(raw))
-	if bridgeKey != "" {
-		req.Header.Set("Authorization", "Bearer "+bridgeKey)
+	if runtimeSecret != "" {
+		req.Header.Set("Authorization", "Bearer "+runtimeSecret)
 	}
 	req.Header.Set("Content-Type", "application/json")
 	rr := httptest.NewRecorder()
@@ -56,7 +56,7 @@ func TestEmployeeSQLiteBackup_PresignAllowsDirectStorageUploadAndConfirm(t *test
 		"reason":                "threshold",
 		"content_type":          "application/gzip",
 		"compressed_bytes_hint": len(body),
-	}, h.bridgeKey)
+	}, h.runtimeSecret)
 	if rr.Code != http.StatusOK {
 		t.Fatalf("expected presign 200, got %d: %s", rr.Code, rr.Body.String())
 	}
@@ -91,7 +91,7 @@ func TestEmployeeSQLiteBackup_PresignAllowsDirectStorageUploadAndConfirm(t *test
 		"sha256": "not-yet-validated-by-storage",
 		"reason": "threshold",
 		"writes": 1000,
-	}, h.bridgeKey)
+	}, h.runtimeSecret)
 	if confirm.Code != http.StatusOK {
 		t.Fatalf("expected confirm 200, got %d: %s", confirm.Code, confirm.Body.String())
 	}
@@ -105,7 +105,7 @@ func TestEmployeeSQLiteBackup_ConfirmRejectsCrossEmployeeKey(t *testing.T) {
 	rr := h.confirmBackup(t, map[string]any{
 		"key":   fmt.Sprintf("employee-sqlite-backups/%s/%s/latest.db.gz", uuid.New(), uuid.New()),
 		"bytes": 10,
-	}, h.bridgeKey)
+	}, h.runtimeSecret)
 	if rr.Code != http.StatusBadRequest {
 		t.Fatalf("expected 400, got %d: %s", rr.Code, rr.Body.String())
 	}
@@ -116,7 +116,7 @@ func TestEmployeeSQLiteBackup_PresignRejectsOversizedBackupHint(t *testing.T) {
 	rr := h.presignBackup(t, map[string]any{
 		"content_type":          "application/gzip",
 		"compressed_bytes_hint": 5,
-	}, h.bridgeKey)
+	}, h.runtimeSecret)
 	if rr.Code != http.StatusRequestEntityTooLarge {
 		t.Fatalf("expected 413, got %d: %s", rr.Code, rr.Body.String())
 	}

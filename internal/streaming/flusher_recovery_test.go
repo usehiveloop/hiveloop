@@ -59,7 +59,7 @@ func TestFlusher_RecoversChunksWhenCompletionMissing(t *testing.T) {
 	}
 }
 
-func TestFlusher_RecoversBridgeNativeChunksOnTurnCompleted(t *testing.T) {
+func TestFlusher_RecoversRuntimeNativeChunksOnTurnCompleted(t *testing.T) {
 	bus, flusher, db, _ := setupFlusherTest(t)
 	_, convID := createTestConversation(t, db)
 	ctx := context.Background()
@@ -74,13 +74,13 @@ func TestFlusher_RecoversBridgeNativeChunksOnTurnCompleted(t *testing.T) {
 	chunk2, _ := json.Marshal(map[string]any{
 		"event_id": uuid.New().String(),
 		"data": map[string]any{
-			"content": map[string]any{"type": "text", "text": ", Bridge"},
+			"content": map[string]any{"type": "text", "text": ", Runtime"},
 		},
 	})
 	terminal, _ := json.Marshal(map[string]any{
 		"event_id":        uuid.New().String(),
 		"employee_id":     "agent-1",
-		"conversation_id": "bridge-" + convID.String(),
+		"conversation_id": "runtime-" + convID.String(),
 		"timestamp":       "2026-05-13T12:00:00Z",
 		"sequence_number": 4,
 		"data":            map[string]any{"stop_reason": "endturn"},
@@ -103,15 +103,15 @@ func TestFlusher_RecoversBridgeNativeChunksOnTurnCompleted(t *testing.T) {
 	if data["message_id"] != firstChunkID {
 		t.Fatalf("message_id = %v, want first chunk event id %s", data["message_id"], firstChunkID)
 	}
-	if data["full_response"] != "Hello, Bridge" {
-		t.Fatalf("full_response = %v, want Hello, Bridge", data["full_response"])
+	if data["full_response"] != "Hello, Runtime" {
+		t.Fatalf("full_response = %v, want Hello, Runtime", data["full_response"])
 	}
 	if event.SequenceNumber != 3 {
 		t.Fatalf("recovered sequence_number = %d, want 3", event.SequenceNumber)
 	}
 }
 
-func TestFlusher_SeparatesBridgeNativeChunksAcrossTurns(t *testing.T) {
+func TestFlusher_SeparatesRuntimeNativeChunksAcrossTurns(t *testing.T) {
 	bus, flusher, db, _ := setupFlusherTest(t)
 	_, convID := createTestConversation(t, db)
 	ctx := context.Background()
@@ -127,7 +127,7 @@ func TestFlusher_SeparatesBridgeNativeChunksAcrossTurns(t *testing.T) {
 	firstDone, _ := json.Marshal(map[string]any{
 		"event_id":        uuid.New().String(),
 		"employee_id":     "agent-1",
-		"conversation_id": "bridge-" + convID.String(),
+		"conversation_id": "runtime-" + convID.String(),
 		"timestamp":       "2026-05-13T12:00:00Z",
 		"sequence_number": 2,
 		"data":            map[string]any{"stop_reason": "endturn"},
@@ -141,7 +141,7 @@ func TestFlusher_SeparatesBridgeNativeChunksAcrossTurns(t *testing.T) {
 	secondDone, _ := json.Marshal(map[string]any{
 		"event_id":        uuid.New().String(),
 		"employee_id":     "agent-1",
-		"conversation_id": "bridge-" + convID.String(),
+		"conversation_id": "runtime-" + convID.String(),
 		"timestamp":       "2026-05-13T12:00:01Z",
 		"sequence_number": 4,
 		"data":            map[string]any{"stop_reason": "endturn"},
@@ -230,7 +230,7 @@ func TestFlusher_RecoversReasoningDeltasOnTerminalEvent(t *testing.T) {
 	terminal, _ := json.Marshal(map[string]any{
 		"event_id":        uuid.New().String(),
 		"employee_id":     "agent-1",
-		"conversation_id": "bridge-" + convID.String(),
+		"conversation_id": "runtime-" + convID.String(),
 		"timestamp":       "2026-05-13T12:00:00Z",
 		"sequence_number": 4,
 		"data":            map[string]any{"stop_reason": "endturn"},

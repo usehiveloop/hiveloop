@@ -206,6 +206,7 @@ var migratedTables = []string{
 	"rag_user_external_user_groups",
 	"refresh_tokens",
 	"sandbox_templates",
+	"sandbox_warm_slots",
 	"sandboxes",
 	"skills",
 	"specialist_tasks",
@@ -217,4 +218,4 @@ var migratedTables = []string{
 	"users",
 }
 
-const latestMigrationVersion = 15
+const latestMigrationVersion = 16

@@ -19,14 +19,14 @@ import (
 )
 
 type streamHarness struct {
-	db          *gorm.DB
-	router      *chi.Mux
-	orgID       uuid.UUID
-	convID      uuid.UUID
-	sandboxID   uuid.UUID
-	bridgeKey   string
-	publicBase  string
-	publicAsset *handler.UploadsHandler
+	db            *gorm.DB
+	router        *chi.Mux
+	orgID         uuid.UUID
+	convID        uuid.UUID
+	sandboxID     uuid.UUID
+	runtimeSecret string
+	publicBase    string
+	publicAsset   *handler.UploadsHandler
 }
 
 func newStreamHarness(t *testing.T) *streamHarness {
@@ -64,21 +64,21 @@ func newStreamHarness(t *testing.T) *streamHarness {
 		t.Fatalf("create agent: %v", err)
 	}
 
-	bridgeKey := fmt.Sprintf("test-bridge-key-%s", uuid.New().String()[:8])
-	encrypted, err := encKey.EncryptString(bridgeKey)
+	runtimeSecret := fmt.Sprintf("test-runtime-key-%s", uuid.New().String()[:8])
+	encrypted, err := encKey.EncryptString(runtimeSecret)
 	if err != nil {
-		t.Fatalf("encrypt bridge key: %v", err)
+		t.Fatalf("encrypt runtime secret: %v", err)
 	}
 
 	sandboxID := uuid.New()
 	if err := db.Create(&model.Sandbox{
-		ID:                    sandboxID,
-		OrgID:                 &orgID,
-		EmployeeID:            &agentID,
-		EncryptedBridgeAPIKey: encrypted,
-		Status:                "running",
-		ExternalID:            "mock-external-id",
-		BridgeURL:             "http://localhost:25434",
+		ID:                     sandboxID,
+		OrgID:                  &orgID,
+		EmployeeID:             &agentID,
+		EncryptedRuntimeSecret: encrypted,
+		Status:                 "running",
+		ExternalID:             "mock-external-id",
+		RuntimeURL:             "http://localhost:25434",
 	}).Error; err != nil {
 		t.Fatalf("create sandbox: %v", err)
 	}
@@ -89,21 +89,21 @@ func newStreamHarness(t *testing.T) *streamHarness {
 		OrgID:                 orgID,
 		EmployeeID:            agentID,
 		SandboxID:             sandboxID,
-		RuntimeConversationID: "bridge-conv-" + uuid.New().String()[:8],
+		RuntimeConversationID: "runtime-conv-" + uuid.New().String()[:8],
 		Status:                "active",
 	}).Error; err != nil {
 		t.Fatalf("create conversation: %v", err)
 	}
 
 	return &streamHarness{
-		db:          db,
-		router:      r,
-		orgID:       orgID,
-		convID:      convID,
-		sandboxID:   sandboxID,
-		bridgeKey:   bridgeKey,
-		publicBase:  testMinioEndpoint + "/" + testMinioBucket,
-		publicAsset: h,
+		db:            db,
+		router:        r,
+		orgID:         orgID,
+		convID:        convID,
+		sandboxID:     sandboxID,
+		runtimeSecret: runtimeSecret,
+		publicBase:    testMinioEndpoint + "/" + testMinioBucket,
+		publicAsset:   h,
 	}
 }
 
@@ -129,7 +129,7 @@ func TestStreamAsset_HappyPath_Image(t *testing.T) {
 		fmt.Sprintf("/internal/conversations/%s/assets/images/cat.png", h.convID),
 		bytes.NewReader(body),
 		"image/png",
-		h.bridgeKey,
+		h.runtimeSecret,
 	)
 	if rr.Code != http.StatusCreated {
 		t.Fatalf("expected 201, got %d: %s", rr.Code, rr.Body.String())
@@ -200,7 +200,7 @@ func TestStreamAsset_LargeMultipartStream(t *testing.T) {
 		fmt.Sprintf("/internal/conversations/%s/assets/videos/big.bin", h.convID),
 		bytes.NewReader(body),
 		"application/octet-stream",
-		h.bridgeKey,
+		h.runtimeSecret,
 	)
 	if rr.Code != http.StatusCreated {
 		t.Fatalf("expected 201, got %d: %s", rr.Code, rr.Body.String())
@@ -219,7 +219,7 @@ func TestStreamAsset_OverwriteByPath(t *testing.T) {
 	h := newStreamHarness(t)
 	urlPath := fmt.Sprintf("/internal/conversations/%s/assets/exports/data.csv", h.convID)
 
-	first := h.put(t, urlPath, bytes.NewReader([]byte("v1,a")), "text/csv", h.bridgeKey)
+	first := h.put(t, urlPath, bytes.NewReader([]byte("v1,a")), "text/csv", h.runtimeSecret)
 	if first.Code != http.StatusCreated {
 		t.Fatalf("first upload: got %d: %s", first.Code, first.Body.String())
 	}
@@ -229,7 +229,7 @@ func TestStreamAsset_OverwriteByPath(t *testing.T) {
 	}
 	_ = json.Unmarshal(first.Body.Bytes(), &firstResp)
 
-	second := h.put(t, urlPath, bytes.NewReader([]byte("v2,a-longer-second-version")), "text/csv", h.bridgeKey)
+	second := h.put(t, urlPath, bytes.NewReader([]byte("v2,a-longer-second-version")), "text/csv", h.runtimeSecret)
 	if second.Code != http.StatusCreated {
 		t.Fatalf("second upload: got %d: %s", second.Code, second.Body.String())
 	}
@@ -270,7 +270,7 @@ func TestStreamAsset_RootFolder(t *testing.T) {
 		fmt.Sprintf("/internal/conversations/%s/assets/loose.txt", h.convID),
 		bytes.NewReader([]byte("hello")),
 		"text/plain",
-		h.bridgeKey,
+		h.runtimeSecret,
 	)
 	if rr.Code != http.StatusCreated {
 		t.Fatalf("expected 201, got %d: %s", rr.Code, rr.Body.String())

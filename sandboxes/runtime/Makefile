@@ -1,6 +1,6 @@
 .PHONY: build run dev test clean push-config openapi
 
-RUNTIME_SECRET ?= local-dev-runtime-token
+HIVY_RUNTIME_SECRET ?= local-dev-runtime-token
 CONFIG_API := http://localhost:7080
 CONFIG_FILE := ./config.json
 
@@ -21,7 +21,7 @@ run: build
 push-config:
 	@for i in 1 2 3 4 5; do \
 		curl -s -X PUT $(CONFIG_API)/config \
-			-H "Authorization: Bearer $(RUNTIME_SECRET)" \
+			-H "Authorization: Bearer $(HIVY_RUNTIME_SECRET)" \
 			-H "Content-Type: application/json" \
 			-d @$(CONFIG_FILE) | \
 			python3 -c "import json,sys; d=json.load(sys.stdin); print('Config applied:', d['applied_at'])"; \

@@ -28,7 +28,7 @@ type streamAssetResponse struct {
 // and stores it under the conversation's drive. The wildcard URL segment is
 // "<folder>/<filename>" — trailing path components after /assets/.
 //
-// Auth: bearer token must equal the conversation's sandbox bridge API key.
+// Auth: bearer token must equal the conversation's sandbox runtime secret.
 //
 //	PUT /internal/conversations/{conversationID}/assets/*
 func (h *UploadsHandler) StreamConversationAsset(w http.ResponseWriter, r *http.Request) {

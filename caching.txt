@@ -1,0 +1,54 @@
+Prompt caching follow-ups
+
+Focused eval: tmp/evals/runs/long-wake-reminder
+
+Observed usage:
+- Total input tokens: 77,423
+- Cached tokens: 51,456
+- Uncached tokens: 25,967
+- Cache hit rate: 66.5%
+- Employee runtime: 40,934 input, 25,856 cached, 63.2% hit rate
+- Specialist runtime: 36,489 input, 25,600 cached, 70.2% hit rate
+
+Current request shape:
+- Runtime sends messages[0] as the cacheable system prompt.
+- Runtime sends messages[1] as dynamic system prompt.
+- Runtime then appends prior conversation/tool history and current input.
+- Runtime sends tools separately, sorted by name.
+- Runtime currently adds cache_control only to the first system message for OpenRouter-compatible caching.
+
+Suggestions:
+
+1. Reduce model turns before delegation.
+   The employee made multiple context-gathering turns before launching the specialist:
+   memory_recall, memory_recall, search_sessions, specialist_launch_task, wake.
+   Add a combined context-gathering tool or orchestration path so search_sessions,
+   memory_recall, and search_knowledge_base can be requested together and returned
+   in one model loop.
+
+2. Reduce specialist retry loops.
+   The specialist repeatedly attempted long package-install commands. Each
+   qwen3.7-max generation was expensive even with cached prompt tokens.
+   Prefer background shell jobs plus check_bash_status for long commands, and make
+   tool guidance clearer that repeated foreground retries are wasteful.
+
+3. Move stable dynamic prompt sections into the cacheable prompt.
+   Skill catalog and MCP tool-name catalog are rendered in the second system
+   message today. They are mostly stable per runtime and could be moved into the
+   first cacheable system message. Keep truly dynamic runtime context and memories
+   outside the cacheable message.
+
+4. Add safe request diagnostics to eval artifacts.
+   Persist request shape metadata, not raw prompts:
+   message count, tool count, chars/tokens per message, which message had
+   cache_control, tool schema total chars, model/provider, and cached token count.
+   This will make future cache regressions inspectable without storing prompt text.
+
+5. Avoid response caching for agent turns.
+   OpenRouter response caching is not a good fit for stateful tool-driven agent
+   turns. Prompt caching is the right layer to optimize here.
+
+Highest ROI:
+- Fewer model turns.
+- Fewer expensive specialist retries.
+- Move stable prompt catalogs into the explicitly cacheable first system message.

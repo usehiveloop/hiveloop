@@ -44,7 +44,7 @@ CREATE TABLE employee_schedule_runs (
     employee_id uuid NOT NULL,
     schedule_id uuid NOT NULL,
     sandbox_id uuid NOT NULL,
-    bridge_job_id character varying(255) NOT NULL,
+    runtime_job_id character varying(255) NOT NULL,
     run_key character varying(500) NOT NULL,
     status character varying(64) DEFAULT 'running'::character varying NOT NULL,
     scheduled_at timestamp with time zone,
@@ -62,7 +62,7 @@ CREATE TABLE employee_schedules (
     org_id uuid NOT NULL,
     employee_id uuid NOT NULL,
     sandbox_id uuid NOT NULL,
-    bridge_job_id character varying(255) NOT NULL,
+    runtime_job_id character varying(255) NOT NULL,
     status character varying(64) DEFAULT 'active'::character varying NOT NULL,
     channel character varying(255) DEFAULT ''::character varying NOT NULL,
     description text DEFAULT ''::text NOT NULL,
@@ -75,7 +75,7 @@ CREATE TABLE employee_schedules (
     last_status character varying(64) DEFAULT ''::character varying NOT NULL,
     last_error text DEFAULT ''::text NOT NULL,
     created_by_session character varying(255) DEFAULT ''::character varying NOT NULL,
-    bridge_created_at timestamp with time zone,
+    runtime_created_at timestamp with time zone,
     cancelled_at timestamp with time zone,
     created_at timestamp with time zone,
     updated_at timestamp with time zone
@@ -291,11 +291,11 @@ CREATE INDEX idx_employee_sandbox_upgrades_org_id ON employee_sandbox_upgrades U
 
 CREATE INDEX idx_employee_sandbox_upgrades_status ON employee_sandbox_upgrades USING btree (status);
 
-CREATE UNIQUE INDEX idx_employee_schedule_employee_bridge ON employee_schedules USING btree (employee_id, bridge_job_id);
+CREATE UNIQUE INDEX idx_employee_schedule_employee_runtime ON employee_schedules USING btree (employee_id, runtime_job_id);
 
 CREATE UNIQUE INDEX idx_employee_schedule_run_key ON employee_schedule_runs USING btree (schedule_id, run_key);
 
-CREATE INDEX idx_employee_schedule_runs_bridge_job_id ON employee_schedule_runs USING btree (bridge_job_id);
+CREATE INDEX idx_employee_schedule_runs_runtime_job_id ON employee_schedule_runs USING btree (runtime_job_id);
 
 CREATE INDEX idx_employee_schedule_runs_employee_id ON employee_schedule_runs USING btree (employee_id);
 

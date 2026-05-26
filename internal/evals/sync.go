@@ -28,11 +28,11 @@ func syncTrialEmployee(ctx context.Context, deps *bootstrap.Deps, employee *mode
 		return nil, fmt.Errorf("compile employee config: %w", err)
 	}
 	def.OutboundChannels = employeeruntime.ControlPlaneOutboundChannels(deps.Config, sb.ID)
-	apiKey, err := deps.SandboxEncKey.DecryptString(sb.EncryptedBridgeAPIKey)
+	apiKey, err := deps.SandboxEncKey.DecryptString(sb.EncryptedRuntimeSecret)
 	if err != nil {
 		return nil, fmt.Errorf("decrypt sandbox api key: %w", err)
 	}
-	client := employeeruntime.NewClient(sb.BridgeURL, apiKey)
+	client := employeeruntime.NewClient(sb.RuntimeURL, apiKey)
 	if err := client.Healthz(ctx); err != nil {
 		return nil, fmt.Errorf("employee runtime healthz: %w", err)
 	}

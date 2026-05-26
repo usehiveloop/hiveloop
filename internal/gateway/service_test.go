@@ -179,8 +179,8 @@ func seedGatewayRoute(t *testing.T, db *gorm.DB) model.EmployeeGatewayRoute {
 		OrgID:                 &org.ID,
 		EmployeeID:            &employee.ID,
 		ExternalID:            "gateway-test-" + uuid.NewString(),
-		BridgeURL:             "http://localhost:1",
-		EncryptedBridgeAPIKey: []byte("test-key"),
+		RuntimeURL:             "http://localhost:1",
+		EncryptedRuntimeSecret: []byte("test-key"),
 		Status:                "running",
 	}
 	if err := db.Create(&sandbox).Error; err != nil {

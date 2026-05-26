@@ -140,11 +140,11 @@ func (h *EmployeeProxyTokenRefreshHandler) run(ctx context.Context, payload Empl
 			return fmt.Errorf("refresh employee sandbox url: %w", err)
 		}
 	}
-	apiKey, err := h.compileDeps.EncKey.DecryptString(sb.EncryptedBridgeAPIKey)
+	apiKey, err := h.compileDeps.EncKey.DecryptString(sb.EncryptedRuntimeSecret)
 	if err != nil {
 		return fmt.Errorf("decrypt employee runtime secret: %w", err)
 	}
-	client := employeeruntime.NewClient(sb.BridgeURL, apiKey)
+	client := employeeruntime.NewClient(sb.RuntimeURL, apiKey)
 	if err := client.Healthz(ctx); err != nil {
 		return fmt.Errorf("employee runtime healthz: %w", err)
 	}
@@ -153,7 +153,15 @@ func (h *EmployeeProxyTokenRefreshHandler) run(ctx context.Context, payload Empl
 	if err != nil {
 		return err
 	}
-	if _, err := client.UpdateRuntimeEnv(ctx, map[string]string{employeeruntime.ProxyAPIKeyEnv: refreshed.Token}); err != nil {
+	def, err := client.GetConfig(ctx)
+	if err != nil {
+		h.revokeToken(ctx, refreshed.JTI)
+		return fmt.Errorf("employee runtime config: %w", err)
+	}
+	if _, err := client.PutRuntimeConfig(ctx, employeeruntime.ConfigUpdateRequest{
+		Definition: def,
+		RuntimeEnv: map[string]string{employeeruntime.ProxyAPIKeyEnv: refreshed.Token},
+	}); err != nil {
 		h.revokeToken(ctx, refreshed.JTI)
 		return err
 	}

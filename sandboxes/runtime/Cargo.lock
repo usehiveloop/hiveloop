@@ -248,6 +248,7 @@ dependencies = [
  "storage",
  "thiserror 1.0.69",
  "tokio",
+ "tools",
  "tower",
  "tower-http",
  "tracing",
@@ -888,6 +889,7 @@ dependencies = [
  "skills",
  "storage",
  "tokio",
+ "tools",
 ]
 
 [[package]]

@@ -12,6 +12,7 @@ domain.workspace = true
 observability.workspace = true
 skills.workspace = true
 storage.workspace = true
+tools.workspace = true
 anyhow.workspace = true
 async-trait.workspace = true
 chrono.workspace = true

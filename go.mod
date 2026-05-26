@@ -3,6 +3,7 @@ module github.com/usehivy/hivy
 go 1.25.10
 
 require (
+	github.com/Khan/genqlient v0.8.1
 	github.com/anthropics/anthropic-sdk-go v1.35.0
 	github.com/apache/arrow/go/v17 v17.0.0
 	github.com/awnumar/memguard v0.23.0
@@ -142,6 +143,7 @@ require (
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.1 // indirect
 	github.com/tidwall/sjson v1.2.5 // indirect
+	github.com/vektah/gqlparser/v2 v2.5.19 // indirect
 	github.com/yosida95/uritemplate/v3 v3.0.2 // indirect
 	github.com/zeebo/xxh3 v1.0.2 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect

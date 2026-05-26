@@ -23,34 +23,30 @@ cat >"${out}" <<EOF
   "images": {
     "api": "ghcr.io/usehivy/hivy:${RELEASE_TAG}",
     "apiSemver": "ghcr.io/usehivy/hivy:${RELEASE_VERSION}",
-    "sandboxBridge": "ghcr.io/usehivy/sandbox-bridge:${RELEASE_TAG}",
-    "sandboxBridgeSemver": "ghcr.io/usehivy/sandbox-bridge:${RELEASE_VERSION}",
     "sandboxesRuntime": "ghcr.io/usehivy/hivy-sandboxes-runtime:${RELEASE_TAG}",
-    "sandboxesRuntimeSemver": "ghcr.io/usehivy/hivy-sandboxes-runtime:${RELEASE_VERSION}"
-  },
-  "bridgeAssets": {
-    "linuxAmd64": "bridge-${RELEASE_TAG}-x86_64-unknown-linux-gnu.tar.gz",
-    "linuxArm64": "bridge-${RELEASE_TAG}-aarch64-unknown-linux-gnu.tar.gz",
-    "darwinAmd64": "bridge-${RELEASE_TAG}-x86_64-apple-darwin.tar.gz",
-    "darwinArm64": "bridge-${RELEASE_TAG}-aarch64-apple-darwin.tar.gz"
+    "sandboxesRuntimeSemver": "ghcr.io/usehivy/hivy-sandboxes-runtime:${RELEASE_VERSION}",
+    "sandboxesRuntimeSpecialist": "ghcr.io/usehivy/hivy-sandboxes-runtime-specialist:${RELEASE_TAG}",
+    "sandboxesRuntimeSpecialistSemver": "ghcr.io/usehivy/hivy-sandboxes-runtime-specialist:${RELEASE_VERSION}"
   },
   "runtimeConfig": {
     "HIVY_SPECIALIST_SANDBOX_RUNTIME_VERSION": "${RELEASE_TAG}",
-    "HIVY_SPECIALIST_SANDBOX_BASE_IMAGE_PREFIX": "hivy-bridge-${RELEASE_DASHED}-small-v1",
-    "HIVY_SANDBOXES_RUNTIME_BASE_IMAGE_PREFIX": "hivy-sandboxes-runtime-${RELEASE_DASHED}-small-v1"
+    "HIVY_RAILWAY_RUNTIME_IMAGE": "ghcr.io/usehivy/hivy-sandboxes-runtime:${RELEASE_TAG}",
+    "HIVY_RAILWAY_SPECIALIST_RUNTIME_IMAGE": "ghcr.io/usehivy/hivy-sandboxes-runtime-specialist:${RELEASE_TAG}",
+    "HIVY_SANDBOXES_RUNTIME_BASE_IMAGE_PREFIX": "hivy-sandboxes-runtime-${RELEASE_DASHED}-small-v1",
+    "HIVY_SANDBOXES_RUNTIME_SPECIALIST_IMAGE_PREFIX": "hivy-sandboxes-runtime-specialist-${RELEASE_DASHED}-small-v1"
   },
   "snapshots": {
-    "runtime": {
-      "small": "hivy-bridge-${RELEASE_DASHED}-small-v1",
-      "medium": "hivy-bridge-${RELEASE_DASHED}-medium-v1",
-      "large": "hivy-bridge-${RELEASE_DASHED}-large-v1",
-      "xlarge": "hivy-bridge-${RELEASE_DASHED}-xlarge-v1"
-    },
     "sandboxesRuntime": {
       "small": "hivy-sandboxes-runtime-${RELEASE_DASHED}-small-v1",
       "medium": "hivy-sandboxes-runtime-${RELEASE_DASHED}-medium-v1",
       "large": "hivy-sandboxes-runtime-${RELEASE_DASHED}-large-v1",
       "xlarge": "hivy-sandboxes-runtime-${RELEASE_DASHED}-xlarge-v1"
+    },
+    "sandboxesRuntimeSpecialist": {
+      "small": "hivy-sandboxes-runtime-specialist-${RELEASE_DASHED}-small-v1",
+      "medium": "hivy-sandboxes-runtime-specialist-${RELEASE_DASHED}-medium-v1",
+      "large": "hivy-sandboxes-runtime-specialist-${RELEASE_DASHED}-large-v1",
+      "xlarge": "hivy-sandboxes-runtime-specialist-${RELEASE_DASHED}-xlarge-v1"
     }
   }
 }

@@ -579,8 +579,17 @@ type CompactionConfig struct {
 
 // ConfigResponse defines model for ConfigResponse.
 type ConfigResponse struct {
-	AppliedAt  time.Time       `json:"applied_at"`
-	Definition AgentDefinition `json:"definition"`
+	AppliedAt     time.Time       `json:"applied_at"`
+	Definition    AgentDefinition `json:"definition"`
+	EnvKeyCount   int             `json:"env_key_count"`
+	SecretRotated bool            `json:"secret_rotated"`
+}
+
+// ConfigUpdateRequest defines model for ConfigUpdateRequest.
+type ConfigUpdateRequest struct {
+	Definition    AgentDefinition    `json:"definition"`
+	RuntimeEnv    *map[string]string `json:"runtime_env,omitempty"`
+	RuntimeSecret *string            `json:"runtime_secret,omitempty"`
 }
 
 // ContextConfig defines model for ContextConfig.
@@ -588,6 +597,29 @@ type ContextConfig struct {
 	Compaction       *CompactionConfig    `json:"compaction,omitempty"`
 	MaxHistoryEvents *int32               `json:"max_history_events,omitempty"`
 	Memory           *MemoryContextConfig `json:"memory,omitempty"`
+}
+
+// ControlCommandResult defines model for ControlCommandResult.
+type ControlCommandResult struct {
+	Command   string `json:"command"`
+	ExitCode  *int32 `json:"exit_code,omitempty"`
+	Output    string `json:"output"`
+	TimedOut  bool   `json:"timed_out"`
+	Truncated bool   `json:"truncated"`
+}
+
+// ControlCommandsRequest defines model for ControlCommandsRequest.
+type ControlCommandsRequest struct {
+	Commands       []string `json:"commands"`
+	StopOnError    *bool    `json:"stop_on_error,omitempty"`
+	TimeoutSeconds *int64   `json:"timeout_seconds,omitempty"`
+	Workdir        *string  `json:"workdir,omitempty"`
+}
+
+// ControlCommandsResponse defines model for ControlCommandsResponse.
+type ControlCommandsResponse struct {
+	Ok      bool                   `json:"ok"`
+	Results []ControlCommandResult `json:"results"`
 }
 
 // DynamicContextPromptSegment defines model for DynamicContextPromptSegment.
@@ -811,15 +843,6 @@ type ReadFileConfig struct {
 
 // ReasoningEffort defines model for ReasoningEffort.
 type ReasoningEffort string
-
-// RuntimeEnvResponse defines model for RuntimeEnvResponse.
-type RuntimeEnvResponse struct {
-	AppliedAt time.Time `json:"applied_at"`
-	KeyCount  int       `json:"key_count"`
-}
-
-// RuntimeEnvUpdate defines model for RuntimeEnvUpdate.
-type RuntimeEnvUpdate map[string]string
 
 // RuntimeMode defines model for RuntimeMode.
 type RuntimeMode string
@@ -1136,10 +1159,10 @@ type ListSessionsParams struct {
 }
 
 // PutConfigJSONRequestBody defines body for PutConfig for application/json ContentType.
-type PutConfigJSONRequestBody = AgentDefinition
+type PutConfigJSONRequestBody = ConfigUpdateRequest
 
-// PutRuntimeEnvJSONRequestBody defines body for PutRuntimeEnv for application/json ContentType.
-type PutRuntimeEnvJSONRequestBody = RuntimeEnvUpdate
+// PostControlCommandsJSONRequestBody defines body for PostControlCommands for application/json ContentType.
+type PostControlCommandsJSONRequestBody = ControlCommandsRequest
 
 // PostHttpMessageJSONRequestBody defines body for PostHttpMessage for application/json ContentType.
 type PostHttpMessageJSONRequestBody = HttpMessageRequest
@@ -1992,10 +2015,10 @@ type ClientInterface interface {
 
 	PutConfig(ctx context.Context, body PutConfigJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// PutRuntimeEnvWithBody request with any body
-	PutRuntimeEnvWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+	// PostControlCommandsWithBody request with any body
+	PostControlCommandsWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	PutRuntimeEnv(ctx context.Context, body PutRuntimeEnvJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+	PostControlCommands(ctx context.Context, body PostControlCommandsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// PostHttpMessageWithBody request with any body
 	PostHttpMessageWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -2060,8 +2083,8 @@ func (c *Client) PutConfig(ctx context.Context, body PutConfigJSONRequestBody, r
 	return c.Client.Do(req)
 }
 
-func (c *Client) PutRuntimeEnvWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewPutRuntimeEnvRequestWithBody(c.Server, contentType, body)
+func (c *Client) PostControlCommandsWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostControlCommandsRequestWithBody(c.Server, contentType, body)
 	if err != nil {
 		return nil, err
 	}
@@ -2072,8 +2095,8 @@ func (c *Client) PutRuntimeEnvWithBody(ctx context.Context, contentType string, 
 	return c.Client.Do(req)
 }
 
-func (c *Client) PutRuntimeEnv(ctx context.Context, body PutRuntimeEnvJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewPutRuntimeEnvRequest(c.Server, body)
+func (c *Client) PostControlCommands(ctx context.Context, body PostControlCommandsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostControlCommandsRequest(c.Server, body)
 	if err != nil {
 		return nil, err
 	}
@@ -2259,19 +2282,19 @@ func NewPutConfigRequestWithBody(server string, contentType string, body io.Read
 	return req, nil
 }
 
-// NewPutRuntimeEnvRequest calls the generic PutRuntimeEnv builder with application/json body
-func NewPutRuntimeEnvRequest(server string, body PutRuntimeEnvJSONRequestBody) (*http.Request, error) {
+// NewPostControlCommandsRequest calls the generic PostControlCommands builder with application/json body
+func NewPostControlCommandsRequest(server string, body PostControlCommandsJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
 	buf, err := json.Marshal(body)
 	if err != nil {
 		return nil, err
 	}
 	bodyReader = bytes.NewReader(buf)
-	return NewPutRuntimeEnvRequestWithBody(server, "application/json", bodyReader)
+	return NewPostControlCommandsRequestWithBody(server, "application/json", bodyReader)
 }
 
-// NewPutRuntimeEnvRequestWithBody generates requests for PutRuntimeEnv with any type of body
-func NewPutRuntimeEnvRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+// NewPostControlCommandsRequestWithBody generates requests for PostControlCommands with any type of body
+func NewPostControlCommandsRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
 	var err error
 
 	serverURL, err := url.Parse(server)
@@ -2279,7 +2302,7 @@ func NewPutRuntimeEnvRequestWithBody(server string, contentType string, body io.
 		return nil, err
 	}
 
-	operationPath := fmt.Sprintf("/config/env")
+	operationPath := fmt.Sprintf("/control/commands")
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -2289,7 +2312,7 @@ func NewPutRuntimeEnvRequestWithBody(server string, contentType string, body io.
 		return nil, err
 	}
 
-	req, err := http.NewRequest(http.MethodPut, queryURL.String(), body)
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
 	if err != nil {
 		return nil, err
 	}
@@ -2718,10 +2741,10 @@ type ClientWithResponsesInterface interface {
 
 	PutConfigWithResponse(ctx context.Context, body PutConfigJSONRequestBody, reqEditors ...RequestEditorFn) (*PutConfigResp, error)
 
-	// PutRuntimeEnvWithBodyWithResponse request with any body
-	PutRuntimeEnvWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PutRuntimeEnvResp, error)
+	// PostControlCommandsWithBodyWithResponse request with any body
+	PostControlCommandsWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostControlCommandsResp, error)
 
-	PutRuntimeEnvWithResponse(ctx context.Context, body PutRuntimeEnvJSONRequestBody, reqEditors ...RequestEditorFn) (*PutRuntimeEnvResp, error)
+	PostControlCommandsWithResponse(ctx context.Context, body PostControlCommandsJSONRequestBody, reqEditors ...RequestEditorFn) (*PostControlCommandsResp, error)
 
 	// PostHttpMessageWithBodyWithResponse request with any body
 	PostHttpMessageWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostHttpMessageResp, error)
@@ -2810,14 +2833,14 @@ func (r PutConfigResp) ContentType() string {
 	return ""
 }
 
-type PutRuntimeEnvResp struct {
+type PostControlCommandsResp struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *RuntimeEnvResponse
+	JSON200      *ControlCommandsResponse
 }
 
 // Status returns HTTPResponse.Status
-func (r PutRuntimeEnvResp) Status() string {
+func (r PostControlCommandsResp) Status() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Status
 	}
@@ -2825,7 +2848,7 @@ func (r PutRuntimeEnvResp) Status() string {
 }
 
 // StatusCode returns HTTPResponse.StatusCode
-func (r PutRuntimeEnvResp) StatusCode() int {
+func (r PostControlCommandsResp) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -2833,7 +2856,7 @@ func (r PutRuntimeEnvResp) StatusCode() int {
 }
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
-func (r PutRuntimeEnvResp) ContentType() string {
+func (r PostControlCommandsResp) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -3103,21 +3126,21 @@ func (c *ClientWithResponses) PutConfigWithResponse(ctx context.Context, body Pu
 	return ParsePutConfigResp(rsp)
 }
 
-// PutRuntimeEnvWithBodyWithResponse request with arbitrary body returning *PutRuntimeEnvResp
-func (c *ClientWithResponses) PutRuntimeEnvWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PutRuntimeEnvResp, error) {
-	rsp, err := c.PutRuntimeEnvWithBody(ctx, contentType, body, reqEditors...)
+// PostControlCommandsWithBodyWithResponse request with arbitrary body returning *PostControlCommandsResp
+func (c *ClientWithResponses) PostControlCommandsWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostControlCommandsResp, error) {
+	rsp, err := c.PostControlCommandsWithBody(ctx, contentType, body, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParsePutRuntimeEnvResp(rsp)
+	return ParsePostControlCommandsResp(rsp)
 }
 
-func (c *ClientWithResponses) PutRuntimeEnvWithResponse(ctx context.Context, body PutRuntimeEnvJSONRequestBody, reqEditors ...RequestEditorFn) (*PutRuntimeEnvResp, error) {
-	rsp, err := c.PutRuntimeEnv(ctx, body, reqEditors...)
+func (c *ClientWithResponses) PostControlCommandsWithResponse(ctx context.Context, body PostControlCommandsJSONRequestBody, reqEditors ...RequestEditorFn) (*PostControlCommandsResp, error) {
+	rsp, err := c.PostControlCommands(ctx, body, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParsePutRuntimeEnvResp(rsp)
+	return ParsePostControlCommandsResp(rsp)
 }
 
 // PostHttpMessageWithBodyWithResponse request with arbitrary body returning *PostHttpMessageResp
@@ -3252,22 +3275,22 @@ func ParsePutConfigResp(rsp *http.Response) (*PutConfigResp, error) {
 	return response, nil
 }
 
-// ParsePutRuntimeEnvResp parses an HTTP response from a PutRuntimeEnvWithResponse call
-func ParsePutRuntimeEnvResp(rsp *http.Response) (*PutRuntimeEnvResp, error) {
+// ParsePostControlCommandsResp parses an HTTP response from a PostControlCommandsWithResponse call
+func ParsePostControlCommandsResp(rsp *http.Response) (*PostControlCommandsResp, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
 	defer func() { _ = rsp.Body.Close() }()
 	if err != nil {
 		return nil, err
 	}
 
-	response := &PutRuntimeEnvResp{
+	response := &PostControlCommandsResp{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
 	}
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest RuntimeEnvResponse
+		var dest ControlCommandsResponse
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}

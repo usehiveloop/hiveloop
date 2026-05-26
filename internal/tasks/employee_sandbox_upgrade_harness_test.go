@@ -125,13 +125,13 @@ func newEmployeeUpgradeFixture(t *testing.T) *employeeUpgradeFixture {
 		t.Fatalf("encrypt runtime secret: %v", err)
 	}
 	old := model.Sandbox{
-		OrgID:                 &org.ID,
-		EmployeeID:            &agent.ID,
-		SnapshotID:            &cfg.SandboxesRuntimeBaseImagePrefix,
-		ExternalID:            "old-external",
-		BridgeURL:             server.URL,
-		EncryptedBridgeAPIKey: encryptedKey,
-		Status:                "running",
+		OrgID:                  &org.ID,
+		EmployeeID:             &agent.ID,
+		SnapshotID:             &cfg.SandboxesRuntimeBaseImagePrefix,
+		ExternalID:             "old-external",
+		RuntimeURL:             server.URL,
+		EncryptedRuntimeSecret: encryptedKey,
+		Status:                 "running",
 	}
 	if err := db.Create(&old).Error; err != nil {
 		t.Fatalf("create old sandbox: %v", err)

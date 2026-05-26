@@ -41,7 +41,7 @@ func TestStreamAsset_ConversationNotFound(t *testing.T) {
 		fmt.Sprintf("/internal/conversations/%s/assets/x.png", uuid.New()),
 		bytes.NewReader([]byte("hi")),
 		"image/png",
-		h.bridgeKey,
+		h.runtimeSecret,
 	)
 	if rr.Code != http.StatusNotFound {
 		t.Fatalf("expected 404, got %d", rr.Code)
@@ -54,7 +54,7 @@ func TestStreamAsset_PathTraversalRejected(t *testing.T) {
 		fmt.Sprintf("/internal/conversations/%s/assets/../../etc/passwd", h.convID),
 		bytes.NewReader([]byte("hi")),
 		"text/plain",
-		h.bridgeKey,
+		h.runtimeSecret,
 	)
 	if rr.Code != http.StatusBadRequest {
 		t.Fatalf("expected 400, got %d: %s", rr.Code, rr.Body.String())
@@ -67,7 +67,7 @@ func TestStreamAsset_FilenameRequired(t *testing.T) {
 		fmt.Sprintf("/internal/conversations/%s/assets/", h.convID),
 		bytes.NewReader([]byte("x")),
 		"text/plain",
-		h.bridgeKey,
+		h.runtimeSecret,
 	)
 	if rr.Code != http.StatusBadRequest {
 		t.Fatalf("expected 400, got %d: %s", rr.Code, rr.Body.String())

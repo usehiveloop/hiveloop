@@ -384,7 +384,6 @@ fn collect_model_endpoints(
             let api_key = runtime_env
                 .get(api_key_env)
                 .cloned()
-                .or_else(|| std::env::var(api_key_env).ok())
                 .ok_or_else(|| AgentError::Model(format!("env var `{api_key_env}` not set")))?;
             endpoints.push(ModelEndpoint {
                 base_url: base_url.trim_end_matches('/').to_string(),
@@ -431,11 +430,8 @@ fn reasoning_effort_to_string(effort: ReasoningEffort) -> String {
     }
 }
 
-fn cache_policy_for_values(base_url: &str, api_key_env: &str) -> CacheControlPolicy {
-    if api_key_env == "OPENROUTER_API_KEY"
-        || base_url.contains("openrouter")
-        || base_url.contains("127.0.0.1")
-    {
+fn cache_policy_for_values(base_url: &str, _api_key_env: &str) -> CacheControlPolicy {
+    if base_url.contains("openrouter") || base_url.contains("127.0.0.1") {
         CacheControlPolicy::OpenRouterGeminiEphemeral
     } else {
         CacheControlPolicy::Disabled
@@ -776,8 +772,10 @@ mod tests {
         .await;
         let primary_key = "MODEL_CLIENT_TEST_PRIMARY_KEY";
         let fallback_key = "MODEL_CLIENT_TEST_FALLBACK_KEY";
-        std::env::set_var(primary_key, "primary-key");
-        std::env::set_var(fallback_key, "fallback-key");
+        let runtime_env = HashMap::from([
+            (primary_key.to_string(), "primary-key".to_string()),
+            (fallback_key.to_string(), "fallback-key".to_string()),
+        ]);
 
         let model = ModelConfig::OpenaiCompatible {
             base_url: server.base_url(),
@@ -798,7 +796,7 @@ mod tests {
                 fallback: None,
             })),
         };
-        let config = ChatModelClient::from_model_config(&model, &HashMap::new()).unwrap();
+        let config = ChatModelClient::from_model_config(&model, &runtime_env).unwrap();
         let client = config
             .client
             .with_retry_policy(ModelRetryPolicy::no_delay(2));
@@ -851,7 +849,7 @@ mod tests {
     }
 
     #[test]
-    fn runtime_env_falls_back_to_process_for_model_api_key() {
+    fn runtime_env_does_not_fall_back_to_process_for_model_api_key() {
         let key_name = format!(
             "TEST_RUNTIME_MODEL_KEY_FALLBACK_{}",
             UNIX_EPOCH.elapsed().expect("system clock").as_nanos()
@@ -868,9 +866,9 @@ mod tests {
             fallback: None,
         };
 
-        let config =
-            ChatModelClient::from_model_config(&model, &HashMap::new()).expect("process fallback");
-        assert_eq!(config.client.endpoints[0].api_key, "process-only-key");
+        let err = ChatModelClient::from_model_config(&model, &HashMap::new())
+            .expect_err("process env fallback must not be used");
+        assert!(err.to_string().contains("not set"));
     }
 
     fn test_request(model: &str) -> ModelRequest {

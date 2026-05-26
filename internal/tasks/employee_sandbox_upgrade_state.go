@@ -82,7 +82,7 @@ func (h *EmployeeSandboxUpgradeHandler) loadAndStart(ctx context.Context, payloa
 }
 
 func (h *EmployeeSandboxUpgradeHandler) syncEmployeeRuntime(ctx context.Context, agent *model.Employee, sb *model.Sandbox) error {
-	apiKey, err := h.compileDeps.EncKey.DecryptString(sb.EncryptedBridgeAPIKey)
+	apiKey, err := h.compileDeps.EncKey.DecryptString(sb.EncryptedRuntimeSecret)
 	if err != nil {
 		return fmt.Errorf("decrypt runtime secret: %w", err)
 	}
@@ -91,7 +91,7 @@ func (h *EmployeeSandboxUpgradeHandler) syncEmployeeRuntime(ctx context.Context,
 		return fmt.Errorf("compile employee config: %w", err)
 	}
 	def.OutboundChannels = employeeruntime.ControlPlaneOutboundChannels(h.compileDeps.Cfg, sb.ID)
-	client := employeeruntime.NewClient(sb.BridgeURL, apiKey)
+	client := employeeruntime.NewClient(sb.RuntimeURL, apiKey)
 	if err := client.Healthz(ctx); err != nil {
 		return fmt.Errorf("employee runtime healthz: %w", err)
 	}
@@ -113,11 +113,11 @@ func (h *EmployeeSandboxUpgradeHandler) syncEmployeeRuntime(ctx context.Context,
 }
 
 func (h *EmployeeSandboxUpgradeHandler) runSmokeTest(ctx context.Context, sb *model.Sandbox) error {
-	apiKey, err := h.compileDeps.EncKey.DecryptString(sb.EncryptedBridgeAPIKey)
+	apiKey, err := h.compileDeps.EncKey.DecryptString(sb.EncryptedRuntimeSecret)
 	if err != nil {
 		return fmt.Errorf("decrypt runtime secret for smoke test: %w", err)
 	}
-	client := employeeruntime.NewClient(sb.BridgeURL, apiKey)
+	client := employeeruntime.NewClient(sb.RuntimeURL, apiKey)
 	if err := client.Healthz(ctx); err != nil {
 		return fmt.Errorf("smoke healthz: %w", err)
 	}
@@ -137,7 +137,7 @@ func (h *EmployeeSandboxUpgradeHandler) runSmokeTest(ctx context.Context, sb *mo
 		return err
 	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost,
-		strings.TrimRight(sb.BridgeURL, "/")+"/gateway/http/messages", bytes.NewReader(body))
+		strings.TrimRight(sb.RuntimeURL, "/")+"/gateway/http/messages", bytes.NewReader(body))
 	if err != nil {
 		return err
 	}

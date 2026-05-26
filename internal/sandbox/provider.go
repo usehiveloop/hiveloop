@@ -11,6 +11,7 @@ var ErrSandboxNotFound = errors.New("sandbox not found upstream")
 const (
 	ProviderDaytona = "daytona"
 	ProviderDocker  = "docker"
+	ProviderRailway = "railway"
 )
 
 // SandboxStatus represents the state of a sandbox.
@@ -30,7 +31,7 @@ const (
 type CreateSandboxOpts struct {
 	Name        string            // human-readable name
 	TemplateRef string            // provider template/image reference
-	EnvVars     map[string]string // environment variables (e.g. BRIDGE_* config)
+	EnvVars     map[string]string // runtime environment variables
 	Labels      map[string]string // metadata labels (org_id, sandbox_id, employee_id)
 	CPU         int               // CPU cores (0 = provider default)
 	Memory      int               // memory in GB (0 = provider default)
@@ -81,6 +82,26 @@ type ResourceUsage struct {
 type RuntimeLayout struct {
 	AgentRepoDir    string
 	EmployeeRepoDir string
+}
+
+type WarmSlotCreateOpts struct {
+	Name          string
+	Mode          string
+	RuntimeImage  string
+	RuntimePort   int
+	RuntimeSecret string
+	EnvVars       map[string]string
+	Labels        map[string]string
+}
+
+type WarmSlotInfo struct {
+	ExternalID  string
+	EndpointURL string
+	RuntimePort int
+}
+
+type WarmSlotProvider interface {
+	CreateWarmSlot(ctx context.Context, opts WarmSlotCreateOpts) (*WarmSlotInfo, error)
 }
 
 // Provider is the complete startup-time contract a sandbox backend must satisfy.

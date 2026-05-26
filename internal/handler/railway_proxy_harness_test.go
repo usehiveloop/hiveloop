@@ -20,13 +20,13 @@ import (
 const railwayTestDBURL = testdb.DefaultDatabaseURL
 
 type railwayTestHarness struct {
-	db          *gorm.DB
-	router      *chi.Mux
-	orgID       uuid.UUID
-	agentID     uuid.UUID
-	bridgeKey   string
-	nangoMock   *httptest.Server
-	railwayMock *httptest.Server
+	db            *gorm.DB
+	router        *chi.Mux
+	orgID         uuid.UUID
+	agentID       uuid.UUID
+	runtimeSecret string
+	nangoMock     *httptest.Server
+	railwayMock   *httptest.Server
 }
 
 func newRailwayHarness(t *testing.T, nangoHandler http.Handler, railwayHandler http.Handler) *railwayTestHarness {
@@ -75,21 +75,21 @@ func newRailwayHarness(t *testing.T, nangoHandler http.Handler, railwayHandler h
 		t.Fatalf("create test agent: %v", err)
 	}
 
-	bridgeKey := "test-bridge-api-key-for-railway"
-	encryptedKey, err := encKey.EncryptString(bridgeKey)
+	runtimeSecret := "test-runtime-api-key-for-railway"
+	encryptedKey, err := encKey.EncryptString(runtimeSecret)
 	if err != nil {
-		t.Fatalf("encrypt bridge key: %v", err)
+		t.Fatalf("encrypt runtime secret: %v", err)
 	}
 
 	sandboxID := uuid.New()
 	sandbox := model.Sandbox{
-		ID:                    sandboxID,
-		OrgID:                 &orgID,
-		EmployeeID:            &agentID,
-		EncryptedBridgeAPIKey: encryptedKey,
-		Status:                "running",
-		ExternalID:            "mock-external-id",
-		BridgeURL:             "http://localhost:25434",
+		ID:                     sandboxID,
+		OrgID:                  &orgID,
+		EmployeeID:             &agentID,
+		EncryptedRuntimeSecret: encryptedKey,
+		Status:                 "running",
+		ExternalID:             "mock-external-id",
+		RuntimeURL:             "http://localhost:25434",
 	}
 	if err := database.Create(&sandbox).Error; err != nil {
 		t.Fatalf("create test sandbox: %v", err)
@@ -141,12 +141,12 @@ func newRailwayHarness(t *testing.T, nangoHandler http.Handler, railwayHandler h
 	router.Post("/internal/railway-proxy/{employeeID}", railwayProxyHandler.Handle)
 
 	return &railwayTestHarness{
-		db:          database,
-		router:      router,
-		orgID:       orgID,
-		agentID:     agentID,
-		bridgeKey:   bridgeKey,
-		nangoMock:   nangoMock,
-		railwayMock: railwayMock,
+		db:            database,
+		router:        router,
+		orgID:         orgID,
+		agentID:       agentID,
+		runtimeSecret: runtimeSecret,
+		nangoMock:     nangoMock,
+		railwayMock:   railwayMock,
 	}
 }

@@ -93,6 +93,17 @@ type Config struct {
 	SandboxDockerPublicHost           string `env:"HIVY_SANDBOX_DOCKER_PUBLIC_HOST"`
 	SandboxDockerContainerLabelPrefix string `env:"HIVY_SANDBOX_DOCKER_CONTAINER_LABEL_PREFIX" envDefault:"hivy"`
 
+	// Railway sandbox provider.
+	RailwayAPIToken               string `env:"HIVY_RAILWAY_API_TOKEN"`
+	RailwayProjectID              string `env:"HIVY_RAILWAY_PROJECT_ID"`
+	RailwayEnvironmentID          string `env:"HIVY_RAILWAY_ENVIRONMENT_ID"`
+	RailwayRuntimeImage           string `env:"HIVY_RAILWAY_RUNTIME_IMAGE"`
+	RailwaySpecialistRuntimeImage string `env:"HIVY_RAILWAY_SPECIALIST_RUNTIME_IMAGE"`
+	RailwayRegion                 string `env:"HIVY_RAILWAY_REGION"`
+	RailwayRuntimePort            int    `env:"HIVY_RAILWAY_RUNTIME_PORT" envDefault:"7080"`
+	SandboxWarmPoolEmployeeSize   int    `env:"HIVY_SANDBOX_WARM_POOL_EMPLOYEE_SIZE" envDefault:"0"`
+	SandboxWarmPoolSpecialistSize int    `env:"HIVY_SANDBOX_WARM_POOL_SPECIALIST_SIZE" envDefault:"0"`
+
 	// Daytona sandbox provider.
 	DaytonaAPIURL string `env:"HIVY_DAYTONA_API_URL"`
 	DaytonaAPIKey string `env:"HIVY_DAYTONA_API_KEY"`

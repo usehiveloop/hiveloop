@@ -51,9 +51,9 @@ func TestIntegration_EmployeeScheduleEvents_UpdateSchedulesAndRuns(t *testing.T)
 	sb2 := employeeScheduleTestSandbox(t, db, org.ID, agent2.ID)
 	h.storeAndMaybeEnqueue(t.Context(), &sb2, outboundTestEvent(t, "schedule.created", now, payload))
 	var scheduleCount int64
-	db.Model(&model.EmployeeSchedule{}).Where("bridge_job_id = ?", "cron-1").Count(&scheduleCount)
+	db.Model(&model.EmployeeSchedule{}).Where("runtime_job_id = ?", "cron-1").Count(&scheduleCount)
 	if scheduleCount != 2 {
-		t.Fatalf("same bridge job id for different agents should create separate schedules, got %d", scheduleCount)
+		t.Fatalf("same runtime job id for different agents should create separate schedules, got %d", scheduleCount)
 	}
 }
 
@@ -103,12 +103,12 @@ func employeeScheduleTestSandbox(t *testing.T, db interface {
 }, orgID uuid.UUID, agentID uuid.UUID) model.Sandbox {
 	t.Helper()
 	sb := model.Sandbox{
-		OrgID:                 &orgID,
-		EmployeeID:            &agentID,
-		ExternalID:            "sandbox-" + uuid.NewString(),
-		BridgeURL:             "https://bridge.test",
-		EncryptedBridgeAPIKey: []byte("secret"),
-		Status:                "running",
+		OrgID:                  &orgID,
+		EmployeeID:             &agentID,
+		ExternalID:             "sandbox-" + uuid.NewString(),
+		RuntimeURL:             "https://runtime.test",
+		EncryptedRuntimeSecret: []byte("secret"),
+		Status:                 "running",
 	}
 	if err := db.Create(&sb).Error; err != nil {
 		t.Fatalf("create sandbox: %v", err)
@@ -142,7 +142,7 @@ func assertEmployeeScheduleMirror(t *testing.T, db *gorm.DB, agentID uuid.UUID, 
 		t.Fatalf("schedule event count = %d", eventCount)
 	}
 	var schedule model.EmployeeSchedule
-	if err := db.Where("employee_id = ? AND bridge_job_id = ?", agentID, "cron-1").First(&schedule).Error; err != nil {
+	if err := db.Where("employee_id = ? AND runtime_job_id = ?", agentID, "cron-1").First(&schedule).Error; err != nil {
 		t.Fatalf("load schedule: %v", err)
 	}
 	if schedule.Status != "cancelled" || schedule.CancelledAt == nil {
@@ -152,7 +152,7 @@ func assertEmployeeScheduleMirror(t *testing.T, db *gorm.DB, agentID uuid.UUID, 
 		t.Fatalf("schedule run fields = %#v", schedule)
 	}
 	var scheduleCount int64
-	db.Model(&model.EmployeeSchedule{}).Where("employee_id = ? AND bridge_job_id = ?", agentID, "cron-1").Count(&scheduleCount)
+	db.Model(&model.EmployeeSchedule{}).Where("employee_id = ? AND runtime_job_id = ?", agentID, "cron-1").Count(&scheduleCount)
 	if scheduleCount != 1 {
 		t.Fatalf("schedule count = %d", scheduleCount)
 	}

@@ -39,15 +39,19 @@ pub struct McpRegistry {
 }
 
 impl McpRegistry {
-    pub async fn from_specs(specs: &[McpSpec]) -> Self {
-        let entries = connect_specs(specs).await;
+    pub async fn from_specs(specs: &[McpSpec], runtime_env: &HashMap<String, String>) -> Self {
+        let entries = connect_specs(specs, runtime_env).await;
         Self {
             entries: ArcSwap::from_pointee(entries),
         }
     }
 
-    pub async fn reload_from_specs(&self, specs: &[McpSpec]) {
-        let entries = connect_specs(specs).await;
+    pub async fn reload_from_specs(
+        &self,
+        specs: &[McpSpec],
+        runtime_env: &HashMap<String, String>,
+    ) {
+        let entries = connect_specs(specs, runtime_env).await;
         self.entries.store(Arc::new(entries));
     }
 
@@ -121,11 +125,11 @@ impl McpRegistry {
     }
 }
 
-async fn connect_specs(specs: &[McpSpec]) -> Vec<McpEntry> {
+async fn connect_specs(specs: &[McpSpec], runtime_env: &HashMap<String, String>) -> Vec<McpEntry> {
     let mut entries: Vec<McpEntry> = Vec::new();
 
     for spec in specs {
-        match connect_and_discover(spec).await {
+        match connect_and_discover(spec, runtime_env).await {
             Ok((service, peer, tool_names, tools, server_name)) => {
                 info!(server = %server_name, tool_count = tool_names.len(), "MCP server connected");
                 entries.push(McpEntry {
@@ -145,6 +149,7 @@ async fn connect_specs(specs: &[McpSpec]) -> Vec<McpEntry> {
 
 async fn connect_and_discover(
     spec: &McpSpec,
+    runtime_env: &HashMap<String, String>,
 ) -> anyhow::Result<(
     RunningService<RoleClient, ()>,
     Peer<RoleClient>,
@@ -189,7 +194,7 @@ async fn connect_and_discover(
             ..
         } => {
             let mut config = StreamableHttpClientTransportConfig::with_uri(url.clone());
-            let custom_headers = build_headers(headers)?;
+            let custom_headers = build_headers(headers, runtime_env)?;
             if !custom_headers.is_empty() {
                 config.custom_headers = custom_headers;
             }
@@ -246,21 +251,22 @@ async fn discover_tools(
 
 fn build_headers(
     headers: &HashMap<String, String>,
+    runtime_env: &HashMap<String, String>,
 ) -> Result<HashMap<HeaderName, HeaderValue>, anyhow::Error> {
     let mut map = HashMap::new();
     for (key, value) in headers {
         let name = HeaderName::from_bytes(key.as_bytes())?;
-        let expanded = expand_env_placeholders(value);
+        let expanded = expand_env_placeholders(value, runtime_env);
         let val = HeaderValue::from_str(&expanded)?;
         map.insert(name, val);
     }
     Ok(map)
 }
 
-fn expand_env_placeholders(value: &str) -> String {
+fn expand_env_placeholders(value: &str, runtime_env: &HashMap<String, String>) -> String {
     let mut output = value.to_string();
-    for (key, env_value) in std::env::vars() {
-        output = output.replace(&format!("${{{key}}}"), &env_value);
+    for (key, env_value) in runtime_env {
+        output = output.replace(&format!("${{{key}}}"), env_value);
     }
     output
 }
@@ -268,14 +274,16 @@ fn expand_env_placeholders(value: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::expand_env_placeholders;
+    use std::collections::HashMap;
 
     #[test]
     fn expands_env_placeholders_in_header_values() {
-        unsafe {
-            std::env::set_var("HIVY_PROXY_API_KEY", "proxy-test-token");
-        }
+        let runtime_env = HashMap::from([(
+            "HIVY_PROXY_API_KEY".to_string(),
+            "proxy-test-token".to_string(),
+        )]);
         assert_eq!(
-            expand_env_placeholders("Bearer ${HIVY_PROXY_API_KEY}"),
+            expand_env_placeholders("Bearer ${HIVY_PROXY_API_KEY}", &runtime_env),
             "Bearer proxy-test-token"
         );
     }

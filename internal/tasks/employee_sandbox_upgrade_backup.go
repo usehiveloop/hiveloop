@@ -89,7 +89,7 @@ func employeeSandboxUpgradeBackupKey(orgID, agentID, upgradeID uuid.UUID) string
 func buildEmployeeSandboxBackupCommand(uploadURL string) string {
 	return strings.Join([]string{
 		"set -eu",
-		`DB="${DB_PATH:-/app/data/hivy-sandboxes-runtime.db}"`,
+		`DB="${HIVY_DB_PATH:-/app/data/hivy-sandboxes-runtime.db}"`,
 		`TMP_DIR="$(mktemp -d)"`,
 		`trap 'rm -rf "$TMP_DIR"' EXIT`,
 		`SNAP="$TMP_DIR/hivy-sandboxes-runtime.db"`,
@@ -110,7 +110,7 @@ func buildEmployeeSandboxBackupCommand(uploadURL string) string {
 func buildEmployeeSandboxRestoreCommand(presignedURL, sha256Hex string) string {
 	return strings.Join([]string{
 		"set -eu",
-		`DB="${DB_PATH:-/app/data/hivy-sandboxes-runtime.db}"`,
+		`DB="${HIVY_DB_PATH:-/app/data/hivy-sandboxes-runtime.db}"`,
 		`TMP_DIR="$(mktemp -d)"`,
 		`trap 'rm -rf "$TMP_DIR"' EXIT`,
 		`GZ="$TMP_DIR/hivy-sandboxes-runtime.db.gz"`,

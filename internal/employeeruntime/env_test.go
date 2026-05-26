@@ -22,7 +22,6 @@ func TestEmployeeEnvCatalogGolden(t *testing.T) {
 		EmployeeEnvAgentMultimodalAPIKeyEnv,
 		EmployeeEnvEmployeeID,
 		EmployeeEnvCloudControlPlaneURL,
-		EmployeeEnvBridgeAPIKey,
 		EmployeeEnvUploadBearer,
 		EmployeeEnvWorkspaceRoot,
 		EmployeeEnvDBPath,
@@ -30,7 +29,6 @@ func TestEmployeeEnvCatalogGolden(t *testing.T) {
 		EmployeeEnvRuntimeMode,
 		EmployeeEnvSandboxID,
 		EmployeeEnvOrgID,
-		EmployeeEnvHivyEmployeeID,
 		EmployeeEnvGitUsername,
 		EmployeeEnvGitEmail,
 		EmployeeEnvGitCredentialsURL,
@@ -53,10 +51,6 @@ func TestEmployeeEnvCatalogGolden(t *testing.T) {
 		EmployeeEnvPath,
 		EmployeeEnvLang,
 		EmployeeEnvLCAll,
-		EmployeeForbiddenEnvOpenRouterAPIKey,
-		EmployeeForbiddenEnvOpenAIAPIKey,
-		EmployeeForbiddenEnvGroqAPIKey,
-		EmployeeForbiddenEnvTogetherAPIKey,
 	}
 	if !reflect.DeepEqual(gotKeys(got), want) {
 		t.Fatalf("employee env catalog keys changed\ngot:  %#v\nwant: %#v", keys, want)
@@ -65,10 +59,9 @@ func TestEmployeeEnvCatalogGolden(t *testing.T) {
 
 func TestEmployeeEnvReport_TracksMissingForbiddenAndRedactedValues(t *testing.T) {
 	report := EmployeeEnvReportFromEnv(map[string]string{
-		EmployeeEnvRuntimeSecret:             "runtime-secret",
-		EmployeeEnvAgentBaseURL:              "https://proxy.example.test/v1",
-		EmployeeEnvProxyAPIKey:               "ptok_test",
-		EmployeeForbiddenEnvOpenRouterAPIKey: "sk-or-test",
+		EmployeeEnvRuntimeSecret: "runtime-secret",
+		EmployeeEnvAgentBaseURL:  "https://proxy.example.test/v1",
+		EmployeeEnvProxyAPIKey:   "ptok_test",
 	}, false, false)
 	byKey := map[string]EmployeeEnvReportEntry{}
 	for _, entry := range report {
@@ -79,12 +72,6 @@ func TestEmployeeEnvReport_TracksMissingForbiddenAndRedactedValues(t *testing.T)
 	}
 	if got := byKey[EmployeeEnvAgentBaseURL]; !got.Set || got.Value != "https://proxy.example.test/v1" || got.Redacted {
 		t.Fatalf("non-sensitive env report = %+v", got)
-	}
-	if got := byKey[EmployeeForbiddenEnvOpenRouterAPIKey]; !got.Set || got.Status != EmployeeEnvStatusForbidden || !got.Forbidden {
-		t.Fatalf("forbidden provider key report = %+v", got)
-	}
-	if got := byKey[EmployeeForbiddenEnvOpenAIAPIKey]; got.Set || got.Status != EmployeeEnvStatusOK || !got.Forbidden {
-		t.Fatalf("absent forbidden provider key report = %+v", got)
 	}
 }
 

@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
@@ -26,16 +27,17 @@ pub struct DbSyncConfig {
     pub db_path: PathBuf,
     pub presign_url: String,
     pub confirm_url: String,
-    pub bridge_api_key: String,
+    pub runtime_secret: String,
     pub write_threshold: u64,
     pub interval: Duration,
 }
 
 impl DbSyncConfig {
-    pub fn from_env(db_path: PathBuf) -> Option<Self> {
+    pub fn from_runtime_env(db_path: PathBuf, env: &HashMap<String, String>) -> Option<Self> {
         if matches!(
-            std::env::var("DB_SYNC_ENABLED")
-                .unwrap_or_else(|_| "true".to_string())
+            env.get("HIVY_DB_SYNC_ENABLED")
+                .cloned()
+                .unwrap_or_else(|| "true".to_string())
                 .to_ascii_lowercase()
                 .as_str(),
             "0" | "false" | "no" | "off"
@@ -43,13 +45,17 @@ impl DbSyncConfig {
             return None;
         }
 
-        let control_plane_url = std::env::var("CLOUD_CONTROL_PLANE_URL").ok()?;
-        let employee_id = std::env::var("EMPLOYEE_ID").ok()?;
-        let bridge_api_key = std::env::var("BRIDGE_API_KEY").ok()?;
+        let control_plane_url = env.get("HIVY_CONTROL_PLANE_URL").cloned()?;
+        let employee_id = env.get("HIVY_EMPLOYEE_ID").cloned()?;
+        let runtime_secret = env.get("HIVY_RUNTIME_SECRET").cloned()?;
         let write_threshold =
-            parse_u64_env("DB_SYNC_WRITE_THRESHOLD", DEFAULT_WRITE_THRESHOLD).max(1);
-        let interval_seconds =
-            parse_u64_env("DB_SYNC_INTERVAL_SECONDS", DEFAULT_INTERVAL_SECONDS).max(1);
+            parse_u64_env(env, "HIVY_DB_SYNC_WRITE_THRESHOLD", DEFAULT_WRITE_THRESHOLD).max(1);
+        let interval_seconds = parse_u64_env(
+            env,
+            "HIVY_DB_SYNC_INTERVAL_SECONDS",
+            DEFAULT_INTERVAL_SECONDS,
+        )
+        .max(1);
         let base_url = format!(
             "{}/internal/employees/{}/sqlite-backup",
             control_plane_url.trim_end_matches('/'),
@@ -60,16 +66,15 @@ impl DbSyncConfig {
             db_path,
             presign_url: format!("{base_url}/presign"),
             confirm_url: format!("{base_url}/confirm"),
-            bridge_api_key,
+            runtime_secret,
             write_threshold,
             interval: Duration::from_secs(interval_seconds),
         })
     }
 }
 
-fn parse_u64_env(key: &str, default: u64) -> u64 {
-    std::env::var(key)
-        .ok()
+fn parse_u64_env(env: &HashMap<String, String>, key: &str, default: u64) -> u64 {
+    env.get(key)
         .and_then(|v| v.parse::<u64>().ok())
         .unwrap_or(default)
 }
@@ -220,7 +225,7 @@ async fn upload_sqlite_backup(
 
     let confirm_response = http
         .post(&config.confirm_url)
-        .bearer_auth(&config.bridge_api_key)
+        .bearer_auth(&config.runtime_secret)
         .json(&BackupConfirmRequest {
             key: presign.key,
             bytes: compressed_bytes,
@@ -271,7 +276,7 @@ async fn request_backup_presign(
 ) -> Result<BackupPresignResponse> {
     let response = http
         .post(&config.presign_url)
-        .bearer_auth(&config.bridge_api_key)
+        .bearer_auth(&config.runtime_secret)
         .json(&BackupPresignRequest {
             reason: reason.as_str(),
             content_type: "application/gzip",
@@ -467,7 +472,7 @@ mod tests {
             db_path,
             presign_url: format!("{base_url}/presign"),
             confirm_url: format!("{base_url}/confirm"),
-            bridge_api_key: "bridge-secret".to_string(),
+            runtime_secret: "runtime-secret".to_string(),
             write_threshold: 1000,
             interval: Duration::from_secs(60),
         };
@@ -506,7 +511,7 @@ mod tests {
         Json(body): Json<Value>,
     ) -> Result<Json<Value>, StatusCode> {
         if headers.get("authorization").and_then(|v| v.to_str().ok())
-            != Some("Bearer bridge-secret")
+            != Some("Bearer runtime-secret")
         {
             return Err(StatusCode::UNAUTHORIZED);
         }
@@ -542,7 +547,7 @@ mod tests {
         Json(body): Json<Value>,
     ) -> Result<Json<Value>, StatusCode> {
         if headers.get("authorization").and_then(|v| v.to_str().ok())
-            != Some("Bearer bridge-secret")
+            != Some("Bearer runtime-secret")
         {
             return Err(StatusCode::UNAUTHORIZED);
         }

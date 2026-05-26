@@ -15,7 +15,7 @@ case "$(uname -m)" in
 esac
 BINARY="${HIVY_SANDBOXES_RUNTIME_BINARY:-$ROOT/dist/hivy-sandboxes-runtime-$default_target}"
 PLATFORM="${HIVY_SANDBOXES_RUNTIME_PLATFORM:-}"
-PROFILE="${HIVY_SANDBOXES_RUNTIME_PROFILE:-employee}"
+DOCKERFILE="${HIVY_SANDBOXES_RUNTIME_DOCKERFILE:-Dockerfile.runtime}"
 TMP_CONTEXT="$(mktemp -d)"
 trap 'rm -rf "$TMP_CONTEXT"' EXIT
 
@@ -44,7 +44,21 @@ if [[ -z "$PLATFORM" ]]; then
   esac
 fi
 
-cp "$ROOT/Dockerfile.runtime" "$TMP_CONTEXT/Dockerfile.runtime"
+case "$DOCKERFILE" in
+  /*)
+    dockerfile_path="$DOCKERFILE"
+    ;;
+  *)
+    dockerfile_path="$ROOT/$DOCKERFILE"
+    ;;
+esac
+
+if [[ ! -f "$dockerfile_path" ]]; then
+  echo "runtime Dockerfile not found: $dockerfile_path" >&2
+  exit 1
+fi
+
+cp "$dockerfile_path" "$TMP_CONTEXT/Dockerfile.runtime"
 cp "$BINARY" "$TMP_CONTEXT/hivy-sandboxes-runtime"
 mkdir -p "$TMP_CONTEXT/docker"
 cp -R "$ROOT/docker/runtime" "$TMP_CONTEXT/docker/runtime"
@@ -56,9 +70,8 @@ fi
 
 "$DOCKER_BIN" build \
   "${build_args[@]}" \
-  --build-arg "RUNTIME_IMAGE_PROFILE=$PROFILE" \
   -f "$TMP_CONTEXT/Dockerfile.runtime" \
   -t "$IMAGE" \
   "$TMP_CONTEXT"
 
-echo "built runtime image: $IMAGE (profile=$PROFILE)"
+echo "built runtime image: $IMAGE (dockerfile=$DOCKERFILE)"

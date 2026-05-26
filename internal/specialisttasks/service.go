@@ -47,6 +47,7 @@ type LaunchResponse struct {
 	SandboxID         string `json:"sandbox_id"`
 	Status            string `json:"status"`
 	Message           string `json:"message"`
+	SystemReminder    string `json:"system_reminder"`
 	NextAction        string `json:"next_action"`
 }
 
@@ -194,15 +195,7 @@ func (s *Service) Launch(ctx context.Context, req LaunchRequest) (*LaunchRespons
 		_ = s.db.WithContext(ctx).Model(&task).Updates(map[string]any{"status": "error", "updated_at": s.now().UTC()}).Error
 		return nil, wrapToolError("initial_message_failed", "The specialist runtime was created, but the task brief could not be delivered.", err, true, "Retry specialist_launch_task. If a task_id was returned previously, use specialist_task_status before launching another duplicate task.")
 	}
-	return &LaunchResponse{
-		TaskID:            task.ID.String(),
-		SpecialistSlug:    task.SpecialistSlug,
-		EmployeeSessionID: task.EmployeeSessionID,
-		SandboxID:         task.SandboxID.String(),
-		Status:            task.Status,
-		Message:           "Specialist task launched and the brief was delivered.",
-		NextAction:        "Use specialist_task_status with this task_id to check progress. Use specialist_task_send_message only if you need to add context or redirect the task.",
-	}, nil
+	return newLaunchResponse(task), nil
 }
 
 func (s *Service) Status(ctx context.Context, token *model.Token, taskID uuid.UUID) (*TaskStatusResponse, *ToolError) {

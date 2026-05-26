@@ -124,7 +124,7 @@ func (d *Driver) ensureImage(ctx context.Context, ref string) error {
 func exposedPorts() (nat.PortSet, nat.PortMap) {
 	ports := nat.PortSet{}
 	bindings := nat.PortMap{}
-	for _, port := range []int{sandbox.BridgePort, sandbox.EmployeeSandboxPort, 8080} {
+	for _, port := range []int{sandbox.RuntimePort, sandbox.EmployeeSandboxPort, 8080} {
 		key := nat.Port(strconv.Itoa(port) + "/tcp")
 		ports[key] = struct{}{}
 		bindings[key] = []nat.PortBinding{{HostIP: "0.0.0.0", HostPort: ""}}

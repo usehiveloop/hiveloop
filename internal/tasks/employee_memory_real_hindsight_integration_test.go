@@ -35,7 +35,7 @@ func TestRealHindsightEmployeeMemoryCheckpointFlow(t *testing.T) {
 	if err := db.Create(&agent).Error; err != nil {
 		t.Fatalf("create agent: %v", err)
 	}
-	if err := db.Create(&model.Sandbox{ID: sandboxID, OrgID: &orgID, EmployeeID: &agentID, ExternalID: "real-hindsight-sb", BridgeURL: "http://bridge", EncryptedBridgeAPIKey: []byte("x"), Status: "running"}).Error; err != nil {
+	if err := db.Create(&model.Sandbox{ID: sandboxID, OrgID: &orgID, EmployeeID: &agentID, ExternalID: "real-hindsight-sb", RuntimeURL: "http://runtime", EncryptedRuntimeSecret: []byte("x"), Status: "running"}).Error; err != nil {
 		t.Fatalf("create sandbox: %v", err)
 	}
 	createMemorySession(t, db, orgID, agentID, sandboxID, sessionID)
@@ -123,7 +123,7 @@ func TestRealHindsightEmployeeMemoryProductionWorkload(t *testing.T) {
 	if err := db.Create(&agent).Error; err != nil {
 		t.Fatalf("create agent: %v", err)
 	}
-	if err := db.Create(&model.Sandbox{ID: sandboxID, OrgID: &orgID, EmployeeID: &agentID, ExternalID: "production-workload-sb", BridgeURL: "http://bridge", EncryptedBridgeAPIKey: []byte("x"), Status: "running"}).Error; err != nil {
+	if err := db.Create(&model.Sandbox{ID: sandboxID, OrgID: &orgID, EmployeeID: &agentID, ExternalID: "production-workload-sb", RuntimeURL: "http://runtime", EncryptedRuntimeSecret: []byte("x"), Status: "running"}).Error; err != nil {
 		t.Fatalf("create sandbox: %v", err)
 	}
 

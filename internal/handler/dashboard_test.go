@@ -170,24 +170,24 @@ func seedDashboardSchedule(t *testing.T, db *gorm.DB, orgID uuid.UUID) {
 		t.Fatalf("create employee: %v", err)
 	}
 	sandbox := model.Sandbox{
-		ID:                    uuid.New(),
-		OrgID:                 &orgID,
-		EmployeeID:            &employee.ID,
-		ExternalID:            "sb-test",
-		BridgeURL:             "https://bridge.test",
-		EncryptedBridgeAPIKey: []byte("encrypted"),
-		Status:                "running",
+		ID:                     uuid.New(),
+		OrgID:                  &orgID,
+		EmployeeID:             &employee.ID,
+		ExternalID:             "sb-test",
+		RuntimeURL:             "https://runtime.test",
+		EncryptedRuntimeSecret: []byte("encrypted"),
+		Status:                 "running",
 	}
 	if err := db.Create(&sandbox).Error; err != nil {
 		t.Fatalf("create sandbox: %v", err)
 	}
 	schedule := model.EmployeeSchedule{
-		ID:          uuid.New(),
-		OrgID:       orgID,
-		EmployeeID:  employee.ID,
-		SandboxID:   sandbox.ID,
-		BridgeJobID: "cron-test",
-		Status:      "cancelled",
+		ID:           uuid.New(),
+		OrgID:        orgID,
+		EmployeeID:   employee.ID,
+		SandboxID:    sandbox.ID,
+		RuntimeJobID: "cron-test",
+		Status:       "cancelled",
 	}
 	if err := db.Create(&schedule).Error; err != nil {
 		t.Fatalf("create schedule: %v", err)

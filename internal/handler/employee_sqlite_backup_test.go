@@ -22,13 +22,13 @@ import (
 )
 
 type sqliteBackupHarness struct {
-	db        *gorm.DB
-	router    *chi.Mux
-	s3        *storage.S3Client
-	orgID     uuid.UUID
-	agentID   uuid.UUID
-	sandboxID uuid.UUID
-	bridgeKey string
+	db            *gorm.DB
+	router        *chi.Mux
+	s3            *storage.S3Client
+	orgID         uuid.UUID
+	agentID       uuid.UUID
+	sandboxID     uuid.UUID
+	runtimeSecret string
 }
 
 func newSQLiteBackupHarness(t *testing.T, maxBytes int64, isEmployee bool) *sqliteBackupHarness {
@@ -72,20 +72,20 @@ func newSQLiteBackupHarnessWithStreamer(t *testing.T, maxBytes int64, isEmployee
 		t.Fatalf("create agent: %v", err)
 	}
 
-	bridgeKey := "sqlite-backup-bridge-key-" + uuid.NewString()
-	encryptedKey, err := encKey.EncryptString(bridgeKey)
+	runtimeSecret := "sqlite-backup-runtime-key-" + uuid.NewString()
+	encryptedKey, err := encKey.EncryptString(runtimeSecret)
 	if err != nil {
-		t.Fatalf("encrypt bridge key: %v", err)
+		t.Fatalf("encrypt runtime secret: %v", err)
 	}
 	sandboxID := uuid.New()
 	sandbox := model.Sandbox{
-		ID:                    sandboxID,
-		OrgID:                 &orgID,
-		EmployeeID:            &agentID,
-		ExternalID:            "sqlite-backup-sandbox",
-		BridgeURL:             "http://localhost:7080",
-		EncryptedBridgeAPIKey: encryptedKey,
-		Status:                "running",
+		ID:                     sandboxID,
+		OrgID:                  &orgID,
+		EmployeeID:             &agentID,
+		ExternalID:             "sqlite-backup-sandbox",
+		RuntimeURL:             "http://localhost:7080",
+		EncryptedRuntimeSecret: encryptedKey,
+		Status:                 "running",
 	}
 	if err := db.Create(&sandbox).Error; err != nil {
 		t.Fatalf("create sandbox: %v", err)
@@ -97,13 +97,13 @@ func newSQLiteBackupHarnessWithStreamer(t *testing.T, maxBytes int64, isEmployee
 	r.Post("/internal/employees/{employeeID}/sqlite-backup/presign", h.Presign)
 	r.Post("/internal/employees/{employeeID}/sqlite-backup/confirm", h.Confirm)
 	return &sqliteBackupHarness{
-		db:        db,
-		router:    r,
-		s3:        s3,
-		orgID:     orgID,
-		agentID:   agentID,
-		sandboxID: sandboxID,
-		bridgeKey: bridgeKey,
+		db:            db,
+		router:        r,
+		s3:            s3,
+		orgID:         orgID,
+		agentID:       agentID,
+		sandboxID:     sandboxID,
+		runtimeSecret: runtimeSecret,
 	}
 }
 
@@ -121,17 +121,17 @@ func newRealS3Client(t *testing.T) *storage.S3Client {
 	return s3
 }
 
-func (h *sqliteBackupHarness) uploadBackup(t *testing.T, body []byte, bridgeKey string) *httptest.ResponseRecorder {
+func (h *sqliteBackupHarness) uploadBackup(t *testing.T, body []byte, runtimeSecret string) *httptest.ResponseRecorder {
 	t.Helper()
-	return h.uploadBackupPath(t, "/internal/employees/"+h.agentID.String()+"/sqlite-backup", body, bridgeKey)
+	return h.uploadBackupPath(t, "/internal/employees/"+h.agentID.String()+"/sqlite-backup", body, runtimeSecret)
 }
 
-func (h *sqliteBackupHarness) uploadBackupPath(t *testing.T, path string, body []byte, bridgeKey string) *httptest.ResponseRecorder {
+func (h *sqliteBackupHarness) uploadBackupPath(t *testing.T, path string, body []byte, runtimeSecret string) *httptest.ResponseRecorder {
 	t.Helper()
 	req := httptest.NewRequest(http.MethodPut, path, bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/gzip")
-	if bridgeKey != "" {
-		req.Header.Set("Authorization", "Bearer "+bridgeKey)
+	if runtimeSecret != "" {
+		req.Header.Set("Authorization", "Bearer "+runtimeSecret)
 	}
 	req.ContentLength = int64(len(body))
 	rr := httptest.NewRecorder()
@@ -177,7 +177,7 @@ func TestEmployeeSQLiteBackup_UploadsFixedLatestObject(t *testing.T) {
 	h := newSQLiteBackupHarness(t, 1024*1024, true)
 	body := []byte("gzip-bytes-v1")
 
-	rr := h.uploadBackup(t, body, h.bridgeKey)
+	rr := h.uploadBackup(t, body, h.runtimeSecret)
 	if rr.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d: %s", rr.Code, rr.Body.String())
 	}
@@ -198,10 +198,10 @@ func TestEmployeeSQLiteBackup_SecondUploadOverwritesSameKey(t *testing.T) {
 	first := []byte("first-backup")
 	second := []byte("second-backup")
 
-	if rr := h.uploadBackup(t, first, h.bridgeKey); rr.Code != http.StatusOK {
+	if rr := h.uploadBackup(t, first, h.runtimeSecret); rr.Code != http.StatusOK {
 		t.Fatalf("first upload status = %d: %s", rr.Code, rr.Body.String())
 	}
-	if rr := h.uploadBackup(t, second, h.bridgeKey); rr.Code != http.StatusOK {
+	if rr := h.uploadBackup(t, second, h.runtimeSecret); rr.Code != http.StatusOK {
 		t.Fatalf("second upload status = %d: %s", rr.Code, rr.Body.String())
 	}
 	if got := h.readBackupObject(t); !bytes.Equal(got, second) {
@@ -226,7 +226,7 @@ func TestEmployeeSQLiteBackup_UpgradeIDWritesImmutableUpgradeKey(t *testing.T) {
 
 	body := []byte("upgrade-backup")
 	path := "/internal/employees/" + h.agentID.String() + "/sqlite-backup?upgrade_id=" + upgradeID.String()
-	rr := h.uploadBackupPath(t, path, body, h.bridgeKey)
+	rr := h.uploadBackupPath(t, path, body, h.runtimeSecret)
 	if rr.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d: %s", rr.Code, rr.Body.String())
 	}
@@ -254,7 +254,7 @@ func TestEmployeeSQLiteBackup_InvalidBearer(t *testing.T) {
 func TestEmployeeSQLiteBackup_UnknownEmployeeRejected(t *testing.T) {
 	h := newSQLiteBackupHarness(t, 1024*1024, true)
 	path := "/internal/employees/" + uuid.NewString() + "/sqlite-backup"
-	rr := h.uploadBackupPath(t, path, []byte("backup"), h.bridgeKey)
+	rr := h.uploadBackupPath(t, path, []byte("backup"), h.runtimeSecret)
 	if rr.Code != http.StatusNotFound {
 		t.Fatalf("expected 404, got %d: %s", rr.Code, rr.Body.String())
 	}
@@ -262,7 +262,7 @@ func TestEmployeeSQLiteBackup_UnknownEmployeeRejected(t *testing.T) {
 
 func TestEmployeeSQLiteBackup_OversizedBodyRejected(t *testing.T) {
 	h := newSQLiteBackupHarness(t, 4, true)
-	rr := h.uploadBackup(t, []byte("too-large"), h.bridgeKey)
+	rr := h.uploadBackup(t, []byte("too-large"), h.runtimeSecret)
 	if rr.Code != http.StatusRequestEntityTooLarge {
 		t.Fatalf("expected 413, got %d: %s", rr.Code, rr.Body.String())
 	}

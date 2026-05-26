@@ -34,7 +34,7 @@ func TestEmployeeHandlerSyncOrgHivyEmployee_CreatesSandboxAndPushesConfig(t *tes
 	if err := h.db.Where("org_id = ? AND employee_id = ? AND status = ?", m.org.ID, agent.ID, "running").First(&sb).Error; err != nil {
 		t.Fatalf("load running sandbox: %v", err)
 	}
-	if sb.ExternalID == "" || sb.BridgeURL == "" {
+	if sb.ExternalID == "" || sb.RuntimeURL == "" {
 		t.Fatalf("sandbox missing provider fields: %#v", sb)
 	}
 }

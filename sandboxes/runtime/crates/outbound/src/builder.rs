@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use domain::{OutboundChannelKind, OutboundChannelSpec};
@@ -13,13 +14,14 @@ pub fn build_registry(
     sqlite_pool: Arc<SqlitePool>,
     specs: &[OutboundChannelSpec],
 ) -> Result<OutboundRegistry> {
-    build_registry_with_write_notifier(sqlite_pool, specs, None)
+    build_registry_with_write_notifier(sqlite_pool, specs, None, &HashMap::new())
 }
 
 pub fn build_registry_with_write_notifier(
     sqlite_pool: Arc<SqlitePool>,
     specs: &[OutboundChannelSpec],
     write_notifier: Option<SharedWriteNotifier>,
+    runtime_env: &HashMap<String, String>,
 ) -> Result<OutboundRegistry> {
     let mut registry = OutboundRegistry::new();
     let database_channel: Arc<dyn OutboundChannel> = match write_notifier {
@@ -32,7 +34,7 @@ pub fn build_registry_with_write_notifier(
     registry.add(database_channel);
 
     for spec in specs {
-        match build_channel_from_spec(spec) {
+        match build_channel_from_spec(spec, runtime_env) {
             Ok(channel) => {
                 info!(name = %spec.name, kind = %channel.kind(), "registered outbound channel");
                 registry.add(channel);
@@ -45,14 +47,17 @@ pub fn build_registry_with_write_notifier(
     Ok(registry)
 }
 
-fn build_channel_from_spec(spec: &OutboundChannelSpec) -> Result<Arc<dyn OutboundChannel>> {
+fn build_channel_from_spec(
+    spec: &OutboundChannelSpec,
+    runtime_env: &HashMap<String, String>,
+) -> Result<Arc<dyn OutboundChannel>> {
     match &spec.kind {
         OutboundChannelKind::Webhook {
             url,
             secret_env,
             extra_headers,
         } => {
-            let secret = std::env::var(secret_env).map_err(|_| {
+            let secret = runtime_env.get(secret_env).cloned().ok_or_else(|| {
                 OutboundError::Other(anyhow::anyhow!(
                     "env var `{secret_env}` not set for webhook `{}`",
                     spec.name

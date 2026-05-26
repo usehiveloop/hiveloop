@@ -1,14 +1,15 @@
-mod bridge_gateway;
+mod channel_gateway;
 mod db_sync;
 mod handler;
 mod scheduler;
 mod sentry_support;
 mod session_coordinator;
 
-use bridge_gateway::BridgeGateway;
+use channel_gateway::RuntimeGateway;
 use scheduler::CronScheduler;
 use session_coordinator::SessionCoordinator;
 
+use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -37,6 +38,7 @@ use storage::{
     SqliteInboundDedupeRepo, SqliteOutboxRepo, SqliteSessionRepo,
 };
 use tokio::sync::{mpsc, RwLock};
+use tools::LocalBashOperations;
 use tracing::{error, info, warn};
 
 #[tokio::main]
@@ -52,16 +54,27 @@ async fn main() -> Result<()> {
         info!("sentry reporting disabled; set SENTRY_DSN or SENTRY_SPOTLIGHT=true to enable");
     }
 
-    let runtime_secret = required_env("RUNTIME_SECRET", "shared bearer token")?;
-    let bind_addr_text =
-        std::env::var("RUNTIME_BIND_ADDR").unwrap_or_else(|_| "0.0.0.0:7080".into());
+    let runtime_env: HashMap<String, String> = std::env::vars().collect();
+    let runtime_secret = required_runtime_env(
+        &runtime_env,
+        "HIVY_RUNTIME_SECRET",
+        "shared runtime bearer token",
+    )?;
+    let bind_addr_text = runtime_env
+        .get("HIVY_RUNTIME_BIND_ADDR")
+        .cloned()
+        .unwrap_or_else(|| "0.0.0.0:7080".into());
     let bind_addr: SocketAddr = bind_addr_text
         .parse()
-        .context("RUNTIME_BIND_ADDR must be a socket address")?;
-    let database_path =
-        std::env::var("DB_PATH").unwrap_or_else(|_| "./data/hivy-sandboxes-runtime.db".into());
-    let workspace_root_string =
-        std::env::var("WORKSPACE_ROOT").unwrap_or_else(|_| "./workspace".into());
+        .context("HIVY_RUNTIME_BIND_ADDR must be a socket address")?;
+    let database_path = runtime_env
+        .get("HIVY_DB_PATH")
+        .cloned()
+        .unwrap_or_else(|| "./data/hivy-sandboxes-runtime.db".into());
+    let workspace_root_string = runtime_env
+        .get("HIVY_WORKSPACE_ROOT")
+        .cloned()
+        .unwrap_or_else(|| "./workspace".into());
     let workspace_root = PathBuf::from(&workspace_root_string);
     if let Err(error) = std::fs::create_dir_all(&workspace_root) {
         warn!(workspace = %workspace_root.display(), %error, "failed to create workspace root");
@@ -70,20 +83,7 @@ async fn main() -> Result<()> {
     info!(database = %database_path, "initializing storage");
     let database_path = PathBuf::from(&database_path);
     let sqlite_pool = init_sqlite_pool(database_path.clone()).await?;
-    let db_sync_notifier = DbSyncConfig::from_env(database_path.clone()).map(|config| {
-        info!(
-            threshold = config.write_threshold,
-            interval_seconds = config.interval.as_secs(),
-            "sqlite backup sync enabled"
-        );
-        spawn_db_sync(config)
-    });
-    if db_sync_notifier.is_none() {
-        info!("sqlite backup sync disabled");
-    }
-    let write_notifier: Option<storage::SharedWriteNotifier> = db_sync_notifier
-        .clone()
-        .map(|notifier| -> storage::SharedWriteNotifier { notifier });
+    let write_notifier: Option<storage::SharedWriteNotifier> = None;
     let config_repo: Arc<dyn storage::ConfigRepo> = match write_notifier.clone() {
         Some(notifier) => Arc::new(SqliteConfigRepo::with_write_notifier(
             sqlite_pool.clone(),
@@ -127,40 +127,38 @@ async fn main() -> Result<()> {
         None => Arc::new(SqliteCronJobRepo::new(sqlite_pool.clone())),
     };
 
+    let mut persisted_definition_loaded = false;
     let initial_definition = match config_repo.load().await? {
         Some(persisted) => {
+            persisted_definition_loaded = true;
             info!("loaded agent definition from database");
             persisted
         }
         None => {
-            info!("no persisted definition; bootstrapping from environment");
-            let bootstrapped = bootstrap_agent_definition()?;
-            config_repo.upsert(&bootstrapped).await?;
-            bootstrapped
+            info!("no persisted definition; waiting for first control-plane config push");
+            bootstrap_agent_definition()
         }
     };
 
-    let mcp_registry = Arc::new(McpRegistry::from_specs(&[]).await);
-
-    let registry =
-        build_registry_with_write_notifier(sqlite_pool.clone(), &[], write_notifier.clone())
-            .map_err(|e| anyhow::anyhow!("build outbound registry: {e}"))?;
+    let config = ConfigStore::with_runtime_env(initial_definition.clone(), runtime_env);
+    let initial_runtime_env = config.runtime_env();
+    let mcp_registry = Arc::new(McpRegistry::from_specs(&[], &initial_runtime_env).await);
+    let registry = build_registry_with_write_notifier(
+        sqlite_pool.clone(),
+        &[],
+        write_notifier.clone(),
+        &initial_runtime_env,
+    )
+    .map_err(|e| anyhow::anyhow!("build outbound registry: {e}"))?;
     let registry = Arc::new(RwLock::new(registry));
     let stream_batcher = Arc::new(RwLock::new(None));
     let outbound_reloader: Arc<dyn OutboundConfigReloader> = Arc::new(RegistryReloader {
+        config: config.clone(),
         sqlite_pool: sqlite_pool.clone(),
         registry: registry.clone(),
         write_notifier: write_notifier.clone(),
         stream_batcher: stream_batcher.clone(),
     });
-
-    let dispatcher = OutboundDispatcher::new(outbox_repo.clone(), registry.clone());
-    let (dispatcher_handle, dispatcher_cancel) = dispatcher.spawn();
-
-    let emitter = Arc::new(
-        OutboundEmitter::new(outbox_repo.clone(), registry.clone())
-            .with_stream_batcher(stream_batcher.clone()),
-    );
 
     let skill_writer = Arc::new(SkillWriter::new(workspace_root.clone()));
 
@@ -171,11 +169,10 @@ async fn main() -> Result<()> {
         "waiting for first control-plane config push before starting employee services"
     );
 
-    let config = ConfigStore::new(initial_definition.clone());
     let http_stream_broker = Arc::new(api::HttpStreamBroker::new());
     let (inbound_sink, mut inbound_events) = mpsc::channel::<InboundEvent>(256);
-    let bridge_gateway: Arc<dyn ChannelGateway> =
-        Arc::new(BridgeGateway::new(http_stream_broker.clone()));
+    let channel_gateway: Arc<dyn ChannelGateway> =
+        Arc::new(RuntimeGateway::new(http_stream_broker.clone()));
 
     let api_state = ApiState::new(
         config.clone(),
@@ -183,6 +180,8 @@ async fn main() -> Result<()> {
         session_repo.clone(),
         event_repo.clone(),
         runtime_secret,
+        workspace_root.clone(),
+        Arc::new(LocalBashOperations),
         skill_writer,
         Some(api::HttpGatewayState {
             inbound_sink: inbound_sink.clone(),
@@ -193,9 +192,25 @@ async fn main() -> Result<()> {
     );
     let (api_handle, api_cancel) = api::serve(bind_addr, api_state.clone()).await;
     api_state.mark_gateway_ready();
+    if persisted_definition_loaded {
+        api_state.mark_config_loaded();
+    }
 
     api_state.wait_for_config_loaded().await;
     let active_definition = config.snapshot();
+    let active_runtime_env = config.runtime_env();
+    let db_sync_notifier =
+        DbSyncConfig::from_runtime_env(database_path.clone(), &active_runtime_env).map(|config| {
+            info!(
+                threshold = config.write_threshold,
+                interval_seconds = config.interval.as_secs(),
+                "sqlite backup sync enabled"
+            );
+            spawn_db_sync(config)
+        });
+    if db_sync_notifier.is_none() {
+        info!("sqlite backup sync disabled");
+    }
     info!(
         agent = %active_definition.agent.name,
         mcp_servers = active_definition.mcp_servers.len(),
@@ -203,9 +218,17 @@ async fn main() -> Result<()> {
         "first control-plane config loaded; starting employee services"
     );
 
+    let dispatcher = OutboundDispatcher::new(outbox_repo.clone(), registry.clone());
+    let (dispatcher_handle, dispatcher_cancel) = dispatcher.spawn();
+
+    let emitter = Arc::new(
+        OutboundEmitter::new(outbox_repo.clone(), registry.clone())
+            .with_stream_batcher(stream_batcher.clone()),
+    );
+
     let rig_runner = RigAgentRunner::new(config.clone(), workspace_root.clone())
         .with_outbound_emitter(emitter.clone())
-        .with_gateway(bridge_gateway.clone())
+        .with_gateway(channel_gateway.clone())
         .with_cron_repo(cron_repo.clone())
         .with_event_repo(event_repo.clone())
         .with_mcp_registry(mcp_registry.clone());
@@ -224,7 +247,7 @@ async fn main() -> Result<()> {
         info!("listening for inbound events");
         while let Some(inbound) = inbound_events.recv().await {
             let runner = agent_runner.clone();
-            let gateway = bridge_gateway.clone();
+            let gateway = channel_gateway.clone();
             let cfg = config.clone();
             let emitter = emitter.clone();
             let session_repo = session_repo.clone();
@@ -263,6 +286,7 @@ async fn main() -> Result<()> {
 }
 
 struct RegistryReloader {
+    config: ConfigStore,
     sqlite_pool: Arc<SqlitePool>,
     registry: Arc<RwLock<OutboundRegistry>>,
     write_notifier: Option<storage::SharedWriteNotifier>,
@@ -272,14 +296,16 @@ struct RegistryReloader {
 #[async_trait]
 impl OutboundConfigReloader for RegistryReloader {
     async fn reload_outbound_channels(&self, specs: &[OutboundChannelSpec]) -> anyhow::Result<()> {
+        let runtime_env = self.config.runtime_env();
         let next = build_registry_with_write_notifier(
             self.sqlite_pool.clone(),
             specs,
             self.write_notifier.clone(),
+            &runtime_env,
         )
         .map_err(|error| anyhow::anyhow!("build outbound registry: {error}"))?;
         let names = next.names();
-        let next_batcher = StreamBatcher::from_specs(specs)
+        let next_batcher = StreamBatcher::from_specs(specs, &runtime_env)
             .map_err(|error| anyhow::anyhow!("build stream batcher: {error}"))?;
         *self.registry.write().await = next;
         *self.stream_batcher.write().await = next_batcher;
@@ -288,28 +314,15 @@ impl OutboundConfigReloader for RegistryReloader {
     }
 }
 
-fn required_env(key: &str, hint: &str) -> Result<String> {
-    match std::env::var(key) {
-        Ok(value) if !value.is_empty() => Ok(value),
+fn required_runtime_env(env: &HashMap<String, String>, key: &str, hint: &str) -> Result<String> {
+    match env.get(key) {
+        Some(value) if !value.is_empty() => Ok(value.clone()),
         _ => anyhow::bail!("env var `{key}` must be set ({hint})"),
     }
 }
 
-fn bootstrap_agent_definition() -> Result<AgentDefinition> {
-    let primary_model = build_model_from_env(
-        "AGENT_MODEL",
-        "AGENT_BASE_URL",
-        "AGENT_API_KEY_ENV",
-        Some("deepseek/deepseek-v4-flash"),
-    )?
-    .ok_or_else(|| anyhow::anyhow!("AGENT_MODEL must be set for the primary model"))?;
-    let multimodal_model = build_model_from_env(
-        "AGENT_MULTIMODAL_MODEL",
-        "AGENT_MULTIMODAL_BASE_URL",
-        "AGENT_MULTIMODAL_API_KEY_ENV",
-        None,
-    )?;
-    Ok(AgentDefinition {
+fn bootstrap_agent_definition() -> AgentDefinition {
+    AgentDefinition {
         agent: AgentMeta {
             name: "Aria".into(),
             description: "Hivy AI employee".into(),
@@ -317,15 +330,28 @@ fn bootstrap_agent_definition() -> Result<AgentDefinition> {
         mode: Default::default(),
         specialist_profile: None,
         system_prompt: bootstrap_system_prompt(),
-        model: primary_model,
-        multimodal_model,
+        model: placeholder_model(),
+        multimodal_model: None,
         limits: Default::default(),
         context: Default::default(),
         tools: default_builtin_tool_specs(),
         mcp_servers: Vec::new(),
         skills: Vec::new(),
         outbound_channels: Vec::new(),
-    })
+    }
+}
+
+fn placeholder_model() -> ModelConfig {
+    ModelConfig::OpenaiCompatible {
+        base_url: "http://127.0.0.1/unused".into(),
+        model_id: "unclaimed-runtime-placeholder".into(),
+        api_key_env: "HIVY_PROXY_API_KEY".into(),
+        temperature: Some(0.3),
+        max_output_tokens: Some(1024),
+        reasoning_effort: Some(ReasoningEffort::Low),
+        extra_headers: Default::default(),
+        fallback: None,
+    }
 }
 
 fn bootstrap_system_prompt() -> SystemPromptConfig {
@@ -400,39 +426,4 @@ fn default_builtin_tool_specs() -> Vec<ToolSpec> {
         ToolSpec::SkillView,
         ToolSpec::SkillManage,
     ]
-}
-
-fn build_model_from_env(
-    model_env_key: &str,
-    base_url_env_key: &str,
-    api_key_env_env_key: &str,
-    fallback_model_id: Option<&str>,
-) -> Result<Option<ModelConfig>> {
-    let model_id_from_env = std::env::var(model_env_key).ok().filter(|v| !v.is_empty());
-    let model_id = match (model_id_from_env, fallback_model_id) {
-        (Some(value), _) => value,
-        (None, Some(default)) => default.to_string(),
-        (None, None) => return Ok(None),
-    };
-    let base_url = std::env::var(base_url_env_key)
-        .ok()
-        .filter(|v| !v.is_empty())
-        .unwrap_or_else(|| "https://openrouter.ai/api/v1".into());
-    let api_key_env = std::env::var(api_key_env_env_key)
-        .ok()
-        .filter(|v| !v.is_empty())
-        .unwrap_or_else(|| "OPENROUTER_API_KEY".into());
-    if std::env::var(&api_key_env).is_err() {
-        anyhow::bail!("env var `{api_key_env}` must be set for model `{model_id}`");
-    }
-    Ok(Some(ModelConfig::OpenaiCompatible {
-        base_url,
-        model_id,
-        api_key_env,
-        temperature: Some(0.3),
-        max_output_tokens: Some(1024),
-        reasoning_effort: Some(ReasoningEffort::Low),
-        extra_headers: Default::default(),
-        fallback: None,
-    }))
 }

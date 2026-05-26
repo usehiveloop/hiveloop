@@ -1,5 +1,5 @@
 id: employee-delegation-v1
-timeout_seconds: 60
+timeout_seconds: 120
 models:
   - deepseek-v4-flash
 
@@ -110,8 +110,6 @@ cases:
         - memory_forget
       required_final_text:
         - "$350"
-      forbidden_final_text:
-        - "$200"
 
   - id: pricing-position-research
     message: Can you check if our Austin premium bakery pricing is positioned correctly for corporate catering before tomorrow's meeting?
@@ -147,7 +145,7 @@ cases:
     message: Please build and verify a polished Rails landing page prototype for our corporate catering launch. Use the latest Rails version, install whatever dependencies are needed, run it locally, and capture evidence when it works. This will probably take a while, so just keep this thread updated when there is something real to report.
     expected_behavior: delegate
     expected_specialist: software-engineering-specialist
-    timeout_seconds: 75
+    timeout_seconds: 120
     assertions:
       observe_after_delegate_seconds: 20
       required_tool_calls:

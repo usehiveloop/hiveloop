@@ -17,6 +17,7 @@ skills.workspace = true
 outbound.workspace = true
 mcp.workspace = true
 agent.workspace = true
+tools.workspace = true
 async-trait.workspace = true
 futures.workspace = true
 serde.workspace = true

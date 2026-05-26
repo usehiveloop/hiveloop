@@ -17,12 +17,11 @@ import (
 type EmployeeCleanupHandler struct {
 	db           *gorm.DB
 	orchestrator *sandbox.Orchestrator
-	pusher       *sandbox.Pusher
 }
 
 // NewEmployeeCleanupHandler creates a new employee cleanup handler.
-func NewEmployeeCleanupHandler(db *gorm.DB, orchestrator *sandbox.Orchestrator, pusher *sandbox.Pusher) *EmployeeCleanupHandler {
-	return &EmployeeCleanupHandler{db: db, orchestrator: orchestrator, pusher: pusher}
+func NewEmployeeCleanupHandler(db *gorm.DB, orchestrator *sandbox.Orchestrator) *EmployeeCleanupHandler {
+	return &EmployeeCleanupHandler{db: db, orchestrator: orchestrator}
 }
 
 // Handle processes an employee:cleanup task.

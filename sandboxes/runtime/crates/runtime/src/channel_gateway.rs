@@ -4,12 +4,12 @@ use async_trait::async_trait;
 use domain::{Attachment, MessageHandle, Reply, SessionId};
 use gateway::{ChannelGateway, GatewayError, Result};
 
-pub struct BridgeGateway {
+pub struct RuntimeGateway {
     http_streams: Arc<api::HttpStreamBroker>,
     client: reqwest::Client,
 }
 
-impl BridgeGateway {
+impl RuntimeGateway {
     pub fn new(http_streams: Arc<api::HttpStreamBroker>) -> Self {
         Self {
             http_streams,
@@ -23,7 +23,7 @@ impl BridgeGateway {
 }
 
 #[async_trait]
-impl ChannelGateway for BridgeGateway {
+impl ChannelGateway for RuntimeGateway {
     async fn reply(&self, session_id: &SessionId, body: Reply) -> Result<MessageHandle> {
         let stream_id = self
             .http_streams

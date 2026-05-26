@@ -1,4 +1,0 @@
-package: bridge
-generate:
-  models: true
-output: internal/bridge/client_gen.go

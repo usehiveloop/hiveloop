@@ -84,14 +84,14 @@ func (h *EmployeeHandler) ListSessions(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "employee runtime encryption is not configured"})
 		return
 	}
-	apiKey, err := h.compileDeps.EncKey.DecryptString(sb.EncryptedBridgeAPIKey)
+	apiKey, err := h.compileDeps.EncKey.DecryptString(sb.EncryptedRuntimeSecret)
 	if err != nil {
 		logging.FromContext(ctx).ErrorContext(ctx, "decrypt employee runtime key", "error", err, "employee_id", agentID, "sandbox_id", sb.ID)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to load employee runtime credentials"})
 		return
 	}
 
-	resp, err := employeeruntime.NewClient(sb.BridgeURL, apiKey).ListSessions(ctx, employeeSessionListParams(r))
+	resp, err := employeeruntime.NewClient(sb.RuntimeURL, apiKey).ListSessions(ctx, employeeSessionListParams(r))
 	if err != nil {
 		logging.FromContext(ctx).ErrorContext(ctx, "list employee runtime sessions", "error", err, "employee_id", agentID, "sandbox_id", sb.ID)
 		writeJSON(w, http.StatusBadGateway, map[string]string{"error": "failed to list employee sessions"})

@@ -46,7 +46,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/AgentDefinition"
+                "$ref": "#/components/schemas/ConfigUpdateRequest"
               }
             }
           },
@@ -77,17 +77,17 @@
         ]
       }
     },
-    "/config/env": {
-      "put": {
+    "/control/commands": {
+      "post": {
         "tags": [
           "crate::handlers"
         ],
-        "operationId": "put_runtime_env",
+        "operationId": "post_control_commands",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/RuntimeEnvUpdate"
+                "$ref": "#/components/schemas/ControlCommandsRequest"
               }
             }
           },
@@ -95,23 +95,23 @@
         },
         "responses": {
           "200": {
-            "description": "Environment override applied",
+            "description": "Commands executed",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/RuntimeEnvResponse"
+                  "$ref": "#/components/schemas/ControlCommandsResponse"
                 }
               }
             }
           },
           "400": {
-            "description": "Invalid environment payload"
+            "description": "Invalid command payload"
           },
           "413": {
             "description": "Payload too large"
           },
           "500": {
-            "description": "Failed to apply environment overrides"
+            "description": "Command execution failed"
           }
         },
         "security": [
@@ -208,7 +208,7 @@
         "operationId": "healthz",
         "responses": {
           "200": {
-            "description": "Bridge process is alive"
+            "description": "Runtime process is alive"
           }
         },
         "security": [
@@ -299,10 +299,10 @@
         "operationId": "readyz",
         "responses": {
           "200": {
-            "description": "Bridge is ready"
+            "description": "Runtime is ready"
           },
           "503": {
-            "description": "Bridge is not ready"
+            "description": "Runtime is not ready"
           }
         },
         "security": [
@@ -649,7 +649,9 @@
         "type": "object",
         "required": [
           "applied_at",
-          "definition"
+          "definition",
+          "env_key_count",
+          "secret_rotated"
         ],
         "properties": {
           "applied_at": {
@@ -658,6 +660,39 @@
           },
           "definition": {
             "$ref": "#/components/schemas/AgentDefinition"
+          },
+          "env_key_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "secret_rotated": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ConfigUpdateRequest": {
+        "type": "object",
+        "required": [
+          "definition"
+        ],
+        "properties": {
+          "definition": {
+            "$ref": "#/components/schemas/AgentDefinition"
+          },
+          "runtime_env": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "propertyNames": {
+              "type": "string"
+            }
+          },
+          "runtime_secret": {
+            "type": [
+              "string",
+              "null"
+            ]
           }
         }
       },
@@ -684,6 +719,85 @@
           },
           "memory": {
             "$ref": "#/components/schemas/MemoryContextConfig"
+          }
+        }
+      },
+      "ControlCommandResult": {
+        "type": "object",
+        "required": [
+          "command",
+          "timed_out",
+          "truncated",
+          "output"
+        ],
+        "properties": {
+          "command": {
+            "type": "string"
+          },
+          "exit_code": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32"
+          },
+          "output": {
+            "type": "string"
+          },
+          "timed_out": {
+            "type": "boolean"
+          },
+          "truncated": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ControlCommandsRequest": {
+        "type": "object",
+        "required": [
+          "commands"
+        ],
+        "properties": {
+          "commands": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "stop_on_error": {
+            "type": "boolean"
+          },
+          "timeout_seconds": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "minimum": 0
+          },
+          "workdir": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "ControlCommandsResponse": {
+        "type": "object",
+        "required": [
+          "ok",
+          "results"
+        ],
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ControlCommandResult"
+            }
           }
         }
       },
@@ -1667,29 +1781,6 @@
           "medium",
           "high"
         ]
-      },
-      "RuntimeEnvResponse": {
-        "type": "object",
-        "required": [
-          "applied_at",
-          "key_count"
-        ],
-        "properties": {
-          "applied_at": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "key_count": {
-            "type": "integer",
-            "minimum": 0
-          }
-        }
-      },
-      "RuntimeEnvUpdate": {
-        "type": "object",
-        "additionalProperties": {
-          "type": "string"
-        }
       },
       "RuntimeMode": {
         "type": "string",

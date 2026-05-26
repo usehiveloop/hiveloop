@@ -162,15 +162,21 @@ func newEmployeeProxyTokenRefreshFixture(t *testing.T, envStatus int) *employeeP
 			w.WriteHeader(http.StatusOK)
 		case "/readyz":
 			w.WriteHeader(http.StatusOK)
-		case "/config/env":
-			var env map[string]string
-			if err := json.NewDecoder(r.Body).Decode(&env); err != nil {
+		case "/config":
+			if r.Method == http.MethodGet {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte(`{"agent":{"name":"Hivy"},"system_prompt":{"cacheable_segments":[{"type":"static_text","config":{"content":"test"}}],"dynamic_segments":[]},"model":{"provider":"openai_compatible","base_url":"https://proxy.test/v1","model_id":"test","api_key_env":"HIVY_PROXY_API_KEY","temperature":0,"max_output_tokens":1000},"tools":[]}`))
+				return
+			}
+			var req employeeruntime.ConfigUpdateRequest
+			if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 				w.WriteHeader(http.StatusBadRequest)
 				return
 			}
 			runtime.mu.Lock()
 			runtime.envCalls++
-			runtime.lastEnv = env
+			runtime.lastEnv = req.RuntimeEnv
 			status := runtime.envStatus
 			runtime.mu.Unlock()
 			if status == 0 {
@@ -178,7 +184,7 @@ func newEmployeeProxyTokenRefreshFixture(t *testing.T, envStatus int) *employeeP
 			}
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(status)
-			_ = json.NewEncoder(w).Encode(map[string]any{"key_count": len(env)})
+			_ = json.NewEncoder(w).Encode(map[string]any{"env_key_count": len(req.RuntimeEnv)})
 		default:
 			w.WriteHeader(http.StatusNotFound)
 		}
@@ -221,18 +227,18 @@ func newEmployeeProxyTokenRefreshFixture(t *testing.T, envStatus int) *employeeP
 	if err := db.Create(&agent).Error; err != nil {
 		t.Fatalf("create agent: %v", err)
 	}
-	bridgeKey := "runtime-secret-" + uuid.NewString()
-	encryptedKey, err := encKey.EncryptString(bridgeKey)
+	runtimeSecret := "runtime-secret-" + uuid.NewString()
+	encryptedKey, err := encKey.EncryptString(runtimeSecret)
 	if err != nil {
 		t.Fatalf("encrypt runtime secret: %v", err)
 	}
 	sb := model.Sandbox{
-		OrgID:                 &org.ID,
-		EmployeeID:            &agent.ID,
-		ExternalID:            "proxy-refresh-external",
-		BridgeURL:             server.URL,
-		EncryptedBridgeAPIKey: encryptedKey,
-		Status:                string(sandbox.StatusRunning),
+		OrgID:                  &org.ID,
+		EmployeeID:             &agent.ID,
+		ExternalID:             "proxy-refresh-external",
+		RuntimeURL:             server.URL,
+		EncryptedRuntimeSecret: encryptedKey,
+		Status:                 string(sandbox.StatusRunning),
 	}
 	if err := db.Create(&sb).Error; err != nil {
 		t.Fatalf("create sandbox: %v", err)

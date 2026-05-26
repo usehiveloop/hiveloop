@@ -22,7 +22,7 @@ func NewUploadsHandler(db *gorm.DB, presigner storage.Presigner) *UploadsHandler
 
 // WithStreamer enables the agent-facing streaming upload endpoint. The
 // streamer is normally the same S3Presigner that satisfies both interfaces;
-// the encryption key is needed to verify the bridge bearer token.
+// the encryption key is needed to verify the runtime bearer token.
 func (h *UploadsHandler) WithStreamer(s storage.Streamer, encKey *crypto.SymmetricKey) *UploadsHandler {
 	h.streamer = s
 	h.encKey = encKey

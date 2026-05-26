@@ -25,8 +25,8 @@ func TestSpecialistStatusToolReturnsCompactText(t *testing.T) {
 		OrgID:                 &org.ID,
 		EmployeeID:            &employee.ID,
 		ExternalID:            "specialist-status-sandbox",
-		BridgeURL:             "http://localhost:7080",
-		EncryptedBridgeAPIKey: []byte("encrypted"),
+		RuntimeURL:             "http://localhost:7080",
+		EncryptedRuntimeSecret: []byte("encrypted"),
 		Status:                "running",
 	}
 	if err := db.Create(&sb).Error; err != nil {

@@ -6,37 +6,35 @@ import (
 )
 
 const (
-	EmployeeEnvRuntimeSecret              = "RUNTIME_SECRET"
+	EmployeeEnvRuntimeSecret              = "HIVY_RUNTIME_SECRET"
 	EmployeeEnvProxyAPIKey                = "HIVY_PROXY_API_KEY"
-	EmployeeEnvAgentModel                 = "AGENT_MODEL"
-	EmployeeEnvAgentBaseURL               = "AGENT_BASE_URL"
-	EmployeeEnvAgentAPIKeyEnv             = "AGENT_API_KEY_ENV"
-	EmployeeEnvAgentMultimodalModel       = "AGENT_MULTIMODAL_MODEL"
-	EmployeeEnvAgentMultimodalBaseURL     = "AGENT_MULTIMODAL_BASE_URL"
-	EmployeeEnvAgentMultimodalAPIKeyEnv   = "AGENT_MULTIMODAL_API_KEY_ENV"
-	EmployeeEnvEmployeeID                 = "EMPLOYEE_ID"
-	EmployeeEnvCloudControlPlaneURL       = "CLOUD_CONTROL_PLANE_URL"
-	EmployeeEnvBridgeAPIKey               = "BRIDGE_API_KEY"
-	EmployeeEnvUploadBearer               = "UPLOAD_BEARER"
-	EmployeeEnvWorkspaceRoot              = "WORKSPACE_ROOT"
-	EmployeeEnvDBPath                     = "DB_PATH"
-	EmployeeEnvRuntimeBindAddr            = "RUNTIME_BIND_ADDR"
+	EmployeeEnvAgentModel                 = "HIVY_AGENT_MODEL"
+	EmployeeEnvAgentBaseURL               = "HIVY_AGENT_BASE_URL"
+	EmployeeEnvAgentAPIKeyEnv             = "HIVY_AGENT_API_KEY_ENV"
+	EmployeeEnvAgentMultimodalModel       = "HIVY_AGENT_MULTIMODAL_MODEL"
+	EmployeeEnvAgentMultimodalBaseURL     = "HIVY_AGENT_MULTIMODAL_BASE_URL"
+	EmployeeEnvAgentMultimodalAPIKeyEnv   = "HIVY_AGENT_MULTIMODAL_API_KEY_ENV"
+	EmployeeEnvEmployeeID                 = "HIVY_EMPLOYEE_ID"
+	EmployeeEnvCloudControlPlaneURL       = "HIVY_CONTROL_PLANE_URL"
+	EmployeeEnvUploadBearer               = "HIVY_UPLOAD_BEARER"
+	EmployeeEnvWorkspaceRoot              = "HIVY_WORKSPACE_ROOT"
+	EmployeeEnvDBPath                     = "HIVY_DB_PATH"
+	EmployeeEnvRuntimeBindAddr            = "HIVY_RUNTIME_BIND_ADDR"
 	EmployeeEnvRuntimeMode                = "HIVY_RUNTIME_MODE"
 	EmployeeEnvSandboxID                  = "HIVY_SANDBOX_ID"
 	EmployeeEnvOrgID                      = "HIVY_ORG_ID"
-	EmployeeEnvHivyEmployeeID             = "HIVY_EMPLOYEE_ID"
 	EmployeeEnvGitUsername                = "HIVY_GIT_USERNAME"
 	EmployeeEnvGitEmail                   = "HIVY_GIT_EMAIL"
 	EmployeeEnvGitCredentialsURL          = "HIVY_GIT_CREDENTIALS_URL"
 	EmployeeEnvGitHubNoKeyring            = "GH_NO_KEYRING"
 	EmployeeEnvDriveUploadURL             = "HIVY_DRIVE_UPLOAD_URL"
-	EmployeeEnvBugsinkURL                 = "BUGSINK_URL"
-	EmployeeEnvBugsinkDashboardBaseURL    = "BUGSINK_DASHBOARD_BASE_URL"
-	EmployeeEnvBugsinkToken               = "BUGSINK_TOKEN"
-	EmployeeEnvLinearURL                  = "LINEAR_URL"
-	EmployeeEnvLinearToken                = "LINEAR_TOKEN"
-	EmployeeEnvNotionAPIURL               = "NOTION_API_URL"
-	EmployeeEnvNotionToken                = "NOTION_TOKEN"
+	EmployeeEnvBugsinkURL                 = "HIVY_BUGSINK_URL"
+	EmployeeEnvBugsinkDashboardBaseURL    = "HIVY_BUGSINK_DASHBOARD_BASE_URL"
+	EmployeeEnvBugsinkToken               = "HIVY_BUGSINK_TOKEN"
+	EmployeeEnvLinearURL                  = "HIVY_LINEAR_URL"
+	EmployeeEnvLinearToken                = "HIVY_LINEAR_TOKEN"
+	EmployeeEnvNotionAPIURL               = "HIVY_NOTION_API_URL"
+	EmployeeEnvNotionToken                = "HIVY_NOTION_TOKEN"
 	EmployeeEnvSentryDSN                  = "SENTRY_DSN"
 	EmployeeEnvSentryEnvironment          = "SENTRY_ENVIRONMENT"
 	EmployeeEnvSentrySampleRate           = "SENTRY_SAMPLE_RATE"
@@ -47,14 +45,9 @@ const (
 	EmployeeEnvPath                       = "PATH"
 	EmployeeEnvLang                       = "LANG"
 	EmployeeEnvLCAll                      = "LC_ALL"
-	EmployeeForbiddenEnvOpenRouterAPIKey  = "OPENROUTER_API_KEY"
-	EmployeeForbiddenEnvOpenAIAPIKey      = "OPENAI_API_KEY"
-	EmployeeForbiddenEnvGroqAPIKey        = "GROQ_API_KEY"
-	EmployeeForbiddenEnvTogetherAPIKey    = "TOGETHER_API_KEY"
 	EmployeeEnvSourceControlPlaneInjected = "control_plane_injected"
 	EmployeeEnvSourceConditionalSentry    = "conditional_sentry"
 	EmployeeEnvSourceContainerOS          = "container_os"
-	EmployeeEnvSourceForbiddenRawProvider = "forbidden_raw_provider"
 	EmployeeEnvStatusOK                   = "ok"
 	EmployeeEnvStatusMissing              = "missing"
 	EmployeeEnvStatusMissingOptional      = "missing_optional"
@@ -96,7 +89,6 @@ var employeeEnvCatalog = []EmployeeEnvSpec{
 	{Key: EmployeeEnvAgentMultimodalAPIKeyEnv, Source: EmployeeEnvSourceControlPlaneInjected},
 	{Key: EmployeeEnvEmployeeID, Source: EmployeeEnvSourceControlPlaneInjected},
 	{Key: EmployeeEnvCloudControlPlaneURL, Source: EmployeeEnvSourceControlPlaneInjected},
-	{Key: EmployeeEnvBridgeAPIKey, Source: EmployeeEnvSourceControlPlaneInjected, Sensitive: true},
 	{Key: EmployeeEnvUploadBearer, Source: EmployeeEnvSourceControlPlaneInjected, Sensitive: true},
 	{Key: EmployeeEnvWorkspaceRoot, Source: EmployeeEnvSourceControlPlaneInjected},
 	{Key: EmployeeEnvDBPath, Source: EmployeeEnvSourceControlPlaneInjected},
@@ -104,7 +96,6 @@ var employeeEnvCatalog = []EmployeeEnvSpec{
 	{Key: EmployeeEnvRuntimeMode, Source: EmployeeEnvSourceControlPlaneInjected},
 	{Key: EmployeeEnvSandboxID, Source: EmployeeEnvSourceControlPlaneInjected},
 	{Key: EmployeeEnvOrgID, Source: EmployeeEnvSourceControlPlaneInjected},
-	{Key: EmployeeEnvHivyEmployeeID, Source: EmployeeEnvSourceControlPlaneInjected},
 	{Key: EmployeeEnvGitUsername, Source: EmployeeEnvSourceControlPlaneInjected},
 	{Key: EmployeeEnvGitEmail, Source: EmployeeEnvSourceControlPlaneInjected},
 	{Key: EmployeeEnvGitCredentialsURL, Source: EmployeeEnvSourceControlPlaneInjected},
@@ -127,10 +118,6 @@ var employeeEnvCatalog = []EmployeeEnvSpec{
 	{Key: EmployeeEnvPath, Source: EmployeeEnvSourceContainerOS, Optional: true},
 	{Key: EmployeeEnvLang, Source: EmployeeEnvSourceContainerOS, Optional: true},
 	{Key: EmployeeEnvLCAll, Source: EmployeeEnvSourceContainerOS, Optional: true},
-	{Key: EmployeeForbiddenEnvOpenRouterAPIKey, Source: EmployeeEnvSourceForbiddenRawProvider, Sensitive: true, Forbidden: true, Optional: true},
-	{Key: EmployeeForbiddenEnvOpenAIAPIKey, Source: EmployeeEnvSourceForbiddenRawProvider, Sensitive: true, Forbidden: true, Optional: true},
-	{Key: EmployeeForbiddenEnvGroqAPIKey, Source: EmployeeEnvSourceForbiddenRawProvider, Sensitive: true, Forbidden: true, Optional: true},
-	{Key: EmployeeForbiddenEnvTogetherAPIKey, Source: EmployeeEnvSourceForbiddenRawProvider, Sensitive: true, Forbidden: true, Optional: true},
 }
 
 func EmployeeEnvCatalog() []EmployeeEnvSpec {

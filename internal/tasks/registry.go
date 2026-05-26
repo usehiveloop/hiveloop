@@ -25,7 +25,6 @@ type WorkerDeps struct {
 	DB                *gorm.DB
 	Cleanup           *streaming.Cleanup
 	Orchestrator      *sandbox.Orchestrator   // nil if sandbox not configured
-	Pusher            *sandbox.Pusher         // nil if sandbox not configured
 	EncKey            *crypto.SymmetricKey    // nil if not configured
 	EmailSend         EmailSenderFunc         // nil if email not configured
 	EmailSendTemplate EmailTemplateSenderFunc // nil if template email not configured
@@ -73,10 +72,11 @@ func NewServeMux(deps *WorkerDeps) *asynq.ServeMux {
 		mux.HandleFunc(TypeSandboxResourceCheck, NewSandboxResourceCheckHandler(deps.Orchestrator).Handle)
 		mux.HandleFunc(TypeSandboxLifecycle, NewSandboxLifecycleHandler(deps.Orchestrator).Handle)
 		mux.HandleFunc(TypeEmployeeSandboxRetire, NewEmployeeSandboxRetireHandler(deps.DB, deps.Orchestrator).Handle)
+		mux.HandleFunc(TypeSandboxWarmPoolReconcile, NewSandboxWarmPoolReconcileHandler(deps.Orchestrator).Handle)
 	}
 
-	// Employee cleanup works with or without orchestrator/pusher.
-	mux.HandleFunc(TypeEmployeeCleanup, NewEmployeeCleanupHandler(deps.DB, deps.Orchestrator, deps.Pusher).Handle)
+	// Employee cleanup works with or without sandbox orchestration.
+	mux.HandleFunc(TypeEmployeeCleanup, NewEmployeeCleanupHandler(deps.DB, deps.Orchestrator).Handle)
 
 	// Sandbox template build
 	if deps.Orchestrator != nil {

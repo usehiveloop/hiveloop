@@ -32,18 +32,18 @@ func TestEmployeeOutboundWebhookBatch_IngestsCoalescedStreamWithoutPerDeltaRows(
 	if err := db.Create(&agent).Error; err != nil {
 		t.Fatalf("create agent: %v", err)
 	}
-	bridgeKey := "batch-webhook-secret-" + uuid.NewString()
-	encryptedKey, err := encKey.EncryptString(bridgeKey)
+	runtimeSecret := "batch-webhook-secret-" + uuid.NewString()
+	encryptedKey, err := encKey.EncryptString(runtimeSecret)
 	if err != nil {
-		t.Fatalf("encrypt bridge key: %v", err)
+		t.Fatalf("encrypt runtime secret: %v", err)
 	}
 	sandbox := model.Sandbox{
-		OrgID:                 &org.ID,
-		EmployeeID:            &agent.ID,
-		ExternalID:            "batch-webhook-sandbox",
-		BridgeURL:             "http://localhost:7080",
-		EncryptedBridgeAPIKey: encryptedKey,
-		Status:                "running",
+		OrgID:                  &org.ID,
+		EmployeeID:             &agent.ID,
+		ExternalID:             "batch-webhook-sandbox",
+		RuntimeURL:             "http://localhost:7080",
+		EncryptedRuntimeSecret: encryptedKey,
+		Status:                 "running",
 	}
 	if err := db.Create(&sandbox).Error; err != nil {
 		t.Fatalf("create sandbox: %v", err)
@@ -76,7 +76,7 @@ func TestEmployeeOutboundWebhookBatch_IngestsCoalescedStreamWithoutPerDeltaRows(
 	req := httptest.NewRequest(http.MethodPost, "/internal/webhooks/employee/"+sandbox.ID.String()+"/batch", bytes.NewReader(body))
 	req.Header.Set("Content-Encoding", "gzip")
 	req.Header.Set("Content-Type", "application/x-ndjson")
-	req.Header.Set("X-Hivy-Signature", "sha256="+hmacHex(bridgeKey, body))
+	req.Header.Set("X-Hivy-Signature", "sha256="+hmacHex(runtimeSecret, body))
 	rr := httptest.NewRecorder()
 	r.ServeHTTP(rr, req)
 	if rr.Code != http.StatusOK {
@@ -116,9 +116,9 @@ func TestEmployeeOutboundWebhookBatch_RejectsBadSignature(t *testing.T) {
 	}
 	encryptedKey, err := encKey.EncryptString("right-secret")
 	if err != nil {
-		t.Fatalf("encrypt bridge key: %v", err)
+		t.Fatalf("encrypt runtime secret: %v", err)
 	}
-	sandbox := model.Sandbox{OrgID: &org.ID, EmployeeID: &agent.ID, EncryptedBridgeAPIKey: encryptedKey, Status: "running"}
+	sandbox := model.Sandbox{OrgID: &org.ID, EmployeeID: &agent.ID, EncryptedRuntimeSecret: encryptedKey, Status: "running"}
 	if err := db.Create(&sandbox).Error; err != nil {
 		t.Fatalf("create sandbox: %v", err)
 	}

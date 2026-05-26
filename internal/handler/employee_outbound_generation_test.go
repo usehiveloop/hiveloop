@@ -34,7 +34,7 @@ func TestEmployeeOutboundModelUsage_WritesGenerationAndSkipsMemoryEvent(t *testi
 	if err := db.Create(&agent).Error; err != nil {
 		t.Fatalf("create agent: %v", err)
 	}
-	sandbox := model.Sandbox{OrgID: &org.ID, EmployeeID: &agent.ID, ExternalID: "runtime-usage-sandbox", BridgeURL: "http://localhost:7080", EncryptedBridgeAPIKey: []byte("key"), Status: "running"}
+	sandbox := model.Sandbox{OrgID: &org.ID, EmployeeID: &agent.ID, ExternalID: "runtime-usage-sandbox", RuntimeURL: "http://localhost:7080", EncryptedRuntimeSecret: []byte("key"), Status: "running"}
 	if err := db.Create(&sandbox).Error; err != nil {
 		t.Fatalf("create sandbox: %v", err)
 	}

@@ -146,7 +146,7 @@ func (h *LinearProxyHandler) authenticatedSandbox(ctx context.Context, agentID u
 		return false
 	}
 	for _, sb := range sandboxes {
-		decryptedKey, err := h.encKey.DecryptString(sb.EncryptedBridgeAPIKey)
+		decryptedKey, err := h.encKey.DecryptString(sb.EncryptedRuntimeSecret)
 		if err != nil {
 			continue
 		}

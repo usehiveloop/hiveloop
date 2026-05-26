@@ -93,13 +93,13 @@ func newAssetsListHarness(t *testing.T) *assetsListHarness {
 	mkSandbox := func(orgID, agentID uuid.UUID) uuid.UUID {
 		id := uuid.New()
 		if err := db.Create(&model.Sandbox{
-			ID:                    id,
-			OrgID:                 &orgID,
-			EmployeeID:            &agentID,
-			EncryptedBridgeAPIKey: []byte("placeholder"),
-			Status:                "running",
-			ExternalID:            "x",
-			BridgeURL:             "http://localhost:1",
+			ID:                     id,
+			OrgID:                  &orgID,
+			EmployeeID:             &agentID,
+			EncryptedRuntimeSecret: []byte("placeholder"),
+			Status:                 "running",
+			ExternalID:             "x",
+			RuntimeURL:             "http://localhost:1",
 		}).Error; err != nil {
 			t.Fatalf("create sandbox: %v", err)
 		}
@@ -112,7 +112,7 @@ func newAssetsListHarness(t *testing.T) *assetsListHarness {
 			OrgID:                 orgID,
 			EmployeeID:            agentID,
 			SandboxID:             sandboxID,
-			RuntimeConversationID: "bridge-" + uuid.New().String()[:8],
+			RuntimeConversationID: "runtime-" + uuid.New().String()[:8],
 			Status:                "active",
 		}).Error; err != nil {
 			t.Fatalf("create conversation: %v", err)

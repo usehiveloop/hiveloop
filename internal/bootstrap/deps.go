@@ -17,7 +17,6 @@ import (
 	"github.com/usehivy/hivy/internal/cache"
 	"github.com/usehivy/hivy/internal/config"
 	"github.com/usehivy/hivy/internal/counter"
-	"github.com/usehivy/hivy/internal/credentials"
 	"github.com/usehivy/hivy/internal/crypto"
 	"github.com/usehivy/hivy/internal/db"
 	"github.com/usehivy/hivy/internal/hindsight"
@@ -52,7 +51,6 @@ type Deps struct {
 	SigningKey      []byte
 	SandboxEncKey   *crypto.SymmetricKey
 	Orchestrator    *sandbox.Orchestrator
-	AgentPusher     *sandbox.Pusher
 	Specialists     *specialists.Catalog
 	EventBus        *streaming.EventBus
 	Flusher         *streaming.Flusher
@@ -101,7 +99,6 @@ func New(ctx context.Context) (*Deps, error) {
 		return nil, err
 	}
 
-	credentialPicker := credentials.NewPicker(database)
 	logging.FromContext(ctx).InfoContext(ctx, "database ready")
 
 	var kms *crypto.KeyWrapper
@@ -206,7 +203,6 @@ func New(ctx context.Context) (*Deps, error) {
 
 	var sandboxEncKey *crypto.SymmetricKey
 	var orchestrator *sandbox.Orchestrator
-	var agentPusher *sandbox.Pusher
 	if cfg.SandboxProviderID == "" {
 		logging.FromContext(ctx).WarnContext(ctx, "sandbox orchestration disabled; no sandbox provider configured",
 			"required_env", "HIVY_SANDBOX_PROVIDER_ID,HIVY_SANDBOX_ENCRYPTION_KEY")
@@ -235,7 +231,6 @@ func New(ctx context.Context) (*Deps, error) {
 				"reason", err.Error())
 		} else {
 			orchestrator = sandbox.NewOrchestrator(database, sandboxProvider, sandboxEncKey, cfg)
-			agentPusher = sandbox.NewPusher(database, orchestrator, signingKey, cfg, credentialPicker)
 			logging.FromContext(ctx).InfoContext(ctx, "sandbox orchestrator ready", "provider", sandboxProvider.ID())
 		}
 	}
@@ -283,7 +278,6 @@ func New(ctx context.Context) (*Deps, error) {
 		SigningKey:      signingKey,
 		SandboxEncKey:   sandboxEncKey,
 		Orchestrator:    orchestrator,
-		AgentPusher:     agentPusher,
 		Specialists:     specialistCatalog,
 		EventBus:        eventBus,
 		Flusher:         flusher,

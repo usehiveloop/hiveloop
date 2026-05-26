@@ -10,12 +10,12 @@ type EmployeeSchedule struct {
 	ID         uuid.UUID `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
 	OrgID      uuid.UUID `gorm:"type:uuid;not null;index"`
 	Org        Org       `gorm:"foreignKey:OrgID;constraint:OnDelete:CASCADE"`
-	EmployeeID uuid.UUID `gorm:"type:uuid;not null;uniqueIndex:idx_employee_schedule_employee_bridge"`
+	EmployeeID uuid.UUID `gorm:"type:uuid;not null;uniqueIndex:idx_employee_schedule_employee_runtime"`
 	Employee   Employee  `gorm:"foreignKey:EmployeeID;constraint:OnDelete:CASCADE"`
 	SandboxID  uuid.UUID `gorm:"type:uuid;not null;index"`
 	Sandbox    Sandbox   `gorm:"foreignKey:SandboxID;constraint:OnDelete:CASCADE"`
 
-	BridgeJobID     string `gorm:"not null;size:255;uniqueIndex:idx_employee_schedule_employee_bridge"`
+	RuntimeJobID    string `gorm:"not null;size:255;uniqueIndex:idx_employee_schedule_employee_runtime"`
 	Status          string `gorm:"not null;default:'active';size:64;index"`
 	Channel         string `gorm:"not null;default:'';size:255"`
 	Description     string `gorm:"type:text;not null;default:''"`
@@ -29,7 +29,7 @@ type EmployeeSchedule struct {
 	LastStatus       string `gorm:"not null;default:'';size:64"`
 	LastError        string `gorm:"type:text;not null;default:''"`
 	CreatedBySession string `gorm:"not null;default:'';size:255"`
-	BridgeCreatedAt  *time.Time
+	RuntimeCreatedAt *time.Time
 	CancelledAt      *time.Time `gorm:"index"`
 
 	CreatedAt time.Time
@@ -49,7 +49,7 @@ type EmployeeScheduleRun struct {
 	SandboxID  uuid.UUID        `gorm:"type:uuid;not null;index"`
 	Sandbox    Sandbox          `gorm:"foreignKey:SandboxID;constraint:OnDelete:CASCADE"`
 
-	BridgeJobID  string     `gorm:"not null;size:255;index"`
+	RuntimeJobID string     `gorm:"not null;size:255;index"`
 	RunKey       string     `gorm:"not null;size:500;uniqueIndex:idx_employee_schedule_run_key"`
 	Status       string     `gorm:"not null;default:'running';size:64;index"`
 	ScheduledAt  *time.Time `gorm:"index"`

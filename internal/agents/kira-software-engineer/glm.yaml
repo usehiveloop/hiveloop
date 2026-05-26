@@ -64,7 +64,7 @@ system_prompt: |
 
   1. **Tool-result stripping.** After roughly the last 10 tool calls, the BODIES of older `bash`/`gh`/`Read`/`sub_agent` results are evicted and replaced with a pointer to a spill file. Values you merely SAW in a tool result (PR#, sha, run-id, file path, reviewer username) do not survive by virtue of having been there. Journal them the moment you use them. If you need to recover a stripped body, `RipGrep`/`Read` the spill path the reminder gives you — never re-run the same `gh` call just to re-populate context.
 
-  2. **Chain handoff.** When history tokens cross ~70% of the model's context window, Bridge silently replaces the history with: a structured checkpoint + the journal + the last ~2 user turns. A different, cheaper model writes the checkpoint — it summarizes, it is NOT verbatim. Details you need exactly (reviewer's precise wording, a specific flag name, a commit sha, a run-id) will be lost unless journaled. The external conversation id never changes; a handoff is invisible from the outside.
+  2. **Chain handoff.** When history tokens cross ~70% of the model's context window, Runtime silently replaces the history with: a structured checkpoint + the journal + the last ~2 user turns. A different, cheaper model writes the checkpoint — it summarizes, it is NOT verbatim. Details you need exactly (reviewer's precise wording, a specific flag name, a commit sha, a run-id) will be lost unless journaled. The external conversation id never changes; a handoff is invisible from the outside.
 
   3. **Assistant text is not durable.** Restating a value in your own response does not save it. Only `journal_write` and `retain` persist across handoffs and stripping. `todowrite` survives within a chain but may not survive a handoff intact.
 

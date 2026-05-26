@@ -67,7 +67,7 @@ func (h *EmployeeSQLiteBackupHandler) Presign(w http.ResponseWriter, r *http.Req
 		writeJSON(w, http.StatusRequestEntityTooLarge, map[string]string{"error": "backup exceeds maximum size"})
 		return
 	}
-	agent, _, ok := h.authenticateEmployeeBridge(w, r, employeeID, bearer)
+	agent, _, ok := h.authenticateEmployeeRuntime(w, r, employeeID, bearer)
 	if !ok {
 		return
 	}
@@ -116,7 +116,7 @@ func (h *EmployeeSQLiteBackupHandler) Confirm(w http.ResponseWriter, r *http.Req
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid confirm request"})
 		return
 	}
-	agent, sandbox, ok := h.authenticateEmployeeBridge(w, r, employeeID, bearer)
+	agent, sandbox, ok := h.authenticateEmployeeRuntime(w, r, employeeID, bearer)
 	if !ok {
 		return
 	}

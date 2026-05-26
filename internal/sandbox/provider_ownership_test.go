@@ -12,11 +12,11 @@ func TestSandboxOperationRejectsDifferentProvider(t *testing.T) {
 	orch, provider, db := setupOrchestrator(t)
 
 	sb := model.Sandbox{
-		ProviderID:            "other-provider",
-		ExternalID:            "foreign-sandbox",
-		BridgeURL:             "https://foreign.test",
-		EncryptedBridgeAPIKey: []byte("enc"),
-		Status:                string(StatusRunning),
+		ProviderID:             "other-provider",
+		ExternalID:             "foreign-sandbox",
+		RuntimeURL:             "https://foreign.test",
+		EncryptedRuntimeSecret: []byte("enc"),
+		Status:                 string(StatusRunning),
 	}
 	if err := db.Create(&sb).Error; err != nil {
 		t.Fatalf("create sandbox: %v", err)

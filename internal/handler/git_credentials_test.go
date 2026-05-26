@@ -36,14 +36,14 @@ func testSymmetricKey(t *testing.T) *crypto.SymmetricKey {
 }
 
 type gitCredsHarness struct {
-	db        *gorm.DB
-	router    *chi.Mux
-	encKey    *crypto.SymmetricKey
-	orgID     uuid.UUID
-	agentID   uuid.UUID
-	sandboxID uuid.UUID
-	bridgeKey string
-	nangoMock *httptest.Server
+	db            *gorm.DB
+	router        *chi.Mux
+	encKey        *crypto.SymmetricKey
+	orgID         uuid.UUID
+	agentID       uuid.UUID
+	sandboxID     uuid.UUID
+	runtimeSecret string
+	nangoMock     *httptest.Server
 }
 
 func newGitCredsHarness(t *testing.T, nangoHandler http.Handler) *gitCredsHarness {
@@ -87,21 +87,21 @@ func newGitCredsHarness(t *testing.T, nangoHandler http.Handler) *gitCredsHarnes
 		t.Fatalf("create test agent: %v", err)
 	}
 
-	bridgeKey := "test-bridge-api-key-for-git-creds"
-	encryptedKey, err := encKey.EncryptString(bridgeKey)
+	runtimeSecret := "test-runtime-api-key-for-git-creds"
+	encryptedKey, err := encKey.EncryptString(runtimeSecret)
 	if err != nil {
-		t.Fatalf("encrypt bridge key: %v", err)
+		t.Fatalf("encrypt runtime secret: %v", err)
 	}
 
 	sandboxID := uuid.New()
 	sandbox := model.Sandbox{
-		ID:                    sandboxID,
-		OrgID:                 &orgID,
-		EmployeeID:            &agentID,
-		EncryptedBridgeAPIKey: encryptedKey,
-		Status:                "running",
-		ExternalID:            "mock-external-id",
-		BridgeURL:             "http://localhost:25434",
+		ID:                     sandboxID,
+		OrgID:                  &orgID,
+		EmployeeID:             &agentID,
+		EncryptedRuntimeSecret: encryptedKey,
+		Status:                 "running",
+		ExternalID:             "mock-external-id",
+		RuntimeURL:             "http://localhost:25434",
 	}
 	if err := database.Create(&sandbox).Error; err != nil {
 		t.Fatalf("create test sandbox: %v", err)
@@ -143,14 +143,14 @@ func newGitCredsHarness(t *testing.T, nangoHandler http.Handler) *gitCredsHarnes
 	router.Post("/internal/git-credentials/{employeeID}", gitCredsHandler.Handle)
 
 	return &gitCredsHarness{
-		db:        database,
-		router:    router,
-		encKey:    encKey,
-		orgID:     orgID,
-		agentID:   agentID,
-		sandboxID: sandboxID,
-		bridgeKey: bridgeKey,
-		nangoMock: nangoMock,
+		db:            database,
+		router:        router,
+		encKey:        encKey,
+		orgID:         orgID,
+		agentID:       agentID,
+		sandboxID:     sandboxID,
+		runtimeSecret: runtimeSecret,
+		nangoMock:     nangoMock,
 	}
 }
 
@@ -172,7 +172,7 @@ func TestGitCredentials_Success(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodPost,
 		"/internal/git-credentials/"+harness.agentID.String(), nil)
-	req.Header.Set("Authorization", "Bearer "+harness.bridgeKey)
+	req.Header.Set("Authorization", "Bearer "+harness.runtimeSecret)
 	recorder := httptest.NewRecorder()
 	harness.router.ServeHTTP(recorder, req)
 
@@ -210,7 +210,7 @@ func TestGitCredentials_CachesToken(t *testing.T) {
 	for range 3 {
 		req := httptest.NewRequest(http.MethodPost,
 			"/internal/git-credentials/"+harness.agentID.String(), nil)
-		req.Header.Set("Authorization", "Bearer "+harness.bridgeKey)
+		req.Header.Set("Authorization", "Bearer "+harness.runtimeSecret)
 		recorder := httptest.NewRecorder()
 		harness.router.ServeHTTP(recorder, req)
 

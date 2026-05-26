@@ -41,12 +41,12 @@ func (o *Orchestrator) CreateEmployeeSandbox(ctx context.Context, agent *model.E
 
 	snapshotID := o.cfg.SandboxesRuntimeBaseImagePrefix
 	sb := model.Sandbox{
-		OrgID:                 &orgID,
-		EmployeeID:            &agent.ID,
-		SnapshotID:            &snapshotID,
-		ProviderID:            o.provider.ID(),
-		EncryptedBridgeAPIKey: encryptedSecret,
-		Status:                "creating",
+		OrgID:                  &orgID,
+		EmployeeID:             &agent.ID,
+		SnapshotID:             &snapshotID,
+		ProviderID:             o.provider.ID(),
+		EncryptedRuntimeSecret: encryptedSecret,
+		Status:                 "creating",
 	}
 	if err := o.db.Create(&sb).Error; err != nil {
 		return nil, fmt.Errorf("saving sandbox: %w", err)
@@ -59,6 +59,26 @@ func (o *Orchestrator) CreateEmployeeSandbox(ctx context.Context, agent *model.E
 		"sandbox_id":  sb.ID.String(),
 		"employee_id": agent.ID.String(),
 		"harness":     "employee-sandbox",
+	}
+
+	if o.provider.ID() == ProviderRailway {
+		if err := o.claimWarmRuntime(ctx, &sb, model.SandboxWarmSlotModeEmployee); err != nil {
+			if delErr := o.db.Where("id = ?", sb.ID).Delete(&model.Sandbox{}).Error; delErr != nil {
+				logging.FromContext(ctx).ErrorContext(ctx, "delete orphaned employee sandbox row after warm claim failure",
+					"error", delErr, "sandbox_id", sb.ID)
+			}
+			return nil, err
+		}
+		if err := o.cloneEmployeeSelectedRepositories(ctx, &sb, agent); err != nil {
+			o.markSandboxError(ctx, &sb, map[string]any{
+				"status":        "error",
+				"error_message": fmt.Sprintf("repository cloning failed: %v", err),
+			})
+			return nil, fmt.Errorf("cloning employee repositories: %w", err)
+		}
+		logging.FromContext(ctx).InfoContext(ctx, "employee sandbox claimed from warm pool",
+			"sandbox_id", sb.ID, "external_id", sb.ExternalID, "employee_id", agent.ID)
+		return &sb, nil
 	}
 
 	info, err := o.provider.CreateSandbox(ctx, CreateSandboxOpts{
@@ -86,19 +106,19 @@ func (o *Orchestrator) CreateEmployeeSandbox(ctx context.Context, agent *model.E
 	}
 
 	now := time.Now()
-	expiresAt := now.Add(bridgeURLTTL)
+	expiresAt := now.Add(runtimeURLTTL)
 	if err := o.db.Model(&sb).Updates(map[string]any{
-		"external_id":           info.ExternalID,
-		"bridge_url":            sandboxURL,
-		"bridge_url_expires_at": expiresAt,
-		"status":                "running",
-		"last_active_at":        now,
+		"external_id":            info.ExternalID,
+		"runtime_url":            sandboxURL,
+		"runtime_url_expires_at": expiresAt,
+		"status":                 "running",
+		"last_active_at":         now,
 	}).Error; err != nil {
 		return nil, fmt.Errorf("updating sandbox: %w", err)
 	}
 	sb.ExternalID = info.ExternalID
-	sb.BridgeURL = sandboxURL
-	sb.BridgeURLExpiresAt = &expiresAt
+	sb.RuntimeURL = sandboxURL
+	sb.RuntimeURLExpiresAt = &expiresAt
 	sb.Status = "running"
 	sb.LastActiveAt = &now
 
@@ -148,12 +168,12 @@ func (o *Orchestrator) CreateSpecialistRuntimeSandbox(ctx context.Context, agent
 
 	snapshotID := o.cfg.SandboxesRuntimeSpecialistImagePrefix
 	sb := model.Sandbox{
-		OrgID:                 &orgID,
-		EmployeeID:            &agent.ID,
-		SnapshotID:            &snapshotID,
-		ProviderID:            o.provider.ID(),
-		EncryptedBridgeAPIKey: encryptedSecret,
-		Status:                "creating",
+		OrgID:                  &orgID,
+		EmployeeID:             &agent.ID,
+		SnapshotID:             &snapshotID,
+		ProviderID:             o.provider.ID(),
+		EncryptedRuntimeSecret: encryptedSecret,
+		Status:                 "creating",
 	}
 	if err := o.db.Create(&sb).Error; err != nil {
 		return nil, fmt.Errorf("saving specialist runtime sandbox: %w", err)
@@ -168,6 +188,26 @@ func (o *Orchestrator) CreateSpecialistRuntimeSandbox(ctx context.Context, agent
 		"employee_id": agent.ID.String(),
 		"harness":     "runtime-specialist",
 		"mode":        "specialist",
+	}
+
+	if o.provider.ID() == ProviderRailway {
+		if err := o.claimWarmRuntime(ctx, &sb, model.SandboxWarmSlotModeSpecialist); err != nil {
+			if delErr := o.db.Where("id = ?", sb.ID).Delete(&model.Sandbox{}).Error; delErr != nil {
+				logging.FromContext(ctx).ErrorContext(ctx, "delete orphaned specialist runtime sandbox row after warm claim failure",
+					"error", delErr, "sandbox_id", sb.ID)
+			}
+			return nil, err
+		}
+		if err := o.cloneEmployeeSelectedRepositories(ctx, &sb, agent); err != nil {
+			o.markSandboxError(ctx, &sb, map[string]any{
+				"status":        "error",
+				"error_message": fmt.Sprintf("repository cloning failed: %v", err),
+			})
+			return nil, fmt.Errorf("cloning specialist runtime repositories: %w", err)
+		}
+		logging.FromContext(ctx).InfoContext(ctx, "specialist runtime sandbox claimed from warm pool",
+			"sandbox_id", sb.ID, "external_id", sb.ExternalID, "employee_id", agent.ID)
+		return &sb, nil
 	}
 
 	info, err := o.provider.CreateSandbox(ctx, CreateSandboxOpts{
@@ -195,19 +235,19 @@ func (o *Orchestrator) CreateSpecialistRuntimeSandbox(ctx context.Context, agent
 	}
 
 	now := time.Now()
-	expiresAt := now.Add(bridgeURLTTL)
+	expiresAt := now.Add(runtimeURLTTL)
 	if err := o.db.Model(&sb).Updates(map[string]any{
-		"external_id":           info.ExternalID,
-		"bridge_url":            sandboxURL,
-		"bridge_url_expires_at": expiresAt,
-		"status":                "running",
-		"last_active_at":        now,
+		"external_id":            info.ExternalID,
+		"runtime_url":            sandboxURL,
+		"runtime_url_expires_at": expiresAt,
+		"status":                 "running",
+		"last_active_at":         now,
 	}).Error; err != nil {
 		return nil, fmt.Errorf("updating specialist runtime sandbox: %w", err)
 	}
 	sb.ExternalID = info.ExternalID
-	sb.BridgeURL = sandboxURL
-	sb.BridgeURLExpiresAt = &expiresAt
+	sb.RuntimeURL = sandboxURL
+	sb.RuntimeURLExpiresAt = &expiresAt
 	sb.Status = "running"
 	sb.LastActiveAt = &now
 
@@ -229,64 +269,4 @@ func (o *Orchestrator) CreateSpecialistRuntimeSandbox(ctx context.Context, agent
 	logging.FromContext(ctx).InfoContext(ctx, "specialist runtime sandbox created",
 		"sandbox_id", sb.ID, "external_id", info.ExternalID, "employee_id", agent.ID)
 	return &sb, nil
-}
-
-func (o *Orchestrator) RefreshEmployeeSandboxURL(ctx context.Context, sb *model.Sandbox) error {
-	if err := o.ensureSandboxProvider(sb); err != nil {
-		return err
-	}
-	url, err := o.provider.GetEndpoint(ctx, sb.ExternalID, EmployeeSandboxPort)
-	if err != nil {
-		return fmt.Errorf("get employee sandbox endpoint: %w", err)
-	}
-	expiresAt := time.Now().Add(bridgeURLTTL)
-	if err := o.db.Model(sb).Updates(map[string]any{
-		"bridge_url":            url,
-		"bridge_url_expires_at": expiresAt,
-	}).Error; err != nil {
-		return fmt.Errorf("update sandbox url: %w", err)
-	}
-	sb.BridgeURL = url
-	sb.BridgeURLExpiresAt = &expiresAt
-	return nil
-}
-
-func (o *Orchestrator) StartEmployeeSandbox(ctx context.Context, sb *model.Sandbox) error {
-	if err := o.ensureSandboxProvider(sb); err != nil {
-		return err
-	}
-	if err := o.provider.StartSandbox(ctx, sb.ExternalID); err != nil {
-		return fmt.Errorf("starting employee sandbox %s: %w", sb.ID, err)
-	}
-	if err := o.RefreshEmployeeSandboxURL(ctx, sb); err != nil {
-		return err
-	}
-	now := time.Now()
-	if err := o.db.Model(sb).Updates(map[string]any{
-		"status":         string(StatusRunning),
-		"last_active_at": now,
-		"stopped_at":     nil,
-		"error_message":  nil,
-	}).Error; err != nil {
-		return fmt.Errorf("mark employee sandbox running: %w", err)
-	}
-	sb.Status = string(StatusRunning)
-	sb.LastActiveAt = &now
-	sb.StoppedAt = nil
-	sb.ErrorMessage = nil
-	if err := o.waitForEmployeeRuntimeLive(ctx, sb); err != nil {
-		return fmt.Errorf("waiting for employee runtime: %w", err)
-	}
-	return nil
-}
-
-func (o *Orchestrator) RestartEmployeeSandbox(ctx context.Context, sb *model.Sandbox) error {
-	if err := o.StopSandbox(ctx, sb); err != nil {
-		return err
-	}
-	return o.StartEmployeeSandbox(ctx, sb)
-}
-
-func (o *Orchestrator) NeedsURLRefresh(sb *model.Sandbox) bool {
-	return o.needsURLRefresh(sb)
 }

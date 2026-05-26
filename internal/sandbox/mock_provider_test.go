@@ -22,6 +22,8 @@ type mockProvider struct {
 	stoppedIDs          []string
 	createCalls         []CreateSandboxOpts // captured for integration assertions
 	endpointPorts       []int               // captured port arg of every GetEndpoint call
+	warmEndpoint        string
+	warmCreateCalls     []WarmSlotCreateOpts
 }
 
 // autoPolicyCall records one invocation of SetAutoStop / SetAutoArchive.
@@ -62,10 +64,26 @@ func (m *mockProvider) CreateSandbox(_ context.Context, opts CreateSandboxOpts) 
 	m.nextID++
 	id := fmt.Sprintf("mock-sb-%d", m.nextID)
 	m.sandboxes[id] = &mockSandbox{name: opts.Name, status: StatusRunning}
-	m.endpoints[id] = fmt.Sprintf("https://mock-sandbox-%d.test:%d", m.nextID, BridgePort)
+	m.endpoints[id] = fmt.Sprintf("https://mock-sandbox-%d.test:%d", m.nextID, RuntimePort)
 	m.createCalls = append(m.createCalls, opts)
 
 	return &SandboxInfo{ExternalID: id, Status: StatusRunning}, nil
+}
+
+func (m *mockProvider) CreateWarmSlot(_ context.Context, opts WarmSlotCreateOpts) (*WarmSlotInfo, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	m.nextID++
+	id := fmt.Sprintf("mock-warm-%d", m.nextID)
+	endpoint := m.warmEndpoint
+	if endpoint == "" {
+		endpoint = fmt.Sprintf("https://mock-warm-%d.test", m.nextID)
+	}
+	m.sandboxes[id] = &mockSandbox{name: opts.Name, status: StatusRunning}
+	m.endpoints[id] = endpoint
+	m.warmCreateCalls = append(m.warmCreateCalls, opts)
+	return &WarmSlotInfo{ExternalID: id, EndpointURL: endpoint, RuntimePort: opts.RuntimePort}, nil
 }
 
 func (m *mockProvider) StartSandbox(_ context.Context, externalID string) error {

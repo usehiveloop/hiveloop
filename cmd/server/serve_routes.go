@@ -92,7 +92,7 @@ func setupPublicRoutes(
 	}
 
 	// Conversation-scoped streaming asset uploads from inside the sandbox.
-	// Bearer auth = the sandbox's bridge API key (matches existing
+	// Bearer auth = the sandbox's runtime API key (matches existing
 	// sandbox-drive / git-credentials / railway-proxy endpoints).
 	if uploadsHandler != nil {
 		r.Put("/internal/conversations/{conversationID}/assets/*", uploadsHandler.StreamConversationAsset)

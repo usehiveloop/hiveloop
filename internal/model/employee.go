@@ -100,7 +100,7 @@ type BuiltInToolDefinition struct {
 	Locked      bool   `json:"locked"` // true = cannot be toggled off by the user
 }
 
-// ValidBuiltInTools is the canonical list of all built-in tools available in Bridge.
+// ValidBuiltInTools is the canonical list of all built-in tools available in Runtime.
 // Used for: the frontend tool picker, permission key validation, and forge tool mocking.
 var ValidBuiltInTools = []BuiltInToolDefinition{
 	// ── Filesystem ──

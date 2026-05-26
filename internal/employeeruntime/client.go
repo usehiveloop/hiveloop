@@ -28,6 +28,12 @@ type SyncResponse struct {
 	Errors           []string `json:"errors,omitempty"`
 }
 
+type ConfigUpdateRequest struct {
+	RuntimeSecret string            `json:"runtime_secret,omitempty"`
+	RuntimeEnv    map[string]string `json:"runtime_env,omitempty"`
+	Definition    *AgentDefinition  `json:"definition"`
+}
+
 type HTTPMessageRequest struct {
 	Text            string         `json:"text"`
 	ConversationID  string         `json:"conversation_id,omitempty"`
@@ -113,7 +119,14 @@ func (c *Client) GetConfig(ctx context.Context) (*AgentDefinition, error) {
 }
 
 func (c *Client) PutConfig(ctx context.Context, def *AgentDefinition) (*SyncResponse, error) {
-	resp, err := c.do(ctx, http.MethodPut, "/config", def)
+	return c.PutRuntimeConfig(ctx, ConfigUpdateRequest{Definition: def})
+}
+
+func (c *Client) PutRuntimeConfig(ctx context.Context, body ConfigUpdateRequest) (*SyncResponse, error) {
+	if body.RuntimeEnv == nil {
+		body.RuntimeEnv = map[string]string{}
+	}
+	resp, err := c.do(ctx, http.MethodPut, "/config", body)
 	if err != nil {
 		return nil, err
 	}
@@ -122,30 +135,13 @@ func (c *Client) PutConfig(ctx context.Context, def *AgentDefinition) (*SyncResp
 		body, _ := io.ReadAll(resp.Body)
 		return nil, fmt.Errorf("put config: %s: %s", resp.Status, body)
 	}
-	return &SyncResponse{Applied: 1, RestartTriggered: true}, nil
-}
-
-func (c *Client) UpdateRuntimeEnv(ctx context.Context, env map[string]string) (*SyncResponse, error) {
-	body := map[string]string{}
-	if env != nil {
-		body = env
-	}
-	resp, err := c.do(ctx, http.MethodPut, "/config/env", body)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode >= 400 {
-		raw, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("put runtime env: %s: %s", resp.Status, raw)
-	}
 	var out struct {
-		KeyCount int `json:"key_count"`
+		EnvKeyCount int `json:"env_key_count"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
-		return nil, fmt.Errorf("decode runtime env response: %w", err)
+		return nil, fmt.Errorf("decode config response: %w", err)
 	}
-	return &SyncResponse{Applied: out.KeyCount}, nil
+	return &SyncResponse{Applied: 1, RestartTriggered: true}, nil
 }
 
 func (c *Client) PostHTTPMessage(ctx context.Context, body HTTPMessageRequest) (*HTTPMessageResponse, error) {

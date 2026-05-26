@@ -14,7 +14,7 @@ import (
 )
 
 func (o *Orchestrator) waitForEmployeeRuntimeLive(ctx context.Context, sb *model.Sandbox) error {
-	healthURL := strings.TrimRight(sb.BridgeURL, "/") + "/healthz"
+	healthURL := strings.TrimRight(sb.RuntimeURL, "/") + "/healthz"
 	deadline := time.Now().Add(employeeHealthTimeout)
 	client := &http.Client{Timeout: 5 * time.Second}
 	attempt := 0

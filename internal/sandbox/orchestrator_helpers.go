@@ -95,9 +95,6 @@ func (o *Orchestrator) mergeUserEnvVars(ctx context.Context, envVars map[string]
 		return
 	}
 	for k, v := range userVars {
-		if strings.HasPrefix(strings.ToUpper(k), "BRIDGE_") {
-			continue
-		}
 		envVars[k] = v
 	}
 }

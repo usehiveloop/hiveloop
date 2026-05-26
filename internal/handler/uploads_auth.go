@@ -18,7 +18,7 @@ import (
 
 // authConversation parses the {conversationID} URL param, loads the
 // conversation (with its sandbox), and verifies the Authorization bearer
-// matches the sandbox's decrypted bridge API key. On failure it writes the
+// matches the sandbox's decrypted runtime secret. On failure it writes the
 // JSON error response and returns nil — callers should return immediately.
 func (h *UploadsHandler) authConversation(w http.ResponseWriter, r *http.Request) (*model.EmployeeSession, bool) {
 	if h.encKey == nil {
@@ -49,14 +49,14 @@ func (h *UploadsHandler) authConversation(w http.ResponseWriter, r *http.Request
 		return nil, false
 	}
 
-	wantKey, err := h.encKey.DecryptString(conv.Sandbox.EncryptedBridgeAPIKey)
+	wantKey, err := h.encKey.DecryptString(conv.Sandbox.EncryptedRuntimeSecret)
 	if err != nil {
-		logging.FromContext(r.Context()).ErrorContext(r.Context(), "decrypt bridge api key", "conversation_id", convID, "error", err)
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "decrypt runtime secret", "conversation_id", convID, "error", err)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to verify credentials"})
 		return nil, false
 	}
 	if subtle.ConstantTimeCompare([]byte(bearer), []byte(wantKey)) != 1 {
-		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "invalid bridge api key"})
+		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "invalid runtime secret"})
 		return nil, false
 	}
 

@@ -25,7 +25,7 @@ mod openapi {
         info(title = "Hivy Sandboxes Runtime API", version = "0.0.1"),
         paths(
             crate::handlers::put_config,
-            crate::handlers::put_runtime_env,
+            crate::handlers::post_control_commands,
             crate::handlers::get_config,
             crate::handlers::list_sessions,
             crate::handlers::get_session_detail,
@@ -83,7 +83,11 @@ mod openapi {
             observability::ToolUsage,
             observability::ObservabilityEvent,
             observability::TraceSummary,
+            crate::handlers::ConfigUpdateRequest,
             crate::handlers::ConfigResponse,
+            crate::handlers::ControlCommandsRequest,
+            crate::handlers::ControlCommandsResponse,
+            crate::handlers::ControlCommandResult,
             crate::handlers::ListSessionsParams,
             crate::handlers::ListSessionsResponse,
             crate::handlers::SessionDetailResponse,
@@ -126,7 +130,7 @@ pub fn build_router(state: ApiState) -> Router {
             "/config",
             put(handlers::put_config).get(handlers::get_config),
         )
-        .route("/config/env", put(handlers::put_runtime_env))
+        .route("/control/commands", post(handlers::post_control_commands))
         .route("/sessions", get(handlers::list_sessions))
         .route("/sessions/:session_id", get(handlers::get_session_detail))
         .route("/healthz", get(handlers::healthz))
@@ -190,7 +194,7 @@ mod openapi_tests {
         let actual: BTreeSet<String> = spec.paths.paths.keys().cloned().collect();
         let expected = BTreeSet::from([
             "/config".to_string(),
-            "/config/env".to_string(),
+            "/control/commands".to_string(),
             "/gateway/http/messages".to_string(),
             "/gateway/http/streams/{stream_id}".to_string(),
             "/healthz".to_string(),

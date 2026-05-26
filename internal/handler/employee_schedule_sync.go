@@ -50,7 +50,7 @@ func upsertEmployeeScheduleFromEvent(tx *gorm.DB, event model.EmployeeSessionEve
 		OrgID:            event.OrgID,
 		EmployeeID:       event.EmployeeID,
 		SandboxID:        event.SandboxID,
-		BridgeJobID:      jobID,
+		RuntimeJobID:     jobID,
 		Status:           status,
 		Channel:          stringValue(payload, "channel"),
 		Description:      stringValue(payload, "description"),
@@ -63,11 +63,11 @@ func upsertEmployeeScheduleFromEvent(tx *gorm.DB, event model.EmployeeSessionEve
 		LastStatus:       latestScheduleStatus(event.EventType, payload),
 		LastError:        firstNonEmpty(stringValue(payload, "last_error"), stringValue(payload, "error")),
 		CreatedBySession: stringValue(payload, "created_by_session"),
-		BridgeCreatedAt:  timePtrFromPayload(payload, "created_at"),
+		RuntimeCreatedAt: timePtrFromPayload(payload, "created_at"),
 		CancelledAt:      cancelledAt,
 	}
 	err := tx.Clauses(clause.OnConflict{
-		Columns: []clause.Column{{Name: "employee_id"}, {Name: "bridge_job_id"}},
+		Columns: []clause.Column{{Name: "employee_id"}, {Name: "runtime_job_id"}},
 		DoUpdates: clause.Assignments(map[string]any{
 			"org_id":             schedule.OrgID,
 			"sandbox_id":         schedule.SandboxID,
@@ -83,7 +83,7 @@ func upsertEmployeeScheduleFromEvent(tx *gorm.DB, event model.EmployeeSessionEve
 			"last_status":        schedule.LastStatus,
 			"last_error":         schedule.LastError,
 			"created_by_session": schedule.CreatedBySession,
-			"bridge_created_at":  schedule.BridgeCreatedAt,
+			"runtime_created_at": schedule.RuntimeCreatedAt,
 			"cancelled_at":       schedule.CancelledAt,
 			"updated_at":         time.Now(),
 		}),
@@ -91,7 +91,7 @@ func upsertEmployeeScheduleFromEvent(tx *gorm.DB, event model.EmployeeSessionEve
 	if err != nil {
 		return nil, fmt.Errorf("upsert employee schedule: %w", err)
 	}
-	if err := tx.Where("employee_id = ? AND bridge_job_id = ?", event.EmployeeID, jobID).First(&schedule).Error; err != nil {
+	if err := tx.Where("employee_id = ? AND runtime_job_id = ?", event.EmployeeID, jobID).First(&schedule).Error; err != nil {
 		return nil, fmt.Errorf("load employee schedule: %w", err)
 	}
 	return &schedule, nil
@@ -112,7 +112,7 @@ func upsertEmployeeScheduleRunFromEvent(tx *gorm.DB, event model.EmployeeSession
 		EmployeeID:   event.EmployeeID,
 		ScheduleID:   schedule.ID,
 		SandboxID:    event.SandboxID,
-		BridgeJobID:  jobID,
+		RuntimeJobID: jobID,
 		RunKey:       runKey,
 		Status:       runStatusFromEvent(event.EventType),
 		ScheduledAt:  scheduledAt,
@@ -131,18 +131,18 @@ func upsertEmployeeScheduleRunFromEvent(tx *gorm.DB, event model.EmployeeSession
 	return tx.Clauses(clause.OnConflict{
 		Columns: []clause.Column{{Name: "schedule_id"}, {Name: "run_key"}},
 		DoUpdates: clause.Assignments(map[string]any{
-			"org_id":        run.OrgID,
-			"employee_id":   run.EmployeeID,
-			"sandbox_id":    run.SandboxID,
-			"bridge_job_id": run.BridgeJobID,
-			"status":        run.Status,
-			"scheduled_at":  run.ScheduledAt,
-			"started_at":    run.StartedAt,
-			"completed_at":  run.CompletedAt,
-			"duration_ms":   run.DurationMS,
-			"error":         run.Error,
-			"event_payload": run.EventPayload,
-			"updated_at":    time.Now(),
+			"org_id":         run.OrgID,
+			"employee_id":    run.EmployeeID,
+			"sandbox_id":     run.SandboxID,
+			"runtime_job_id": run.RuntimeJobID,
+			"status":         run.Status,
+			"scheduled_at":   run.ScheduledAt,
+			"started_at":     run.StartedAt,
+			"completed_at":   run.CompletedAt,
+			"duration_ms":    run.DurationMS,
+			"error":          run.Error,
+			"event_payload":  run.EventPayload,
+			"updated_at":     time.Now(),
 		}),
 	}).Create(&run).Error
 }

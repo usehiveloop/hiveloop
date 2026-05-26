@@ -42,6 +42,12 @@ func runWork(ctx context.Context, deps *bootstrap.Deps) error {
 	}
 
 	enqueuer := enqueue.NewClient(redisOpt)
+	if deps.Orchestrator != nil {
+		deps.Orchestrator.SetWarmPoolReconciler(func(ctx context.Context, providerID, mode string) error {
+			return tasks.EnqueueSandboxWarmPoolReconcile(ctx, enqueuer, providerID, mode)
+		})
+		tasks.EnqueueConfiguredWarmPoolReconciles(ctx, enqueuer, deps.Orchestrator)
+	}
 	ragSched := &ragscheduler.Deps{
 		DB:  deps.DB,
 		Enq: enqueuer,
@@ -54,7 +60,6 @@ func runWork(ctx context.Context, deps *bootstrap.Deps) error {
 		DB:           deps.DB,
 		Cleanup:      deps.Cleanup,
 		Orchestrator: deps.Orchestrator,
-		Pusher:       deps.AgentPusher,
 		EncKey:       deps.SandboxEncKey,
 		EmailSend: func(ctx context.Context, to, subject, body, idempotencyKey string) error {
 			return workerSender.Send(ctx, email.Message{

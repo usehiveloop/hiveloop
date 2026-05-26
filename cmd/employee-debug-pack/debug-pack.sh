@@ -58,9 +58,9 @@ safe_tail_copy() {
   tail -c 1048576 "$src" > "$debug_dir/logs/tails/$label.tail" 2>/dev/null || true
 }
 
-bridge_pid="$(pgrep -f '[e]mployee-bridge|[e]mployee-runtime' | head -n 1 || true)"
-if [ -z "$bridge_pid" ]; then
-  bridge_pid=1
+runtime_pid="$(pgrep -f '[e]mployee-runtime|[e]mployee-runtime' | head -n 1 || true)"
+if [ -z "$runtime_pid" ]; then
+  runtime_pid=1
 fi
 
 {
@@ -69,7 +69,7 @@ fi
   echo "sandbox_id=$sandbox_id"
   echo "debug_dir=$debug_dir"
   echo "debug_archive=$archive"
-  echo "bridge_pid=$bridge_pid"
+  echo "runtime_pid=$runtime_pid"
   echo "sensitive=$sensitive"
   echo
   echo "Read first:"
@@ -82,7 +82,7 @@ fi
   echo
   echo "Missing critical env keys:"
   missing=0
-  for key in RUNTIME_SECRET HIVY_PROXY_API_KEY AGENT_MODEL AGENT_BASE_URL AGENT_API_KEY_ENV EMPLOYEE_ID CLOUD_CONTROL_PLANE_URL BRIDGE_API_KEY UPLOAD_BEARER WORKSPACE_ROOT DB_PATH RUNTIME_BIND_ADDR HIVY_SANDBOX_ID HIVY_ORG_ID HIVY_EMPLOYEE_ID HIVY_DRIVE_UPLOAD_URL; do
+  for key in HIVY_RUNTIME_SECRET HIVY_PROXY_API_KEY HIVY_AGENT_MODEL HIVY_AGENT_BASE_URL HIVY_AGENT_API_KEY_ENV HIVY_EMPLOYEE_ID HIVY_CONTROL_PLANE_URL HIVY_UPLOAD_BEARER HIVY_WORKSPACE_ROOT HIVY_DB_PATH HIVY_RUNTIME_BIND_ADDR HIVY_SANDBOX_ID HIVY_ORG_ID HIVY_DRIVE_UPLOAD_URL; do
     eval "value=\${$key:-}"
     if [ -z "$value" ]; then
       echo "- $key"
@@ -93,18 +93,8 @@ fi
     echo "- none"
   fi
   echo
-  echo "Raw provider API keys should normally be absent:"
-  for key in OPENROUTER_API_KEY OPENAI_API_KEY GROQ_API_KEY TOGETHER_API_KEY; do
-    eval "value=\${$key:-}"
-    if [ -n "$value" ]; then
-      echo "- present: $key"
-    else
-      echo "- absent: $key"
-    fi
-  done
-  echo
-  echo "Check health/healthz.txt and health/readyz.txt for bridge health."
-  echo "Check data/sqlite-* files and data/hivy-sandboxes-runtime.db if DB_PATH exists."
+  echo "Check health/healthz.txt and health/readyz.txt for runtime health."
+  echo "Check data/sqlite-* files and data/hivy-sandboxes-runtime.db if HIVY_DB_PATH exists."
   if [ "$sensitive" != "1" ]; then
     echo "Sensitive env values are redacted. Re-run with sensitive mode only when needed."
   fi
@@ -124,12 +114,12 @@ capture_sh system/listeners.txt 'ss -lntup 2>/dev/null || netstat -lntup 2>/dev/
 
 capture_sh processes/ps.txt 'ps auxww'
 capture_sh processes/top.txt 'top -b -n1 2>/dev/null || true'
-capture_sh processes/pgrep.txt 'pgrep -af "employee|bridge|node|python" || true'
-copy_if_exists "/proc/$bridge_pid/status" processes/bridge-status.txt
-copy_if_exists "/proc/$bridge_pid/limits" processes/bridge-limits.txt
-tr '\0' ' ' < "/proc/$bridge_pid/cmdline" > "$debug_dir/processes/bridge-cmdline.txt" 2>/dev/null || true
-ls -la "/proc/$bridge_pid/fd" > "$debug_dir/processes/bridge-fds.txt" 2>&1 || true
-tr '\0' '\n' < "/proc/$bridge_pid/environ" | sort > "$debug_dir/env/process-env.raw.tmp" 2>/dev/null || true
+capture_sh processes/pgrep.txt 'pgrep -af "employee|runtime|node|python" || true'
+copy_if_exists "/proc/$runtime_pid/status" processes/runtime-status.txt
+copy_if_exists "/proc/$runtime_pid/limits" processes/runtime-limits.txt
+tr '\0' ' ' < "/proc/$runtime_pid/cmdline" > "$debug_dir/processes/runtime-cmdline.txt" 2>/dev/null || true
+ls -la "/proc/$runtime_pid/fd" > "$debug_dir/processes/runtime-fds.txt" 2>&1 || true
+tr '\0' '\n' < "/proc/$runtime_pid/environ" | sort > "$debug_dir/env/process-env.raw.tmp" 2>/dev/null || true
 redact_env < "$debug_dir/env/process-env.raw.tmp" > "$debug_dir/env/process-env.redacted" 2>/dev/null || true
 cut -d= -f1 "$debug_dir/env/process-env.raw.tmp" > "$debug_dir/env/process-env.keys" 2>/dev/null || true
 if [ "$sensitive" = "1" ]; then
@@ -145,7 +135,7 @@ else
   rm -f "$debug_dir/env/shell-env.raw.tmp"
 fi
 
-runtime_addr="${RUNTIME_BIND_ADDR:-0.0.0.0:7080}"
+runtime_addr="${HIVY_RUNTIME_BIND_ADDR:-0.0.0.0:7080}"
 runtime_port="${runtime_addr##*:}"
 runtime_base="http://127.0.0.1:${runtime_port}"
 {
@@ -157,18 +147,18 @@ runtime_base="http://127.0.0.1:${runtime_port}"
 } > "$debug_dir/health/healthz.txt" 2>&1
 {
   echo "$ runtime_base=$runtime_base"
-  bearer="${BRIDGE_API_KEY:-${RUNTIME_SECRET:-}}"
+  bearer="${HIVY_RUNTIME_SECRET:-}"
   if [ -n "$bearer" ]; then
     curl -fsS -i --max-time 10 -H "Authorization: Bearer ${bearer}" "$runtime_base/readyz"
   else
-    echo "no BRIDGE_API_KEY or RUNTIME_SECRET available"
+    echo "no HIVY_RUNTIME_SECRET available"
   fi
   code=$?
   echo
   echo "exit=$code"
 } > "$debug_dir/health/readyz.txt" 2>&1
-capture_sh health/control-plane-health.txt 'if [ -n "${CLOUD_CONTROL_PLANE_URL:-}" ]; then curl -fsS -i --max-time 10 "${CLOUD_CONTROL_PLANE_URL%/}/healthz"; else echo "CLOUD_CONTROL_PLANE_URL not set"; fi'
-capture_sh health/proxy-reachability.txt 'if [ -n "${AGENT_BASE_URL:-}" ]; then curl -fsS -i --max-time 10 "${AGENT_BASE_URL%/}" || true; else echo "AGENT_BASE_URL not set"; fi'
+capture_sh health/control-plane-health.txt 'if [ -n "${HIVY_CONTROL_PLANE_URL:-}" ]; then curl -fsS -i --max-time 10 "${HIVY_CONTROL_PLANE_URL%/}/healthz"; else echo "HIVY_CONTROL_PLANE_URL not set"; fi'
+capture_sh health/proxy-reachability.txt 'if [ -n "${HIVY_AGENT_BASE_URL:-}" ]; then curl -fsS -i --max-time 10 "${HIVY_AGENT_BASE_URL%/}" || true; else echo "HIVY_AGENT_BASE_URL not set"; fi'
 
 capture_sh tooling/versions.txt 'for tool in bash sh node npm pnpm yarn python3 python pip3 pip go git gh jq curl tar gzip zip unzip sqlite3 psql; do printf "%s: " "$tool"; command -v "$tool" || true; "$tool" --version 2>/dev/null | head -n 2 || true; echo; done'
 
@@ -179,24 +169,24 @@ else
   echo "/workspace missing" > "$debug_dir/workspace/listing.txt"
 fi
 
-if [ -n "${DB_PATH:-}" ] && [ -f "$DB_PATH" ]; then
-  cp -a "$DB_PATH" "$debug_dir/data/hivy-sandboxes-runtime.db" 2>/dev/null || true
+if [ -n "${HIVY_DB_PATH:-}" ] && [ -f "$HIVY_DB_PATH" ]; then
+  cp -a "$HIVY_DB_PATH" "$debug_dir/data/hivy-sandboxes-runtime.db" 2>/dev/null || true
   if command -v sqlite3 >/dev/null 2>&1; then
-    sqlite3 "$DB_PATH" '.tables' > "$debug_dir/data/sqlite-tables.txt" 2>&1
-    sqlite3 "$DB_PATH" '.schema' > "$debug_dir/data/sqlite-schema.sql" 2>&1
-    sqlite3 "$DB_PATH" "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name;" > "$debug_dir/data/sqlite-table-names.txt" 2>&1
+    sqlite3 "$HIVY_DB_PATH" '.tables' > "$debug_dir/data/sqlite-tables.txt" 2>&1
+    sqlite3 "$HIVY_DB_PATH" '.schema' > "$debug_dir/data/sqlite-schema.sql" 2>&1
+    sqlite3 "$HIVY_DB_PATH" "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name;" > "$debug_dir/data/sqlite-table-names.txt" 2>&1
     {
       while read -r table; do
         [ -n "$table" ] || continue
         printf '%s=' "$table"
-        sqlite3 "$DB_PATH" "SELECT COUNT(*) FROM \"$table\";" 2>/dev/null || echo "error"
+        sqlite3 "$HIVY_DB_PATH" "SELECT COUNT(*) FROM \"$table\";" 2>/dev/null || echo "error"
       done < "$debug_dir/data/sqlite-table-names.txt"
     } > "$debug_dir/data/sqlite-counts.txt" 2>&1
   else
     echo "sqlite3 not installed" > "$debug_dir/data/sqlite-missing.txt"
   fi
 else
-  echo "DB_PATH missing or not a file: ${DB_PATH:-}" > "$debug_dir/data/sqlite-missing.txt"
+  echo "HIVY_DB_PATH missing or not a file: ${HIVY_DB_PATH:-}" > "$debug_dir/data/sqlite-missing.txt"
 fi
 
 {

@@ -49,7 +49,7 @@ func TestRailwayProxy_ForwardsRequestAndToken(t *testing.T) {
 		"/internal/railway-proxy/"+harness.agentID.String(),
 		bytes.NewReader([]byte(graphqlBody)))
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+harness.bridgeKey)
+	req.Header.Set("Authorization", "Bearer "+harness.runtimeSecret)
 	recorder := httptest.NewRecorder()
 	harness.router.ServeHTTP(recorder, req)
 
@@ -112,7 +112,7 @@ func TestRailwayProxy_CachesTokenByOrg(t *testing.T) {
 			"/internal/railway-proxy/"+harness.agentID.String(),
 			bytes.NewReader([]byte(`{"query":"query{me{name}}"}`)))
 		req.Header.Set("Content-Type", "application/json")
-		req.Header.Set("Authorization", "Bearer "+harness.bridgeKey)
+		req.Header.Set("Authorization", "Bearer "+harness.runtimeSecret)
 		recorder := httptest.NewRecorder()
 		harness.router.ServeHTTP(recorder, req)
 
@@ -166,7 +166,7 @@ func TestRailwayProxy_NoRailwayConnection(t *testing.T) {
 		"/internal/railway-proxy/"+harness.agentID.String(),
 		bytes.NewReader([]byte(`{"query":"query{me{name}}"}`)))
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+harness.bridgeKey)
+	req.Header.Set("Authorization", "Bearer "+harness.runtimeSecret)
 	recorder := httptest.NewRecorder()
 	harness.router.ServeHTTP(recorder, req)
 

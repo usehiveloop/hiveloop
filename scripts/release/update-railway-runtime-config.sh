@@ -26,13 +26,17 @@ if [[ -n "${RAILWAY_PROJECT_ID:-}" ]]; then
 fi
 
 specialist_sandbox_runtime_version="$(jq -r '.runtimeConfig.HIVY_SPECIALIST_SANDBOX_RUNTIME_VERSION' "${manifest}")"
-specialist_sandbox_base_image_prefix="$(jq -r '.runtimeConfig.HIVY_SPECIALIST_SANDBOX_BASE_IMAGE_PREFIX' "${manifest}")"
+railway_runtime_image="$(jq -r '.runtimeConfig.HIVY_RAILWAY_RUNTIME_IMAGE' "${manifest}")"
+railway_specialist_runtime_image="$(jq -r '.runtimeConfig.HIVY_RAILWAY_SPECIALIST_RUNTIME_IMAGE' "${manifest}")"
 sandboxes_runtime_base_image_prefix="$(jq -r '.runtimeConfig.HIVY_SANDBOXES_RUNTIME_BASE_IMAGE_PREFIX' "${manifest}")"
+sandboxes_runtime_specialist_image_prefix="$(jq -r '.runtimeConfig.HIVY_SANDBOXES_RUNTIME_SPECIALIST_IMAGE_PREFIX' "${manifest}")"
 
 for value in \
   "${specialist_sandbox_runtime_version}" \
-  "${specialist_sandbox_base_image_prefix}" \
-  "${sandboxes_runtime_base_image_prefix}"
+  "${railway_runtime_image}" \
+  "${railway_specialist_runtime_image}" \
+  "${sandboxes_runtime_base_image_prefix}" \
+  "${sandboxes_runtime_specialist_image_prefix}"
 do
   if [[ -z "${value}" || "${value}" == "null" ]]; then
     echo "release manifest is missing a runtimeConfig value" >&2
@@ -50,8 +54,10 @@ for service in "${service_list[@]}"; do
   echo "Updating Railway runtime config on ${service}..."
   railway variable set \
     "HIVY_SPECIALIST_SANDBOX_RUNTIME_VERSION=${specialist_sandbox_runtime_version}" \
-    "HIVY_SPECIALIST_SANDBOX_BASE_IMAGE_PREFIX=${specialist_sandbox_base_image_prefix}" \
+    "HIVY_RAILWAY_RUNTIME_IMAGE=${railway_runtime_image}" \
+    "HIVY_RAILWAY_SPECIALIST_RUNTIME_IMAGE=${railway_specialist_runtime_image}" \
     "HIVY_SANDBOXES_RUNTIME_BASE_IMAGE_PREFIX=${sandboxes_runtime_base_image_prefix}" \
+    "HIVY_SANDBOXES_RUNTIME_SPECIALIST_IMAGE_PREFIX=${sandboxes_runtime_specialist_image_prefix}" \
     --environment "${environment}" \
     --service "${service}"
 done

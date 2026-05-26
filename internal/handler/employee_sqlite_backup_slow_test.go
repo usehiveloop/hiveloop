@@ -28,7 +28,7 @@ func TestEmployeeSQLiteBackup_ExtendsReadDeadlineForSlowBody(t *testing.T) {
 		t.Fatalf("create request: %v", err)
 	}
 	req.Header.Set("Content-Type", "application/gzip")
-	req.Header.Set("Authorization", "Bearer "+h.bridgeKey)
+	req.Header.Set("Authorization", "Bearer "+h.runtimeSecret)
 	req.ContentLength = int64(len(body))
 
 	resp, err := (&http.Client{Timeout: 3 * time.Second}).Do(req)

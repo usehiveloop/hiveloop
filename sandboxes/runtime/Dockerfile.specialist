@@ -1,0 +1,212 @@
+# syntax=docker/dockerfile:1.7
+
+FROM debian:13.4
+
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV NVM_DIR=/usr/local/nvm
+ENV RVM_PATH=/usr/local/rvm
+ENV PATH=/usr/local/go/bin:/usr/local/rvm/bin:/usr/local/rvm/rubies/default/bin:/usr/local/nvm/versions/node/default/bin:${PATH}
+
+ARG GO_VERSION=1.25.10
+ARG JUST_VERSION=1.38.0
+ARG NODE_VERSION=--lts
+ARG VERSION=dev
+ARG COMMIT=unknown
+
+LABEL org.opencontainers.image.source="https://github.com/usehivy/hivy"
+LABEL org.opencontainers.image.version="${VERSION}"
+LABEL org.opencontainers.image.revision="${COMMIT}"
+
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends \
+    bash \
+    build-essential \
+    ca-certificates \
+    chromium \
+    cmake \
+    composer \
+    coreutils \
+    curl \
+    csvkit \
+    default-jdk \
+    default-mysql-client \
+    dirmngr \
+    direnv \
+    dnsutils \
+    docker.io \
+    exiftool \
+    fd-find \
+    ffmpeg \
+    file \
+    findutils \
+    firefox-esr \
+    fish \
+    fontconfig \
+    fonts-dejavu \
+    fonts-liberation \
+    fonts-noto \
+    fonts-noto-color-emoji \
+    g++ \
+    gcc \
+    gh \
+    ghostscript \
+    git \
+    git-lfs \
+    gnupg2 \
+    golang-go \
+    gradle \
+    graphicsmagick \
+    gzip \
+    imagemagick \
+    iputils-ping \
+    jo \
+    jq \
+    less \
+    libasound2 \
+    libatk-bridge2.0-0 \
+    libatk1.0-0 \
+    libcups2 \
+    libgbm1 \
+    libgtk-3-0 \
+    libnss3 \
+    libvips-tools \
+    lsof \
+    make \
+    maven \
+    mediainfo \
+    netcat-openbsd \
+    openssh-client \
+    openssl \
+    pandoc \
+    php-cli \
+    php-curl \
+    php-mbstring \
+    php-xml \
+    pkg-config \
+    poppler-utils \
+    postgresql-client \
+    procps \
+    psmisc \
+    python3 \
+    python3-dev \
+    python3-pip \
+    python3-venv \
+    rake \
+    redis-tools \
+    ripgrep \
+    rsync \
+    ruby-dev \
+    ruby-full \
+    shellcheck \
+    shfmt \
+    socat \
+    sox \
+    sqlite3 \
+    tar \
+    tesseract-ocr \
+    tini \
+    tmux \
+    tree \
+    unzip \
+    vim-tiny \
+    wget \
+    xmlstarlet \
+    xvfb \
+    xz-utils \
+    yq \
+    zip \
+    zsh \
+    zstd \
+  && rm -rf /var/lib/apt/lists/*
+
+RUN ln -sf /usr/bin/fdfind /usr/local/bin/fd \
+  && just_arch="$(case "$(dpkg --print-architecture)" in amd64) echo x86_64 ;; arm64) echo aarch64 ;; *) dpkg --print-architecture; exit 1 ;; esac)" \
+  && curl -fsSL "https://github.com/casey/just/releases/download/${JUST_VERSION}/just-${JUST_VERSION}-${just_arch}-unknown-linux-musl.tar.gz" \
+    | tar -xz -C /usr/local/bin just \
+  && go_arch="$(case "$(dpkg --print-architecture)" in amd64) echo amd64 ;; arm64) echo arm64 ;; *) dpkg --print-architecture; exit 1 ;; esac)" \
+  && curl -fsSL "https://go.dev/dl/go${GO_VERSION}.linux-${go_arch}.tar.gz" \
+    | tar -xz -C /usr/local \
+  && git lfs install --system
+
+RUN mkdir -p "$NVM_DIR" \
+  && curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | PROFILE=/dev/null bash \
+  && source "$NVM_DIR/nvm.sh" \
+  && nvm install "$NODE_VERSION" \
+  && nvm alias default node \
+  && default_node="$(nvm version default)" \
+  && ln -s "$NVM_DIR/versions/node/$default_node" "$NVM_DIR/versions/node/default" \
+  && corepack enable \
+  && npm install -g \
+    @railway/cli \
+    markdownlint-cli \
+    mongosh \
+    pnpm@10 \
+    prettier \
+    yarn \
+  && npm cache clean --force \
+  && printf '%s\n' \
+    'export NVM_DIR="/usr/local/nvm"' \
+    '[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"' \
+    'export PATH="/usr/local/nvm/versions/node/default/bin:$PATH"' \
+    >/etc/profile.d/nvm.sh
+
+RUN python3 -m pip install --break-system-packages --no-cache-dir \
+    awscli \
+    black \
+    httpie \
+    ipython \
+    jupyterlab \
+    mypy \
+    pandas \
+    pillow \
+    pytest \
+    requests \
+    ruff \
+    uv
+
+RUN curl -fsSL https://sh.rustup.rs \
+    | sh -s -- -y --profile default --default-toolchain stable \
+  && source /root/.cargo/env \
+  && rustup component add clippy rustfmt \
+  && ln -sf /root/.cargo/bin/cargo /usr/local/bin/cargo \
+  && ln -sf /root/.cargo/bin/rustc /usr/local/bin/rustc \
+  && ln -sf /root/.cargo/bin/rustfmt /usr/local/bin/rustfmt \
+  && ln -sf /root/.cargo/bin/cargo-clippy /usr/local/bin/cargo-clippy \
+  && ln -sf /root/.cargo/bin/rustup /usr/local/bin/rustup
+
+RUN gpg --keyserver hkp://keyserver.ubuntu.com --recv-keys \
+    409B6B1796C275462A1703113804BB82D39DC0E3 \
+    7D2BAF1CF37B13E2069D6956105BD0E739499BDB \
+  && gem install --no-document bundler rails rubocop \
+  && curl -fsSL https://get.rvm.io | bash -s stable \
+  && printf '%s\n' \
+    'export rvm_path="/usr/local/rvm"' \
+    '[ -s "/usr/local/rvm/scripts/rvm" ] && \. "/usr/local/rvm/scripts/rvm"' \
+    >/etc/profile.d/rvm.sh
+
+WORKDIR /app
+
+COPY hivy-sandboxes-runtime /usr/local/bin/hivy-sandboxes-runtime
+COPY docker/runtime/git-credential-hivy /usr/local/bin/git-credential-hivy
+COPY docker/runtime/gh-wrapper /usr/local/bin/gh-wrapper
+
+RUN chmod +x /usr/local/bin/hivy-sandboxes-runtime \
+  && mkdir -p /app/data /workspace \
+  && chmod +x /usr/local/bin/git-credential-hivy \
+  && chmod +x /usr/local/bin/gh-wrapper \
+  && git config --system credential.helper /usr/local/bin/git-credential-hivy \
+  && ln -sf /usr/local/bin/gh-wrapper /usr/local/bin/gh
+
+ENV HOME=/workspace
+ENV HIVY_DB_PATH=/app/data/hivy-sandboxes-runtime.db
+ENV HIVY_WORKSPACE_ROOT=/workspace
+ENV HIVY_RUNTIME_BIND_ADDR=0.0.0.0:7080
+ENV HIVY_SANDBOXES_RUNTIME_VERSION=${VERSION}
+ENV HIVY_SANDBOXES_RUNTIME_COMMIT=${COMMIT}
+ENV NO_BROWSER=1
+
+EXPOSE 7080
+
+ENTRYPOINT ["/usr/bin/tini", "--", "/bin/sh", "-c", "git config --system user.name \"$HIVY_GIT_USERNAME\"; git config --system user.email \"$HIVY_GIT_EMAIL\"; exec /usr/local/bin/hivy-sandboxes-runtime"]

@@ -1,6 +1,6 @@
 {
   "name": "bugsink",
-  "description": "Query Bugsink projects, issues, events, stacktraces, and issue metadata through the canonical Bugsink API using BUGSINK_URL, BUGSINK_TOKEN, curl, and jq; construct dashboard links with BUGSINK_DASHBOARD_BASE_URL, never the Hivy proxy URL.",
+  "description": "Query Bugsink projects, issues, events, stacktraces, and issue metadata through the canonical Bugsink API using HIVY_BUGSINK_URL, HIVY_BUGSINK_TOKEN, curl, and jq; construct dashboard links with HIVY_BUGSINK_DASHBOARD_BASE_URL, never the Hivy proxy URL.",
   "category": "Monitoring",
   "root": "./SKILL.md",
   "tags": ["bugsink", "errors", "monitoring", "debugging"],

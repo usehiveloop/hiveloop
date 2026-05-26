@@ -60,8 +60,8 @@ func createTestConversation(t *testing.T, db *gorm.DB) (uuid.UUID, uuid.UUID) {
 
 	sandbox := model.Sandbox{
 		ID: sandboxID, Status: "running",
-		ExternalID: "ext-" + suffix, BridgeURL: "https://test.local",
-		EncryptedBridgeAPIKey: []byte("test"),
+		ExternalID: "ext-" + suffix, RuntimeURL: "https://test.local",
+		EncryptedRuntimeSecret: []byte("test"),
 	}
 	if err := db.Create(&sandbox).Error; err != nil {
 		t.Fatalf("create sandbox: %v", err)
@@ -83,7 +83,7 @@ func createTestConversation(t *testing.T, db *gorm.DB) (uuid.UUID, uuid.UUID) {
 
 	conv := model.EmployeeSession{
 		ID: convID, OrgID: orgID, EmployeeID: agentID, SandboxID: sandboxID,
-		RuntimeConversationID: "bridge-" + suffix, Status: "active",
+		RuntimeConversationID: "runtime-" + suffix, Status: "active",
 	}
 	if err := db.Create(&conv).Error; err != nil {
 		t.Fatalf("create conversation: %v", err)

@@ -7,9 +7,9 @@ import (
 
 	"github.com/redis/go-redis/v9"
 
-	"github.com/usehivy/hivy/internal/bridgeevents"
 	"github.com/usehivy/hivy/internal/logging"
 	"github.com/usehivy/hivy/internal/model"
+	"github.com/usehivy/hivy/internal/runtimeevents"
 )
 
 func (f *Flusher) accumulateChunk(ctx context.Context, convID, dataStr string) {
@@ -76,11 +76,11 @@ func (f *Flusher) accumulateDelta(ctx context.Context, kind, convID, dataStr str
 }
 
 func buildRecoveredEvent(conv *model.EmployeeSession, terminal model.EmployeeSessionEvent, messageID, content string) model.EmployeeSessionEvent {
-	return buildRecoveredAccumulatedEvent(conv, terminal, messageID, content, bridgeevents.EventResponseCompleted, "full_response")
+	return buildRecoveredAccumulatedEvent(conv, terminal, messageID, content, runtimeevents.EventResponseCompleted, "full_response")
 }
 
 func buildRecoveredReasoningEvent(conv *model.EmployeeSession, terminal model.EmployeeSessionEvent, messageID, content string) model.EmployeeSessionEvent {
-	return buildRecoveredAccumulatedEvent(conv, terminal, messageID, content, bridgeevents.EventReasoningCompleted, "full_reasoning")
+	return buildRecoveredAccumulatedEvent(conv, terminal, messageID, content, runtimeevents.EventReasoningCompleted, "full_reasoning")
 }
 
 func buildRecoveredAccumulatedEvent(conv *model.EmployeeSession, terminal model.EmployeeSessionEvent, messageID, content, eventType, contentField string) model.EmployeeSessionEvent {
@@ -117,7 +117,7 @@ func buildRecoveredAccumulatedEvent(conv *model.EmployeeSession, terminal model.
 }
 
 func recoveredEventID(eventType, messageID string) string {
-	if eventType == bridgeevents.EventResponseCompleted {
+	if eventType == runtimeevents.EventResponseCompleted {
 		return "recovered-" + messageID
 	}
 	return "recovered-" + eventType + "-" + messageID

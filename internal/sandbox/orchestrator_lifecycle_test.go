@@ -86,11 +86,11 @@ func newRunningSandbox(t *testing.T, db *gorm.DB, orgID, agentID *uuid.UUID, ext
 	t.Helper()
 	sb := model.Sandbox{
 		OrgID: orgID, EmployeeID: agentID,
-		ExternalID:            externalID,
-		BridgeURL:             "https://stub.example",
-		EncryptedBridgeAPIKey: []byte("enc"),
-		Status:                string(StatusRunning),
-		LastActiveAt:          &lastActiveAt,
+		ExternalID:             externalID,
+		RuntimeURL:             "https://stub.example",
+		EncryptedRuntimeSecret: []byte("enc"),
+		Status:                 string(StatusRunning),
+		LastActiveAt:           &lastActiveAt,
 	}
 	if err := db.Create(&sb).Error; err != nil {
 		t.Fatalf("create sandbox: %v", err)
@@ -103,11 +103,11 @@ func newStoppedSandbox(t *testing.T, db *gorm.DB, orgID, agentID *uuid.UUID, ext
 	t.Helper()
 	sb := model.Sandbox{
 		OrgID: orgID, EmployeeID: agentID,
-		ExternalID:            externalID,
-		BridgeURL:             "https://stub.example",
-		EncryptedBridgeAPIKey: []byte("enc"),
-		Status:                string(StatusStopped),
-		StoppedAt:             &stoppedAt,
+		ExternalID:             externalID,
+		RuntimeURL:             "https://stub.example",
+		EncryptedRuntimeSecret: []byte("enc"),
+		Status:                 string(StatusStopped),
+		StoppedAt:              &stoppedAt,
 	}
 	if err := db.Create(&sb).Error; err != nil {
 		t.Fatalf("create sandbox: %v", err)

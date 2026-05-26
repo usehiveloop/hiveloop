@@ -19,9 +19,16 @@ pub struct ConfigStore {
 
 impl ConfigStore {
     pub fn new(initial: AgentDefinition) -> Self {
+        Self::with_runtime_env(initial, HashMap::new())
+    }
+
+    pub fn with_runtime_env(
+        initial: AgentDefinition,
+        runtime_env: HashMap<String, String>,
+    ) -> Self {
         Self {
             inner: Arc::new(ArcSwap::from_pointee(initial)),
-            runtime_env: Arc::new(ArcSwap::from_pointee(HashMap::new())),
+            runtime_env: Arc::new(ArcSwap::from_pointee(runtime_env)),
         }
     }
 
@@ -35,6 +42,17 @@ impl ConfigStore {
 
     pub fn set_runtime_env(&self, overrides: HashMap<String, String>) {
         self.runtime_env.store(Arc::new(overrides));
+    }
+
+    pub fn merge_runtime_env(
+        &self,
+        updates: HashMap<String, String>,
+    ) -> Arc<HashMap<String, String>> {
+        let mut merged = (*self.runtime_env.load_full()).clone();
+        merged.extend(updates);
+        let merged = Arc::new(merged);
+        self.runtime_env.store(merged.clone());
+        merged
     }
 
     pub fn replace(&self, def: AgentDefinition) {

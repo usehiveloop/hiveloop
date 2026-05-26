@@ -27,6 +27,7 @@ import (
 	"github.com/usehivy/hivy/internal/specialisttasks"
 	"github.com/usehivy/hivy/internal/spider"
 	"github.com/usehivy/hivy/internal/storage"
+	"github.com/usehivy/hivy/internal/tasks"
 )
 
 func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEnqueuer) error {
@@ -43,6 +44,12 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 	actionsCatalog := deps.ActionsCatalog
 	sandboxEncKey := deps.SandboxEncKey
 	orchestrator := deps.Orchestrator
+	if orchestrator != nil {
+		orchestrator.SetWarmPoolReconciler(func(ctx context.Context, providerID, mode string) error {
+			return tasks.EnqueueSandboxWarmPoolReconcile(ctx, enqueuer, providerID, mode)
+		})
+		tasks.EnqueueConfiguredWarmPoolReconciles(ctx, enqueuer, orchestrator)
+	}
 
 	logger := slog.Default()
 

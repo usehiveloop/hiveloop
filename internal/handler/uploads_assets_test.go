@@ -45,7 +45,7 @@ func (s *streamHarness) seedAsset(t *testing.T, folder, filename, body string) s
 		urlPath += folder + "/"
 	}
 	urlPath += filename
-	rr := s.put(t, urlPath, bytes.NewReader([]byte(body)), "text/plain", s.bridgeKey)
+	rr := s.put(t, urlPath, bytes.NewReader([]byte(body)), "text/plain", s.runtimeSecret)
 	if rr.Code != http.StatusCreated {
 		t.Fatalf("seed asset: got %d: %s", rr.Code, rr.Body.String())
 	}
@@ -61,7 +61,7 @@ func TestDeleteAsset_HappyPath(t *testing.T) {
 	publicURL := h.seedAsset(t, "tmp", "scratch.txt", "delete me")
 
 	urlPath := fmt.Sprintf("/internal/conversations/%s/assets/tmp/scratch.txt", h.convID)
-	rr := h.delete(t, urlPath, h.bridgeKey)
+	rr := h.delete(t, urlPath, h.runtimeSecret)
 	if rr.Code != http.StatusNoContent {
 		t.Fatalf("expected 204, got %d: %s", rr.Code, rr.Body.String())
 	}
@@ -90,7 +90,7 @@ func TestDeleteAsset_NotFound(t *testing.T) {
 	h := newStreamHarness(t)
 	rr := h.delete(t,
 		fmt.Sprintf("/internal/conversations/%s/assets/nope/missing.txt", h.convID),
-		h.bridgeKey,
+		h.runtimeSecret,
 	)
 	if rr.Code != http.StatusNotFound {
 		t.Fatalf("expected 404, got %d", rr.Code)
@@ -117,7 +117,7 @@ func TestMoveAsset_ByRelativePath(t *testing.T) {
 	rr := h.post(t,
 		fmt.Sprintf("/internal/conversations/%s/assets/move", h.convID),
 		body,
-		h.bridgeKey,
+		h.runtimeSecret,
 	)
 	if rr.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d: %s", rr.Code, rr.Body.String())
@@ -155,7 +155,7 @@ func TestMoveAsset_ByPublicURL(t *testing.T) {
 	rr := h.post(t,
 		fmt.Sprintf("/internal/conversations/%s/assets/move", h.convID),
 		body,
-		h.bridgeKey,
+		h.runtimeSecret,
 	)
 	if rr.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d: %s", rr.Code, rr.Body.String())
@@ -176,7 +176,7 @@ func TestMoveAsset_AssetNotFound(t *testing.T) {
 	rr := h.post(t,
 		fmt.Sprintf("/internal/conversations/%s/assets/move", h.convID),
 		body,
-		h.bridgeKey,
+		h.runtimeSecret,
 	)
 	if rr.Code != http.StatusNotFound {
 		t.Fatalf("expected 404, got %d: %s", rr.Code, rr.Body.String())
@@ -189,7 +189,7 @@ func TestMoveAsset_RejectsForeignURL(t *testing.T) {
 	rr := h.post(t,
 		fmt.Sprintf("/internal/conversations/%s/assets/move", h.convID),
 		body,
-		h.bridgeKey,
+		h.runtimeSecret,
 	)
 	if rr.Code != http.StatusBadRequest {
 		t.Fatalf("expected 400, got %d: %s", rr.Code, rr.Body.String())
@@ -203,7 +203,7 @@ func TestMoveAsset_RejectsTraversalNewPath(t *testing.T) {
 	rr := h.post(t,
 		fmt.Sprintf("/internal/conversations/%s/assets/move", h.convID),
 		body,
-		h.bridgeKey,
+		h.runtimeSecret,
 	)
 	if rr.Code != http.StatusBadRequest {
 		t.Fatalf("expected 400, got %d: %s", rr.Code, rr.Body.String())

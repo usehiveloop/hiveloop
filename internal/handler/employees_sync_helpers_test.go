@@ -111,13 +111,13 @@ func (h *employeeHarness) seedSandbox(t *testing.T, m orgWithMember, agentID uui
 		t.Fatalf("encrypt sidecar key: %v", err)
 	}
 	sb := model.Sandbox{
-		OrgID:                 &m.org.ID,
-		EmployeeID:            &agentID,
-		SnapshotID:            &h.cfg.SandboxesRuntimeBaseImagePrefix,
-		ExternalID:            "stub-sb-" + uuid.NewString()[:8],
-		BridgeURL:             h.sidecarSrv.URL,
-		EncryptedBridgeAPIKey: encryptedKey,
-		Status:                "running",
+		OrgID:                  &m.org.ID,
+		EmployeeID:             &agentID,
+		SnapshotID:             &h.cfg.SandboxesRuntimeBaseImagePrefix,
+		ExternalID:             "stub-sb-" + uuid.NewString()[:8],
+		RuntimeURL:             h.sidecarSrv.URL,
+		EncryptedRuntimeSecret: encryptedKey,
+		Status:                 "running",
 	}
 	if err := h.db.Create(&sb).Error; err != nil {
 		t.Fatalf("create sandbox: %v", err)

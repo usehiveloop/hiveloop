@@ -180,7 +180,7 @@ func employeeEnvKeysCommand(pid string) string {
 pid="${EMPLOYEE_ENV_PID:-}"
 if [ -z "$pid" ]; then
   if command -v pgrep >/dev/null 2>&1; then
-    pid="$(pgrep -f "[e]mployee-bridge|[e]mployee-runtime" | head -n 1 || true)"
+    pid="$(pgrep -f "[e]mployee-runtime|[e]mployee-runtime" | head -n 1 || true)"
   fi
 fi
 if [ -z "$pid" ]; then

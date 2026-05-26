@@ -1,6 +1,6 @@
 // Command verify-devbox spins up a sandbox from a dev-box snapshot and runs
 // HTTP-based verification against the services that should be listening
-// inside it: Bridge on :8080.
+// inside it: Runtime on :8080.
 //
 // Verification uses Daytona preview URLs (sandbox.GetPreviewLink) instead of
 // the toolbox proxy, because this Daytona instance returns a toolbox proxy
@@ -139,7 +139,7 @@ func runVerify(snapshot string, keep bool) (retErr error) {
 		required bool // false = diagnostic only, doesn't fail the run
 	}
 	checks := []portCheck{
-		{name: "Bridge /health", port: 8080, path: "/health", required: true},
+		{name: "Runtime /health", port: 8080, path: "/health", required: true},
 		{name: "sentinel (definitely unbound)", port: 9999, path: "/", required: false},
 	}
 

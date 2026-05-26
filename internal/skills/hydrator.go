@@ -28,7 +28,7 @@ type Bundle struct {
 }
 
 // Reference is a sibling file shipped alongside SKILL.md (scripts, templates,
-// reference docs). Bridge-side support is negotiated in Phase 4.
+// reference docs). runtime-side support is negotiated in Phase 4.
 type Reference struct {
 	Path string `json:"path"`
 	Body string `json:"body"`

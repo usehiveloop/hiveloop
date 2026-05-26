@@ -19,12 +19,12 @@ on:
           - large
           - xlarge
       runtime:
-        description: Register runtime bridge snapshots
+        description: Register employee runtime snapshots
         required: true
         default: true
         type: boolean
-      employee:
-        description: Register employee sandbox snapshots
+      specialist:
+        description: Register specialist runtime snapshots
         required: true
         default: true
         type: boolean
@@ -39,11 +39,11 @@ on:
         required: true
         type: string
       runtime:
-        description: Register runtime bridge snapshots
+        description: Register employee runtime snapshots
         required: true
         type: boolean
-      employee:
-        description: Register employee sandbox snapshots
+      specialist:
+        description: Register specialist runtime snapshots
         required: true
         type: boolean
 
@@ -73,20 +73,16 @@ jobs:
         id: version
         run: ./scripts/release/derive-version.sh "${{ inputs.tag }}" "$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
-      - name: register runtime bridge snapshots
+      - name: register employee runtime snapshots
         if: inputs.runtime
         run: |
-          go run ./cmd/buildtemplates bridge \
+          go run ./cmd/buildtemplates sandbox-runtime \
             -version="${{ steps.version.outputs.RELEASE_TAG }}" \
-            -bridge-version="${{ steps.version.outputs.RELEASE_TAG }}" \
-            -size="${{ inputs.size }}" \
-            -build-image=false \
-            -register-snapshots=true \
-            -latest=false
+            -size="${{ inputs.size }}"
 
-      - name: register employee sandbox snapshots
-        if: inputs.employee
+      - name: register specialist runtime snapshots
+        if: inputs.specialist
         run: |
-          go run ./cmd/buildtemplates employee-sandbox \
+          go run ./cmd/buildtemplates sandbox-runtime-specialist \
             -version="${{ steps.version.outputs.RELEASE_TAG }}" \
             -size="${{ inputs.size }}"

@@ -35,7 +35,7 @@ func TestEmployeeSandboxUpgradeWorker_SucceedsAndSchedulesOldRetirement(t *testi
 	if !strings.Contains(backupCommand, "https://s3.example/upload.db.gz?signature=test") {
 		t.Fatalf("backup command did not use presigned upload url: %s", backupCommand)
 	}
-	if strings.Contains(backupCommand, "CLOUD_CONTROL_PLANE_URL") || strings.Contains(backupCommand, "Authorization: Bearer") {
+	if strings.Contains(backupCommand, "HIVY_CONTROL_PLANE_URL") || strings.Contains(backupCommand, "Authorization: Bearer") {
 		t.Fatalf("backup command still routes upload through control plane: %s", backupCommand)
 	}
 	var old model.Sandbox

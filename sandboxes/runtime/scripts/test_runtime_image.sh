@@ -5,7 +5,7 @@ export PATH="/usr/local/bin:/opt/homebrew/bin:$PATH"
 IMAGE="${HIVY_SANDBOXES_RUNTIME_IMAGE:-hivy-sandboxes-runtime:runtime}"
 NAME="${HIVY_SANDBOXES_RUNTIME_CONTAINER:-hivy-sandboxes-runtime-smoke}"
 AUTH_NAME="${HIVY_SANDBOXES_RUNTIME_AUTH_CONTAINER:-$NAME-auth}"
-SECRET="${RUNTIME_SECRET:-runtime-test-token}"
+SECRET="${HIVY_RUNTIME_SECRET:-runtime-test-token}"
 DOCKER_BIN="${DOCKER_BIN:-$(command -v docker)}"
 PLATFORM="${HIVY_SANDBOXES_RUNTIME_PLATFORM:-$("$DOCKER_BIN" image inspect -f '{{.Os}}/{{.Architecture}}' "$IMAGE" 2>/dev/null || true)}"
 TMP_DIR="$(mktemp -d)"
@@ -88,12 +88,10 @@ fi
   "${run_args[@]+"${run_args[@]}"}" \
   --name "$NAME" \
   -p 17080:7080 \
-  -e RUNTIME_SECRET="$SECRET" \
-  -e BRIDGE_API_KEY="$SECRET" \
+  -e HIVY_RUNTIME_SECRET="$SECRET" \
   -e HIVY_GIT_USERNAME="Runtime Smoke" \
   -e HIVY_GIT_EMAIL="runtime-smoke@usehivy.com" \
   -e HIVY_GIT_CREDENTIALS_URL="http://127.0.0.1:18081/git-credentials" \
-  -e OPENROUTER_API_KEY="${OPENROUTER_API_KEY:-dummy}" \
   "$IMAGE" >/tmp/hivy-sandboxes-runtime-container-id
 
 for _ in $(seq 1 50); do
@@ -122,7 +120,16 @@ cfg["skills"] = [{
     "category": "testing",
     "tags": ["runtime", "debian"],
 }]
-json.dump(cfg, open("/tmp/runtime-config-updated.json", "w"))
+json.dump({
+    "runtime_secret": "runtime-smoke-secret",
+    "runtime_env": {
+        "HIVY_PROXY_API_KEY": "runtime-smoke-proxy-token",
+        "HIVY_GIT_USERNAME": "Runtime Smoke",
+        "HIVY_GIT_EMAIL": "runtime-smoke@usehivy.com",
+        "HIVY_GIT_CREDENTIALS_URL": "http://127.0.0.1:18081/git-credentials"
+    },
+    "definition": cfg,
+}, open("/tmp/runtime-config-updated.json", "w"))
 PY
 
 curl -fsS \
@@ -146,8 +153,7 @@ curl -fsS \
   "${run_args[@]+"${run_args[@]}"}" \
   --name "$AUTH_NAME" \
   --entrypoint /bin/sh \
-  -e RUNTIME_SECRET="$SECRET" \
-  -e BRIDGE_API_KEY="$SECRET" \
+  -e HIVY_RUNTIME_SECRET="$SECRET" \
   -e HIVY_GIT_USERNAME="Runtime Smoke" \
   -e HIVY_GIT_EMAIL="runtime-smoke@usehivy.com" \
   -e HIVY_GIT_CREDENTIALS_URL="http://127.0.0.1:18081/git-credentials" \

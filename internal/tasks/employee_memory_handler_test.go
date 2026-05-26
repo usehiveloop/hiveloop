@@ -46,7 +46,7 @@ func TestEmployeeMemoryRetainHandler_CallsHindsight(t *testing.T) {
 	if err := db.Create(&agent).Error; err != nil {
 		t.Fatalf("create agent: %v", err)
 	}
-	if err := db.Create(&model.Sandbox{ID: sandboxID, OrgID: &orgID, EmployeeID: &agentID, ExternalID: "sb", BridgeURL: "http://bridge", EncryptedBridgeAPIKey: []byte("x"), Status: "running"}).Error; err != nil {
+	if err := db.Create(&model.Sandbox{ID: sandboxID, OrgID: &orgID, EmployeeID: &agentID, ExternalID: "sb", RuntimeURL: "http://runtime", EncryptedRuntimeSecret: []byte("x"), Status: "running"}).Error; err != nil {
 		t.Fatalf("create sandbox: %v", err)
 	}
 	createMemorySession(t, db, orgID, agentID, sandboxID, "S1")
@@ -107,7 +107,7 @@ func TestEmployeeMemoryRetainHandler_RequeuesActiveSession(t *testing.T) {
 	if err := db.Create(&agent).Error; err != nil {
 		t.Fatalf("create agent: %v", err)
 	}
-	if err := db.Create(&model.Sandbox{ID: sandboxID, OrgID: &orgID, EmployeeID: &agentID, ExternalID: "sb", BridgeURL: "http://bridge", EncryptedBridgeAPIKey: []byte("x"), Status: "running"}).Error; err != nil {
+	if err := db.Create(&model.Sandbox{ID: sandboxID, OrgID: &orgID, EmployeeID: &agentID, ExternalID: "sb", RuntimeURL: "http://runtime", EncryptedRuntimeSecret: []byte("x"), Status: "running"}).Error; err != nil {
 		t.Fatalf("create sandbox: %v", err)
 	}
 	sessionID := createMemorySession(t, db, orgID, agentID, sandboxID, "S1")
@@ -149,7 +149,7 @@ func TestEmployeeMemoryRefreshHandler_TracksSuccessAndFailure(t *testing.T) {
 		t.Fatalf("encrypt secret: %v", err)
 	}
 	var configCalls int
-	bridge := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	runtime := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/healthz", "/readyz":
 			w.WriteHeader(http.StatusOK)
@@ -161,11 +161,11 @@ func TestEmployeeMemoryRefreshHandler_TracksSuccessAndFailure(t *testing.T) {
 			w.WriteHeader(http.StatusOK)
 			_, _ = w.Write([]byte(`{"applied":1}`))
 		default:
-			t.Fatalf("unexpected bridge path: %s", r.URL.Path)
+			t.Fatalf("unexpected runtime path: %s", r.URL.Path)
 		}
 	}))
-	defer bridge.Close()
-	if err := db.Create(&model.Sandbox{ID: sandboxID, OrgID: &orgID, EmployeeID: &agentID, ExternalID: "sb", BridgeURL: bridge.URL, EncryptedBridgeAPIKey: encryptedSecret, Status: "running"}).Error; err != nil {
+	defer runtime.Close()
+	if err := db.Create(&model.Sandbox{ID: sandboxID, OrgID: &orgID, EmployeeID: &agentID, ExternalID: "sb", RuntimeURL: runtime.URL, EncryptedRuntimeSecret: encryptedSecret, Status: "running"}).Error; err != nil {
 		t.Fatalf("create sandbox: %v", err)
 	}
 
@@ -193,11 +193,11 @@ func TestEmployeeMemoryRefreshHandler_TracksSuccessAndFailure(t *testing.T) {
 	}
 
 	failing := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		http.Error(w, "bridge down", http.StatusBadGateway)
+		http.Error(w, "runtime down", http.StatusBadGateway)
 	}))
 	defer failing.Close()
-	if err := db.Model(&model.Sandbox{}).Where("id = ?", sandboxID).Update("bridge_url", failing.URL).Error; err != nil {
-		t.Fatalf("update sandbox bridge url: %v", err)
+	if err := db.Model(&model.Sandbox{}).Where("id = ?", sandboxID).Update("runtime_url", failing.URL).Error; err != nil {
+		t.Fatalf("update sandbox runtime url: %v", err)
 	}
 	if err := handler.Handle(context.Background(), task); err == nil {
 		t.Fatal("expected refresh failure")

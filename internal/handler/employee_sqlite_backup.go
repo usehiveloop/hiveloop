@@ -69,7 +69,7 @@ func (h *EmployeeSQLiteBackupHandler) Upload(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	agent, sandbox, ok := h.authenticateEmployeeBridge(w, r, employeeID, bearer)
+	agent, sandbox, ok := h.authenticateEmployeeRuntime(w, r, employeeID, bearer)
 	if !ok {
 		return
 	}
@@ -140,7 +140,7 @@ func (h *EmployeeSQLiteBackupHandler) parseAndVerifyUpgradeID(w http.ResponseWri
 	return &upgradeID, true
 }
 
-func (h *EmployeeSQLiteBackupHandler) authenticateEmployeeBridge(w http.ResponseWriter, r *http.Request, employeeID uuid.UUID, bearer string) (*model.Employee, *model.Sandbox, bool) {
+func (h *EmployeeSQLiteBackupHandler) authenticateEmployeeRuntime(w http.ResponseWriter, r *http.Request, employeeID uuid.UUID, bearer string) (*model.Employee, *model.Sandbox, bool) {
 	var agent model.Employee
 	if err := h.db.Where("id = ? AND status <> ?", employeeID, "archived").First(&agent).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -168,14 +168,14 @@ func (h *EmployeeSQLiteBackupHandler) authenticateEmployeeBridge(w http.Response
 		return nil, nil, false
 	}
 
-	wantKey, err := h.encKey.DecryptString(sandbox.EncryptedBridgeAPIKey)
+	wantKey, err := h.encKey.DecryptString(sandbox.EncryptedRuntimeSecret)
 	if err != nil {
-		logging.FromContext(r.Context()).ErrorContext(r.Context(), "decrypt bridge api key", "employee_id", employeeID, "error", err)
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "decrypt runtime secret", "employee_id", employeeID, "error", err)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to verify credentials"})
 		return nil, nil, false
 	}
 	if subtle.ConstantTimeCompare([]byte(bearer), []byte(wantKey)) != 1 {
-		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "invalid bridge api key"})
+		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "invalid runtime secret"})
 		return nil, nil, false
 	}
 	return &agent, &sandbox, true

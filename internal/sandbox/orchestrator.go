@@ -8,7 +8,6 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
-	"github.com/usehivy/hivy/internal/bridge"
 	"github.com/usehivy/hivy/internal/config"
 	"github.com/usehivy/hivy/internal/crypto"
 	"github.com/usehivy/hivy/internal/employeeruntime"
@@ -19,10 +18,12 @@ import (
 // Orchestrator manages sandbox lifecycle — creating, starting, stopping sandboxes
 // and providing runtime clients to talk to them.
 type Orchestrator struct {
-	db       *gorm.DB
-	provider Provider
-	encKey   *crypto.SymmetricKey
-	cfg      *config.Config
+	db                *gorm.DB
+	provider          Provider
+	encKey            *crypto.SymmetricKey
+	cfg               *config.Config
+	warmPool          *WarmPool
+	reconcileWarmPool func(context.Context, string, string) error
 }
 
 func NewOrchestrator(db *gorm.DB, provider Provider, encKey *crypto.SymmetricKey, cfg *config.Config) *Orchestrator {
@@ -31,6 +32,24 @@ func NewOrchestrator(db *gorm.DB, provider Provider, encKey *crypto.SymmetricKey
 		provider: provider,
 		encKey:   encKey,
 		cfg:      cfg,
+		warmPool: NewWarmPool(db, provider, encKey, cfg),
+	}
+}
+
+func (o *Orchestrator) WarmPool() *WarmPool {
+	return o.warmPool
+}
+
+func (o *Orchestrator) SetWarmPoolReconciler(fn func(context.Context, string, string) error) {
+	o.reconcileWarmPool = fn
+}
+
+func (o *Orchestrator) enqueueWarmPoolReconcile(ctx context.Context, mode string) {
+	if o.reconcileWarmPool == nil {
+		return
+	}
+	if err := o.reconcileWarmPool(ctx, o.provider.ID(), mode); err != nil {
+		logging.Capture(ctx, fmt.Errorf("enqueue warm pool reconcile: %w", err))
 	}
 }
 
@@ -42,9 +61,9 @@ func (o *Orchestrator) GetRuntimeClient(ctx context.Context, sb *model.Sandbox) 
 	if err := o.ensureSandboxProvider(sb); err != nil {
 		return nil, err
 	}
-	apiKey, err := o.encKey.DecryptString(sb.EncryptedBridgeAPIKey)
+	apiKey, err := o.encKey.DecryptString(sb.EncryptedRuntimeSecret)
 	if err != nil {
-		return nil, fmt.Errorf("decrypting runtime api key: %w", err)
+		return nil, fmt.Errorf("decrypting runtime secret: %w", err)
 	}
 	if _, err := o.EnsureSandboxActive(ctx, sb); err != nil {
 		return nil, fmt.Errorf("ensuring sandbox active: %w", err)
@@ -55,7 +74,7 @@ func (o *Orchestrator) GetRuntimeClient(ctx context.Context, sb *model.Sandbox) 
 		}
 	}
 	o.touchLastActive(sb)
-	return employeeruntime.NewClient(sb.BridgeURL, apiKey), nil
+	return employeeruntime.NewClient(sb.RuntimeURL, apiKey), nil
 }
 
 func (o *Orchestrator) CreateSpecialistSandbox(ctx context.Context, agent *model.Employee) (*model.Sandbox, error) {
@@ -76,35 +95,6 @@ func (o *Orchestrator) CreateSpecialistSandboxWithEnv(ctx context.Context, agent
 
 func (o *Orchestrator) EmployeeTaskDriveUploadURL(employeeID, taskID uuid.UUID) string {
 	return employeeDriveUploadURL(o.cfg, employeeID, "tasks/"+taskID.String())
-}
-
-// GetBridgeClient returns a BridgeClient connected to the sandbox.
-// This is the single chokepoint for all Bridge interactions — it guarantees
-// the sandbox is active (waking stopped sandboxes, unarchiving archived
-// sandboxes) before returning a client, and refreshes the pre-auth URL if
-// it's about to expire.
-func (o *Orchestrator) GetBridgeClient(ctx context.Context, sb *model.Sandbox) (*bridge.BridgeClient, error) {
-	if err := o.ensureSandboxProvider(sb); err != nil {
-		return nil, err
-	}
-	apiKey, err := o.encKey.DecryptString(sb.EncryptedBridgeAPIKey)
-	if err != nil {
-		return nil, fmt.Errorf("decrypting bridge api key: %w", err)
-	}
-
-	if _, err := o.EnsureSandboxActive(ctx, sb); err != nil {
-		return nil, fmt.Errorf("ensuring sandbox active: %w", err)
-	}
-
-	if o.needsURLRefresh(sb) {
-		if err := o.refreshBridgeURL(ctx, sb); err != nil {
-			return nil, fmt.Errorf("refreshing bridge URL: %w", err)
-		}
-	}
-
-	o.touchLastActive(sb)
-
-	return bridge.NewBridgeClient(sb.BridgeURL, apiKey), nil
 }
 
 // StartHealthChecker runs a background goroutine that periodically syncs sandbox

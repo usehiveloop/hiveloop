@@ -6,7 +6,7 @@ import (
 )
 
 // SymmetricKey holds a 256-bit key for simple AES-256-GCM encryption.
-// Used for internal secrets (e.g. Bridge API keys) that don't need
+// Used for internal secrets (e.g. Runtime API keys) that don't need
 // envelope encryption with KMS.
 type SymmetricKey struct {
 	key []byte

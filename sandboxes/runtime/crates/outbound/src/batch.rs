@@ -55,7 +55,10 @@ struct CoalescedStream {
 }
 
 impl StreamBatcher {
-    pub fn from_specs(specs: &[OutboundChannelSpec]) -> Result<Option<Arc<Self>>> {
+    pub fn from_specs(
+        specs: &[OutboundChannelSpec],
+        runtime_env: &HashMap<String, String>,
+    ) -> Result<Option<Arc<Self>>> {
         let mut sinks = Vec::new();
         for spec in specs {
             let OutboundChannelKind::Webhook {
@@ -63,9 +66,9 @@ impl StreamBatcher {
                 secret_env,
                 extra_headers,
             } = &spec.kind;
-            let secret = match std::env::var(secret_env) {
-                Ok(secret) => secret,
-                Err(_) => {
+            let secret = match runtime_env.get(secret_env) {
+                Some(secret) => secret.clone(),
+                None => {
                     warn!(
                         name = %spec.name,
                         "skipping stream batch webhook because secret env var is not set"

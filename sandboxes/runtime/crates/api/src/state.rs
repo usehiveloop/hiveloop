@@ -1,3 +1,4 @@
+use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
@@ -7,7 +8,8 @@ use mcp::McpRegistry;
 use observability::ObservabilityRecorder;
 use skills::SkillWriter;
 use storage::{ConfigRepo, EventRepo, SessionRepo};
-use tokio::sync::Notify;
+use tokio::sync::{Notify, RwLock};
+use tools::LocalBashOperations;
 
 use crate::http_gateway::HttpGatewayState;
 
@@ -17,7 +19,9 @@ pub struct ApiState {
     pub config_repo: Arc<dyn ConfigRepo>,
     pub session_repo: Arc<dyn SessionRepo>,
     pub event_repo: Arc<dyn EventRepo>,
-    pub bearer_token: Arc<String>,
+    pub bearer_token: Arc<RwLock<String>>,
+    pub workspace_root: PathBuf,
+    pub bash: Arc<LocalBashOperations>,
     pub gateway_ready: Arc<AtomicBool>,
     pub config_loaded: Arc<AtomicBool>,
     pub config_notify: Arc<Notify>,
@@ -41,6 +45,8 @@ impl ApiState {
         session_repo: Arc<dyn SessionRepo>,
         event_repo: Arc<dyn EventRepo>,
         bearer_token: String,
+        workspace_root: PathBuf,
+        bash: Arc<LocalBashOperations>,
         skill_writer: Arc<SkillWriter>,
         http_gateway: Option<HttpGatewayState>,
         mcp_registry: Option<Arc<McpRegistry>>,
@@ -55,7 +61,9 @@ impl ApiState {
             config_repo,
             session_repo,
             event_repo,
-            bearer_token: Arc::new(bearer_token),
+            bearer_token: Arc::new(RwLock::new(bearer_token)),
+            workspace_root,
+            bash,
             gateway_ready: Arc::new(AtomicBool::new(false)),
             config_loaded: Arc::new(AtomicBool::new(false)),
             config_notify: Arc::new(Notify::new()),

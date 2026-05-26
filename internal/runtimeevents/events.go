@@ -1,4 +1,4 @@
-package bridgeevents
+package runtimeevents
 
 const (
 	EventAgentError              = "agent_error"

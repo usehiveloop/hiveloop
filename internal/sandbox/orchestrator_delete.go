@@ -22,15 +22,15 @@ func (o *Orchestrator) StopSandbox(ctx context.Context, sb *model.Sandbox) error
 	}
 	now := time.Now()
 	if err := o.db.Model(sb).Updates(map[string]any{
-		"status":                "stopped",
-		"stopped_at":            now,
-		"bridge_url_expires_at": nil,
+		"status":                 "stopped",
+		"stopped_at":             now,
+		"runtime_url_expires_at": nil,
 	}).Error; err != nil {
 		return err
 	}
 	sb.Status = "stopped"
 	sb.StoppedAt = &now
-	sb.BridgeURLExpiresAt = nil
+	sb.RuntimeURLExpiresAt = nil
 	return nil
 }
 
@@ -56,15 +56,15 @@ func (o *Orchestrator) DeleteSandboxResource(ctx context.Context, sb *model.Sand
 	}
 	now := time.Now()
 	if err := o.db.Model(sb).Updates(map[string]any{
-		"status":                string(StatusArchived),
-		"stopped_at":            now,
-		"bridge_url_expires_at": nil,
+		"status":                 string(StatusArchived),
+		"stopped_at":             now,
+		"runtime_url_expires_at": nil,
 	}).Error; err != nil {
 		return fmt.Errorf("mark sandbox resource deleted: %w", err)
 	}
 	sb.Status = string(StatusArchived)
 	sb.StoppedAt = &now
-	sb.BridgeURLExpiresAt = nil
+	sb.RuntimeURLExpiresAt = nil
 	return nil
 }
 
@@ -96,13 +96,13 @@ func (o *Orchestrator) ArchiveSandbox(ctx context.Context, sb *model.Sandbox) er
 	}
 
 	if err := o.db.Model(sb).Updates(map[string]any{
-		"status":                string(StatusArchived),
-		"bridge_url_expires_at": nil,
+		"status":                 string(StatusArchived),
+		"runtime_url_expires_at": nil,
 	}).Error; err != nil {
 		return fmt.Errorf("marking sandbox archived: %w", err)
 	}
 	sb.Status = string(StatusArchived)
-	sb.BridgeURLExpiresAt = nil
+	sb.RuntimeURLExpiresAt = nil
 
 	logging.FromContext(ctx).InfoContext(ctx, "sandbox archived", "sandbox_id", sb.ID, "external_id", sb.ExternalID)
 	return nil

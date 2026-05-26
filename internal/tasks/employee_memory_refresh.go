@@ -62,7 +62,7 @@ func (h *EmployeeMemoryRefreshHandler) refresh(ctx context.Context, payload Empl
 	if sb == nil {
 		return nil
 	}
-	apiKey, err := h.compileDeps.EncKey.DecryptString(sb.EncryptedBridgeAPIKey)
+	apiKey, err := h.compileDeps.EncKey.DecryptString(sb.EncryptedRuntimeSecret)
 	if err != nil {
 		return fmt.Errorf("decrypt employee runtime secret: %w", err)
 	}
@@ -71,7 +71,7 @@ func (h *EmployeeMemoryRefreshHandler) refresh(ctx context.Context, payload Empl
 		return fmt.Errorf("compile employee config for memory refresh: %w", err)
 	}
 	def.OutboundChannels = employeeruntime.ControlPlaneOutboundChannels(h.compileDeps.Cfg, sb.ID)
-	client := employeeruntime.NewClient(sb.BridgeURL, apiKey)
+	client := employeeruntime.NewClient(sb.RuntimeURL, apiKey)
 	if err := client.Healthz(ctx); err != nil {
 		return fmt.Errorf("employee runtime healthz: %w", err)
 	}

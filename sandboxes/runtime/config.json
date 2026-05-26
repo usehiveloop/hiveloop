@@ -51,7 +51,7 @@
     "provider": "openai_compatible",
     "base_url": "http://127.0.0.1:7081/api/v1",
     "model_id": "deepseek/deepseek-v4-flash",
-    "api_key_env": "OPENROUTER_API_KEY",
+    "api_key_env": "HIVY_PROXY_API_KEY",
     "temperature": 0.3,
     "max_output_tokens": 1024,
     "reasoning_effort": "low",
@@ -62,7 +62,7 @@
     "provider": "openai_compatible",
     "base_url": "http://127.0.0.1:7081/api/v1",
     "model_id": "google/gemini-3-flash-preview",
-    "api_key_env": "OPENROUTER_API_KEY",
+    "api_key_env": "HIVY_PROXY_API_KEY",
     "temperature": 0.3,
     "max_output_tokens": 1024,
     "reasoning_effort": "low",
@@ -86,7 +86,7 @@
         "provider": "openai_compatible",
         "base_url": "http://127.0.0.1:7081/api/v1",
         "model_id": "deepseek/deepseek-v4-flash",
-        "api_key_env": "OPENROUTER_API_KEY",
+        "api_key_env": "HIVY_PROXY_API_KEY",
         "temperature": 0.3,
         "max_output_tokens": 1024,
         "reasoning_effort": "low",
@@ -115,7 +115,12 @@
           "HOME",
           "PATH",
           "LANG",
-          "LC_ALL"
+          "LC_ALL",
+          "HIVY_RUNTIME_SECRET",
+          "HIVY_PROXY_API_KEY",
+          "HIVY_GIT_USERNAME",
+          "HIVY_GIT_EMAIL",
+          "HIVY_GIT_CREDENTIALS_URL"
         ],
         "sandbox": "process_isolated"
       }

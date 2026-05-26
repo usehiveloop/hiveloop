@@ -14,6 +14,7 @@ use serde_json::{json, Value};
 use skills::SkillWriter;
 use storage::{ConfigRepo, EventRepo, SessionListFilter, SessionRepo, StorageError};
 use tokio::sync::{mpsc, oneshot};
+use tools::LocalBashOperations;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EvalCase {
@@ -240,6 +241,8 @@ impl FakeGatewayServer {
             Arc::new(NoopSessionRepo),
             Arc::new(NoopEventRepo),
             bearer_token.clone(),
+            std::env::temp_dir(),
+            Arc::new(LocalBashOperations),
             Arc::new(SkillWriter::new(
                 std::env::temp_dir().join("eval-harness-skills"),
             )),

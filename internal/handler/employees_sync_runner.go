@@ -13,6 +13,7 @@ import (
 	"github.com/usehivy/hivy/internal/employeeruntime"
 	"github.com/usehivy/hivy/internal/logging"
 	"github.com/usehivy/hivy/internal/model"
+	"github.com/usehivy/hivy/internal/sandbox"
 	"github.com/usehivy/hivy/internal/tasks"
 	"gorm.io/gorm"
 )
@@ -72,7 +73,7 @@ func (h *EmployeeHandler) SyncOrgHivyEmployee(ctx context.Context, orgID uuid.UU
 }
 
 func (h *EmployeeHandler) runEmployeeSync(ctx context.Context, agent *model.Employee, sb *model.Sandbox) (*employeeruntime.SyncResponse, error) {
-	apiKey, err := h.compileDeps.EncKey.DecryptString(sb.EncryptedBridgeAPIKey)
+	apiKey, err := h.compileDeps.EncKey.DecryptString(sb.EncryptedRuntimeSecret)
 	if err != nil {
 		return nil, fmt.Errorf("decrypt runtime secret: %w", err)
 	}
@@ -81,11 +82,11 @@ func (h *EmployeeHandler) runEmployeeSync(ctx context.Context, agent *model.Empl
 		return nil, fmt.Errorf("compile: %w", err)
 	}
 	def.OutboundChannels = employeeruntime.ControlPlaneOutboundChannels(h.compileDeps.Cfg, sb.ID)
-	client := employeeruntime.NewClient(sb.BridgeURL, apiKey)
+	client := employeeruntime.NewClient(sb.RuntimeURL, apiKey)
 	if err := client.Healthz(ctx); err != nil {
 		return nil, fmt.Errorf("employee runtime healthz: %w", err)
 	}
-	runtimeEnv, err := h.loadRuntimeEnv(ctx, agent, apiKey)
+	runtimeEnv, err := h.loadRuntimeEnv(ctx, agent, sb, apiKey)
 	if err != nil {
 		return nil, fmt.Errorf("load runtime env: %w", err)
 	}
@@ -95,12 +96,16 @@ func (h *EmployeeHandler) runEmployeeSync(ctx context.Context, agent *model.Empl
 
 	var resp *employeeruntime.SyncResponse
 	if needsRestart {
-		resp, err = client.PutConfig(ctx, def)
-		if err == nil {
-			_, err = client.UpdateRuntimeEnv(ctx, runtimeEnv)
-		}
+		resp, err = client.PutRuntimeConfig(ctx, employeeruntime.ConfigUpdateRequest{
+			Definition:    def,
+			RuntimeEnv:    runtimeEnv,
+			RuntimeSecret: apiKey,
+		})
 	} else {
-		resp, err = client.UpdateRuntimeEnv(ctx, runtimeEnv)
+		resp, err = client.PutRuntimeConfig(ctx, employeeruntime.ConfigUpdateRequest{
+			Definition: def,
+			RuntimeEnv: runtimeEnv,
+		})
 	}
 	if err != nil {
 		return nil, err
@@ -148,11 +153,42 @@ func (h *EmployeeHandler) scheduleEmployeeProxyTokenRefresh(ctx context.Context,
 	}
 }
 
-func (h *EmployeeHandler) loadRuntimeEnv(ctx context.Context, agent *model.Employee, runtimeSecret string) (map[string]string, error) {
+func (h *EmployeeHandler) loadRuntimeEnv(ctx context.Context, agent *model.Employee, sb *model.Sandbox, runtimeSecret string) (map[string]string, error) {
 	env := make(map[string]string)
 	if agent == nil {
 		return env, nil
 	}
+	if sb != nil {
+		env[employeeruntime.EmployeeEnvSandboxID] = sb.ID.String()
+	}
+	env[employeeruntime.EmployeeEnvRuntimeSecret] = runtimeSecret
+	env[employeeruntime.EmployeeEnvUploadBearer] = runtimeSecret
+	env[employeeruntime.EmployeeEnvEmployeeID] = agent.ID.String()
+	if agent.OrgID != nil {
+		env[employeeruntime.EmployeeEnvOrgID] = agent.OrgID.String()
+	}
+	if h.compileDeps.Cfg != nil {
+		env[employeeruntime.EmployeeEnvCloudControlPlaneURL] = h.compileDeps.Cfg.RuntimeControlPlaneBaseURL()
+		env[employeeruntime.EmployeeEnvAgentBaseURL] = h.compileDeps.Cfg.ProxyOpenAIBaseURL()
+		env[employeeruntime.EmployeeEnvAgentMultimodalBaseURL] = h.compileDeps.Cfg.ProxyOpenAIBaseURL()
+		env[employeeruntime.EmployeeEnvWorkspaceRoot] = "/workspace"
+		env[employeeruntime.EmployeeEnvDBPath] = "/app/data/hivy-sandboxes-runtime.db"
+		env[employeeruntime.EmployeeEnvRuntimeBindAddr] = fmt.Sprintf("0.0.0.0:%d", sandbox.EmployeeSandboxPort)
+	}
+	env[employeeruntime.EmployeeEnvAgentModel] = employeeruntime.DefaultEmployeeModel
+	env[employeeruntime.EmployeeEnvAgentAPIKeyEnv] = employeeruntime.ProxyAPIKeyEnv
+	env[employeeruntime.EmployeeEnvAgentMultimodalModel] = employeeruntime.DefaultEmployeeMultimodalModel
+	env[employeeruntime.EmployeeEnvAgentMultimodalAPIKeyEnv] = employeeruntime.ProxyAPIKeyEnv
+	env[employeeruntime.EmployeeEnvRuntimeMode] = "employee"
+	sandboxID := uuid.Nil
+	if sb != nil {
+		sandboxID = sb.ID
+	}
+	token, err := employeeruntime.MintProxyToken(ctx, h.compileDeps, agent, sandboxID)
+	if err != nil {
+		return nil, err
+	}
+	env[employeeruntime.ProxyAPIKeyEnv] = token.Token
 	if len(agent.EncryptedEnvVars) == 0 {
 		addControlPlaneRuntimeEnv(ctx, h.db, env, h.compileDeps.Cfg, agent, runtimeSecret)
 		return env, nil
@@ -173,9 +209,6 @@ func (h *EmployeeHandler) loadRuntimeEnv(ctx context.Context, agent *model.Emplo
 		return nil, fmt.Errorf("decode env vars: %w", err)
 	}
 	for key, value := range rawEnv {
-		if strings.HasPrefix(strings.ToUpper(key), "BRIDGE_") {
-			continue
-		}
 		env[key] = value
 	}
 	addControlPlaneRuntimeEnv(ctx, h.db, env, h.compileDeps.Cfg, agent, runtimeSecret)

@@ -19,7 +19,7 @@ import (
 )
 
 // authEmployee resolves the employee agent + its sandbox from the URL param
-// and verifies the bearer matches the sandbox's bridge API key. On failure
+// and verifies the bearer matches the sandbox's runtime secret. On failure
 // it writes the JSON error response and returns false — callers must return.
 func (h *UploadsHandler) authEmployee(w http.ResponseWriter, r *http.Request) (*model.Employee, *model.Sandbox, bool) {
 	if h.encKey == nil {
@@ -62,14 +62,14 @@ func (h *UploadsHandler) authEmployee(w http.ResponseWriter, r *http.Request) (*
 		return nil, nil, false
 	}
 
-	wantKey, err := h.encKey.DecryptString(sandbox.EncryptedBridgeAPIKey)
+	wantKey, err := h.encKey.DecryptString(sandbox.EncryptedRuntimeSecret)
 	if err != nil {
-		logging.FromContext(r.Context()).ErrorContext(r.Context(), "decrypt bridge api key", "employee_id", agentID, "error", err)
+		logging.FromContext(r.Context()).ErrorContext(r.Context(), "decrypt runtime secret", "employee_id", agentID, "error", err)
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to verify credentials"})
 		return nil, nil, false
 	}
 	if subtle.ConstantTimeCompare([]byte(bearer), []byte(wantKey)) != 1 && !h.bearerMatchesEmployeeSpecialistSandbox(r, agent.ID, bearer) {
-		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "invalid bridge api key"})
+		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "invalid runtime secret"})
 		return nil, nil, false
 	}
 
@@ -89,9 +89,9 @@ func (h *UploadsHandler) bearerMatchesEmployeeSpecialistSandbox(r *http.Request,
 		return false
 	}
 	for _, sandbox := range sandboxes {
-		wantKey, err := h.encKey.DecryptString(sandbox.EncryptedBridgeAPIKey)
+		wantKey, err := h.encKey.DecryptString(sandbox.EncryptedRuntimeSecret)
 		if err != nil {
-			logging.FromContext(r.Context()).ErrorContext(r.Context(), "decrypt specialist bridge api key", "employee_id", employeeID, "sandbox_id", sandbox.ID, "error", err)
+			logging.FromContext(r.Context()).ErrorContext(r.Context(), "decrypt specialist runtime secret", "employee_id", employeeID, "sandbox_id", sandbox.ID, "error", err)
 			continue
 		}
 		if subtle.ConstantTimeCompare([]byte(bearer), []byte(wantKey)) == 1 {
@@ -109,7 +109,7 @@ func buildEmployeeAssetKey(agentID uuid.UUID, folder, filename string) string {
 }
 
 // StreamEmployeeAsset accepts a streamed PUT body and stores it under the
-// employee's drive. Auth: bearer must equal the employee sandbox's bridge
+// employee's drive. Auth: bearer must equal the employee sandbox's runtime
 // API key.
 //
 //	PUT /internal/employees/{employeeID}/assets/*

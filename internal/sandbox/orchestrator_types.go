@@ -16,37 +16,31 @@ import (
 )
 
 const (
-	// BridgePort overrides the bridge binary's 8080 default via
-	// BRIDGE_LISTEN_ADDR. Kept at the original hivy port (25434).
-	BridgePort = 25434
+	RuntimePort = 25434
 
-	bridgeHealthTimeout    = 90 * time.Second
-	bridgeHealthInterval   = 2 * time.Second
-	bridgeURLRefreshBuffer = 5 * time.Minute
-	bridgeURLTTL           = 55 * time.Minute
+	runtimeHealthTimeout    = 90 * time.Second
+	runtimeHealthInterval   = 2 * time.Second
+	runtimeURLRefreshBuffer = 5 * time.Minute
+	runtimeURLTTL           = 55 * time.Minute
 
 	healthCheckInterval = 30 * time.Second
 )
 
-func baseEnvVars(cfg *config.Config, bridgeAPIKey string, sandboxID uuid.UUID, webhookURL string) map[string]string {
+func baseEnvVars(cfg *config.Config, runtimeSecret string, sandboxID uuid.UUID, webhookURL string) map[string]string {
 	controlPlaneBaseURL := cfg.RuntimeControlPlaneBaseURL()
 	envVars := map[string]string{
-		"BRIDGE_CONTROL_PLANE_API_KEY":          bridgeAPIKey,
-		employeeruntime.EmployeeEnvUploadBearer: bridgeAPIKey,
-		"BRIDGE_LISTEN_ADDR":                    fmt.Sprintf("0.0.0.0:%d", BridgePort),
-		"BRIDGE_LOG_FORMAT":                     "json",
-		"BRIDGE_WEB_URL":                        controlPlaneBaseURL + "/spider",
-		employeeruntime.EmployeeEnvSandboxID:    sandboxID.String(),
-		// HOME=/work so bridge.db survives provider stop/start.
-		employeeruntime.EmployeeEnvHome: "/work",
-		"OPENCODE_CONFIG_DIR":           "/work/.opencode",
-		"NO_BROWSER":                    "1",
-		// SQLite persistence for bridge conversation/session state. /work is
-		// HOME and survives provider stop/start.
-		"BRIDGE_STORAGE_PATH": "/work/bridge.db",
+		employeeruntime.EmployeeEnvRuntimeSecret:   runtimeSecret,
+		employeeruntime.EmployeeEnvUploadBearer:    runtimeSecret,
+		employeeruntime.EmployeeEnvRuntimeBindAddr: fmt.Sprintf("0.0.0.0:%d", RuntimePort),
+		"HIVY_WEB_URL":                       controlPlaneBaseURL + "/spider",
+		employeeruntime.EmployeeEnvSandboxID: sandboxID.String(),
+		employeeruntime.EmployeeEnvHome:      "/work",
+		"OPENCODE_CONFIG_DIR":                "/work/.opencode",
+		"NO_BROWSER":                         "1",
+		"HIVY_STORAGE_PATH":                  "/work/runtime.db",
 	}
 	if webhookURL != "" {
-		envVars["BRIDGE_WEBHOOK_URL"] = webhookURL
+		envVars["HIVY_WEBHOOK_URL"] = webhookURL
 	}
 	agentSentryDSN := ""
 	if cfg != nil {
@@ -79,17 +73,17 @@ func setAgentEnvVars(envVars map[string]string, agent *model.Employee, cfg *conf
 		return
 	}
 	controlPlaneBaseURL := cfg.RuntimeControlPlaneBaseURL()
-	envVars[employeeruntime.EmployeeEnvHivyEmployeeID] = agent.ID.String()
+	envVars[employeeruntime.EmployeeEnvEmployeeID] = agent.ID.String()
 	envVars[employeeruntime.EmployeeEnvGitCredentialsURL] = fmt.Sprintf("%s/internal/git-credentials/%s", controlPlaneBaseURL, agent.ID)
 	envVars[employeeruntime.EmployeeEnvBugsinkURL] = fmt.Sprintf("%s/internal/bugsink-proxy/%s", controlPlaneBaseURL, agent.ID)
-	envVars[employeeruntime.EmployeeEnvBugsinkToken] = envVars["BRIDGE_CONTROL_PLANE_API_KEY"]
+	envVars[employeeruntime.EmployeeEnvBugsinkToken] = envVars[employeeruntime.EmployeeEnvRuntimeSecret]
 	envVars[employeeruntime.EmployeeEnvLinearURL] = fmt.Sprintf("%s/internal/linear-proxy/%s", controlPlaneBaseURL, agent.ID)
-	envVars[employeeruntime.EmployeeEnvLinearToken] = envVars["BRIDGE_CONTROL_PLANE_API_KEY"]
+	envVars[employeeruntime.EmployeeEnvLinearToken] = envVars[employeeruntime.EmployeeEnvRuntimeSecret]
 	envVars[employeeruntime.EmployeeEnvNotionAPIURL] = fmt.Sprintf("%s/internal/notion-proxy/%s", controlPlaneBaseURL, agent.ID)
-	envVars[employeeruntime.EmployeeEnvNotionToken] = envVars["BRIDGE_CONTROL_PLANE_API_KEY"]
+	envVars[employeeruntime.EmployeeEnvNotionToken] = envVars[employeeruntime.EmployeeEnvRuntimeSecret]
 	envVars["HIVY_RAILWAY_API_URL"] = fmt.Sprintf("%s/internal/railway-proxy/%s", controlPlaneBaseURL, agent.ID)
-	envVars["HIVY_RAILWAY_API_KEY"] = envVars["BRIDGE_CONTROL_PLANE_API_KEY"]
-	envVars["HIVY_VERCEL_API_KEY"] = envVars["BRIDGE_CONTROL_PLANE_API_KEY"]
+	envVars["HIVY_RAILWAY_API_KEY"] = envVars[employeeruntime.EmployeeEnvRuntimeSecret]
+	envVars["HIVY_VERCEL_API_KEY"] = envVars[employeeruntime.EmployeeEnvRuntimeSecret]
 	envVars[employeeruntime.EmployeeEnvGitHubNoKeyring] = "1"
 }
 
@@ -98,13 +92,12 @@ func setDriveEndpoint(envVars map[string]string, sandboxID uuid.UUID, cfg *confi
 }
 
 // setAssetsUploadURL exposes the conversation-asset endpoint base. The
-// bridge appends the per-session conversation_id and the agent's chosen
+// runtime appends the per-session conversation_id and the agent's chosen
 // "<folder>/<filename>" tail so the final PUT URL is:
 //
 //	$HIVY_ASSETS_UPLOAD_URL/{conversationID}/assets/{folder}/{filename}
 //
-// Auth uses the same bridge API key already exported as
-// BRIDGE_CONTROL_PLANE_API_KEY.
+// Auth uses the same runtime secret already exported as HIVY_RUNTIME_SECRET.
 func setAssetsUploadURL(envVars map[string]string, cfg *config.Config) {
 	controlPlaneBaseURL := cfg.RuntimeControlPlaneBaseURL()
 	envVars["HIVY_ASSETS_UPLOAD_URL"] = controlPlaneBaseURL + "/internal/conversations"

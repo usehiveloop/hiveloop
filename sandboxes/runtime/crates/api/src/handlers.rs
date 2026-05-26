@@ -8,7 +8,10 @@ use chrono::{DateTime, Utc};
 use domain::{AgentDefinition, SessionId, SessionStatus};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::path::{Path as FsPath, PathBuf};
+use std::time::Duration;
 use storage::{SessionListCursor, SessionListFilter};
+use tools::{BashExecOptions, BashOperations};
 use tracing::warn;
 
 use crate::http_gateway::{stream_response, HttpMessageRequest, HttpMessageResponse};
@@ -19,51 +22,75 @@ use crate::state::ApiState;
 pub struct ConfigResponse {
     applied_at: DateTime<Utc>,
     definition: AgentDefinition,
+    env_key_count: usize,
+    secret_rotated: bool,
 }
 
-const FORBIDDEN_RUNTIME_ENV_KEYS: &[&str] = &[
-    "GROQ_API_KEY",
-    "OPENROUTER_API_KEY",
-    "OPENAI_API_KEY",
-    "TOGETHER_API_KEY",
-];
 const MAX_RUNTIME_ENV_KEYS: usize = 128;
 const MAX_RUNTIME_ENV_KEY_LENGTH: usize = 128;
 const MAX_RUNTIME_ENV_VALUE_LENGTH: usize = 8192;
 const MAX_RUNTIME_ENV_PAYLOAD_BYTES: usize = 64 * 1024;
+const MAX_CONTROL_COMMANDS: usize = 20;
+const MAX_CONTROL_COMMAND_LENGTH: usize = 8 * 1024;
+const MAX_CONTROL_COMMAND_PAYLOAD_BYTES: usize = 128 * 1024;
+const MAX_CONTROL_COMMAND_TIMEOUT_SECONDS: u64 = 300;
+const MAX_CONTROL_COMMAND_OUTPUT_BYTES: u64 = 64 * 1024;
 
 #[derive(Deserialize)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
-pub struct RuntimeEnvUpdate {
-    #[serde(flatten)]
-    pub entries: HashMap<String, String>,
+pub struct ConfigUpdateRequest {
+    #[serde(default)]
+    pub runtime_secret: Option<String>,
+    #[serde(default)]
+    pub runtime_env: HashMap<String, String>,
+    pub definition: AgentDefinition,
+}
+
+#[derive(Deserialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct ControlCommandsRequest {
+    pub commands: Vec<String>,
+    #[serde(default)]
+    pub workdir: Option<String>,
+    #[serde(default)]
+    pub timeout_seconds: Option<u64>,
+    #[serde(default = "default_stop_on_error")]
+    pub stop_on_error: bool,
 }
 
 #[derive(Serialize)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
-pub struct RuntimeEnvResponse {
-    applied_at: DateTime<Utc>,
-    key_count: usize,
+pub struct ControlCommandsResponse {
+    pub ok: bool,
+    pub results: Vec<ControlCommandResult>,
 }
 
-impl RuntimeEnvUpdate {
+#[derive(Serialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct ControlCommandResult {
+    pub command: String,
+    pub exit_code: Option<i32>,
+    pub timed_out: bool,
+    pub truncated: bool,
+    pub output: String,
+}
+
+fn default_stop_on_error() -> bool {
+    true
+}
+
+impl ConfigUpdateRequest {
     fn validate(&self) -> Result<(), String> {
-        if self.entries.len() > MAX_RUNTIME_ENV_KEYS {
+        if self.runtime_env.len() > MAX_RUNTIME_ENV_KEYS {
             return Err(format!(
                 "too many environment variables; max {}",
                 MAX_RUNTIME_ENV_KEYS
             ));
         }
 
-        for (key, value) in &self.entries {
+        for (key, value) in &self.runtime_env {
             if !is_valid_env_key(key) {
                 return Err(format!("invalid environment key: {key}"));
-            }
-            if FORBIDDEN_RUNTIME_ENV_KEYS
-                .binary_search(&key.as_str())
-                .is_ok()
-            {
-                return Err(format!("forbidden environment key: {key}"));
             }
             if value.len() > MAX_RUNTIME_ENV_VALUE_LENGTH {
                 return Err(format!(
@@ -84,7 +111,7 @@ impl RuntimeEnvUpdate {
     fn estimated_payload_bytes(&self) -> usize {
         std::mem::size_of::<usize>()
             + self
-                .entries
+                .runtime_env
                 .iter()
                 .map(|(key, value)| key.len() + value.len())
                 .sum::<usize>()
@@ -111,7 +138,7 @@ fn redacted_env_keys(entries: &HashMap<String, String>) -> Vec<&str> {
 #[cfg_attr(feature = "openapi", utoipa::path(
     put,
     path = "/config",
-    request_body = AgentDefinition,
+    request_body = ConfigUpdateRequest,
     responses(
         (status = 200, description = "Configuration applied", body = ConfigResponse),
         (status = 400, description = "Invalid configuration"),
@@ -121,8 +148,56 @@ fn redacted_env_keys(entries: &HashMap<String, String>) -> Vec<&str> {
 ))]
 pub async fn put_config(
     State(state): State<ApiState>,
-    Json(definition): Json<AgentDefinition>,
+    Json(request): Json<ConfigUpdateRequest>,
 ) -> Result<Json<ConfigResponse>, (StatusCode, String)> {
+    if let Err(error) = request.validate() {
+        warn!(
+            error = %error,
+            keys = ?redacted_env_keys(&request.runtime_env),
+            key_count = request.runtime_env.len(),
+            payload_size = request.estimated_payload_bytes(),
+            "config update rejected"
+        );
+        let status = if error.contains("payload too large") {
+            StatusCode::PAYLOAD_TOO_LARGE
+        } else {
+            StatusCode::BAD_REQUEST
+        };
+        return Err((status, error));
+    }
+    let env_key_count = request.runtime_env.len();
+    let secret_rotated = request
+        .runtime_secret
+        .as_ref()
+        .is_some_and(|v| !v.trim().is_empty());
+    if env_key_count > 0 {
+        state.config_store.merge_runtime_env(request.runtime_env);
+    }
+    if let Some(secret) = request.runtime_secret {
+        let secret = secret.trim().to_string();
+        if !secret.is_empty() {
+            state.config_store.merge_runtime_env(HashMap::from([(
+                "HIVY_RUNTIME_SECRET".to_string(),
+                secret.clone(),
+            )]));
+            let mut token = state.bearer_token.write().await;
+            *token = secret;
+        }
+    }
+    let definition = request.definition;
+    apply_definition(&state, definition.clone()).await?;
+    Ok(Json(ConfigResponse {
+        applied_at: Utc::now(),
+        definition,
+        env_key_count,
+        secret_rotated,
+    }))
+}
+
+async fn apply_definition(
+    state: &ApiState,
+    definition: AgentDefinition,
+) -> Result<(), (StatusCode, String)> {
     if let Err(error) = definition.system_prompt.validate() {
         return Err((StatusCode::BAD_REQUEST, error));
     }
@@ -145,7 +220,10 @@ pub async fn put_config(
         })?;
     state.skill_writer.sync(&definition.skills);
     if let Some(registry) = state.mcp_registry.as_ref() {
-        registry.reload_from_specs(&definition.mcp_servers).await;
+        let runtime_env = state.config_store.runtime_env();
+        registry
+            .reload_from_specs(&definition.mcp_servers, &runtime_env)
+            .await;
     }
     if let Some(reloader) = state.outbound_reloader.as_ref() {
         reloader
@@ -158,54 +236,155 @@ pub async fn put_config(
                 )
             })?;
     }
-    state.config_store.replace(definition.clone());
+    state.config_store.replace(definition);
     state.mark_config_loaded();
-    Ok(Json(ConfigResponse {
-        applied_at: Utc::now(),
-        definition,
-    }))
+    Ok(())
 }
 
 #[cfg_attr(feature = "openapi", utoipa::path(
-    put,
-    path = "/config/env",
-    request_body = RuntimeEnvUpdate,
+    post,
+    path = "/control/commands",
+    request_body = ControlCommandsRequest,
     responses(
-        (status = 200, description = "Environment override applied", body = RuntimeEnvResponse),
-        (status = 400, description = "Invalid environment payload"),
+        (status = 200, description = "Commands executed", body = ControlCommandsResponse),
+        (status = 400, description = "Invalid command payload"),
         (status = 413, description = "Payload too large"),
-        (status = 500, description = "Failed to apply environment overrides")
+        (status = 500, description = "Command execution failed")
     ),
     security(("bearer" = []))
 ))]
-pub async fn put_runtime_env(
+pub async fn post_control_commands(
     State(state): State<ApiState>,
-    Json(overrides): Json<RuntimeEnvUpdate>,
-) -> Result<Json<RuntimeEnvResponse>, (StatusCode, String)> {
-    if let Err(error) = overrides.validate() {
-        warn!(
-            error = %error,
-            keys = ?redacted_env_keys(&overrides.entries),
-            key_count = overrides.entries.len(),
-            payload_size = overrides.estimated_payload_bytes(),
-            "runtime env update rejected"
-        );
-        let status = if error.contains("payload too large") {
-            StatusCode::PAYLOAD_TOO_LARGE
-        } else {
-            StatusCode::BAD_REQUEST
-        };
-        return Err((status, error));
+    Json(request): Json<ControlCommandsRequest>,
+) -> Result<Json<ControlCommandsResponse>, (StatusCode, String)> {
+    validate_control_commands(&request)?;
+    let workdir = resolve_control_workdir(&state.workspace_root, request.workdir.as_deref())?;
+    let timeout = request
+        .timeout_seconds
+        .unwrap_or(120)
+        .clamp(1, MAX_CONTROL_COMMAND_TIMEOUT_SECONDS);
+    let runtime_env = state.config_store.runtime_env();
+    let mut results = Vec::with_capacity(request.commands.len());
+    let mut ok = true;
+
+    for command in request.commands {
+        let result = state
+            .bash
+            .exec(
+                &command,
+                BashExecOptions {
+                    workdir: workdir.clone(),
+                    env: runtime_env.as_ref().clone(),
+                    timeout: Some(Duration::from_secs(timeout)),
+                    max_output_bytes: MAX_CONTROL_COMMAND_OUTPUT_BYTES,
+                },
+            )
+            .await
+            .map_err(|error| {
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    format!("execute command: {error}"),
+                )
+            })?;
+        let output = String::from_utf8_lossy(&result.stdout_combined).to_string();
+        let command_ok = result.exit_code == Some(0) && !result.timed_out;
+        if !command_ok {
+            ok = false;
+        }
+        results.push(ControlCommandResult {
+            command,
+            exit_code: result.exit_code,
+            timed_out: result.timed_out,
+            truncated: result.truncated,
+            output,
+        });
+        if !command_ok && request.stop_on_error {
+            break;
+        }
     }
 
-    state
-        .config_store
-        .set_runtime_env(overrides.entries.clone());
+    Ok(Json(ControlCommandsResponse { ok, results }))
+}
 
-    Ok(Json(RuntimeEnvResponse {
-        applied_at: Utc::now(),
-        key_count: overrides.entries.len(),
-    }))
+fn validate_control_commands(request: &ControlCommandsRequest) -> Result<(), (StatusCode, String)> {
+    if request.commands.is_empty() {
+        return Err((
+            StatusCode::BAD_REQUEST,
+            "commands must not be empty".to_string(),
+        ));
+    }
+    if request.commands.len() > MAX_CONTROL_COMMANDS {
+        return Err((
+            StatusCode::BAD_REQUEST,
+            format!("too many commands; max {MAX_CONTROL_COMMANDS}"),
+        ));
+    }
+    let total_bytes = request
+        .commands
+        .iter()
+        .map(|command| command.len())
+        .sum::<usize>()
+        + request
+            .workdir
+            .as_ref()
+            .map(|value| value.len())
+            .unwrap_or(0);
+    if total_bytes > MAX_CONTROL_COMMAND_PAYLOAD_BYTES {
+        return Err((
+            StatusCode::PAYLOAD_TOO_LARGE,
+            "command payload too large".to_string(),
+        ));
+    }
+    for command in &request.commands {
+        if command.trim().is_empty() {
+            return Err((
+                StatusCode::BAD_REQUEST,
+                "commands must not contain empty entries".to_string(),
+            ));
+        }
+        if command.len() > MAX_CONTROL_COMMAND_LENGTH {
+            return Err((
+                StatusCode::BAD_REQUEST,
+                format!("command too long; max {MAX_CONTROL_COMMAND_LENGTH} bytes"),
+            ));
+        }
+    }
+    Ok(())
+}
+
+fn resolve_control_workdir(
+    workspace_root: &FsPath,
+    requested: Option<&str>,
+) -> Result<PathBuf, (StatusCode, String)> {
+    let root = workspace_root.canonicalize().map_err(|error| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("workspace: {error}"),
+        )
+    })?;
+    let path = requested
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(PathBuf::from)
+        .unwrap_or_else(|| root.clone());
+    let candidate = if path.is_absolute() {
+        path
+    } else {
+        root.join(path)
+    };
+    let canonical = candidate.canonicalize().map_err(|error| {
+        (
+            StatusCode::BAD_REQUEST,
+            format!("workdir must exist under workspace: {error}"),
+        )
+    })?;
+    if !canonical.starts_with(&root) {
+        return Err((
+            StatusCode::BAD_REQUEST,
+            "workdir must be under workspace".to_string(),
+        ));
+    }
+    Ok(canonical)
 }
 
 #[cfg_attr(feature = "openapi", utoipa::path(
@@ -355,7 +534,7 @@ pub async fn get_session_detail(
     get,
     path = "/healthz",
     responses(
-        (status = 200, description = "Bridge process is alive")
+        (status = 200, description = "Runtime process is alive")
     ),
     security(())
 ))]
@@ -367,8 +546,8 @@ pub async fn healthz() -> impl IntoResponse {
     get,
     path = "/readyz",
     responses(
-        (status = 200, description = "Bridge is ready"),
-        (status = 503, description = "Bridge is not ready")
+        (status = 200, description = "Runtime is ready"),
+        (status = 503, description = "Runtime is not ready")
     ),
     security(("bearer" = []))
 ))]
@@ -479,10 +658,49 @@ mod tests {
 
     use std::collections::HashMap;
 
+    fn test_definition() -> AgentDefinition {
+        AgentDefinition {
+            agent: domain::AgentMeta {
+                name: "test".to_string(),
+                description: String::new(),
+            },
+            mode: Default::default(),
+            specialist_profile: None,
+            system_prompt: domain::SystemPromptConfig {
+                cacheable_segments: vec![domain::SystemPromptSegment::StaticText(
+                    domain::StaticPromptSegment {
+                        title: String::new(),
+                        content: "test".to_string(),
+                    },
+                )],
+                dynamic_segments: Vec::new(),
+            },
+            model: domain::ModelConfig::OpenaiCompatible {
+                base_url: "http://localhost".to_string(),
+                model_id: "test".to_string(),
+                api_key_env: "HIVY_PROXY_API_KEY".to_string(),
+                temperature: None,
+                max_output_tokens: None,
+                reasoning_effort: None,
+                extra_headers: HashMap::new(),
+                fallback: None,
+            },
+            multimodal_model: None,
+            limits: Default::default(),
+            context: Default::default(),
+            tools: Vec::new(),
+            mcp_servers: Vec::new(),
+            skills: Vec::new(),
+            outbound_channels: Vec::new(),
+        }
+    }
+
     #[test]
     fn runtime_env_update_accepts_valid_payload() {
-        let update = RuntimeEnvUpdate {
-            entries: HashMap::from([
+        let update = ConfigUpdateRequest {
+            definition: test_definition(),
+            runtime_secret: None,
+            runtime_env: HashMap::from([
                 ("GOOD_KEY".to_string(), "value".to_string()),
                 ("ANOTHER_KEY_1".to_string(), "another".to_string()),
             ]),
@@ -496,8 +714,10 @@ mod tests {
 
     #[test]
     fn runtime_env_update_rejects_invalid_key() {
-        let update = RuntimeEnvUpdate {
-            entries: HashMap::from([("1BAD_KEY".to_string(), "value".to_string())]),
+        let update = ConfigUpdateRequest {
+            definition: test_definition(),
+            runtime_secret: None,
+            runtime_env: HashMap::from([("1BAD_KEY".to_string(), "value".to_string())]),
         };
         assert_eq!(
             update.validate().unwrap_err(),
@@ -506,14 +726,13 @@ mod tests {
     }
 
     #[test]
-    fn runtime_env_update_rejects_forbidden_key() {
-        let update = RuntimeEnvUpdate {
-            entries: HashMap::from([("OPENAI_API_KEY".to_string(), "value".to_string())]),
+    fn runtime_env_update_accepts_provider_key_names() {
+        let update = ConfigUpdateRequest {
+            definition: test_definition(),
+            runtime_secret: None,
+            runtime_env: HashMap::from([("OPENAI_API_KEY".to_string(), "value".to_string())]),
         };
-        assert_eq!(
-            update.validate().unwrap_err(),
-            "forbidden environment key: OPENAI_API_KEY"
-        );
+        assert!(update.validate().is_ok());
     }
 
     #[test]
@@ -523,7 +742,11 @@ mod tests {
             entries.insert(format!("KEY_{i}"), "value".to_string());
         }
 
-        let update = RuntimeEnvUpdate { entries };
+        let update = ConfigUpdateRequest {
+            definition: test_definition(),
+            runtime_secret: None,
+            runtime_env: entries,
+        };
         assert_eq!(
             update.validate().unwrap_err(),
             format!(
@@ -535,8 +758,10 @@ mod tests {
 
     #[test]
     fn runtime_env_update_rejects_long_environment_value() {
-        let update = RuntimeEnvUpdate {
-            entries: HashMap::from([("VALUE_TOO_LONG".to_string(), "x".repeat(8193))]),
+        let update = ConfigUpdateRequest {
+            definition: test_definition(),
+            runtime_secret: None,
+            runtime_env: HashMap::from([("VALUE_TOO_LONG".to_string(), "x".repeat(8193))]),
         };
 
         assert_eq!(
@@ -554,7 +779,11 @@ mod tests {
         for i in 0..9 {
             entries.insert(format!("OVERSIZE_PAYLOAD_{i}"), "x".repeat(8192));
         }
-        let update = RuntimeEnvUpdate { entries };
+        let update = ConfigUpdateRequest {
+            definition: test_definition(),
+            runtime_secret: None,
+            runtime_env: entries,
+        };
 
         assert_eq!(
             update.validate().unwrap_err(),
@@ -564,8 +793,10 @@ mod tests {
 
     #[test]
     fn runtime_env_update_accepts_empty_payload() {
-        let update = RuntimeEnvUpdate {
-            entries: HashMap::new(),
+        let update = ConfigUpdateRequest {
+            definition: test_definition(),
+            runtime_secret: None,
+            runtime_env: HashMap::new(),
         };
         assert!(
             update.validate().is_ok(),

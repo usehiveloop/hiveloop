@@ -20,7 +20,7 @@ import (
 // DeleteConversationAsset removes both the S3 object and the DB row for
 // "<folder>/<filename>" inside the authenticated conversation's drive.
 //
-// Auth: bearer token must equal the conversation's sandbox bridge API key.
+// Auth: bearer token must equal the conversation's sandbox runtime secret.
 //
 //	DELETE /internal/conversations/{conversationID}/assets/*
 func (h *UploadsHandler) DeleteConversationAsset(w http.ResponseWriter, r *http.Request) {

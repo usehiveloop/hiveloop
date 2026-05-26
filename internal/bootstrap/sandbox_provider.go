@@ -9,6 +9,7 @@ import (
 	"github.com/usehivy/hivy/internal/sandbox"
 	"github.com/usehivy/hivy/internal/sandbox/daytona"
 	dockerprovider "github.com/usehivy/hivy/internal/sandbox/docker"
+	railwayprovider "github.com/usehivy/hivy/internal/sandbox/railway"
 )
 
 var errSandboxProviderNotConfigured = errors.New("sandbox provider not configured")
@@ -41,6 +42,18 @@ func newSandboxProvider(cfg *config.Config) (sandbox.Provider, error) {
 			Host:                 cfg.SandboxDockerHost,
 			PublicHost:           cfg.SandboxDockerPublicHost,
 			ContainerLabelPrefix: cfg.SandboxDockerContainerLabelPrefix,
+		})
+	case sandbox.ProviderRailway:
+		if strings.TrimSpace(cfg.RailwayAPIToken) == "" {
+			return nil, fmt.Errorf("%w: HIVY_RAILWAY_API_TOKEN is empty", errSandboxProviderNotConfigured)
+		}
+		return railwayprovider.NewDriver(railwayprovider.Config{
+			APIToken:      cfg.RailwayAPIToken,
+			ProjectID:     cfg.RailwayProjectID,
+			EnvironmentID: cfg.RailwayEnvironmentID,
+			RuntimeImage:  cfg.RailwayRuntimeImage,
+			Region:        cfg.RailwayRegion,
+			RuntimePort:   cfg.RailwayRuntimePort,
 		})
 	default:
 		return nil, fmt.Errorf("unsupported HIVY_SANDBOX_PROVIDER_ID %q", providerID)

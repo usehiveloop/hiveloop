@@ -9,9 +9,9 @@ import (
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
 
-	"github.com/usehivy/hivy/internal/bridgeevents"
 	"github.com/usehivy/hivy/internal/logging"
 	"github.com/usehivy/hivy/internal/model"
+	"github.com/usehivy/hivy/internal/runtimeevents"
 )
 
 func (f *Flusher) flushStream(ctx context.Context, convID string) {
@@ -69,12 +69,12 @@ func (f *Flusher) flushStream(ctx context.Context, convID string) {
 		eventType, _ := msg.Values["event_type"].(string)
 		dataStr, _ := msg.Values["data"].(string)
 
-		if eventType == bridgeevents.EventResponseChunk {
+		if eventType == runtimeevents.EventResponseChunk {
 			f.accumulateChunk(ctx, convID, dataStr)
 			entryIDs = append(entryIDs, msg.ID)
 			continue
 		}
-		if eventType == bridgeevents.EventReasoningDelta {
+		if eventType == runtimeevents.EventReasoningDelta {
 			f.accumulateReasoning(ctx, convID, dataStr)
 			entryIDs = append(entryIDs, msg.ID)
 			continue
@@ -125,7 +125,7 @@ func (f *Flusher) flushStream(ctx context.Context, convID string) {
 		}
 		entryIDs = append(entryIDs, msg.ID)
 
-		if eventType == bridgeevents.EventResponseCompleted {
+		if eventType == runtimeevents.EventResponseCompleted {
 			var d struct {
 				MessageID string `json:"message_id"`
 			}
@@ -139,7 +139,7 @@ func (f *Flusher) flushStream(ctx context.Context, convID string) {
 				}
 			}
 		}
-		if eventType == bridgeevents.EventReasoningCompleted {
+		if eventType == runtimeevents.EventReasoningCompleted {
 			var d struct {
 				MessageID string `json:"message_id"`
 			}
@@ -154,7 +154,7 @@ func (f *Flusher) flushStream(ctx context.Context, convID string) {
 			}
 		}
 
-		if bridgeevents.IsTerminalEventType(eventType) {
+		if runtimeevents.IsTerminalEventType(eventType) {
 			f.appendRecoveredEvents(ctx, convID, &conv, dbEvent, &events, &recoveredMsgIDs, recoveredSeen)
 			f.appendRecoveredReasoningEvents(ctx, convID, &conv, dbEvent, &events, &recoveredReasoningIDs, recoveredReasoningSeen)
 		}

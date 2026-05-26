@@ -117,7 +117,7 @@ func (h *EmployeeOutboundWebhookHandler) verifySignature(ctx context.Context, sb
 	if h.encKey == nil {
 		return true
 	}
-	secret, err := h.encKey.DecryptString(sb.EncryptedBridgeAPIKey)
+	secret, err := h.encKey.DecryptString(sb.EncryptedRuntimeSecret)
 	if err != nil {
 		logging.FromContext(ctx).ErrorContext(ctx, "employee outbound webhook: failed to decrypt runtime secret",
 			"sandbox_id", sb.ID, "error", err)

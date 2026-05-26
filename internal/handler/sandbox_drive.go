@@ -18,7 +18,7 @@ import (
 )
 
 // SandboxDriveHandler provides drive access from within sandboxes,
-// authenticated with the Bridge control plane API key.
+// authenticated with the runtime control plane secret.
 //
 // Routes:
 //
@@ -36,7 +36,7 @@ func NewSandboxDriveHandler(db *gorm.DB, store *storage.S3Client, encKey *crypto
 	return &SandboxDriveHandler{db: db, storage: store, encKey: encKey}
 }
 
-// resolveSandboxAgent validates the Bridge API key and resolves the agent
+// resolveSandboxAgent validates the runtime secret and resolves the agent
 // assigned to the sandbox.
 func (handler *SandboxDriveHandler) resolveSandboxAgent(writer http.ResponseWriter, request *http.Request) (uuid.UUID, *model.Employee, bool) {
 	sandboxID := chi.URLParam(request, "sandboxID")
@@ -67,9 +67,9 @@ func (handler *SandboxDriveHandler) resolveSandboxAgent(writer http.ResponseWrit
 		return uuid.Nil, nil, false
 	}
 
-	decryptedKey, err := handler.encKey.Decrypt(sandbox.EncryptedBridgeAPIKey)
+	decryptedKey, err := handler.encKey.Decrypt(sandbox.EncryptedRuntimeSecret)
 	if err != nil {
-		logging.FromContext(request.Context()).ErrorContext(request.Context(), "failed to decrypt bridge API key", "sandbox_id", sandboxID, "error", err)
+		logging.FromContext(request.Context()).ErrorContext(request.Context(), "failed to decrypt runtime secret", "sandbox_id", sandboxID, "error", err)
 		writeJSON(writer, http.StatusInternalServerError, map[string]string{"error": "failed to verify credentials"})
 		return uuid.Nil, nil, false
 	}

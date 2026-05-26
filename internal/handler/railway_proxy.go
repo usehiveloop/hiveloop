@@ -62,7 +62,7 @@ func NewRailwayProxyHandler(db *gorm.DB, encKey *crypto.SymmetricKey, nangoClien
 }
 
 // Handle processes POST /internal/railway-proxy/{employeeID}.
-// Authenticates via the sandbox's Bridge API key, fetches Railway credentials
+// Authenticates via the sandbox's runtime secret, fetches Railway credentials
 // from Nango, and forwards the request body to Railway's GraphQL API.
 func (h *RailwayProxyHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	agentIDStr := chi.URLParam(r, "employeeID")
@@ -95,7 +95,7 @@ func (h *RailwayProxyHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	}
 	authenticated := false
 	for _, sb := range sandboxes {
-		decryptedKey, err := h.encKey.DecryptString(sb.EncryptedBridgeAPIKey)
+		decryptedKey, err := h.encKey.DecryptString(sb.EncryptedRuntimeSecret)
 		if err != nil {
 			continue
 		}

@@ -8,8 +8,7 @@
 //   - System credentials (org_id = NULL): owned by the platform, created via
 //     admin-only endpoints, used by any agent whose credential_id is nil.
 //
-// Every credential-resolution call site in the codebase (currently
-// sandbox.Pusher at push and token-rotation time) routes through
-// Resolve. That way the "agent.credential_id = nil means use platform keys"
-// rule lives in exactly one file, and tests can swap the Picker for a fake.
+// Every credential-resolution call site routes through Resolve. That way the
+// "agent.credential_id = nil means use platform keys" rule lives in exactly
+// one file, and tests can swap the Picker for a fake.
 package credentials

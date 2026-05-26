@@ -117,7 +117,7 @@ func TestSeedGlobalSkills_PreservesRequiredEnvironmentVariables(t *testing.T) {
 	if err := json.Unmarshal(body, &manifest); err != nil {
 		t.Fatalf("decode manifest: %v", err)
 	}
-	manifest["required_environment_variables"] = []string{"HIVY_DRIVE_UPLOAD_URL", "UPLOAD_BEARER"}
+	manifest["required_environment_variables"] = []string{"HIVY_DRIVE_UPLOAD_URL", "HIVY_UPLOAD_BEARER"}
 	body, err = json.Marshal(manifest)
 	if err != nil {
 		t.Fatalf("marshal manifest: %v", err)
@@ -137,7 +137,7 @@ func TestSeedGlobalSkills_PreservesRequiredEnvironmentVariables(t *testing.T) {
 	if err := json.Unmarshal(skill.Bundle, &bundle); err != nil {
 		t.Fatalf("decode bundle: %v", err)
 	}
-	want := []string{"HIVY_DRIVE_UPLOAD_URL", "UPLOAD_BEARER"}
+	want := []string{"HIVY_DRIVE_UPLOAD_URL", "HIVY_UPLOAD_BEARER"}
 	if !reflect.DeepEqual(bundle.RequiredEnvironmentVariables, want) {
 		t.Fatalf("required env vars = %#v, want %#v", bundle.RequiredEnvironmentVariables, want)
 	}
@@ -236,7 +236,7 @@ func TestBundledAssetUploadsSkillDeclaresUploadEnv(t *testing.T) {
 	if err := json.Unmarshal(manifest, &parsed); err != nil {
 		t.Fatalf("decode manifest: %v", err)
 	}
-	want := []string{"HIVY_DRIVE_UPLOAD_URL", "UPLOAD_BEARER"}
+	want := []string{"HIVY_DRIVE_UPLOAD_URL", "HIVY_UPLOAD_BEARER"}
 	if !reflect.DeepEqual(parsed.RequiredEnvironmentVariables, want) {
 		t.Fatalf("asset upload env vars = %#v, want %#v", parsed.RequiredEnvironmentVariables, want)
 	}

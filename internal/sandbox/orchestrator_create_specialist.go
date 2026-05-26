@@ -15,20 +15,20 @@ func (o *Orchestrator) createSandbox(ctx context.Context, org *model.Org, agent 
 		return nil, fmt.Errorf("loading sandbox git identity: %w", err)
 	}
 
-	bridgeAPIKey, err := generateRandomHex(32)
+	runtimeAPIKey, err := generateRandomHex(32)
 	if err != nil {
-		return nil, fmt.Errorf("generating bridge api key: %w", err)
+		return nil, fmt.Errorf("generating runtime secret: %w", err)
 	}
-	encryptedKey, err := o.encKey.EncryptString(bridgeAPIKey)
+	encryptedKey, err := o.encKey.EncryptString(runtimeAPIKey)
 	if err != nil {
-		return nil, fmt.Errorf("encrypting bridge api key: %w", err)
+		return nil, fmt.Errorf("encrypting runtime secret: %w", err)
 	}
 
 	sb := model.Sandbox{
-		OrgID:                 &org.ID,
-		ProviderID:            o.provider.ID(),
-		EncryptedBridgeAPIKey: encryptedKey,
-		Status:                "creating",
+		OrgID:                  &org.ID,
+		ProviderID:             o.provider.ID(),
+		EncryptedRuntimeSecret: encryptedKey,
+		Status:                 "creating",
 	}
 	if agent != nil {
 		sb.EmployeeID = &agent.ID
@@ -46,7 +46,7 @@ func (o *Orchestrator) createSandbox(ctx context.Context, org *model.Org, agent 
 	}
 
 	webhookURL := fmt.Sprintf("%s/internal/webhooks/employee/%s", o.cfg.RuntimeControlPlaneBaseURL(), sb.ID)
-	envVars := baseEnvVars(o.cfg, bridgeAPIKey, sb.ID, webhookURL)
+	envVars := baseEnvVars(o.cfg, runtimeAPIKey, sb.ID, webhookURL)
 	setOrgEnvVars(envVars, org.ID)
 	setAgentEnvVars(envVars, agent, o.cfg)
 	setDriveEndpoint(envVars, sb.ID, o.cfg)
@@ -62,7 +62,7 @@ func (o *Orchestrator) createSandbox(ctx context.Context, org *model.Org, agent 
 		envVars[key] = value
 	}
 	setGitIdentityEnvVars(envVars, agent, gitIdentity)
-	setUploadBearer(envVars, bridgeAPIKey)
+	setUploadBearer(envVars, runtimeAPIKey)
 
 	templateRef := o.resolveTemplateRef(agent)
 	cpu, memory, disk := o.resolveTemplateResources(agent)
@@ -90,7 +90,7 @@ func (o *Orchestrator) createSandbox(ctx context.Context, org *model.Org, agent 
 		return nil, fmt.Errorf("creating sandbox via provider: %w", err)
 	}
 
-	bridgeURL, err := o.provider.GetEndpoint(ctx, info.ExternalID, BridgePort)
+	runtimeURL, err := o.provider.GetEndpoint(ctx, info.ExternalID, RuntimePort)
 	if err != nil {
 		o.db.Model(&sb).Updates(map[string]any{
 			"external_id":   info.ExternalID,
@@ -101,35 +101,35 @@ func (o *Orchestrator) createSandbox(ctx context.Context, org *model.Org, agent 
 	}
 
 	now := time.Now()
-	expiresAt := now.Add(bridgeURLTTL)
+	expiresAt := now.Add(runtimeURLTTL)
 	if err := o.db.Model(&sb).Updates(map[string]any{
-		"external_id":           info.ExternalID,
-		"bridge_url":            bridgeURL,
-		"bridge_url_expires_at": expiresAt,
-		"status":                "running",
-		"last_active_at":        now,
+		"external_id":            info.ExternalID,
+		"runtime_url":            runtimeURL,
+		"runtime_url_expires_at": expiresAt,
+		"status":                 "running",
+		"last_active_at":         now,
 	}).Error; err != nil {
 		return nil, fmt.Errorf("updating sandbox record: %w", err)
 	}
 
 	sb.ExternalID = info.ExternalID
-	sb.BridgeURL = bridgeURL
-	sb.BridgeURLExpiresAt = &expiresAt
+	sb.RuntimeURL = runtimeURL
+	sb.RuntimeURLExpiresAt = &expiresAt
 	sb.Status = "running"
 	sb.LastActiveAt = &now
 
 	// Older templates may not have the harness config dir; create it so the
 	// runtime does not crash on first read.
 	if _, execErr := o.provider.ExecuteCommand(ctx, info.ExternalID, "mkdir -p /work/.opencode"); execErr != nil {
-		logging.Capture(ctx, fmt.Errorf("create bridge config dirs sandbox %s: %w", sb.ID, execErr))
+		logging.Capture(ctx, fmt.Errorf("create runtime config dirs sandbox %s: %w", sb.ID, execErr))
 	}
 
-	if err := o.waitForBridgeHealthy(ctx, &sb); err != nil {
+	if err := o.waitForRuntimeHealthy(ctx, &sb); err != nil {
 		o.db.Model(&sb).Updates(map[string]any{
 			"status":        "error",
-			"error_message": fmt.Sprintf("bridge failed to start: %v", err),
+			"error_message": fmt.Sprintf("runtime failed to start: %v", err),
 		})
-		return nil, fmt.Errorf("waiting for bridge: %w", err)
+		return nil, fmt.Errorf("waiting for runtime: %w", err)
 	}
 
 	disableProviderLifecycle(ctx, o.provider, &sb, info.ExternalID)
