@@ -2,26 +2,18 @@ package e2e
 
 import (
 	"encoding/base64"
-	"encoding/json"
-	"io"
-	"net/http"
-	"net/http/httptest"
-	"strings"
 	"testing"
-	"time"
 
 	"github.com/google/uuid"
 
-	bridgepkg "github.com/usehivy/hivy/internal/bridge"
 	"github.com/usehivy/hivy/internal/config"
 	"github.com/usehivy/hivy/internal/crypto"
+	"github.com/usehivy/hivy/internal/employeeruntime"
 	"github.com/usehivy/hivy/internal/model"
-	"github.com/usehivy/hivy/internal/sandbox"
 )
 
-// TestSkillsPassthrough_NewWireShape locks the bundle id (not the title)
-// as skill.id on the wire — the prior bug used the title and broke the
-// bridge's lookup.
+// TestSkillsPassthrough_NewWireShape locks the bundle id, not the title, as
+// skill.name in the runtime definition.
 func TestSkillsPassthrough_NewWireShape(t *testing.T) {
 	h := newHarness(t)
 	suffix := uuid.New().String()[:8]
@@ -89,41 +81,19 @@ func TestSkillsPassthrough_NewWireShape(t *testing.T) {
 	}
 	_ = skillIDs
 
-	pushTarget := newAgentPushCapture(t)
-
-	expiresAt := time.Now().Add(24 * time.Hour)
-	sb := model.Sandbox{
-		OrgID:                 &org.ID,
-		EmployeeID:            &agent.ID,
-		ExternalID:            "sk-ext-" + suffix,
-		BridgeURL:             pushTarget.URL,
-		BridgeURLExpiresAt:    &expiresAt,
-		EncryptedBridgeAPIKey: encryptedAPIKey,
-		Status:                "running",
-	}
-	h.db.Create(&sb)
-	t.Cleanup(func() { h.db.Where("id = ?", sb.ID).Delete(&model.Sandbox{}) })
-
-	cfg := &config.Config{
-		ProxyHost:             "proxy.test",
-		MCPBaseURL:            "https://mcp.test",
-		SpecialistSandboxHost: "bridge.test",
-	}
-	orch := sandbox.NewOrchestrator(h.db, &e2eSandboxProvider{endpoint: pushTarget.URL}, encKey, cfg)
-	pusher := sandbox.NewPusher(h.db, orch, h.signingKey, cfg, nil)
-
-	if err := pusher.PushSpecialistToSandbox(t.Context(), &agent, &sb); err != nil {
-		t.Fatalf("PushSpecialistToSandbox: %v", err)
+	def, err := employeeruntime.Compile(t.Context(), employeeruntime.CompileDeps{
+		DB:         h.db,
+		SigningKey: h.signingKey,
+		Cfg: &config.Config{
+			ProxyHost:  "proxy.test",
+			MCPBaseURL: "https://mcp.test",
+		},
+	}, &agent)
+	if err != nil {
+		t.Fatalf("compile employee runtime definition: %v", err)
 	}
 
-	if len(pushTarget.UpsertAgents) != 1 {
-		t.Fatalf("UpsertAgent calls: got %d, want 1", len(pushTarget.UpsertAgents))
-	}
-	def := pushTarget.UpsertAgents[0]
-	if def.Skills == nil {
-		t.Fatalf("def.skills is nil; want 2 entries")
-	}
-	gotSkills := *def.Skills
+	gotSkills := def.Skills
 	if len(gotSkills) != 2 {
 		t.Fatalf("def.skills: got %d, want 2 (raw=%v)", len(gotSkills), gotSkills)
 	}
@@ -133,69 +103,33 @@ func TestSkillsPassthrough_NewWireShape(t *testing.T) {
 		skillFixtures[1].bundleID: skillFixtures[1].title,
 	}
 	for i, s := range gotSkills {
-		idStr := string(s.Id)
-		wantTitle, ok := expected[idStr]
+		wantTitle, ok := expected[s.Name]
 		if !ok {
-			t.Errorf("skill[%d].id = %q, not in expected set %v", i, idStr, expected)
+			t.Errorf("skill[%d].name = %q, not in expected set %v", i, s.Name, expected)
 			continue
 		}
-		if s.Title != wantTitle {
-			t.Errorf("skill[%d].title = %q, want %q", i, s.Title, wantTitle)
+		if s.Trigger == nil {
+			t.Errorf("skill[%d].trigger is nil", i)
 		}
-		if idStr == s.Title {
-			t.Errorf("skill[%d] id == title (%q); id must be the bundle id, not the title", i, idStr)
+		if s.Name == wantTitle {
+			t.Errorf("skill[%d] name == title (%q); name must be the bundle id", i, s.Name)
 		}
-		delete(expected, idStr)
+		delete(expected, s.Name)
 	}
 	if len(expected) != 0 {
 		t.Errorf("missing skills: %v", expected)
 	}
 
 	for _, s := range gotSkills {
-		if string(s.Id) == "use-railway" || string(s.Id) == "use-vercel" {
-			t.Errorf("skill id leaked the title: %q", s.Id)
+		if s.Name == "use-railway" || s.Name == "use-vercel" {
+			t.Errorf("skill name leaked the title: %q", s.Name)
 		}
 	}
 
-	if def.Harness != bridgepkg.OpenCode {
-		t.Errorf("harness: got %q, want open_code (default for agents without an explicit harness)", def.Harness)
+	if def.Mode != "employee" {
+		t.Errorf("mode: got %q, want employee", def.Mode)
 	}
-	if !strings.HasPrefix(def.Provider.Model, "claude") {
-		t.Errorf("model: got %q, want claude*", def.Provider.Model)
+	if def.Model.ModelID != "claude-sonnet-4-5" {
+		t.Errorf("model: got %q, want claude-sonnet-4-5", def.Model.ModelID)
 	}
-}
-
-type agentPushCapture struct {
-	URL          string
-	UpsertAgents []bridgepkg.AgentDefinition
-}
-
-func newAgentPushCapture(t *testing.T) *agentPushCapture {
-	t.Helper()
-
-	capture := &agentPushCapture{}
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPut || !strings.HasPrefix(r.URL.Path, "/push/agents/") {
-			http.NotFound(w, r)
-			return
-		}
-
-		body, err := io.ReadAll(r.Body)
-		if err != nil {
-			http.Error(w, "read body", http.StatusBadRequest)
-			return
-		}
-		var def bridgepkg.AgentDefinition
-		if err := json.Unmarshal(body, &def); err != nil {
-			http.Error(w, "invalid agent definition", http.StatusBadRequest)
-			return
-		}
-		capture.UpsertAgents = append(capture.UpsertAgents, def)
-		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(`{"status":"ok"}`))
-	}))
-	t.Cleanup(server.Close)
-
-	capture.URL = server.URL
-	return capture
 }
