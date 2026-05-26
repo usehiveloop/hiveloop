@@ -54,7 +54,7 @@ permissions:
 jobs:
   promote:
     name: promote sandbox release
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     env:
       HIVY_DAYTONA_API_KEY: ${{ secrets.HIVY_DAYTONA_API_KEY }}
       HIVY_DAYTONA_API_URL: ${{ secrets.HIVY_DAYTONA_API_URL || vars.HIVY_DAYTONA_API_URL }}
