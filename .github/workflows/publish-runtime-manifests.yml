@@ -8,6 +8,8 @@ on:
         description: Release tag to publish.
         required: true
         type: string
+  repository_dispatch:
+    types: [publish-runtime-manifests]
   push:
     branches: [main]
 
@@ -18,7 +20,7 @@ permissions:
 jobs:
   publish:
     name: publish runtime manifests
-    if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[publish-runtime-manifests]')
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'repository_dispatch' || contains(github.event.head_commit.message, '[publish-runtime-manifests]')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -30,6 +32,9 @@ jobs:
         shell: bash
         run: |
           tag="${{ inputs.tag }}"
+          if [[ -z "${tag}" ]]; then
+            tag="${{ github.event.client_payload.tag }}"
+          fi
           if [[ -z "${tag}" ]]; then
             tag="v1.0.0"
           fi
