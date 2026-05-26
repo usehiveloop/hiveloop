@@ -37,12 +37,12 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV HOSTNAME=0.0.0.0
-ENV PORT=3000
+ENV PORT=8080
 
 RUN corepack enable && corepack prepare pnpm@10.18.2 --activate
 
 COPY --from=build /app ./
 
-EXPOSE 3000
+EXPOSE 8080
 
-CMD ["pnpm", "exec", "next", "start", "-p", "3000", "-H", "0.0.0.0"]
+CMD ["sh", "-c", "pnpm exec next start -p ${PORT:-8080} -H 0.0.0.0"]

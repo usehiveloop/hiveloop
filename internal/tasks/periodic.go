@@ -2,12 +2,14 @@ package tasks
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/hibiken/asynq"
 
 	"github.com/usehivy/hivy/internal/config"
 	"github.com/usehivy/hivy/internal/rag/scheduler"
+	"github.com/usehivy/hivy/internal/sandbox"
 )
 
 func PeriodicTaskConfigs(cfg *config.Config, ragSched *scheduler.Deps) []*asynq.PeriodicTaskConfig {
@@ -44,8 +46,7 @@ func PeriodicTaskConfigs(cfg *config.Config, ragSched *scheduler.Deps) []*asynq.
 		},
 	}
 
-	// Sandbox tasks only if orchestrator is configured
-	if cfg.SandboxEncryptionKey != "" {
+	if sandboxPeriodicTasksConfigured(cfg) {
 		configs = append(configs, &asynq.PeriodicTaskConfig{
 			Cronspec: "@every 30s",
 			Task:     asynq.NewTask(TypeSandboxHealthCheck, nil),
@@ -75,4 +76,19 @@ func PeriodicTaskConfigs(cfg *config.Config, ragSched *scheduler.Deps) []*asynq.
 		configs = append(configs, ragSched.Configs()...)
 	}
 	return configs
+}
+
+func sandboxPeriodicTasksConfigured(cfg *config.Config) bool {
+	if cfg == nil || strings.TrimSpace(cfg.SandboxEncryptionKey) == "" {
+		return false
+	}
+	switch strings.TrimSpace(cfg.SandboxProviderID) {
+	case sandbox.ProviderDocker:
+		return strings.TrimSpace(cfg.SandboxDockerPublicHost) != ""
+	case sandbox.ProviderDaytona:
+		return strings.TrimSpace(cfg.DaytonaAPIKey) != "" &&
+			strings.TrimSpace(cfg.SpecialistSandboxRuntimeVersion) != ""
+	default:
+		return false
+	}
 }
