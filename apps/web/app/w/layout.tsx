@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
 import { useQueryClient } from "@tanstack/react-query"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
@@ -33,7 +33,11 @@ import {
   SidebarProvider,
 } from "@/components/ui/sidebar"
 import { FullPageLoader } from "@/components/full-page-loader"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { toast } from "sonner"
 import { api } from "@/lib/api/client"
+import { $api } from "@/lib/api/hooks"
 import { AuthProvider, useAuth } from "@/lib/auth/auth-context"
 import { cn } from "@/lib/utils"
 
@@ -173,19 +177,124 @@ function WorkspaceGate({ children }: { children: React.ReactNode }) {
   const { user, activeOrg, isLoading } = useAuth()
   const router = useRouter()
 
+  const needsEmailConfirmation = user !== null && !user.email_confirmed
   const needsOnboarding = activeOrg !== null && !activeOrg.onboarded
 
   useEffect(() => {
-    if (needsOnboarding) {
+    if (!needsEmailConfirmation && needsOnboarding) {
       router.replace("/onboarding")
     }
-  }, [needsOnboarding, router])
+  }, [needsEmailConfirmation, needsOnboarding, router])
 
-  if (isLoading || !user || needsOnboarding) {
+  if (isLoading || !user) {
+    return <FullPageLoader description="Loading workspace" />
+  }
+
+  if (needsEmailConfirmation) {
+    return <EmailConfirmationGate />
+  }
+
+  if (needsOnboarding) {
     return <FullPageLoader description="Loading workspace" />
   }
 
   return <>{children}</>
+}
+
+function EmailConfirmationGate() {
+  const { user } = useAuth()
+  const queryClient = useQueryClient()
+  const [code, setCode] = useState("")
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isResending, setIsResending] = useState(false)
+  const email = user?.email ?? ""
+
+  const confirmMutation = $api.useMutation("post", "/auth/confirm-email")
+  const resendMutation = $api.useMutation("post", "/auth/resend-confirmation")
+
+  const handleConfirm = useCallback(async () => {
+    if (!code.trim()) return
+    setIsSubmitting(true)
+    confirmMutation.mutate(
+      { body: { email, code: code.trim() } },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: ["get", "/auth/me"] })
+        },
+        onError: () => {
+          toast.error("Invalid or expired code")
+        },
+        onSettled: () => setIsSubmitting(false),
+      }
+    )
+  }, [code, email, confirmMutation, queryClient])
+
+  const handleResend = useCallback(async () => {
+    setIsResending(true)
+    resendMutation.mutate(
+      { body: { email } },
+      {
+        onSuccess: () => toast.success("A new confirmation code has been sent"),
+        onError: () => toast.error("Could not resend confirmation"),
+        onSettled: () => setIsResending(false),
+      }
+    )
+  }, [email, resendMutation])
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === "Enter") handleConfirm()
+    },
+    [handleConfirm]
+  )
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+      <div className="w-full max-w-md rounded-xl border border-border bg-background p-8 shadow-2xl">
+        <h2 className="font-heading text-xl font-semibold text-foreground">
+          Confirm your email
+        </h2>
+        <p className="mt-2 text-sm text-muted-foreground">
+          We sent a 6-digit code to{" "}
+          <span className="font-medium text-foreground">{email}</span>. Enter it
+          below to continue.
+        </p>
+
+        <div className="mt-6 space-y-4">
+          <Input
+            type="text"
+            inputMode="numeric"
+            maxLength={6}
+            placeholder="000000"
+            value={code}
+            onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+            onKeyDown={handleKeyDown}
+            className="text-center text-2xl tracking-[0.3em] font-mono"
+            autoFocus
+          />
+
+          <Button
+            onClick={handleConfirm}
+            disabled={code.length !== 6}
+            loading={isSubmitting}
+            className="w-full"
+          >
+            Verify
+          </Button>
+        </div>
+
+        <div className="mt-4 text-center">
+          <button
+            onClick={handleResend}
+            disabled={isResending}
+            className="text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground transition-colors disabled:opacity-50"
+          >
+            {isResending ? "Sending..." : "Resend code"}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
 }
 
 function AppSidebar() {
