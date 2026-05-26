@@ -231,6 +231,7 @@ func newEmployeeHarness(t *testing.T) *employeeHarness {
 		SandboxesRuntimeBaseImagePrefix: "hivy-sandboxes-runtime-test-small-v1",
 		SpecialistSandboxHost:           "cp.hivy.test",
 		ProxyHost:                       "proxy.hivy.test",
+		MCPBaseURL:                      "https://mcp.hivy.test",
 	}
 	orch := sandbox.NewOrchestrator(db, provider, encKey, cfg)
 	nangoSrv := httptest.NewServer(newNangoConnMock(&nangoConnMockConfig{}))

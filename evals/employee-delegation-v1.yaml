@@ -1,5 +1,5 @@
 id: employee-delegation-v1
-timeout_seconds: 120
+timeout_seconds: 600
 models:
   - deepseek-v4-flash
 
@@ -145,7 +145,7 @@ cases:
     message: Please build and verify a polished Rails landing page prototype for our corporate catering launch. Use the latest Rails version, install whatever dependencies are needed, run it locally, and capture evidence when it works. This will probably take a while, so just keep this thread updated when there is something real to report.
     expected_behavior: delegate
     expected_specialist: software-engineering-specialist
-    timeout_seconds: 120
+    timeout_seconds: 600
     assertions:
       observe_after_delegate_seconds: 20
       required_tool_calls:

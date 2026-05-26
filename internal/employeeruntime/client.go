@@ -6,9 +6,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"net"
 	"net/http"
 	"net/url"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -81,7 +83,7 @@ func NewClient(baseURL, apiKey string) *Client {
 	return &Client{
 		baseURL: strings.TrimRight(baseURL, "/"),
 		apiKey:  apiKey,
-		http:    &http.Client{Timeout: 30 * time.Second},
+		http:    &http.Client{Timeout: 2 * time.Minute},
 	}
 }
 
@@ -125,6 +127,24 @@ func (c *Client) PutConfig(ctx context.Context, def *AgentDefinition) (*SyncResp
 func (c *Client) PutRuntimeConfig(ctx context.Context, body ConfigUpdateRequest) (*SyncResponse, error) {
 	if body.RuntimeEnv == nil {
 		body.RuntimeEnv = map[string]string{}
+	}
+	if os.Getenv("HIVY_DEBUG_RUNTIME_CONFIG_PAYLOAD") == "true" {
+		payload, err := json.Marshal(body)
+		if err != nil {
+			slog.WarnContext(ctx, "runtime config debug payload marshal failed", "error", err)
+		} else {
+			slog.InfoContext(ctx, "runtime config debug payload", "base_url", c.baseURL, "payload", string(payload))
+		}
+	}
+	if path := strings.TrimSpace(os.Getenv("HIVY_DEBUG_RUNTIME_CONFIG_PAYLOAD_FILE")); path != "" {
+		payload, err := json.MarshalIndent(body, "", "  ")
+		if err != nil {
+			slog.WarnContext(ctx, "runtime config debug payload file marshal failed", "error", err)
+		} else if err := os.WriteFile(path, payload, 0o600); err != nil {
+			slog.WarnContext(ctx, "runtime config debug payload file write failed", "path", path, "error", err)
+		} else {
+			slog.InfoContext(ctx, "runtime config debug payload written", "path", path, "bytes", len(payload), "base_url", c.baseURL)
+		}
 	}
 	resp, err := c.do(ctx, http.MethodPut, "/config", body)
 	if err != nil {

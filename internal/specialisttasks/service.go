@@ -150,7 +150,12 @@ func (s *Service) Launch(ctx context.Context, req LaunchRequest) (*LaunchRespons
 	if err := employeeruntime.AttachLatestSpecialistProxyTokenToSandbox(ctx, s.compileDeps, employee, sb.ID, def.Slug); err != nil {
 		return nil, wrapToolError("proxy_token_attach_failed", "The specialist runtime was created, but the control plane could not bind its proxy token to the sandbox.", err, true, "Retry later. If this repeats, report that specialist startup failed after sandbox creation.")
 	}
-	runtimeDef, err := employeeruntime.CompileSpecialist(ctx, s.compileDeps, employee, *def)
+	proxyToken := &employeeruntime.ProxyTokenResult{
+		Token:     secrets.ProxyToken,
+		JTI:       secrets.ProxyTokenJTI,
+		ExpiresAt: secrets.ProxyExpires,
+	}
+	runtimeDef, err := employeeruntime.CompileSpecialistWithProxyToken(ctx, s.compileDeps, employee, *def, proxyToken)
 	if err != nil {
 		return nil, wrapToolError("config_compile_failed", "Could not compile specialist runtime config.", err, false, "Report that the specialist configuration could not be compiled.")
 	}
@@ -159,7 +164,19 @@ func (s *Service) Launch(ctx context.Context, req LaunchRequest) (*LaunchRespons
 	if err != nil {
 		return nil, wrapToolError("runtime_client_failed", "The specialist sandbox exists, but the control plane could not connect to its runtime API.", err, true, "Retry later. If this repeats, report that the specialist runtime is unavailable.")
 	}
-	if _, err := client.PutConfig(ctx, runtimeDef); err != nil {
+	runtimeSecret, err := s.compileDeps.EncKey.DecryptString(sb.EncryptedRuntimeSecret)
+	if err != nil {
+		return nil, wrapToolError("runtime_secret_failed", "Could not prepare specialist runtime environment.", err, true, "Retry later. If this repeats, report that specialist startup credentials could not be loaded.")
+	}
+	runtimeEnv, err := employeeruntime.BuildRuntimeEnvWithProxyToken(ctx, s.compileDeps, employee, sb, runtimeSecret, proxyToken)
+	if err != nil {
+		return nil, wrapToolError("runtime_env_failed", "Could not prepare specialist runtime environment.", err, true, "Retry later. If this repeats, report that specialist runtime environment could not be built.")
+	}
+	runtimeEnv[employeeruntime.EmployeeEnvRuntimeMode] = "specialist"
+	if _, err := client.PutRuntimeConfig(ctx, employeeruntime.ConfigUpdateRequest{
+		Definition: runtimeDef,
+		RuntimeEnv: runtimeEnv,
+	}); err != nil {
 		return nil, wrapToolError("config_push_failed", "Could not push specialist runtime config.", err, true, "Retry later. If this repeats, report that the specialist runtime rejected its config.")
 	}
 

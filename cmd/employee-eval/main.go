@@ -12,7 +12,9 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/usehivy/hivy/internal/bootstrap"
+	"github.com/usehivy/hivy/internal/enqueue"
 	"github.com/usehivy/hivy/internal/evals"
+	"github.com/usehivy/hivy/internal/tasks"
 )
 
 func main() {
@@ -53,6 +55,14 @@ func run() error {
 		return err
 	}
 	defer deps.Close(ctx)
+	enqueuer := enqueue.NewClient(deps.Config.AsynqRedisOpt())
+	defer enqueuer.Close()
+	if deps.Orchestrator != nil {
+		deps.Orchestrator.SetWarmPoolReconciler(func(ctx context.Context, providerID, mode string) error {
+			return tasks.EnqueueSandboxWarmPoolReconcile(ctx, enqueuer, providerID, mode)
+		})
+		tasks.EnqueueConfiguredWarmPoolReconciles(ctx, enqueuer, deps.Orchestrator)
+	}
 
 	opts := evals.RunOptions{
 		SuitePath:  suitePath,

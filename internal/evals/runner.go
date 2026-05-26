@@ -113,7 +113,7 @@ func (r *Runner) runTrial(ctx context.Context, suite *Suite, key TrialKey, apiUR
 
 	started := time.Now().UTC()
 	result.StartedAt = started
-	gateway, err := r.sendGatewayMessage(trialCtx, apiURL, fixture, c.Message)
+	gateway, err := r.sendGatewayMessage(trialCtx, apiURL, fixture, firstGatewayMessage(suite, key, c.Message))
 	result.Gateway = gateway
 	if err != nil {
 		return failedResult(result, err), err
@@ -149,6 +149,43 @@ func (r *Runner) runTrial(ctx context.Context, suite *Suite, key TrialKey, apiUR
 		result.Metrics.TimeToDecisionMS = result.Decision.DecidedAt.Sub(started).Milliseconds()
 	}
 	return result, nil
+}
+
+func firstGatewayMessage(suite *Suite, key TrialKey, message string) string {
+	memories := allTrialMemories(suite, key.CaseID)
+	if len(memories) == 0 {
+		return message
+	}
+	var b strings.Builder
+	b.WriteString("Business memory context:\n")
+	for _, memory := range memories {
+		content := strings.TrimSpace(renderMemoryTemplate(memory.Content, key, 0))
+		if content == "" {
+			continue
+		}
+		memoryType := strings.TrimSpace(memory.Type)
+		if memoryType == "" {
+			memoryType = "memory"
+		}
+		b.WriteString("- ")
+		b.WriteString(memoryType)
+		b.WriteString(": ")
+		b.WriteString(strings.Join(strings.Fields(content), " "))
+		b.WriteString("\n")
+	}
+	b.WriteString("\nUser request:\n")
+	b.WriteString(message)
+	return strings.TrimSpace(b.String())
+}
+
+func allTrialMemories(suite *Suite, caseID string) []MemoryFixture {
+	if suite == nil {
+		return nil
+	}
+	out := make([]MemoryFixture, 0, len(suite.Memories)+4)
+	out = append(out, suite.Memories...)
+	out = append(out, caseMemories(suite, caseID)...)
+	return out
 }
 
 type evaluatedEvidence struct {

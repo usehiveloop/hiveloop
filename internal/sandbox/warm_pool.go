@@ -13,6 +13,7 @@ import (
 
 	"github.com/usehivy/hivy/internal/config"
 	"github.com/usehivy/hivy/internal/crypto"
+	"github.com/usehivy/hivy/internal/logging"
 	"github.com/usehivy/hivy/internal/model"
 )
 
@@ -105,14 +106,23 @@ func (p *WarmPool) MarkError(ctx context.Context, slotID uuid.UUID, message stri
 		}).Error
 }
 
-func (p *WarmPool) Reconcile(ctx context.Context, mode string) error {
+func (p *WarmPool) SlotMode(ctx context.Context, slotID uuid.UUID) (string, error) {
+	var slot model.SandboxWarmSlot
+	if err := p.db.WithContext(ctx).Select("mode").First(&slot, "id = ?", slotID).Error; err != nil {
+		return "", err
+	}
+	return slot.Mode, nil
+}
+
+func (p *WarmPool) Reconcile(ctx context.Context, mode string, onCreated func(context.Context, uuid.UUID) error) ([]uuid.UUID, error) {
 	if p == nil {
-		return nil
+		return nil, nil
 	}
 	desired := p.DesiredCount(mode)
 	if desired <= 0 {
-		return nil
+		return nil, nil
 	}
+	logger := logging.FromContext(ctx)
 	var available int64
 	if err := p.db.WithContext(ctx).Model(&model.SandboxWarmSlot{}).
 		Where("provider_id = ? AND mode = ? AND status IN ?", p.provider.ID(), mode, []string{
@@ -120,30 +130,63 @@ func (p *WarmPool) Reconcile(ctx context.Context, mode string) error {
 			model.SandboxWarmSlotStatusWarming,
 		}).
 		Count(&available).Error; err != nil {
-		return err
+		return nil, err
 	}
+	logger.InfoContext(ctx, "sandbox warm pool reconcile",
+		"provider", p.provider.ID(), "mode", mode, "desired", desired, "available", available)
+	createCount := int64(desired) - available
+	if createCount < 0 {
+		createCount = 0
+	}
+	created := make([]uuid.UUID, 0, int(createCount))
 	for i := available; i < int64(desired); i++ {
-		if err := p.provision(ctx, mode); err != nil {
-			return err
+		slotID, err := p.provision(ctx, mode)
+		if err != nil {
+			return created, err
+		}
+		created = append(created, slotID)
+		if onCreated != nil {
+			if err := onCreated(ctx, slotID); err != nil {
+				return created, err
+			}
 		}
 	}
-	return nil
+	var warming []model.SandboxWarmSlot
+	if err := p.db.WithContext(ctx).
+		Where("provider_id = ? AND mode = ? AND status = ?", p.provider.ID(), mode, model.SandboxWarmSlotStatusWarming).
+		Find(&warming).Error; err != nil {
+		return created, err
+	}
+	for _, slot := range warming {
+		if !containsUUID(created, slot.ID) {
+			created = append(created, slot.ID)
+			if onCreated != nil {
+				if err := onCreated(ctx, slot.ID); err != nil {
+					return created, err
+				}
+			}
+		}
+	}
+	return created, nil
 }
 
-func (p *WarmPool) provision(ctx context.Context, mode string) error {
+func (p *WarmPool) provision(ctx context.Context, mode string) (uuid.UUID, error) {
 	provider, ok := p.provider.(WarmSlotProvider)
 	if !ok {
-		return fmt.Errorf("provider %s does not support warm slots", p.provider.ID())
+		return uuid.Nil, fmt.Errorf("provider %s does not support warm slots", p.provider.ID())
 	}
 	runtimeSecret, err := generateRandomHex(32)
 	if err != nil {
-		return fmt.Errorf("generate runtime secret: %w", err)
+		return uuid.Nil, fmt.Errorf("generate runtime secret: %w", err)
 	}
 	encrypted, err := p.encKey.EncryptString(runtimeSecret)
 	if err != nil {
-		return fmt.Errorf("encrypt runtime secret: %w", err)
+		return uuid.Nil, fmt.Errorf("encrypt runtime secret: %w", err)
 	}
 	image := p.runtimeImage(mode)
+	logger := logging.FromContext(ctx)
+	logger.InfoContext(ctx, "sandbox warm slot provisioning",
+		"provider", p.provider.ID(), "mode", mode, "image", image, "port", p.cfg.RailwayRuntimePort)
 	info, err := provider.CreateWarmSlot(ctx, WarmSlotCreateOpts{
 		Name:          p.slotName(mode),
 		Mode:          mode,
@@ -156,8 +199,11 @@ func (p *WarmPool) provision(ctx context.Context, mode string) error {
 		},
 	})
 	if err != nil {
-		return err
+		return uuid.Nil, err
 	}
+	logger.InfoContext(ctx, "sandbox warm slot provider resource created",
+		"provider", p.provider.ID(), "mode", mode, "external_id", info.ExternalID,
+		"endpoint_url", info.EndpointURL, "port", info.RuntimePort)
 	slot := model.SandboxWarmSlot{
 		ProviderID:             p.provider.ID(),
 		Mode:                   mode,
@@ -171,16 +217,57 @@ func (p *WarmPool) provision(ctx context.Context, mode string) error {
 	}
 	if err := p.db.WithContext(ctx).Create(&slot).Error; err != nil {
 		_ = p.provider.DeleteSandbox(context.WithoutCancel(ctx), info.ExternalID)
-		return err
+		return uuid.Nil, err
 	}
-	if err := waitForWarmSlotHealth(ctx, info.EndpointURL); err != nil {
-		_ = p.MarkError(context.WithoutCancel(ctx), slot.ID, err.Error())
-		return err
+	return slot.ID, nil
+}
+
+type WarmSlotCheckResult struct {
+	Ready   bool
+	Pending bool
+}
+
+func (p *WarmPool) CheckWarmSlot(ctx context.Context, slotID uuid.UUID) (*WarmSlotCheckResult, error) {
+	if p == nil {
+		return &WarmSlotCheckResult{}, nil
 	}
-	return p.db.WithContext(ctx).Model(&slot).Updates(map[string]any{
+	var slot model.SandboxWarmSlot
+	if err := p.db.WithContext(ctx).First(&slot, "id = ?", slotID).Error; err != nil {
+		return nil, err
+	}
+	if slot.Status != model.SandboxWarmSlotStatusWarming {
+		return &WarmSlotCheckResult{}, nil
+	}
+	status, err := p.provider.GetStatus(ctx, slot.ExternalID)
+	if err != nil {
+		return nil, err
+	}
+	switch status {
+	case StatusRunning:
+	case StatusCreating, StatusStarting:
+		return &WarmSlotCheckResult{Pending: true}, nil
+	case StatusStopped, StatusArchived, StatusArchiving, StatusError:
+		msg := fmt.Sprintf("provider status %s", status)
+		if err := p.MarkError(ctx, slot.ID, msg); err != nil {
+			return nil, err
+		}
+		return &WarmSlotCheckResult{}, fmt.Errorf("warm slot %s entered %s", slot.ExternalID, status)
+	default:
+		return &WarmSlotCheckResult{Pending: true}, nil
+	}
+	if err := checkWarmSlotHealth(ctx, slot.EndpointURL); err != nil {
+		return &WarmSlotCheckResult{Pending: true}, nil
+	}
+	if err := p.db.WithContext(ctx).Model(&slot).Updates(map[string]any{
 		"status":        model.SandboxWarmSlotStatusWarm,
 		"error_message": nil,
-	}).Error
+	}).Error; err != nil {
+		return nil, err
+	}
+	logging.FromContext(ctx).InfoContext(ctx, "sandbox warm slot ready",
+		"provider", p.provider.ID(), "mode", slot.Mode, "external_id", slot.ExternalID,
+		"endpoint_url", slot.EndpointURL)
+	return &WarmSlotCheckResult{Ready: true}, nil
 }
 
 func (p *WarmPool) runtimeImage(mode string) string {
@@ -230,4 +317,31 @@ func waitForWarmSlotHealth(ctx context.Context, endpoint string) error {
 		return fmt.Errorf("warm slot did not become healthy")
 	}
 	return fmt.Errorf("warm slot did not become healthy: %w", lastErr)
+}
+
+func checkWarmSlotHealth(ctx context.Context, endpoint string) error {
+	client := &http.Client{Timeout: 5 * time.Second}
+	url := strings.TrimRight(endpoint, "/") + "/healthz"
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return err
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("healthz returned %s", resp.Status)
+	}
+	return nil
+}
+
+func containsUUID(items []uuid.UUID, target uuid.UUID) bool {
+	for _, item := range items {
+		if item == target {
+			return true
+		}
+	}
+	return false
 }

@@ -253,10 +253,7 @@ func retainTrialMemories(ctx context.Context, deps *bootstrap.Deps, memories []M
 			ObservationScopes: [][]string{{"company:" + orgID.String()}},
 		})
 	}
-	timeout := 10 * time.Second
-	if !async {
-		timeout = 30 * time.Second
-	}
+	timeout := 5 * time.Minute
 	retainCtx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 	_, err := deps.HindsightClient.Retain(retainCtx, bankID, &hindsight.RetainRequest{

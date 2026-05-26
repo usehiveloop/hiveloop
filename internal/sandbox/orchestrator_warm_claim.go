@@ -3,16 +3,26 @@ package sandbox
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
+	"github.com/google/uuid"
+	"gorm.io/gorm"
+
 	"github.com/usehivy/hivy/internal/model"
+)
+
+var (
+	warmRuntimeClaimMaxWait      = 2 * time.Minute
+	warmRuntimeClaimInitialDelay = 500 * time.Millisecond
+	warmRuntimeClaimMaxDelay     = 10 * time.Second
 )
 
 func (o *Orchestrator) claimWarmRuntime(ctx context.Context, sb *model.Sandbox, mode string) error {
 	if o.warmPool == nil {
 		return fmt.Errorf("railway warm pool is not configured")
 	}
-	claimed, err := o.warmPool.Claim(ctx, mode, sb.ID)
+	claimed, err := o.claimWarmRuntimeSlot(ctx, mode, sb.ID)
 	if err != nil {
 		return fmt.Errorf("claim warm runtime: %w", err)
 	}
@@ -52,4 +62,41 @@ func (o *Orchestrator) claimWarmRuntime(ctx context.Context, sb *model.Sandbox, 
 	}
 	o.enqueueWarmPoolReconcile(ctx, mode)
 	return nil
+}
+
+func (o *Orchestrator) claimWarmRuntimeSlot(ctx context.Context, mode string, sandboxID uuid.UUID) (*ClaimedWarmSlot, error) {
+	deadline := time.Now().Add(warmRuntimeClaimMaxWait)
+	delay := warmRuntimeClaimInitialDelay
+	var lastErr error
+	for {
+		claimed, err := o.warmPool.Claim(ctx, mode, sandboxID)
+		if err == nil {
+			return claimed, nil
+		}
+		lastErr = err
+		if !isNoWarmSlotAvailable(err) {
+			return nil, err
+		}
+		o.enqueueWarmPoolReconcile(ctx, mode)
+		if time.Now().Add(delay).After(deadline) {
+			return nil, fmt.Errorf("no warm %s runtime available after %s: %w", mode, warmRuntimeClaimMaxWait, lastErr)
+		}
+		select {
+		case <-ctx.Done():
+			return nil, fmt.Errorf("wait for warm %s runtime: %w: %w", mode, ctx.Err(), lastErr)
+		case <-time.After(delay):
+		}
+		delay *= 2
+		if delay > warmRuntimeClaimMaxDelay {
+			delay = warmRuntimeClaimMaxDelay
+		}
+	}
+}
+
+func isNoWarmSlotAvailable(err error) bool {
+	if err == nil {
+		return false
+	}
+	return err == gorm.ErrRecordNotFound ||
+		(strings.Contains(err.Error(), "no warm ") && strings.Contains(err.Error(), "sandbox slots available"))
 }

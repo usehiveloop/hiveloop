@@ -1,7 +1,7 @@
 {
   "slug": "software-engineering-specialist",
   "name": "Software Engineering Specialist",
-  "description": "Handles simple to complex software engineering work, from standalone HTML/CSS/JavaScript files to full application implementation, debugging, codebase changes, verification, and PR-ready delivery.",
+  "description": "Handles simple to complex software engineering work: HTML-only prototypes, static pages, full SPAs, full-stack applications, complex backends, database investigations, debugging, test/build loops, DevOps and deployment work, codebase changes, verification, and PR-ready delivery.",
   "specialist_type": "software_engineering",
   "version": 1,
   "auto_attach": true,

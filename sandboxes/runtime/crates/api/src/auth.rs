@@ -20,9 +20,12 @@ pub async fn bearer_auth(
         .get(AUTHORIZATION)
         .and_then(|value| value.to_str().ok())
         .unwrap_or("");
-    let token = state.bearer_token.read().await;
-    let expected = format!("Bearer {}", token.as_str());
-    if !constant_time_eq(authorization_header.as_bytes(), expected.as_bytes()) {
+    let authorized = {
+        let token = state.bearer_token.read().await;
+        let expected = format!("Bearer {}", token.as_str());
+        constant_time_eq(authorization_header.as_bytes(), expected.as_bytes())
+    };
+    if !authorized {
         return Err(StatusCode::UNAUTHORIZED);
     }
     Ok(next.run(request).await)

@@ -33,11 +33,22 @@ func TestWarmPoolReconcileCreatesWarmSlotAndClaimMarksClaiming(t *testing.T) {
 		t.Fatal("warm pool is nil")
 	}
 
-	if err := pool.Reconcile(context.Background(), model.SandboxWarmSlotModeEmployee); err != nil {
+	created, err := pool.Reconcile(context.Background(), model.SandboxWarmSlotModeEmployee, nil)
+	if err != nil {
 		t.Fatalf("reconcile: %v", err)
+	}
+	if len(created) != 1 {
+		t.Fatalf("created slots = %d, want 1", len(created))
 	}
 	if len(provider.warmCreateCalls) != 1 {
 		t.Fatalf("warm create calls = %d, want 1", len(provider.warmCreateCalls))
+	}
+	result, err := pool.CheckWarmSlot(context.Background(), created[0])
+	if err != nil {
+		t.Fatalf("check warm slot: %v", err)
+	}
+	if result == nil || !result.Ready {
+		t.Fatalf("check result = %#v, want ready", result)
 	}
 
 	org := createTestOrg(t, db)

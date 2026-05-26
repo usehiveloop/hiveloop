@@ -82,6 +82,7 @@ func (d *Driver) CreateWarmSlot(ctx context.Context, opts sandbox.WarmSlotCreate
 		"HIVY_RUNTIME_BIND_ADDR": fmt.Sprintf("0.0.0.0:%d", port),
 		"HIVY_WORKSPACE_ROOT":    "/workspace",
 		"HIVY_DB_PATH":           "/app/data/hivy-sandboxes-runtime.db",
+		"PORT":                   fmt.Sprintf("%d", port),
 	}
 	for key, value := range opts.EnvVars {
 		vars[key] = value
@@ -96,7 +97,7 @@ func (d *Driver) CreateWarmSlot(ctx context.Context, opts sandbox.WarmSlotCreate
 	if err != nil {
 		return nil, fmt.Errorf("create railway service: %w", err)
 	}
-	domain, err := d.client.CreateServiceDomain(ctx, d.environmentID, service.ID)
+	domain, err := d.client.CreateServiceDomain(ctx, d.projectID, d.environmentID, service.ID)
 	if err != nil {
 		_ = d.client.DeleteService(context.WithoutCancel(ctx), d.environmentID, service.ID)
 		return nil, fmt.Errorf("create railway domain: %w", err)

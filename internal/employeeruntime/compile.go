@@ -46,7 +46,9 @@ type HindsightRecallClient interface {
 }
 
 type StartupSecrets struct {
-	ProxyToken string
+	ProxyToken    string
+	ProxyTokenJTI string
+	ProxyExpires  time.Time
 }
 
 type ProxyTokenResult struct {
@@ -129,7 +131,9 @@ func PrepareStartup(ctx context.Context, deps CompileDeps, agent *model.Employee
 		return nil, err
 	}
 	return &StartupSecrets{
-		ProxyToken: proxyToken.Token,
+		ProxyToken:    proxyToken.Token,
+		ProxyTokenJTI: proxyToken.JTI,
+		ProxyExpires:  proxyToken.ExpiresAt,
 	}, nil
 }
 
@@ -146,7 +150,9 @@ func PrepareSpecialistStartup(ctx context.Context, deps CompileDeps, agent *mode
 		return nil, err
 	}
 	return &StartupSecrets{
-		ProxyToken: proxyToken.Token,
+		ProxyToken:    proxyToken.Token,
+		ProxyTokenJTI: proxyToken.JTI,
+		ProxyExpires:  proxyToken.ExpiresAt,
 	}, nil
 }
 
@@ -247,6 +253,17 @@ func attachLatestProxyTokenToSandbox(ctx context.Context, deps CompileDeps, agen
 }
 
 func Compile(ctx context.Context, deps CompileDeps, agent *model.Employee) (*EmployeeDefinition, error) {
+	return compile(ctx, deps, agent, nil)
+}
+
+func CompileWithProxyToken(ctx context.Context, deps CompileDeps, agent *model.Employee, proxyToken *ProxyTokenResult) (*EmployeeDefinition, error) {
+	if proxyToken == nil || proxyToken.JTI == "" || proxyToken.Token == "" {
+		return nil, fmt.Errorf("employee runtime compile: proxy token is required")
+	}
+	return compile(ctx, deps, agent, proxyToken)
+}
+
+func compile(ctx context.Context, deps CompileDeps, agent *model.Employee, proxyToken *ProxyTokenResult) (*EmployeeDefinition, error) {
 	if agent == nil || agent.OrgID == nil {
 		return nil, fmt.Errorf("employee runtime compile: agent must have org_id")
 	}
@@ -255,7 +272,11 @@ func Compile(ctx context.Context, deps CompileDeps, agent *model.Employee) (*Emp
 		return nil, err
 	}
 	mcpServers := jsonArray(agent.McpServers)
-	if ourMCP := buildHivyMCPServer(ctx, deps, agent, model.TokenRuntimeModeEmployee, ""); ourMCP != nil {
+	ourMCP := buildHivyMCPServer(ctx, deps, agent, model.TokenRuntimeModeEmployee, "")
+	if proxyToken != nil {
+		ourMCP = buildEmployeeMCPServerWithToken(deps, proxyToken)
+	}
+	if ourMCP != nil {
 		mcpServers = upsertHivyMCPServer(mcpServers, ourMCP)
 	}
 	description := managedEmployeeDescription
@@ -288,6 +309,17 @@ func Compile(ctx context.Context, deps CompileDeps, agent *model.Employee) (*Emp
 }
 
 func CompileSpecialist(ctx context.Context, deps CompileDeps, employee *model.Employee, def specialists.Definition) (*EmployeeDefinition, error) {
+	return compileSpecialist(ctx, deps, employee, def, nil)
+}
+
+func CompileSpecialistWithProxyToken(ctx context.Context, deps CompileDeps, employee *model.Employee, def specialists.Definition, proxyToken *ProxyTokenResult) (*EmployeeDefinition, error) {
+	if proxyToken == nil || proxyToken.JTI == "" || proxyToken.Token == "" {
+		return nil, fmt.Errorf("specialist runtime compile: proxy token is required")
+	}
+	return compileSpecialist(ctx, deps, employee, def, proxyToken)
+}
+
+func compileSpecialist(ctx context.Context, deps CompileDeps, employee *model.Employee, def specialists.Definition, proxyToken *ProxyTokenResult) (*EmployeeDefinition, error) {
 	if employee == nil || employee.OrgID == nil {
 		return nil, fmt.Errorf("specialist runtime compile: employee must have org_id")
 	}
@@ -296,7 +328,11 @@ func CompileSpecialist(ctx context.Context, deps CompileDeps, employee *model.Em
 		return nil, err
 	}
 	mcpServers := jsonArray(employee.McpServers)
-	if ourMCP := buildHivyMCPServer(ctx, deps, employee, model.TokenRuntimeModeSpecialist, def.Slug); ourMCP != nil {
+	ourMCP := buildHivyMCPServer(ctx, deps, employee, model.TokenRuntimeModeSpecialist, def.Slug)
+	if proxyToken != nil {
+		ourMCP = buildSpecialistMCPServerWithToken(deps, proxyToken)
+	}
+	if ourMCP != nil {
 		mcpServers = upsertHivyMCPServer(mcpServers, ourMCP)
 	}
 	fragments := buildPromptSections(ctx, deps.DB, employee, def.Description)
