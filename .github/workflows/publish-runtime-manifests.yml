@@ -1,5 +1,6 @@
 name: publish runtime manifests
 
+# Publishes multi-arch tags from already-built architecture images.
 on:
   workflow_dispatch:
     inputs:
