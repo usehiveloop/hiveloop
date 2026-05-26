@@ -87,8 +87,8 @@ type Config struct {
 	MCPBaseURL string `env:"HIVY_MCP_BASE_URL" envDefault:"http://localhost:8081"`
 
 	// Sandbox provider (global — one provider for the whole platform)
-	SandboxEncryptionKey              string `env:"HIVY_SANDBOX_ENCRYPTION_KEY"`                   // base64-encoded 32-byte key for encrypting sandbox secrets (Bridge API keys)
-	SandboxProviderID                 string `env:"HIVY_SANDBOX_PROVIDER_ID" envDefault:"daytona"` // startup-time sandbox provider adapter
+	SandboxEncryptionKey              string `env:"HIVY_SANDBOX_ENCRYPTION_KEY"` // base64-encoded 32-byte key for encrypting sandbox secrets
+	SandboxProviderID                 string `env:"HIVY_SANDBOX_PROVIDER_ID"`    // empty disables sandbox orchestration
 	SandboxDockerHost                 string `env:"HIVY_SANDBOX_DOCKER_HOST"`
 	SandboxDockerPublicHost           string `env:"HIVY_SANDBOX_DOCKER_PUBLIC_HOST"`
 	SandboxDockerContainerLabelPrefix string `env:"HIVY_SANDBOX_DOCKER_CONTAINER_LABEL_PREFIX" envDefault:"hivy"`
@@ -99,7 +99,7 @@ type Config struct {
 	DaytonaTarget string `env:"HIVY_DAYTONA_TARGET"`
 
 	// Runtime sandbox control-plane endpoints.
-	SpecialistSandboxRuntimeVersion string `env:"HIVY_SPECIALIST_SANDBOX_RUNTIME_VERSION,required"`               // usehivy/hivy release tag installed into user templates (e.g. v1.0.0)
+	SpecialistSandboxRuntimeVersion string `env:"HIVY_SPECIALIST_SANDBOX_RUNTIME_VERSION"`                        // usehivy/hivy release tag installed into user templates (e.g. v1.0.0)
 	SpecialistSandboxHost           string `env:"HIVY_SPECIALIST_SANDBOX_HOST"`                                   // public control-plane host reachable from runtime sandboxes
 	APIWebhookBaseURL               string `env:"HIVY_API_WEBHOOK_BASE_URL" envDefault:"https://api.usehivy.com"` // public API base URL for provider webhook callbacks
 	ProxyHost                       string `env:"HIVY_PROXY_HOST" envDefault:"proxy.usehivy.com"`                 // LLM proxy hostname (proxy.usehivy.com)

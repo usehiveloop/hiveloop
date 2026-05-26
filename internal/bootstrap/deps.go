@@ -3,6 +3,7 @@ package bootstrap
 import (
 	"context"
 	"crypto/rsa"
+	"errors"
 	"fmt"
 	"time"
 
@@ -204,27 +205,39 @@ func New(ctx context.Context) (*Deps, error) {
 	}
 
 	var sandboxEncKey *crypto.SymmetricKey
-	if cfg.SandboxEncryptionKey != "" {
+	var orchestrator *sandbox.Orchestrator
+	var agentPusher *sandbox.Pusher
+	if cfg.SandboxProviderID == "" {
+		logging.FromContext(ctx).WarnContext(ctx, "sandbox orchestration disabled; no sandbox provider configured",
+			"required_env", "HIVY_SANDBOX_PROVIDER_ID,HIVY_SANDBOX_ENCRYPTION_KEY")
+	} else if cfg.SandboxEncryptionKey == "" {
+		logging.FromContext(ctx).WarnContext(ctx, "sandbox orchestration disabled; sandbox provider configured without encryption key",
+			"provider", cfg.SandboxProviderID,
+			"missing_env", "HIVY_SANDBOX_ENCRYPTION_KEY")
+	} else {
 		sandboxEncKey, err = crypto.NewSymmetricKey(cfg.SandboxEncryptionKey)
 		if err != nil {
 			return nil, fmt.Errorf("invalid HIVY_SANDBOX_ENCRYPTION_KEY: %w", err)
 		}
-	}
 
-	var orchestrator *sandbox.Orchestrator
-	var agentPusher *sandbox.Pusher
-	if sandboxEncKey != nil {
 		sandboxProvider, err := newSandboxProvider(cfg)
 		if err != nil {
-			return nil, fmt.Errorf("creating sandbox provider: %w", err)
+			if errors.Is(err, errSandboxProviderNotConfigured) {
+				logging.FromContext(ctx).WarnContext(ctx, "sandbox orchestration disabled; selected sandbox provider is incomplete",
+					"provider", cfg.SandboxProviderID,
+					"reason", err.Error())
+			} else {
+				return nil, fmt.Errorf("creating sandbox provider: %w", err)
+			}
+		} else if err := sandboxProvider.Validate(ctx); err != nil {
+			logging.FromContext(ctx).WarnContext(ctx, "sandbox orchestration disabled; selected sandbox provider is unavailable",
+				"provider", sandboxProvider.ID(),
+				"reason", err.Error())
+		} else {
+			orchestrator = sandbox.NewOrchestrator(database, sandboxProvider, sandboxEncKey, cfg)
+			agentPusher = sandbox.NewPusher(database, orchestrator, signingKey, cfg, credentialPicker)
+			logging.FromContext(ctx).InfoContext(ctx, "sandbox orchestrator ready", "provider", sandboxProvider.ID())
 		}
-		if err := sandboxProvider.Validate(ctx); err != nil {
-			return nil, fmt.Errorf("validating sandbox provider %q: %w", sandboxProvider.ID(), err)
-		}
-
-		orchestrator = sandbox.NewOrchestrator(database, sandboxProvider, sandboxEncKey, cfg)
-		agentPusher = sandbox.NewPusher(database, orchestrator, signingKey, cfg, credentialPicker)
-		logging.FromContext(ctx).InfoContext(ctx, "sandbox orchestrator ready")
 	}
 
 	eventBus := streaming.NewEventBus(redisClient)
