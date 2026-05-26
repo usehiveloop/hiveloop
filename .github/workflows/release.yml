@@ -103,10 +103,10 @@ jobs:
       matrix:
         include:
           - arch: amd64
-            runner: ubuntu-latest
+            runner: blacksmith-8vcpu-ubuntu-2404
             target: x86_64-unknown-linux-gnu
             platform: linux/amd64
-            make_target: blacksmith-8vcpu-ubuntu-2404
+            make_target: sandbox-runtime-linux-build-amd64
           - arch: arm64
             runner: ubuntu-24.04-arm
             target: aarch64-unknown-linux-gnu
