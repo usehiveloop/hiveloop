@@ -3,9 +3,15 @@ name: release
 on:
   release:
     types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to publish.
+        required: true
+        type: string
 
 concurrency:
-  group: release-${{ github.event.release.tag_name }}
+  group: release-${{ github.event.release.tag_name || inputs.tag }}
   cancel-in-progress: false
 
 permissions:
@@ -30,12 +36,12 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
-          ref: ${{ github.event.release.tag_name }}
+          ref: ${{ github.event.release.tag_name || inputs.tag }}
           fetch-depth: 0
 
       - name: derive version
         id: version
-        run: ./scripts/release/derive-version.sh "${{ github.event.release.tag_name }}" "$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+        run: ./scripts/release/derive-version.sh "${{ github.event.release.tag_name || inputs.tag }}" "$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
       - name: verify release commit is on main
         run: |
