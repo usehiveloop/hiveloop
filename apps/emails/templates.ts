@@ -1,6 +1,6 @@
 export type TemplateVariable = {
   key: string
-  type: "string" | "number" | "boolean"
+  type: "string" | "number"
 }
 
 export type TemplateDefinition = {

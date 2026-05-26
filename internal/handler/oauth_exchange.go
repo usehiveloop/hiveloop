@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/usehivy/hivy/internal/logging"
@@ -30,7 +31,13 @@ func (h *OAuthHandler) issueExchangeTokenAndRedirect(w http.ResponseWriter, r *h
 		return
 	}
 
+	next := h.oauthNextFromCookie(r)
+	h.clearNextCookie(w)
+
 	redirectURL := fmt.Sprintf("%s/oauth/%s/callback?token=%s", h.frontendURL, provider, plaintext)
+	if next != "" {
+		redirectURL += "&next=" + url.QueryEscape(next)
+	}
 	http.Redirect(w, r, redirectURL, http.StatusTemporaryRedirect)
 }
 

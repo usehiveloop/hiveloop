@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Suspense, useCallback, useMemo, useState } from "react"
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Button, buttonVariants } from "@/components/ui/button"
@@ -31,6 +31,8 @@ function AcceptInviteContents() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const token = searchParams.get("token") ?? ""
+  const autoAccept = searchParams.get("auto") === "1"
+  const autoAcceptStarted = useRef(false)
 
   // Invite preview (public)
   const previewQuery = $api.useQuery(
@@ -51,10 +53,19 @@ function AcceptInviteContents() {
   const [accepted, setAccepted] = useState<{ orgName: string } | null>(null)
   const [declined, setDeclined] = useState(false)
 
-  const nextHref = useMemo(() => {
-    if (!token) return "/auth"
-    return `/auth`
+  const returnPath = useMemo(() => {
+    if (!token) return "/invites/accept"
+    return `/invites/accept?token=${encodeURIComponent(token)}&auto=1`
   }, [token])
+  const signinHref = `/auth/signin?next=${encodeURIComponent(returnPath)}`
+  const signupHref = `/auth/signup?next=${encodeURIComponent(returnPath)}`
+
+  const setActiveOrgAndRedirect = useCallback((orgID?: string, fallback = "/w") => {
+    if (orgID) {
+      document.cookie = `hivy_active_org=${encodeURIComponent(orgID)}; path=/; max-age=${60 * 60 * 24 * 365}; samesite=lax`
+    }
+    setTimeout(() => router.replace(fallback), 1500)
+  }, [router])
 
   const handleAccept = useCallback(() => {
     acceptMutation.mutate(
@@ -62,14 +73,14 @@ function AcceptInviteContents() {
       {
         onSuccess: (resp) => {
           setAccepted({ orgName: resp?.org_name ?? "" })
-          setTimeout(() => router.replace("/w"), 1500)
+          setActiveOrgAndRedirect(resp?.org_id)
         },
         onError: (error) => {
           toast.error(extractErrorMessage(error, "Failed to accept invitation"))
         },
       },
     )
-  }, [acceptMutation, token, router])
+  }, [acceptMutation, token, setActiveOrgAndRedirect])
 
   const handleDecline = useCallback(() => {
     declineMutation.mutate(
@@ -90,11 +101,48 @@ function AcceptInviteContents() {
       { body: {} },
       {
         onSettled: () => {
-          router.replace("/auth")
+          router.replace(`/auth/signin?next=${encodeURIComponent(returnPath)}`)
         },
       },
     )
-  }, [logoutMutation, router])
+  }, [logoutMutation, router, returnPath])
+
+  const invite = previewQuery.data
+  const inviteEmail = invite?.email ?? ""
+  const orgName = invite?.org_name ?? "this workspace"
+  const userEmail = (me?.user?.email ?? "").toLowerCase().trim()
+  const expected = inviteEmail.toLowerCase().trim()
+
+  useEffect(() => {
+    if (!autoAccept || autoAcceptStarted.current || accepted || declined) return
+    if (!token || !me?.user || !invite || userEmail !== expected) return
+
+    autoAcceptStarted.current = true
+    acceptMutation.mutate(
+      { params: { path: { token } } },
+      {
+        onSuccess: (resp) => {
+          setAccepted({ orgName: resp?.org_name ?? "" })
+          setActiveOrgAndRedirect(resp?.org_id)
+        },
+        onError: (error) => {
+          autoAcceptStarted.current = false
+          toast.error(extractErrorMessage(error, "Failed to accept invitation"))
+        },
+      },
+    )
+  }, [
+    acceptMutation,
+    accepted,
+    autoAccept,
+    declined,
+    expected,
+    invite,
+    me?.user,
+    setActiveOrgAndRedirect,
+    token,
+    userEmail,
+  ])
 
   // --- State rendering ---
 
@@ -106,7 +154,7 @@ function AcceptInviteContents() {
           This invitation link is missing its token.
         </p>
         <div className="mt-6">
-          <Link href="/auth" className={buttonVariants({ className: "w-full" })}>
+          <Link href="/auth/signin" className={buttonVariants({ className: "w-full" })}>
             Go to sign in
           </Link>
         </div>
@@ -133,17 +181,13 @@ function AcceptInviteContents() {
           This invitation is no longer valid. It may have expired, been revoked, or already been used.
         </p>
         <div className="mt-6">
-          <Link href="/auth" className={buttonVariants({ className: "w-full" })}>
+          <Link href="/auth/signin" className={buttonVariants({ className: "w-full" })}>
             Back to sign in
           </Link>
         </div>
       </CenterCard>
     )
   }
-
-  const invite = previewQuery.data
-  const inviteEmail = invite.email ?? ""
-  const orgName = invite.org_name ?? "this workspace"
 
   if (declined) {
     return (
@@ -177,31 +221,28 @@ function AcceptInviteContents() {
     return (
       <CenterCard>
         <h1 className="text-lg font-semibold text-foreground">
-          {invite.inviter_name ?? "Someone"} invited you to {orgName}
+          {invite?.inviter_name ?? "Someone"} invited you to {orgName}
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
           Sent to <span className="font-medium text-foreground">{inviteEmail}</span> — role{" "}
-          <Badge variant="secondary" className="text-[10px]">{invite.role}</Badge>
+          <Badge variant="secondary" className="text-[10px]">{invite?.role}</Badge>
         </p>
         <div className="mt-6 flex flex-col gap-2">
-          <Link href={nextHref} className={buttonVariants({ className: "w-full" })}>
+          <Link href={signinHref} className={buttonVariants({ className: "w-full" })}>
             Sign in to accept
           </Link>
-          <Link href={nextHref} className={buttonVariants({ variant: "outline", className: "w-full" })}>
+          <Link href={signupHref} className={buttonVariants({ variant: "outline", className: "w-full" })}>
             Create account
           </Link>
         </div>
         <p className="mt-4 text-[11px] text-muted-foreground text-center">
-          After signing in, come back to this link to accept the invitation.
+          After signing in, you&apos;ll come back here to accept the invitation.
         </p>
       </CenterCard>
     )
   }
 
   // Logged in, check email match
-  const userEmail = (me.user.email ?? "").toLowerCase().trim()
-  const expected = inviteEmail.toLowerCase().trim()
-
   if (userEmail !== expected) {
     return (
       <CenterCard>
@@ -230,8 +271,8 @@ function AcceptInviteContents() {
         Join {orgName}
       </h1>
       <p className="mt-2 text-sm text-muted-foreground">
-        {invite.inviter_name ?? "An admin"} invited you to {orgName} as{" "}
-        <Badge variant="secondary" className="text-[10px]">{invite.role}</Badge>
+        {invite?.inviter_name ?? "An admin"} invited you to {orgName} as{" "}
+        <Badge variant="secondary" className="text-[10px]">{invite?.role}</Badge>
       </p>
       <div className="mt-6 flex flex-col gap-2">
         <Button

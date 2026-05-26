@@ -50,6 +50,7 @@ export function AppTopbar({
   logoHref?: string
 }) {
   const pathname = usePathname()
+  const { logout } = useAuth()
 
   return (
     <>
@@ -100,7 +101,7 @@ export function AppTopbar({
             <Button
               variant="ghost"
               size="sm"
-              render={<Link href="/auth?logout=1" />}
+              onClick={() => logout()}
             >
               Log out
             </Button>

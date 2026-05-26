@@ -21,6 +21,13 @@ export type ConfirmEmailInput = Required<
   Pick<ConfirmEmailRequest, "email" | "code">
 >
 
+export function safeAuthRedirect(rawNext: string | null | undefined) {
+  const next = rawNext?.trim()
+  if (!next || next.length > 2048) return "/w"
+  if (!next.startsWith("/") || next.startsWith("//") || /[\r\n]/.test(next)) return "/w"
+  return next
+}
+
 function normalizeEmail(email: string) {
   return email.trim().toLowerCase()
 }
@@ -37,10 +44,11 @@ function deriveNameFromEmail(email: string) {
     .join(" ")
 }
 
-export function usePasswordLogin() {
+export function usePasswordLogin(nextPath = "/w") {
   const router = useRouter()
   const queryClient = useQueryClient()
   const mutation = $api.useMutation("post", "/auth/login")
+  const redirectTo = safeAuthRedirect(nextPath)
 
   const login = useCallback(
     ({ email, password }: PasswordAuthInput) => {
@@ -57,7 +65,7 @@ export function usePasswordLogin() {
         {
           onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["get", "/auth/me"] })
-            router.replace("/w")
+            router.replace(redirectTo)
           },
           onError: (error) => {
             toast.error(extractErrorMessage(error, "Could not sign in"))
@@ -65,7 +73,7 @@ export function usePasswordLogin() {
         }
       )
     },
-    [mutation, queryClient, router]
+    [mutation, queryClient, redirectTo, router]
   )
 
   return {
@@ -74,9 +82,10 @@ export function usePasswordLogin() {
   }
 }
 
-export function usePasswordSignup() {
+export function usePasswordSignup(nextPath = "/w") {
   const router = useRouter()
   const queryClient = useQueryClient()
+  const redirectTo = safeAuthRedirect(nextPath)
   const [emailToConfirm, setEmailToConfirm] = useState<string | null>(null)
   const registerMutation = $api.useMutation("post", "/auth/register")
   const confirmMutation = $api.useMutation("post", "/auth/confirm-email")
@@ -99,7 +108,7 @@ export function usePasswordSignup() {
           onSuccess: (response) => {
             queryClient.invalidateQueries({ queryKey: ["get", "/auth/me"] })
             if (response?.user?.email_confirmed) {
-              router.replace("/w")
+              router.replace(redirectTo)
               return
             }
             setEmailToConfirm(normalizedEmail)
@@ -111,7 +120,7 @@ export function usePasswordSignup() {
         }
       )
     },
-    [queryClient, registerMutation, router]
+    [queryClient, redirectTo, registerMutation, router]
   )
 
   const confirmEmail = useCallback(
@@ -130,7 +139,7 @@ export function usePasswordSignup() {
         {
           onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["get", "/auth/me"] })
-            router.replace("/w")
+            router.replace(redirectTo)
           },
           onError: (error) => {
             toast.error(extractErrorMessage(error, "Invalid or expired code"))
@@ -138,7 +147,7 @@ export function usePasswordSignup() {
         }
       )
     },
-    [confirmMutation, queryClient, router]
+    [confirmMutation, queryClient, redirectTo, router]
   )
 
   const resendConfirmation = useCallback(() => {

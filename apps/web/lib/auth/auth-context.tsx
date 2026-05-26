@@ -73,7 +73,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (isError && !hasRedirected.current) {
       hasRedirected.current = true
-      router.replace("/auth")
+      router.replace("/auth/signin")
     }
   }, [isError, router])
 
@@ -109,7 +109,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = useCallback(async () => {
     await api.POST("/auth/logout", { body: {} })
-    router.replace("/auth")
+    router.replace("/auth/signin")
   }, [router])
 
   return (

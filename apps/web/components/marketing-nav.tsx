@@ -29,7 +29,7 @@ export function MarketingNav() {
           )
         })}
       </div>
-      <Link href="/auth">
+      <Link href="/auth/signin">
         <Button variant="outline" size="sm">Sign in</Button>
       </Link>
     </nav>

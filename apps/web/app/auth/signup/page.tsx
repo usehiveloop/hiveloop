@@ -1,6 +1,8 @@
 "use client"
 
 import Link from "next/link"
+import { Suspense } from "react"
+import { useSearchParams } from "next/navigation"
 import { motion } from "motion/react"
 import { Controller, useForm } from "react-hook-form"
 import { HugeiconsIcon } from "@hugeicons/react"
@@ -18,6 +20,7 @@ import {
   usePasswordSignup,
   type PasswordAuthInput,
   type ConfirmEmailInput,
+  safeAuthRedirect,
 } from "@/hooks/use-password-auth"
 import {
   AuthCard,
@@ -31,7 +34,10 @@ import {
 
 type ConfirmationFormValues = Required<Pick<ConfirmEmailInput, "code">>
 
-export default function SignupPage() {
+function SignupPageContent() {
+  const searchParams = useSearchParams()
+  const nextPath = safeAuthRedirect(searchParams.get("next"))
+  const nextQuery = nextPath === "/w" ? "" : `?next=${encodeURIComponent(nextPath)}`
   const {
     signup,
     confirmEmail,
@@ -41,7 +47,7 @@ export default function SignupPage() {
     isPending,
     isConfirming,
     isResending,
-  } = usePasswordSignup()
+  } = usePasswordSignup(nextPath)
   const signupForm = useForm<PasswordAuthInput>({
     defaultValues: {
       email: "",
@@ -178,7 +184,7 @@ export default function SignupPage() {
               </form>
             ) : (
               <>
-                <OAuthButtons />
+                <OAuthButtons nextPath={nextPath} />
                 <AuthDivider />
                 <form onSubmit={onSignupSubmit} className="flex flex-col gap-3">
                   <div className="space-y-2">
@@ -217,7 +223,7 @@ export default function SignupPage() {
                 <p className="text-center text-sm text-muted-foreground">
                   Already have an account?{" "}
                   <Link
-                    href="/auth/login"
+                    href={`/auth/login${nextQuery}`}
                     className="font-medium text-foreground underline-offset-4 transition-colors hover:underline"
                   >
                     Sign in
@@ -232,5 +238,13 @@ export default function SignupPage() {
         </div>
       </AuthCard>
     </>
+  )
+}
+
+export default function SignupPage() {
+  return (
+    <Suspense fallback={<AuthCard><AuthGhostLogo /></AuthCard>}>
+      <SignupPageContent />
+    </Suspense>
   )
 }

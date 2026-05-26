@@ -1,6 +1,8 @@
 "use client"
 
 import Link from "next/link"
+import { Suspense } from "react"
+import { useSearchParams } from "next/navigation"
 import { motion } from "motion/react"
 import { useForm } from "react-hook-form"
 import { HugeiconsIcon } from "@hugeicons/react"
@@ -11,6 +13,7 @@ import { Label } from "@/components/ui/label"
 import {
   usePasswordLogin,
   type PasswordAuthInput,
+  safeAuthRedirect,
 } from "@/hooks/use-password-auth"
 import {
   AuthCard,
@@ -22,8 +25,11 @@ import {
   stepTransition,
 } from "../_components/shared"
 
-export default function LoginPage() {
-  const { login, isPending } = usePasswordLogin()
+function LoginPageContent() {
+  const searchParams = useSearchParams()
+  const nextPath = safeAuthRedirect(searchParams.get("next"))
+  const nextQuery = nextPath === "/w" ? "" : `?next=${encodeURIComponent(nextPath)}`
+  const { login, isPending } = usePasswordLogin(nextPath)
   const { register, handleSubmit } = useForm<PasswordAuthInput>({
     defaultValues: {
       email: "",
@@ -70,7 +76,7 @@ export default function LoginPage() {
             transition={stepTransition}
             className="flex flex-col gap-6"
           >
-            <OAuthButtons />
+            <OAuthButtons nextPath={nextPath} />
             <AuthDivider />
             <form onSubmit={onSubmit} className="flex flex-col gap-3">
               <div className="space-y-2">
@@ -107,7 +113,7 @@ export default function LoginPage() {
             <p className="text-center text-sm text-muted-foreground">
               Don't have an account?{" "}
               <Link
-                href="/auth/signup"
+                href={`/auth/signup${nextQuery}`}
                 className="font-medium text-foreground underline-offset-4 transition-colors hover:underline"
               >
                 Sign up
@@ -120,5 +126,13 @@ export default function LoginPage() {
         </div>
       </AuthCard>
     </>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<AuthCard><AuthGhostLogo /></AuthCard>}>
+      <LoginPageContent />
+    </Suspense>
   )
 }

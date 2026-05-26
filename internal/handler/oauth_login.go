@@ -73,6 +73,7 @@ func (h *OAuthHandler) beginLogin(w http.ResponseWriter, r *http.Request, cfg *o
 		Secure:   h.secure,
 		SameSite: http.SameSiteLaxMode,
 	})
+	h.setNextCookie(w, sanitizeOAuthNext(r.URL.Query().Get("next")))
 
 	http.Redirect(w, r, cfg.AuthCodeURL(state, oauth2.S256ChallengeOption(verifier)), http.StatusTemporaryRedirect)
 }

@@ -7,7 +7,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strconv"
+	"strings"
 
 	"golang.org/x/oauth2"
 )
@@ -173,9 +175,16 @@ func fetchXProfile(ctx context.Context, token *oauth2.Token) (*oauthProfile, err
 }
 
 func (h *OAuthHandler) redirectError(w http.ResponseWriter, r *http.Request, errCode string) {
+	next := h.oauthNextFromCookie(r)
 	h.clearStateCookie(w)
 	h.clearVerifierCookie(w)
-	http.Redirect(w, r, fmt.Sprintf("%s/auth/signin?error=%s", h.frontendURL, errCode), http.StatusTemporaryRedirect)
+	h.clearNextCookie(w)
+
+	redirectURL := fmt.Sprintf("%s/auth/signin?error=%s", h.frontendURL, url.QueryEscape(errCode))
+	if next != "" {
+		redirectURL += "&next=" + url.QueryEscape(next)
+	}
+	http.Redirect(w, r, redirectURL, http.StatusTemporaryRedirect)
 }
 
 func (h *OAuthHandler) clearStateCookie(w http.ResponseWriter) {
@@ -193,6 +202,56 @@ func (h *OAuthHandler) clearStateCookie(w http.ResponseWriter) {
 func (h *OAuthHandler) clearVerifierCookie(w http.ResponseWriter) {
 	http.SetCookie(w, &http.Cookie{
 		Name:     "oauth_verifier",
+		Value:    "",
+		Path:     "/oauth/",
+		MaxAge:   -1,
+		HttpOnly: true,
+		Secure:   h.secure,
+		SameSite: http.SameSiteLaxMode,
+	})
+}
+
+func sanitizeOAuthNext(raw string) string {
+	next := strings.TrimSpace(raw)
+	if next == "" || len(next) > 2048 {
+		return ""
+	}
+	if !strings.HasPrefix(next, "/") || strings.HasPrefix(next, "//") || strings.ContainsAny(next, "\r\n") {
+		return ""
+	}
+	return next
+}
+
+func (h *OAuthHandler) setNextCookie(w http.ResponseWriter, next string) {
+	if next == "" {
+		return
+	}
+	http.SetCookie(w, &http.Cookie{
+		Name:     "oauth_next",
+		Value:    url.QueryEscape(next),
+		Path:     "/oauth/",
+		MaxAge:   600,
+		HttpOnly: true,
+		Secure:   h.secure,
+		SameSite: http.SameSiteLaxMode,
+	})
+}
+
+func (h *OAuthHandler) oauthNextFromCookie(r *http.Request) string {
+	cookie, err := r.Cookie("oauth_next")
+	if err != nil || cookie.Value == "" {
+		return ""
+	}
+	next, err := url.QueryUnescape(cookie.Value)
+	if err != nil {
+		return ""
+	}
+	return sanitizeOAuthNext(next)
+}
+
+func (h *OAuthHandler) clearNextCookie(w http.ResponseWriter) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     "oauth_next",
 		Value:    "",
 		Path:     "/oauth/",
 		MaxAge:   -1,
