@@ -58,15 +58,10 @@ type Config struct {
 	// Auth: auto-confirm email on registration (useful for self-hosted deployments)
 	AutoConfirmEmail bool `env:"HIVY_AUTO_CONFIRM_EMAIL" envDefault:"false"`
 
-	// Kibamail (transactional email). When KibamailAPIKey is empty the
-	// worker falls back to LogSender (emails appear in logs only).
-	// FromAddress must be a bare email — Kibamail's API rejects RFC
-	// "Name <email>" syntax with a 422 INVALID_FIELD_VALUE on `from`.
-	// FromName is sent as the separate `fromName` top-level field so
-	// recipients see "Display Name <email>" in their inbox.
-	KibamailAPIKey      string `env:"HIVY_KIBAMAIL_API_KEY"`
-	KibamailFromAddress string `env:"HIVY_KIBAMAIL_FROM_ADDRESS" envDefault:"betty@notifications.usehivy.com"`
-	KibamailFromName    string `env:"HIVY_KIBAMAIL_FROM_NAME" envDefault:"Betty from Hivy"`
+	// Resend (transactional email). When ResendAPIKey is empty the worker
+	// falls back to LogSender (emails appear in logs only).
+	ResendAPIKey string `env:"HIVY_RESEND_API_KEY"`
+	ResendFrom   string `env:"HIVY_RESEND_FROM" envDefault:"Betty from Hivy <betty@notifications.usehivy.com>"`
 
 	// OAuth (social login)
 	OAuthGitHubClientID     string `env:"HIVY_OAUTH_GITHUB_CLIENT_ID"`
@@ -82,9 +77,6 @@ type Config struct {
 	// Nango (OAuth integration proxy)
 	NangoEndpoint  string `env:"HIVY_NANGO_ENDPOINT"`   // e.g. http://localhost:3004
 	NangoSecretKey string `env:"HIVY_NANGO_SECRET_KEY"` // Nango secret key for API auth
-
-	// Slack app-level token used by employee sandboxes for Socket Mode.
-	SlackAppToken string `env:"HIVY_SLACK_APP_TOKEN"`
 
 	// GitHub API token used by the skill hydrator. Optional — raises the
 	// anonymous rate limit from 60 req/hr to 5000 req/hr per token.
@@ -123,10 +115,9 @@ type Config struct {
 	PlatformAdminEmails string `env:"HIVY_PLATFORM_ADMIN_EMAILS"`
 
 	// Custom preview domains
-	PreviewCNAMETarget   string `env:"HIVY_PREVIEW_CNAME_TARGET" envDefault:"preview-proxy.usehivy.com"`
-	InternalDomainSecret string `env:"HIVY_INTERNAL_DOMAIN_SECRET"` // shared secret for Gatekeeper + acme-dns proxy + Caddy admin proxy
-	AcmeDNSAPIURL        string `env:"HIVY_ACME_DNS_API_URL"`       // acme-dns registration API (e.g. https://acme-dns-api.daytona.usehivy.com)
-	CaddyAdminURL        string `env:"HIVY_CADDY_ADMIN_URL"`        // Caddy admin API proxy (e.g. https://caddy-admin.daytona.usehivy.com)
+	PreviewCNAMETarget string `env:"HIVY_PREVIEW_CNAME_TARGET" envDefault:"preview-proxy.usehivy.com"`
+	AcmeDNSAPIURL      string `env:"HIVY_ACME_DNS_API_URL"` // acme-dns registration API (e.g. https://acme-dns-api.daytona.usehivy.com)
+	CaddyAdminURL      string `env:"HIVY_CADDY_ADMIN_URL"`  // Caddy admin API proxy (e.g. https://caddy-admin.daytona.usehivy.com)
 
 	// Spider (web crawling/search via spider.cloud)
 	SpiderAPIKey  string `env:"HIVY_SPIDER_CLOUD_API_KEY"`                                  // empty = spider disabled

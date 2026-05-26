@@ -12,12 +12,12 @@ import (
 
 // EmailSenderFunc is a function that sends an ad-hoc email.
 // This avoids importing the email package (which could create import cycles).
-type EmailSenderFunc func(ctx context.Context, to, subject, body string) error
+type EmailSenderFunc func(ctx context.Context, to, subject, body, idempotencyKey string) error
 
-// EmailTemplateSenderFunc is a function that sends a template-backed email
-// via slug + variables. Lives on the worker and typically calls the
-// Kibamail SDK.
-type EmailTemplateSenderFunc func(ctx context.Context, to, slug string, variables map[string]string) error
+// EmailTemplateSenderFunc is a function that sends a template-backed email via
+// slug + variables. Lives on the worker and typically calls the configured
+// transactional email provider.
+type EmailTemplateSenderFunc func(ctx context.Context, to, slug string, variables map[string]string, idempotencyKey string) error
 
 // EmailSendHandler processes email:send tasks.
 type EmailSendHandler struct {
@@ -36,7 +36,7 @@ func (h *EmailSendHandler) Handle(ctx context.Context, t *asynq.Task) error {
 		return fmt.Errorf("unmarshal email payload: %w", err)
 	}
 
-	if err := h.send(ctx, p.To, p.Subject, p.Body); err != nil {
+	if err := h.send(ctx, p.To, p.Subject, p.Body, p.IdempotencyKey); err != nil {
 		return fmt.Errorf("send email to %s: %w", p.To, err)
 	}
 
@@ -64,7 +64,7 @@ func (h *EmailSendTemplateHandler) Handle(ctx context.Context, t *asynq.Task) er
 		return fmt.Errorf("unmarshal email template payload: %w", err)
 	}
 
-	if err := h.send(ctx, p.To, p.Slug, p.Variables); err != nil {
+	if err := h.send(ctx, p.To, p.Slug, p.Variables, p.IdempotencyKey); err != nil {
 		return fmt.Errorf("send template %s to %s: %w", p.Slug, p.To, err)
 	}
 

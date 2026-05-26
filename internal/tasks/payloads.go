@@ -37,14 +37,20 @@ func NewWebhookForwardTask(webhookURL string, encryptedSecret []byte, body []byt
 
 // EmailSendPayload is the payload for TypeEmailSend tasks.
 type EmailSendPayload struct {
-	To      string `json:"to"`
-	Subject string `json:"subject"`
-	Body    string `json:"body"`
+	To             string `json:"to"`
+	Subject        string `json:"subject"`
+	Body           string `json:"body"`
+	IdempotencyKey string `json:"idempotency_key,omitempty"`
 }
 
 // NewEmailSendTask creates a task that sends an email.
 func NewEmailSendTask(to, subject, body string) (*asynq.Task, error) {
-	payload, err := json.Marshal(EmailSendPayload{To: to, Subject: subject, Body: body})
+	payload, err := json.Marshal(EmailSendPayload{
+		To:             to,
+		Subject:        subject,
+		Body:           body,
+		IdempotencyKey: fmt.Sprintf("email/%s", uuid.NewString()),
+	})
 	if err != nil {
 		return nil, fmt.Errorf("marshal email send payload: %w", err)
 	}
@@ -58,21 +64,23 @@ func NewEmailSendTask(to, subject, body string) (*asynq.Task, error) {
 }
 
 // EmailSendTemplatePayload is the payload for TypeEmailSendTemplate tasks.
-// Variables is a flat string map — Kibamail templates use Handlebars
-// {{key}} substitution and every value is already stringified when enqueued.
+// Variables is a flat string map and every value is already stringified when
+// enqueued.
 type EmailSendTemplatePayload struct {
-	To        string            `json:"to"`
-	Slug      string            `json:"slug"`
-	Variables map[string]string `json:"variables,omitempty"`
+	To             string            `json:"to"`
+	Slug           string            `json:"slug"`
+	Variables      map[string]string `json:"variables,omitempty"`
+	IdempotencyKey string            `json:"idempotency_key,omitempty"`
 }
 
-// NewEmailSendTemplateTask creates a task that sends an email via a
-// published Kibamail transactional template (resolved by slug).
+// NewEmailSendTemplateTask creates a task that sends an email via a published
+// transactional template resolved by slug.
 func NewEmailSendTemplateTask(to, slug string, variables map[string]string) (*asynq.Task, error) {
 	payload, err := json.Marshal(EmailSendTemplatePayload{
-		To:        to,
-		Slug:      slug,
-		Variables: variables,
+		To:             to,
+		Slug:           slug,
+		Variables:      variables,
+		IdempotencyKey: fmt.Sprintf("email-template/%s/%s", slug, uuid.NewString()),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("marshal email template payload: %w", err)

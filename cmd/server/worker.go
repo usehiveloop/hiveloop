@@ -33,10 +33,10 @@ func runWork(ctx context.Context, deps *bootstrap.Deps) error {
 	redisOpt := cfg.AsynqRedisOpt()
 
 	var workerSender email.Sender = &email.LogSender{}
-	if cfg.KibamailAPIKey != "" {
-		workerSender = email.NewKibamailSender(cfg.KibamailAPIKey, cfg.KibamailFromAddress, cfg.KibamailFromName)
+	if cfg.ResendAPIKey != "" {
+		workerSender = email.NewResendSender(cfg.ResendAPIKey, cfg.ResendFrom)
 	} else {
-		slog.Warn("KIBAMAIL_API_KEY not set — emails will be logged only")
+		slog.Warn("HIVY_RESEND_API_KEY not set — emails will be logged only")
 	}
 
 	enqueuer := enqueue.NewClient(redisOpt)
@@ -54,14 +54,20 @@ func runWork(ctx context.Context, deps *bootstrap.Deps) error {
 		Orchestrator: deps.Orchestrator,
 		Pusher:       deps.AgentPusher,
 		EncKey:       deps.SandboxEncKey,
-		EmailSend: func(ctx context.Context, to, subject, body string) error {
-			return workerSender.Send(ctx, email.Message{To: to, Subject: subject, Body: body})
+		EmailSend: func(ctx context.Context, to, subject, body, idempotencyKey string) error {
+			return workerSender.Send(ctx, email.Message{
+				To:             to,
+				Subject:        subject,
+				Body:           body,
+				IdempotencyKey: idempotencyKey,
+			})
 		},
-		EmailSendTemplate: func(ctx context.Context, to, slug string, variables map[string]string) error {
+		EmailSendTemplate: func(ctx context.Context, to, slug string, variables map[string]string, idempotencyKey string) error {
 			return workerSender.SendTemplate(ctx, email.TemplateMessage{
-				To:        to,
-				Slug:      email.TemplateSlug(slug),
-				Variables: variables,
+				To:             to,
+				Slug:           email.TemplateSlug(slug),
+				Variables:      variables,
+				IdempotencyKey: idempotencyKey,
 			})
 		},
 		SkillFetcher:  skills.NewGitFetcher(cfg.GitHubToken),

@@ -37,7 +37,7 @@ verify_otp() {
 request_otp
 OTP="$(read_otp_from_log)"
 [ -n "$OTP" ] || {
-  echo "ERROR: no OTP found in $BACKEND_LOG. Is KIBAMAIL_API_KEY empty?" >&2
+  echo "ERROR: no OTP found in $BACKEND_LOG. Are emails being enqueued instead of logged?" >&2
   exit 1
 }
 RESULT="$(verify_otp "$OTP")"

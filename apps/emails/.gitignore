@@ -1,0 +1,15 @@
+node_modules/
+
+# React Email generated output
+.react-email/
+dist/
+out/
+
+# Local env and logs
+.env
+.env.*
+*.log
+
+# Tool caches
+.cache/
+*.tsbuildinfo

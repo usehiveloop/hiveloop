@@ -13,23 +13,20 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/usehivy/hivy/internal/config"
-	"github.com/usehivy/hivy/internal/logging"
 	"github.com/usehivy/hivy/internal/middleware"
 	"github.com/usehivy/hivy/internal/model"
 )
 
 // CustomDomainHandler manages custom preview domain configuration.
 type CustomDomainHandler struct {
-	db     *gorm.DB
-	cfg    *config.Config
-	client *http.Client
+	db  *gorm.DB
+	cfg *config.Config
 }
 
 func NewCustomDomainHandler(db *gorm.DB, cfg *config.Config) *CustomDomainHandler {
 	return &CustomDomainHandler{
-		db:     db,
-		cfg:    cfg,
-		client: &http.Client{Timeout: 30 * time.Second},
+		db:  db,
+		cfg: cfg,
 	}
 }
 
@@ -51,13 +48,6 @@ type dnsRecord struct {
 type verifyDomainResponse struct {
 	Verified bool   `json:"verified"`
 	Message  string `json:"message"`
-}
-
-type acmeDNSRegisterResponse struct {
-	FullDomain string `json:"fulldomain"`
-	SubDomain  string `json:"subdomain"`
-	Username   string `json:"username"`
-	Password   string `json:"password"`
 }
 
 // Create handles POST /v1/custom-domains.
@@ -98,21 +88,10 @@ func (h *CustomDomainHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	acmeReg, err := h.registerAcmeDNS(r.Context())
-	if err != nil {
-		logging.FromContext(r.Context()).ErrorContext(r.Context(), "acme-dns registration failed", "error", err, "domain", domain)
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to register domain for certificate challenges"})
-		return
-	}
-
 	cd := model.CustomDomain{
-		OrgID:            org.ID,
-		Domain:           domain,
-		CNAMETarget:      h.cfg.PreviewCNAMETarget,
-		AcmeDNSSubdomain: acmeReg.SubDomain,
-		AcmeDNSUsername:  acmeReg.Username,
-		AcmeDNSPassword:  acmeReg.Password,
-		AcmeDNSServerURL: h.cfg.AcmeDNSAPIURL,
+		OrgID:       org.ID,
+		Domain:      domain,
+		CNAMETarget: h.cfg.PreviewCNAMETarget,
 	}
 
 	if err := h.db.Create(&cd).Error; err != nil {
@@ -124,7 +103,6 @@ func (h *CustomDomainHandler) Create(w http.ResponseWriter, r *http.Request) {
 		CustomDomain: cd,
 		DNSRecords: []dnsRecord{
 			{Type: "CNAME", Name: "*." + domain, Value: h.cfg.PreviewCNAMETarget},
-			{Type: "CNAME", Name: "_acme-challenge." + domain, Value: cd.AcmeChallengeCNAME()},
 		},
 	})
 }
@@ -162,7 +140,6 @@ func (h *CustomDomainHandler) List(w http.ResponseWriter, r *http.Request) {
 			CustomDomain: d,
 			DNSRecords: []dnsRecord{
 				{Type: "CNAME", Name: "*." + d.Domain, Value: d.CNAMETarget},
-				{Type: "CNAME", Name: "_acme-challenge." + d.Domain, Value: d.AcmeChallengeCNAME()},
 			},
 		}
 	}
@@ -218,43 +195,14 @@ func (h *CustomDomainHandler) Verify(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	challengeHost := "_acme-challenge." + cd.Domain
-	challengeCNAME, err := net.LookupCNAME(challengeHost)
-	if err != nil {
-		writeJSON(w, http.StatusOK, verifyDomainResponse{
-			Verified: false,
-			Message:  fmt.Sprintf("DNS lookup failed for %s. Create CNAME: %s → %s", challengeHost, challengeHost, cd.AcmeChallengeCNAME()),
-		})
-		return
-	}
-	challengeCNAME = strings.TrimSuffix(challengeCNAME, ".")
-	expectedChallenge := cd.AcmeChallengeCNAME()
-	if !strings.EqualFold(challengeCNAME, expectedChallenge) {
-		writeJSON(w, http.StatusOK, verifyDomainResponse{
-			Verified: false,
-			Message:  fmt.Sprintf("Challenge CNAME points to %s, expected %s", challengeCNAME, expectedChallenge),
-		})
-		return
-	}
-
 	now := time.Now()
 	cd.Verified = true
 	cd.VerifiedAt = &now
 	h.db.Save(&cd)
 
-	if err := h.reloadCaddyConfig(r.Context()); err != nil {
-		logging.FromContext(r.Context()).ErrorContext(r.Context(), "failed to reload Caddy config", "error", err, "domain", cd.Domain)
-
-		writeJSON(w, http.StatusOK, verifyDomainResponse{
-			Verified: true,
-			Message:  "Domain verified. TLS provisioning will retry shortly.",
-		})
-		return
-	}
-
 	writeJSON(w, http.StatusOK, verifyDomainResponse{
 		Verified: true,
-		Message:  "Domain verified and wildcard TLS certificate is being provisioned",
+		Message:  "Domain verified",
 	})
 }
 
@@ -286,14 +234,30 @@ func (h *CustomDomainHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	wasVerified := cd.Verified
 	h.db.Delete(&cd)
-
-	if wasVerified {
-		if err := h.reloadCaddyConfig(r.Context()); err != nil {
-			logging.FromContext(r.Context()).ErrorContext(r.Context(), "failed to reload Caddy config after domain deletion", "error", err, "domain", cd.Domain)
-		}
-	}
 
 	w.WriteHeader(http.StatusNoContent)
 }
+
+func validateDomain(domain string) error {
+	if domain == "" {
+		return &validationError{"domain is required"}
+	}
+	if strings.HasPrefix(domain, "*.") {
+		return &validationError{"domain should not include wildcard (omit *.)"}
+	}
+	if strings.Contains(domain, "://") {
+		return &validationError{"domain should not include protocol"}
+	}
+	parts := strings.Split(domain, ".")
+	if len(parts) < 2 {
+		return &validationError{"domain must have at least two parts (e.g. preview.example.com)"}
+	}
+	return nil
+}
+
+type validationError struct {
+	msg string
+}
+
+func (e *validationError) Error() string { return e.msg }

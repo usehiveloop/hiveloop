@@ -29,7 +29,6 @@ require (
 	github.com/hashicorp/golang-lru/v2 v2.0.7
 	github.com/hibiken/asynq v0.26.0
 	github.com/hibiken/asynqmon v0.7.2
-	github.com/kibamail/kibamail/sdks/go v0.1.0
 	github.com/lancedb/lancedb-go v0.1.2
 	github.com/lib/pq v1.11.2
 	github.com/modelcontextprotocol/go-sdk v1.4.1
@@ -40,6 +39,7 @@ require (
 	github.com/pressly/goose/v3 v3.27.1
 	github.com/qdrant/go-client v1.17.1
 	github.com/redis/go-redis/v9 v9.18.0
+	github.com/resend/resend-go/v3 v3.7.0
 	github.com/sashabaranov/go-openai v1.41.2
 	github.com/slack-go/slack v0.23.0
 	github.com/sourcegraph/conc v0.3.0

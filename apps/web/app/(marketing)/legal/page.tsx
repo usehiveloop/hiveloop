@@ -114,7 +114,7 @@ const sections = [
       "OpenRouter and configured model providers such as OpenAI, Anthropic, Google, and Fireworks - model inference, embeddings, reranking, or related AI processing.",
       "In-house integration/OAuth systems, including self-hosted Nango - optional integration connection and token management.",
       "Paystack - billing, checkout, payment references, and subscription data.",
-      "Kibamail - transactional email and support communications.",
+      "Resend - transactional email and support communications.",
       "In-house monitoring/error systems - logs, errors, traces, and performance data.",
       "In-house analytics - product analytics and diagnostics.",
     ],
