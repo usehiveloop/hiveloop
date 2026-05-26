@@ -32,6 +32,7 @@ fi
 
 short_commit="${commit:0:7}"
 
+# Keep image, snapshot, and manifest naming derived from the release tag.
 cat <<EOF
 RELEASE_TAG=${tag}
 RELEASE_VERSION=${version}
