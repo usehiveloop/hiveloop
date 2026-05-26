@@ -10,8 +10,6 @@ on:
         type: string
   push:
     branches: [main]
-    paths:
-      - .github/workflows/publish-runtime-manifests.yml
 
 permissions:
   contents: write
