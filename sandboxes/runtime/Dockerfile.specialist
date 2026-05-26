@@ -11,7 +11,7 @@ ENV PATH=/usr/local/go/bin:/usr/local/rvm/bin:/usr/local/rvm/rubies/default/bin:
 
 ARG GO_VERSION=1.25.10
 ARG JUST_VERSION=1.38.0
-ARG NODE_VERSION=--lts
+ARG NODE_INSTALL_VERSION=--lts
 ARG VERSION=dev
 ARG COMMIT=unknown
 
@@ -133,18 +133,20 @@ RUN ln -sf /usr/bin/fdfind /usr/local/bin/fd \
 RUN mkdir -p "$NVM_DIR" \
   && curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | PROFILE=/dev/null bash \
   && source "$NVM_DIR/nvm.sh" \
-  && nvm install "$NODE_VERSION" \
+  && nvm install "$NODE_INSTALL_VERSION" \
   && nvm alias default node \
   && default_node="$(nvm version default)" \
   && ln -s "$NVM_DIR/versions/node/$default_node" "$NVM_DIR/versions/node/default" \
   && corepack enable \
+  && corepack prepare pnpm@10 --activate \
+  && corepack prepare yarn@stable --activate \
+  && npm config set fetch-retries 5 \
+  && npm config set fetch-retry-mintimeout 20000 \
+  && npm config set fetch-retry-maxtimeout 120000 \
   && npm install -g \
-    @railway/cli \
     markdownlint-cli \
     mongosh \
-    pnpm@10 \
     prettier \
-    yarn \
   && npm cache clean --force \
   && printf '%s\n' \
     'export NVM_DIR="/usr/local/nvm"' \
