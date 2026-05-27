@@ -86,6 +86,8 @@ func (h *NangoWebhookHandler) Handle(w http.ResponseWriter, r *http.Request) {
 			"nango_connection_id", wh.ConnectionID,
 			"provider_config_key", wh.ProviderConfigKey,
 			"type", wh.Type,
+			"from", wh.From,
+			"payload_preview", truncateBody(body, 500),
 		)
 		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 		return
@@ -111,4 +113,11 @@ func (h *NangoWebhookHandler) Handle(w http.ResponseWriter, r *http.Request) {
 
 func (h *NangoWebhookHandler) acknowledge(w http.ResponseWriter) {
 	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+}
+
+func truncateBody(body []byte, max int) string {
+	if len(body) <= max {
+		return string(body)
+	}
+	return string(body[:max]) + "..."
 }
