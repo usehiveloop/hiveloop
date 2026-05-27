@@ -186,3 +186,12 @@ func (h *AuthHandler) sendEmailConfirmationCode(ctx context.Context, user model.
 	}
 	return nil
 }
+
+func (h *AuthHandler) resendConfirmationInBackground(user model.User) {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	if err := h.sendEmailConfirmationCode(ctx, user); err != nil {
+		logging.FromContext(ctx).ErrorContext(ctx, "auto-resend confirmation on login failed", "error", err, "email", user.Email)
+	}
+}
