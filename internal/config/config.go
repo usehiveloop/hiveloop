@@ -75,8 +75,9 @@ type Config struct {
 	CORSOrigins []string `env:"HIVY_CORS_ORIGINS" envSeparator:","`
 
 	// Nango (OAuth integration proxy)
-	NangoEndpoint  string `env:"HIVY_NANGO_ENDPOINT"`   // e.g. http://localhost:3004
-	NangoSecretKey string `env:"HIVY_NANGO_SECRET_KEY"` // Nango secret key for API auth
+	NangoEndpoint         string `env:"HIVY_NANGO_ENDPOINT"`            // e.g. http://localhost:3004
+	NangoSecretKey        string `env:"HIVY_NANGO_SECRET_KEY"`          // Nango secret key for API auth
+	NangoWebhooksSecret   string `env:"HIVY_NANGO_WEBHOOKS_SECRET"`     // Nango secret key for webhook signature verification
 
 	// GitHub API token used by the skill hydrator. Optional — raises the
 	// anonymous rate limit from 60 req/hr to 5000 req/hr per token.

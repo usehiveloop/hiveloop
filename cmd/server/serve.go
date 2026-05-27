@@ -130,7 +130,7 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 		employeeOutboundWebhookHandler.SetGatewayService(gatewayService)
 		gatewayHTTPHandler = handler.NewGatewayHTTPHandler(gatewayService)
 	}
-	nangoWebhookHandler := handler.NewNangoWebhookHandler(database, cfg.NangoSecretKey, sandboxEncKey, enqueuer)
+	nangoWebhookHandler := handler.NewNangoWebhookHandler(database, cfg.NangoWebhooksSecret, sandboxEncKey, enqueuer)
 
 	incomingWebhookHandler := handler.NewIncomingWebhookHandler(database, enqueuer)
 	httpTriggerHandler := handler.NewHTTPTriggerHandler(database, enqueuer)
