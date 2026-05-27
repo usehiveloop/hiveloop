@@ -86,6 +86,12 @@ func (h *NangoWebhookHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if isSlackProvider(wctx.connection) && wh.Type == "forward" {
+		if handleSlackWebhookEvent(r.Context(), w, &wh, wctx) {
+			return
+		}
+	}
+
 	dispatchWebhookEvent(r.Context(), h.enqueuer, &wh, wctx)
 
 	h.acknowledge(w)
