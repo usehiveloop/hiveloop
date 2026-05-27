@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"time"
@@ -11,6 +12,7 @@ import (
 
 	"github.com/usehivy/hivy/internal/crypto"
 	"github.com/usehivy/hivy/internal/enqueue"
+	"github.com/usehivy/hivy/internal/gateway"
 	"github.com/usehivy/hivy/internal/logging"
 	"github.com/usehivy/hivy/internal/model"
 )
@@ -101,10 +103,41 @@ func (h *NangoWebhookHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if isSlackProvider(wctx.connection) && wh.Type == "forward" {
-		if handleSlackWebhookEvent(r.Context(), w, &wh, wctx) {
+		employee, err := ensureHivyEmployee(r.Context(), h.db, wctx.connection.OrgID)
+		if err != nil {
+			logging.FromContext(r.Context()).ErrorContext(r.Context(), "slack_webhook_failed_to_ensure_employee",
+				"org_id", wctx.connection.OrgID.String(),
+				"error", err,
+			)
+			logging.CaptureWithFields(r.Context(), fmt.Errorf("slack webhook: ensure employee: %w", err), map[string]any{
+				"org_id": wctx.connection.OrgID.String(),
+			})
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to load employee"})
 			return
 		}
-	} else {
+
+		envelope := gateway.WebhookEnvelope{
+			ConnectionID: wctx.connection.ID,
+			OrgID:        wctx.connection.OrgID,
+			EmployeeID:   employee.ID,
+			Provider:     wctx.connection.Integration.Provider,
+			Headers:      normalizedHeaders(r.Header),
+			Body:         wh.Payload,
+		}
+
+		logging.FromContext(r.Context()).InfoContext(r.Context(), "slack_webhook_envelope_built",
+			"connection_id", envelope.ConnectionID.String(),
+			"org_id", envelope.OrgID.String(),
+			"employee_id", envelope.EmployeeID.String(),
+			"provider", envelope.Provider,
+			"payload", string(envelope.Body),
+		)
+
+		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+		return
+	}
+
+	if !isSlackProvider(wctx.connection) {
 		logging.FromContext(r.Context()).InfoContext(r.Context(), "nango_webhook_skipped",
 			"org_id", wctx.orgID.String(),
 			"connection_id", wctx.connection.ID.String(),

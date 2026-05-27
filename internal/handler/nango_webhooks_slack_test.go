@@ -1,10 +1,8 @@
 package handler
 
 import (
-	"encoding/json"
+	"net/http"
 	"testing"
-
-	"github.com/google/uuid"
 
 	"github.com/usehivy/hivy/internal/model"
 )
@@ -46,81 +44,51 @@ func TestIsSlackProvider(t *testing.T) {
 	}
 }
 
-func TestUnwrapSlackEvent(t *testing.T) {
-	t.Run("valid nango envelope", func(t *testing.T) {
-		payload := json.RawMessage(`{
-			"data": {"type":"event_callback","event":{"type":"app_mention","channel":"C123"}},
-			"headers": {"x-slack-signature": "abc123"}
-		}`)
-
-		body, headers := unwrapSlackEvent(payload)
-
-		if len(body) == 0 {
-			t.Fatal("expected non-empty body")
-		}
-
-		var event slackEventCallback
-		if err := json.Unmarshal(body, &event); err != nil {
-			t.Fatalf("failed to unmarshal body: %v", err)
-		}
-		if event.Type != "event_callback" {
-			t.Errorf("event.Type = %q, want %q", event.Type, "event_callback")
-		}
-		if event.Event.Channel != "C123" {
-			t.Errorf("event.Event.Channel = %q, want %q", event.Event.Channel, "C123")
-		}
-
-		if headers["x-slack-signature"] != "abc123" {
-			t.Errorf("headers[x-slack-signature] = %q, want %q", headers["x-slack-signature"], "abc123")
-		}
-	})
-
-	t.Run("raw payload without envelope", func(t *testing.T) {
-		payload := json.RawMessage(`{"type":"event_callback","event":{"type":"message"}}`)
-
-		body, headers := unwrapSlackEvent(payload)
-
-		if len(body) == 0 {
-			t.Fatal("expected non-empty body")
-		}
-
-		var event slackEventCallback
-		if err := json.Unmarshal(body, &event); err != nil {
-			t.Fatalf("failed to unmarshal body: %v", err)
-		}
-		if event.Type != "event_callback" {
-			t.Errorf("event.Type = %q, want %q", event.Type, "event_callback")
-		}
-
-		if len(headers) != 0 {
-			t.Errorf("expected empty headers, got %v", headers)
-		}
-	})
-
-	t.Run("invalid json", func(t *testing.T) {
-		payload := json.RawMessage(`not valid json`)
-
-		body, headers := unwrapSlackEvent(payload)
-
-		if string(body) != "not valid json" {
-			t.Errorf("body = %q, want original payload", string(body))
-		}
-		if headers != nil {
-			t.Errorf("headers = %v, want nil", headers)
-		}
-	})
-}
-
-func slackTestWebhookContext() *webhookContext {
-	return &webhookContext{
-		orgID: uuid.New(),
-		connection: &model.Connection{
-			ID:          uuid.New(),
-			Integration: model.Integration{Provider: "slack"},
+func TestNormalizedHeaders(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    http.Header
+		expected map[string]string
+	}{
+		{
+			name:     "empty headers",
+			input:    http.Header{},
+			expected: map[string]string{},
+		},
+		{
+			name:     "single header",
+			input:    http.Header{"Content-Type": {"application/json"}},
+			expected: map[string]string{"content-type": "application/json"},
+		},
+		{
+			name:     "multiple headers",
+			input:    http.Header{"Content-Type": {"application/json"}, "X-Custom": {"value"}},
+			expected: map[string]string{"content-type": "application/json", "x-custom": "value"},
+		},
+		{
+			name:     "header case normalization",
+			input:    http.Header{"CONTENT-TYPE": {"application/json"}},
+			expected: map[string]string{"content-type": "application/json"},
+		},
+		{
+			name:     "skip empty values",
+			input:    http.Header{"Content-Type": {}},
+			expected: map[string]string{},
 		},
 	}
-}
 
-func slackTestPayload(eventJSON string) json.RawMessage {
-	return json.RawMessage(`{"data":` + eventJSON + `,"headers":{}}`)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := normalizedHeaders(tt.input)
+			if len(got) != len(tt.expected) {
+				t.Errorf("normalizedHeaders() returned %d headers, want %d", len(got), len(tt.expected))
+				return
+			}
+			for k, v := range tt.expected {
+				if got[k] != v {
+					t.Errorf("normalizedHeaders()[%q] = %q, want %q", k, got[k], v)
+				}
+			}
+		})
+	}
 }

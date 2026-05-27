@@ -12,9 +12,13 @@ import (
 const Source = "gateway"
 
 type WebhookEnvelope struct {
-	RouteID uuid.UUID
-	Headers map[string]string
-	Body    []byte
+	ConnectionID uuid.UUID
+	OrgID        uuid.UUID
+	EmployeeID   uuid.UUID
+	Provider     string
+	RouteID      uuid.UUID
+	Headers      map[string]string
+	Body         []byte
 }
 
 type InboundEnvelope struct {
