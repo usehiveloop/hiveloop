@@ -82,12 +82,19 @@ func (h *NangoWebhookHandler) Handle(w http.ResponseWriter, r *http.Request) {
 
 	wctx := h.identify(r.Context(), &wh)
 	if wctx == nil {
+		headers := make(map[string]string)
+		for k, v := range r.Header {
+			if len(v) > 0 {
+				headers[k] = v[0]
+			}
+		}
 		logging.FromContext(r.Context()).InfoContext(r.Context(), "nango_webhook_connection_not_found",
 			"nango_connection_id", wh.ConnectionID,
 			"provider_config_key", wh.ProviderConfigKey,
 			"type", wh.Type,
 			"from", wh.From,
-			"payload_preview", truncateBody(body, 500),
+			"payload", string(body),
+			"headers", headers,
 		)
 		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 		return
@@ -113,11 +120,4 @@ func (h *NangoWebhookHandler) Handle(w http.ResponseWriter, r *http.Request) {
 
 func (h *NangoWebhookHandler) acknowledge(w http.ResponseWriter) {
 	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
-}
-
-func truncateBody(body []byte, max int) string {
-	if len(body) <= max {
-		return string(body)
-	}
-	return string(body[:max]) + "..."
 }
