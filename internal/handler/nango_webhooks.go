@@ -82,6 +82,11 @@ func (h *NangoWebhookHandler) Handle(w http.ResponseWriter, r *http.Request) {
 
 	wctx := h.identify(r.Context(), &wh)
 	if wctx == nil {
+		logging.FromContext(r.Context()).InfoContext(r.Context(), "nango_webhook_connection_not_found",
+			"nango_connection_id", wh.ConnectionID,
+			"provider_config_key", wh.ProviderConfigKey,
+			"type", wh.Type,
+		)
 		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 		return
 	}
@@ -90,6 +95,13 @@ func (h *NangoWebhookHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		if handleSlackWebhookEvent(r.Context(), w, &wh, wctx) {
 			return
 		}
+	} else {
+		logging.FromContext(r.Context()).InfoContext(r.Context(), "nango_webhook_skipped",
+			"org_id", wctx.orgID.String(),
+			"connection_id", wctx.connection.ID.String(),
+			"provider", wctx.connection.Integration.Provider,
+			"type", wh.Type,
+		)
 	}
 
 	dispatchWebhookEvent(r.Context(), h.enqueuer, &wh, wctx)
