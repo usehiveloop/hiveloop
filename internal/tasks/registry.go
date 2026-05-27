@@ -131,6 +131,10 @@ func NewServeMux(deps *WorkerDeps) *asynq.ServeMux {
 	}
 	mux.HandleFunc(TypeEmployeeTriggerStoreDelivery, NewEmployeeTriggerStoreDeliveryHandler(deps.DB).Handle)
 
+	if deps.Orchestrator != nil && deps.NangoClient != nil {
+		mux.HandleFunc(TypeGatewaySlack, NewGatewaySlackHandler(deps.DB, deps.NangoClient).Handle)
+	}
+
 	if deps.Rag != nil {
 		ragtasks.RegisterHandlers(mux, deps.Rag)
 	}

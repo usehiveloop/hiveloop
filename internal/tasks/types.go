@@ -23,6 +23,7 @@ const (
 	TypeEmployeeSandboxRetire        = "employee:sandbox_retire"
 	TypeSandboxWarmPoolReconcile     = "sandbox:warm_pool_reconcile"
 	TypeSandboxWarmSlotCheck         = "sandbox:warm_slot_check"
+	TypeGatewaySlack                 = "gateway:slack"
 
 	// Periodic tasks (scheduled by the worker)
 	TypeTokenCleanup         = "periodic:token_cleanup"

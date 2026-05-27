@@ -15,23 +15,29 @@ import (
 	"github.com/usehivy/hivy/internal/gateway"
 	"github.com/usehivy/hivy/internal/logging"
 	"github.com/usehivy/hivy/internal/model"
+	"github.com/usehivy/hivy/internal/nango"
+	"github.com/usehivy/hivy/internal/tasks"
 )
 
 // NangoWebhookHandler receives webhook events forwarded by Nango.
 type NangoWebhookHandler struct {
-	db          *gorm.DB
-	nangoSecret string
-	encKey      *crypto.SymmetricKey
-	httpClient  *http.Client
-	enqueuer    enqueue.TaskEnqueuer
+	db             *gorm.DB
+	nangoSecret    string
+	encKey         *crypto.SymmetricKey
+	httpClient     *http.Client
+	enqueuer       enqueue.TaskEnqueuer
+	nangoClient    *nango.Client
+	gatewayService *gateway.Service
 }
 
-func NewNangoWebhookHandler(db *gorm.DB, nangoSecret string, encKey *crypto.SymmetricKey, enqueuer ...enqueue.TaskEnqueuer) *NangoWebhookHandler {
+func NewNangoWebhookHandler(db *gorm.DB, nangoSecret string, encKey *crypto.SymmetricKey, nangoClient *nango.Client, gatewayService *gateway.Service, enqueuer ...enqueue.TaskEnqueuer) *NangoWebhookHandler {
 	h := &NangoWebhookHandler{
-		db:          db,
-		nangoSecret: nangoSecret,
-		encKey:      encKey,
-		httpClient:  &http.Client{Timeout: 25 * time.Second},
+		db:             db,
+		nangoSecret:    nangoSecret,
+		encKey:         encKey,
+		httpClient:     &http.Client{Timeout: 25 * time.Second},
+		nangoClient:    nangoClient,
+		gatewayService: gatewayService,
 	}
 	if len(enqueuer) > 0 {
 		h.enqueuer = enqueuer[0]
@@ -116,6 +122,12 @@ func (h *NangoWebhookHandler) Handle(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		if h.gatewayService == nil || h.nangoClient == nil || h.enqueuer == nil {
+			logging.FromContext(r.Context()).ErrorContext(r.Context(), "slack_webhook_missing_dependencies")
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "slack gateway not configured"})
+			return
+		}
+
 		envelope := gateway.WebhookEnvelope{
 			ConnectionID: wctx.connection.ID,
 			OrgID:        wctx.connection.OrgID,
@@ -125,12 +137,57 @@ func (h *NangoWebhookHandler) Handle(w http.ResponseWriter, r *http.Request) {
 			Body:         wh.Payload,
 		}
 
-		logging.FromContext(r.Context()).InfoContext(r.Context(), "slack_webhook_envelope_built",
+		result, err := h.gatewayService.ReceiveWebhookFromConnection(r.Context(), envelope)
+		if err != nil {
+			logging.CaptureWithFields(r.Context(), fmt.Errorf("slack webhook: receive: %w", err), map[string]any{
+				"connection_id": envelope.ConnectionID.String(),
+				"org_id":        envelope.OrgID.String(),
+			})
+			writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+			return
+		}
+
+		providerKey := nangoProviderConfigKey(wctx.connection.Integration.UniqueKey)
+
+		task, err := tasks.NewGatewaySlackTask(tasks.GatewaySlackPayload{
+			ConnectionID:   envelope.ConnectionID.String(),
+			OrgID:          envelope.OrgID.String(),
+			EmployeeID:     envelope.EmployeeID.String(),
+			ChannelID:      result.Inbound.ChannelID,
+			ThreadTS:       result.Inbound.ThreadID,
+			StreamURL:      result.StreamURL,
+			RuntimeURL:     result.RuntimeURL,
+			SessionID:      result.Session.ID.String(),
+			RuntimeConvoID: result.RuntimeConversationID,
+			TraceID:        result.TraceID,
+			TurnID:         result.TurnID,
+			SenderID:       result.Inbound.SenderID,
+			ActionToken:    result.ActionToken,
+			NangoConnID:    wctx.connection.NangoConnectionID,
+			ProviderKey:    providerKey,
+		})
+		if err != nil {
+			logging.CaptureWithFields(r.Context(), fmt.Errorf("slack webhook: build task: %w", err), map[string]any{
+				"connection_id": envelope.ConnectionID.String(),
+			})
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to build task"})
+			return
+		}
+
+		if _, err := h.enqueuer.EnqueueContext(r.Context(), task); err != nil {
+			logging.CaptureWithFields(r.Context(), fmt.Errorf("slack webhook: enqueue task: %w", err), map[string]any{
+				"connection_id": envelope.ConnectionID.String(),
+			})
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to enqueue task"})
+			return
+		}
+
+		logging.FromContext(r.Context()).InfoContext(r.Context(), "slack_webhook_dispatched",
 			"connection_id", envelope.ConnectionID.String(),
 			"org_id", envelope.OrgID.String(),
 			"employee_id", envelope.EmployeeID.String(),
-			"provider", envelope.Provider,
-			"payload", string(envelope.Body),
+			"channel_id", result.Inbound.ChannelID,
+			"thread_ts", result.Inbound.ThreadID,
 		)
 
 		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
