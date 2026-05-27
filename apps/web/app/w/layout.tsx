@@ -205,16 +205,13 @@ function EmailConfirmationGate() {
   const { user } = useAuth()
   const queryClient = useQueryClient()
   const [code, setCode] = useState("")
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [isResending, setIsResending] = useState(false)
   const email = user?.email ?? ""
 
   const confirmMutation = $api.useMutation("post", "/auth/confirm-email")
   const resendMutation = $api.useMutation("post", "/auth/resend-confirmation")
 
-  const handleConfirm = useCallback(async () => {
+  const handleConfirm = useCallback(() => {
     if (!code.trim()) return
-    setIsSubmitting(true)
     confirmMutation.mutate(
       { body: { email, code: code.trim() } },
       {
@@ -224,19 +221,16 @@ function EmailConfirmationGate() {
         onError: () => {
           toast.error("Invalid or expired code")
         },
-        onSettled: () => setIsSubmitting(false),
       }
     )
   }, [code, email, confirmMutation, queryClient])
 
-  const handleResend = useCallback(async () => {
-    setIsResending(true)
+  const handleResend = useCallback(() => {
     resendMutation.mutate(
       { body: { email } },
       {
         onSuccess: () => toast.success("A new confirmation code has been sent"),
         onError: () => toast.error("Could not resend confirmation"),
-        onSettled: () => setIsResending(false),
       }
     )
   }, [email, resendMutation])
@@ -276,7 +270,7 @@ function EmailConfirmationGate() {
           <Button
             onClick={handleConfirm}
             disabled={code.length !== 6}
-            loading={isSubmitting}
+            loading={confirmMutation.isPending}
             className="w-full"
           >
             Verify
@@ -286,10 +280,10 @@ function EmailConfirmationGate() {
         <div className="mt-4 text-center">
           <button
             onClick={handleResend}
-            disabled={isResending}
+            disabled={resendMutation.isPending}
             className="text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground transition-colors disabled:opacity-50"
           >
-            {isResending ? "Sending..." : "Resend code"}
+            {resendMutation.isPending ? "Sending..." : "Resend code"}
           </button>
         </div>
       </div>
