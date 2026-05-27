@@ -36,8 +36,11 @@ func (s *Service) ReceiveWebhookFromConnection(ctx context.Context, envelope Web
 	}
 
 	inbound, ok, err := adapter.DecodeInbound(ctx, envelope)
-	if err != nil || !ok {
+	if err != nil {
 		return nil, fmt.Errorf("decode inbound: %w", err)
+	}
+	if !ok {
+		return nil, fmt.Errorf("decode inbound: event ignored by adapter")
 	}
 	inbound.Provider = envelope.Provider
 
@@ -179,4 +182,15 @@ func (s *Service) findOrCreateSessionByConnection(ctx context.Context, envelope 
 		return model.EmployeeSession{}, "", fmt.Errorf("find or create gateway session: %w", err)
 	}
 	return session, conversationID, nil
+}
+
+func (s *Service) loadConnection(ctx context.Context, id uuid.UUID) (*model.Connection, error) {
+	var conn model.Connection
+	if err := s.db.WithContext(ctx).
+		Preload("Integration").
+		Where("id = ? AND revoked_at IS NULL", id).
+		First(&conn).Error; err != nil {
+		return nil, fmt.Errorf("load connection: %w", err)
+	}
+	return &conn, nil
 }

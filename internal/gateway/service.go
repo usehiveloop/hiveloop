@@ -153,10 +153,21 @@ func (s *Service) HandleRuntimeFinal(ctx context.Context, response AgentResponse
 	if session.Source != Source || session.SourceID == nil {
 		return nil, nil
 	}
+
 	route, err := s.loadRoute(ctx, *session.SourceID)
 	if err != nil {
-		return nil, err
+		conn, connErr := s.loadConnection(ctx, *session.SourceID)
+		if connErr != nil {
+			return nil, fmt.Errorf("load gateway route or connection: %w", err)
+		}
+		route = model.EmployeeGatewayRoute{
+			ID:         uuid.Nil,
+			OrgID:      conn.OrgID,
+			EmployeeID: session.EmployeeID,
+			Provider:   conn.Integration.Provider,
+		}
 	}
+
 	adapter, err := s.adapter(route.Provider)
 	if err != nil {
 		return nil, err

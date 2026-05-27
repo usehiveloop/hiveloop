@@ -30,7 +30,7 @@ func (s *Service) insertInboundEvent(ctx context.Context, route model.EmployeeGa
 	event := model.EmployeeGatewayEvent{
 		OrgID:             route.OrgID,
 		EmployeeID:        route.EmployeeID,
-		RouteID:           route.ID,
+		RouteID:           routeIDPtr(route.ID),
 		Provider:          route.Provider,
 		ExternalMessageID: inbound.ExternalMessageID,
 		DedupeKey:         inbound.DedupeKey,
@@ -48,9 +48,13 @@ func (s *Service) insertInboundEvent(ctx context.Context, route model.EmployeeGa
 	}
 	if result.RowsAffected == 0 {
 		var existing model.EmployeeGatewayEvent
-		err := s.db.WithContext(ctx).
-			Where("route_id = ? AND dedupe_key = ?", route.ID, inbound.DedupeKey).
-			First(&existing).Error
+		query := s.db.WithContext(ctx)
+		if route.ID == uuid.Nil {
+			query = query.Where("route_id IS NULL AND org_id = ? AND dedupe_key = ?", route.OrgID, inbound.DedupeKey)
+		} else {
+			query = query.Where("route_id = ? AND dedupe_key = ?", route.ID, inbound.DedupeKey)
+		}
+		err := query.First(&existing).Error
 		return existing, true, err
 	}
 	return event, false, nil
@@ -120,7 +124,12 @@ func (s *Service) markEventFailed(ctx context.Context, eventID uuid.UUID, err er
 
 func (s *Service) loadDeliveryByDedupe(ctx context.Context, routeID uuid.UUID, dedupe string) (*model.EmployeeGatewayDelivery, bool, error) {
 	var delivery model.EmployeeGatewayDelivery
-	err := s.db.WithContext(ctx).Where("route_id = ? AND dedupe_key = ?", routeID, dedupe).First(&delivery).Error
+	var err error
+	if routeID == uuid.Nil {
+		err = s.db.WithContext(ctx).Where("route_id IS NULL AND dedupe_key = ?", dedupe).First(&delivery).Error
+	} else {
+		err = s.db.WithContext(ctx).Where("route_id = ? AND dedupe_key = ?", routeID, dedupe).First(&delivery).Error
+	}
 	if err == nil {
 		return &delivery, true, nil
 	}
@@ -149,7 +158,7 @@ func (s *Service) insertDelivery(ctx context.Context, route model.EmployeeGatewa
 	row := model.EmployeeGatewayDelivery{
 		OrgID:             route.OrgID,
 		EmployeeID:        route.EmployeeID,
-		RouteID:           route.ID,
+		RouteID:           routeIDPtr(route.ID),
 		EmployeeSessionID: session.ID,
 		Provider:          route.Provider,
 		DedupeKey:         dedupe,
@@ -172,4 +181,11 @@ func (s *Service) insertDelivery(ctx context.Context, route model.EmployeeGatewa
 		return nil, fmt.Errorf("insert gateway delivery: %w", err)
 	}
 	return &row, nil
+}
+
+func routeIDPtr(id uuid.UUID) *uuid.UUID {
+	if id == uuid.Nil {
+		return nil
+	}
+	return &id
 }

@@ -33,9 +33,9 @@ func (EmployeeGatewayRoute) TableName() string { return "employee_gateway_routes
 type EmployeeGatewayEvent struct {
 	ID uuid.UUID `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
 
-	OrgID      uuid.UUID `gorm:"type:uuid;not null;index"`
-	EmployeeID uuid.UUID `gorm:"type:uuid;not null;index"`
-	RouteID    uuid.UUID `gorm:"type:uuid;not null;index"`
+	OrgID      uuid.UUID  `gorm:"type:uuid;not null;index"`
+	EmployeeID uuid.UUID  `gorm:"type:uuid;not null;index"`
+	RouteID    *uuid.UUID `gorm:"type:uuid;index"`
 
 	EmployeeSessionID *uuid.UUID       `gorm:"type:uuid;index"`
 	EmployeeSession   *EmployeeSession `gorm:"foreignKey:EmployeeSessionID;constraint:OnDelete:SET NULL"`
@@ -67,10 +67,10 @@ func (EmployeeGatewayEvent) TableName() string { return "employee_gateway_events
 type EmployeeGatewayDelivery struct {
 	ID uuid.UUID `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
 
-	OrgID             uuid.UUID `gorm:"type:uuid;not null;index"`
-	EmployeeID        uuid.UUID `gorm:"type:uuid;not null;index"`
-	RouteID           uuid.UUID `gorm:"type:uuid;not null;index"`
-	EmployeeSessionID uuid.UUID `gorm:"type:uuid;not null;index"`
+	OrgID             uuid.UUID  `gorm:"type:uuid;not null;index"`
+	EmployeeID        uuid.UUID  `gorm:"type:uuid;not null;index"`
+	RouteID           *uuid.UUID `gorm:"type:uuid;index"`
+	EmployeeSessionID uuid.UUID  `gorm:"type:uuid;not null;index"`
 
 	Provider         string  `gorm:"not null;size:128;index"`
 	DedupeKey        string  `gorm:"type:text;not null;default:'';index"`
