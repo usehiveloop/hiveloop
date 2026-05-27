@@ -85,7 +85,7 @@ func handleSlackWebhookEvent(ctx context.Context, w http.ResponseWriter, wh *nan
 		return true
 	}
 
-	logSlackEvent(ctx, &event, wctx)
+	logSlackEvent(ctx, &event, wctx, wh.Payload)
 	return true
 }
 
@@ -111,7 +111,7 @@ func unwrapSlackEvent(payload json.RawMessage) ([]byte, map[string]string) {
 	return dataField, headers
 }
 
-func logSlackEvent(ctx context.Context, event *slackEvent, wctx *webhookContext) {
+func logSlackEvent(ctx context.Context, event *slackEvent, wctx *webhookContext, payload json.RawMessage) {
 	text := event.Text
 	if len(text) > 100 {
 		text = text[:100] + "..."
@@ -129,5 +129,6 @@ func logSlackEvent(ctx context.Context, event *slackEvent, wctx *webhookContext)
 		"user_name", event.UserName,
 		"ts", event.TS,
 		"text", text,
+		"payload", string(payload),
 	)
 }
