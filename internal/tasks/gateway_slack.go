@@ -57,7 +57,7 @@ func (h *GatewaySlackHandler) Handle(ctx context.Context, t *asynq.Task) error {
 
 	client := slacksdk.New(botToken)
 
-	streamURL := strings.TrimRight(payload.RuntimeURL, "/") + payload.StreamURL
+	streamURL := payload.StreamURL
 	subscriber := gateway.NewSSESubscriber(&http.Client{Timeout: 610 * time.Second})
 	events, err := subscriber.Subscribe(ctx, streamURL, payload.RuntimeAPIKey)
 	if err != nil {
