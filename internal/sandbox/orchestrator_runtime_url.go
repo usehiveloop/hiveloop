@@ -8,7 +8,6 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/usehivy/hivy/internal/employeeruntime"
 	"github.com/usehivy/hivy/internal/logging"
 	"github.com/usehivy/hivy/internal/model"
 )
@@ -96,32 +95,15 @@ func (o *Orchestrator) ExecuteCommandWithTimeout(ctx context.Context, sb *model.
 	if err := o.ensureSandboxProvider(sb); err != nil {
 		return "", err
 	}
-	if o.provider.ID() == ProviderRailway {
-		apiKey, err := o.encKey.DecryptString(sb.EncryptedRuntimeSecret)
+	if executor, ok := o.provider.(RuntimeCommandExecutor); ok {
+		secret, err := o.encKey.DecryptString(sb.EncryptedRuntimeSecret)
 		if err != nil {
 			return "", fmt.Errorf("decrypt runtime secret: %w", err)
 		}
-		seconds := int(timeout.Seconds())
-		if seconds <= 0 {
-			seconds = 120
-		}
-		client := employeeruntime.NewClient(sb.RuntimeURL, apiKey)
-		resp, err := client.RunCommands(ctx, employeeruntime.ControlCommandsRequest{
-			Commands:       []string{command},
-			TimeoutSeconds: seconds,
-			StopOnError:    true,
-		})
-		if err != nil {
-			return "", err
-		}
-		if len(resp.Results) == 0 {
-			return "", fmt.Errorf("runtime command returned no results")
-		}
-		result := resp.Results[0]
-		if !resp.OK {
-			return result.Output, fmt.Errorf("command failed in runtime: exit_code=%v timed_out=%v", result.ExitCode, result.TimedOut)
-		}
-		return result.Output, nil
+		return executor.ExecuteCommandViaRuntime(ctx, RuntimeCommandContext{
+			RuntimeURL:    sb.RuntimeURL,
+			RuntimeSecret: secret,
+		}, command, timeout)
 	}
 	return o.provider.ExecuteCommandWithTimeout(ctx, sb.ExternalID, command, timeout)
 }

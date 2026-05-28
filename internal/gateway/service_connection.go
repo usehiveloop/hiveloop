@@ -116,6 +116,15 @@ func (s *Service) ReceiveWebhookFromConnection(ctx context.Context, envelope Web
 		return nil, fmt.Errorf("load sandbox: %w", err)
 	}
 
+	runtimeAPIKey := ""
+	if s.encKey != nil && len(sandbox.EncryptedRuntimeSecret) > 0 {
+		decrypted, err := s.encKey.DecryptString(sandbox.EncryptedRuntimeSecret)
+		if err != nil {
+			return nil, fmt.Errorf("decrypt runtime secret: %w", err)
+		}
+		runtimeAPIKey = decrypted
+	}
+
 	actionToken := ""
 	if slackAdapter, ok := adapter.(*SlackAdapter); ok {
 		actionToken = slackAdapter.ActionToken(inbound.Raw)
@@ -133,7 +142,7 @@ func (s *Service) ReceiveWebhookFromConnection(ctx context.Context, envelope Web
 		RuntimeSessionID:     delivery.SessionID,
 		StreamURL:            runtimeURL + "/gateway/http/streams/" + delivery.StreamID,
 		RuntimeURL:           runtimeURL,
-		RuntimeAPIKey:        "",
+		RuntimeAPIKey:        runtimeAPIKey,
 		TraceID:              delivery.TraceID,
 		TurnID:               delivery.TurnID,
 		ActionToken:          actionToken,

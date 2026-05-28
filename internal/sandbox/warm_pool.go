@@ -220,12 +220,12 @@ func (p *WarmPool) provision(ctx context.Context, mode string) (uuid.UUID, error
 
 func (p *WarmPool) runtimeImage(mode string) string {
 	if mode == model.SandboxWarmSlotModeSpecialist {
-		if p.provider.ID() == ProviderRailway && strings.TrimSpace(p.cfg.RailwaySpecialistRuntimeImage) != "" {
+		if _, usesWarmPool := p.provider.(WarmPoolCapable); usesWarmPool && strings.TrimSpace(p.cfg.RailwaySpecialistRuntimeImage) != "" {
 			return strings.TrimSpace(p.cfg.RailwaySpecialistRuntimeImage)
 		}
 		return p.cfg.SandboxesRuntimeSpecialistImagePrefix
 	}
-	if p.provider.ID() == ProviderRailway && strings.TrimSpace(p.cfg.RailwayRuntimeImage) != "" {
+	if _, usesWarmPool := p.provider.(WarmPoolCapable); usesWarmPool && strings.TrimSpace(p.cfg.RailwayRuntimeImage) != "" {
 		return strings.TrimSpace(p.cfg.RailwayRuntimeImage)
 	}
 	return p.cfg.SandboxesRuntimeBaseImagePrefix

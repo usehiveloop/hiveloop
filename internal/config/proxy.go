@@ -18,18 +18,20 @@ func (c *Config) ProxyOpenAIBaseURL() string {
 	origin := c.ProxyOriginURL()
 	parsed, err := url.Parse(origin)
 	if err != nil || parsed.Host == "" {
-		return strings.TrimRight(origin, "/") + "/v1/proxy/v1"
+		return strings.TrimRight(origin, "/") + "/v1"
 	}
 	path := strings.TrimRight(parsed.Path, "/")
 	switch {
 	case strings.HasSuffix(path, "/v1/proxy/v1"):
-		parsed.Path = path
+		parsed.Path = "/v1"
 	case strings.HasSuffix(path, "/v1/proxy"):
-		parsed.Path = path + "/v1"
+		parsed.Path = "/v1"
+	case strings.HasSuffix(path, "/v1"):
+		parsed.Path = path
 	case path == "":
-		parsed.Path = "/v1/proxy/v1"
+		parsed.Path = "/v1"
 	default:
-		parsed.Path = path + "/v1/proxy/v1"
+		parsed.Path = path + "/v1"
 	}
 	return strings.TrimRight(parsed.String(), "/")
 }

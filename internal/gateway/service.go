@@ -9,20 +9,23 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
+	"github.com/usehivy/hivy/internal/crypto"
 	"github.com/usehivy/hivy/internal/model"
 )
 
 type Service struct {
 	db       *gorm.DB
 	runtime  RuntimeMessenger
+	encKey   *crypto.SymmetricKey
 	adapters map[string]Adapter
 	now      func() time.Time
 }
 
-func NewService(db *gorm.DB, runtime RuntimeMessenger, adapters ...Adapter) *Service {
+func NewService(db *gorm.DB, runtime RuntimeMessenger, encKey *crypto.SymmetricKey, adapters ...Adapter) *Service {
 	s := &Service{
 		db:       db,
 		runtime:  runtime,
+		encKey:   encKey,
 		adapters: map[string]Adapter{},
 		now:      time.Now,
 	}

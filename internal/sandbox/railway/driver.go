@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/usehivy/hivy/internal/employeeruntime"
 	railwayapi "github.com/usehivy/hivy/internal/railway"
 	"github.com/usehivy/hivy/internal/sandbox"
 )
@@ -194,4 +195,30 @@ func (d *Driver) ExecuteCommandWithTimeout(context.Context, string, string, time
 
 func (d *Driver) GetResourceUsage(context.Context, string) (*sandbox.ResourceUsage, error) {
 	return &sandbox.ResourceUsage{}, nil
+}
+
+func (d *Driver) UsesWarmPool() bool { return true }
+
+func (d *Driver) ExecuteCommandViaRuntime(ctx context.Context, cmdCtx sandbox.RuntimeCommandContext, command string, timeout time.Duration) (string, error) {
+	seconds := int(timeout.Seconds())
+	if seconds <= 0 {
+		seconds = 120
+	}
+	client := employeeruntime.NewClient(cmdCtx.RuntimeURL, cmdCtx.RuntimeSecret)
+	resp, err := client.RunCommands(ctx, employeeruntime.ControlCommandsRequest{
+		Commands:       []string{command},
+		TimeoutSeconds: seconds,
+		StopOnError:    true,
+	})
+	if err != nil {
+		return "", err
+	}
+	if len(resp.Results) == 0 {
+		return "", fmt.Errorf("runtime command returned no results")
+	}
+	result := resp.Results[0]
+	if !resp.OK {
+		return result.Output, fmt.Errorf("command failed in runtime: exit_code=%v timed_out=%v", result.ExitCode, result.TimedOut)
+	}
+	return result.Output, nil
 }

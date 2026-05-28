@@ -140,3 +140,21 @@ type Provider interface {
 
 	GetResourceUsage(ctx context.Context, externalID string) (*ResourceUsage, error)
 }
+
+// WarmPoolCapable is implemented by providers that create sandboxes
+// through a warm pool rather than direct CreateSandbox calls.
+type WarmPoolCapable interface {
+	UsesWarmPool() bool
+}
+
+// RuntimeCommandContext bundles what a provider needs for runtime-based command execution.
+type RuntimeCommandContext struct {
+	RuntimeURL    string
+	RuntimeSecret string
+}
+
+// RuntimeCommandExecutor is implemented by providers that cannot execute
+// commands via the provider API and route through an HTTP runtime instead.
+type RuntimeCommandExecutor interface {
+	ExecuteCommandViaRuntime(ctx context.Context, cmdCtx RuntimeCommandContext, command string, timeout time.Duration) (string, error)
+}

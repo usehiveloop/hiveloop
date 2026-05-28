@@ -3,6 +3,7 @@ package hindsight
 import (
 	"context"
 	"encoding/json"
+	"net/http"
 	"os"
 	"strings"
 	"testing"
@@ -14,11 +15,28 @@ import (
 	"github.com/usehivy/hivy/internal/model"
 )
 
-func TestRealHindsightRetainRecallOrgTeam(t *testing.T) {
+func hindsightBaseURL(t *testing.T) string {
+	t.Helper()
 	baseURL := os.Getenv("HIVY_HINDSIGHT_API_URL")
 	if baseURL == "" {
 		baseURL = "http://localhost:8888"
 	}
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, baseURL+"/health", nil)
+	if err != nil {
+		t.Skipf("hindsight not reachable: %v", err)
+	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Skipf("hindsight not reachable at %s: %v", baseURL, err)
+	}
+	resp.Body.Close()
+	return baseURL
+}
+
+func TestRealHindsightRetainRecallOrgTeam(t *testing.T) {
+	baseURL := hindsightBaseURL(t)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
 	defer cancel()
@@ -74,10 +92,7 @@ func TestRealHindsightRetainRecallOrgTeam(t *testing.T) {
 }
 
 func TestRealHindsightForgetDocument(t *testing.T) {
-	baseURL := os.Getenv("HIVY_HINDSIGHT_API_URL")
-	if baseURL == "" {
-		baseURL = "http://localhost:8888"
-	}
+	baseURL := hindsightBaseURL(t)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancel()
@@ -145,10 +160,7 @@ func TestRealHindsightForgetDocument(t *testing.T) {
 }
 
 func TestRealHindsightMemoryRetainToolReturnsDocumentID(t *testing.T) {
-	baseURL := os.Getenv("HIVY_HINDSIGHT_API_URL")
-	if baseURL == "" {
-		baseURL = "http://localhost:8888"
-	}
+	baseURL := hindsightBaseURL(t)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
 	defer cancel()

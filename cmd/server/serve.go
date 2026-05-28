@@ -127,7 +127,7 @@ func runServe(ctx context.Context, deps *bootstrap.Deps, enqueuer enqueue.TaskEn
 	var gatewayService *gateway.Service
 	if orchestrator != nil {
 		gatewayRuntime := gateway.NewOrchestratedRuntimeMessenger(database, orchestrator)
-		gatewayService = gateway.NewService(database, gatewayRuntime, gateway.NewFakeSlackAdapter(), gateway.NewHTTPAdapter(nil), gateway.NewSlackAdapter())
+		gatewayService = gateway.NewService(database, gatewayRuntime, sandboxEncKey, gateway.NewFakeSlackAdapter(), gateway.NewHTTPAdapter(nil), gateway.NewSlackAdapter())
 		employeeOutboundWebhookHandler.SetGatewayService(gatewayService)
 		gatewayHTTPHandler = handler.NewGatewayHTTPHandler(gatewayService)
 	}

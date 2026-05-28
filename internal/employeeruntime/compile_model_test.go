@@ -51,7 +51,7 @@ func TestCompile_ReferencesProxyEnvInsteadOfRawProviderKeys(t *testing.T) {
 	if def.Model.APIKeyEnv != ProxyAPIKeyEnv {
 		t.Fatalf("model.api_key_env = %q, want %q", def.Model.APIKeyEnv, ProxyAPIKeyEnv)
 	}
-	if def.Model.BaseURL != "https://proxy.hivy.test/v1/proxy/v1" {
+	if def.Model.BaseURL != "https://proxy.hivy.test/v1" {
 		t.Fatalf("model.base_url = %q", def.Model.BaseURL)
 	}
 	if def.MultimodalModel == nil || def.MultimodalModel.APIKeyEnv != ProxyAPIKeyEnv {

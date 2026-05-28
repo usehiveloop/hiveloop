@@ -46,7 +46,7 @@ func TestServiceReceiveWebhookCreatesAndReusesGatewaySession(t *testing.T) {
 	db := connectGatewayTestDB(t)
 	route := seedGatewayRoute(t, db)
 	runtime := &recordingRuntime{}
-	service := NewService(db, runtime, NewFakeSlackAdapter())
+	service := NewService(db, runtime, nil, NewFakeSlackAdapter())
 
 	first, err := service.ReceiveWebhook(t.Context(), WebhookEnvelope{
 		RouteID: route.ID,
@@ -107,7 +107,7 @@ func TestServiceHandleRuntimeFinalSendsAndDedupesProviderReply(t *testing.T) {
 	route := seedGatewayRoute(t, db)
 	runtime := &recordingRuntime{}
 	adapter := NewFakeSlackAdapter()
-	service := NewService(db, runtime, adapter)
+	service := NewService(db, runtime, nil, adapter)
 
 	received, err := service.ReceiveWebhook(t.Context(), WebhookEnvelope{
 		RouteID: route.ID,
@@ -148,7 +148,7 @@ func TestFakeSlackAdapterIgnoresBotMessages(t *testing.T) {
 	db := connectGatewayTestDB(t)
 	route := seedGatewayRoute(t, db)
 	runtime := &recordingRuntime{}
-	service := NewService(db, runtime, NewFakeSlackAdapter())
+	service := NewService(db, runtime, nil, NewFakeSlackAdapter())
 
 	result, err := service.ReceiveWebhook(t.Context(), WebhookEnvelope{
 		RouteID: route.ID,

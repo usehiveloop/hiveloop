@@ -23,7 +23,7 @@ func TestEmployeeSandboxEnvVarsUseAPIWebhookBaseURL(t *testing.T) {
 	if got := env[employeeruntime.EmployeeEnvCloudControlPlaneURL]; got != "http://host.docker.internal:8080" {
 		t.Fatalf("control plane url = %q", got)
 	}
-	if got := env[employeeruntime.EmployeeEnvAgentBaseURL]; got != "http://host.docker.internal:8080/v1/proxy/v1" {
+	if got := env[employeeruntime.EmployeeEnvAgentBaseURL]; got != "http://host.docker.internal:8080/v1" {
 		t.Fatalf("agent base url = %q", got)
 	}
 	for _, key := range []string{

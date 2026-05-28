@@ -61,7 +61,7 @@ func (o *Orchestrator) CreateEmployeeSandbox(ctx context.Context, agent *model.E
 		"harness":     "employee-sandbox",
 	}
 
-	if o.provider.ID() == ProviderRailway {
+	if _, usesWarmPool := o.provider.(WarmPoolCapable); usesWarmPool {
 		if err := o.claimWarmRuntime(ctx, &sb, model.SandboxWarmSlotModeEmployee); err != nil {
 			if delErr := o.db.Where("id = ?", sb.ID).Delete(&model.Sandbox{}).Error; delErr != nil {
 				logging.FromContext(ctx).ErrorContext(ctx, "delete orphaned employee sandbox row after warm claim failure",
@@ -190,7 +190,7 @@ func (o *Orchestrator) CreateSpecialistRuntimeSandbox(ctx context.Context, agent
 		"mode":        "specialist",
 	}
 
-	if o.provider.ID() == ProviderRailway {
+	if _, usesWarmPool := o.provider.(WarmPoolCapable); usesWarmPool {
 		if err := o.claimWarmRuntime(ctx, &sb, model.SandboxWarmSlotModeSpecialist); err != nil {
 			if delErr := o.db.Where("id = ?", sb.ID).Delete(&model.Sandbox{}).Error; delErr != nil {
 				logging.FromContext(ctx).ErrorContext(ctx, "delete orphaned specialist runtime sandbox row after warm claim failure",
