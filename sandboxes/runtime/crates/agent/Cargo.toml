@@ -14,6 +14,7 @@ gateway.workspace = true
 storage.workspace = true
 mcp.workspace = true
 skills.workspace = true
+safety.workspace = true
 async-trait.workspace = true
 futures.workspace = true
 serde.workspace = true

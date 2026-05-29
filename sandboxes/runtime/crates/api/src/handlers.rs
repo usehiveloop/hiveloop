@@ -219,6 +219,9 @@ async fn apply_definition(
             )
         })?;
     state.skill_writer.sync(&definition.skills);
+    for sub_agent in definition.sub_agents.values() {
+        state.skill_writer.sync(&sub_agent.skills);
+    }
     if let Some(registry) = state.mcp_registry.as_ref() {
         let runtime_env = state.config_store.runtime_env();
         registry
@@ -693,6 +696,7 @@ mod tests {
             skills: Vec::new(),
             outbound_channels: Vec::new(),
             sub_agents: Default::default(),
+            safety: Default::default(),
         }
     }
 

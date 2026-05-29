@@ -12,18 +12,7 @@
       "model_id": "xiaomi/mimo-v2.5-pro",
       "api_key_env": "HIVY_PROXY_API_KEY",
       "temperature": 0.3,
-      "max_output_tokens": 4096,
-      "reasoning_effort": "medium",
-      "extra_headers": {},
-      "fallback": null
-    },
-    "backend": {
-      "provider": "openai_compatible",
-      "base_url": "https://openrouter.ai/api/v1",
-      "model_id": "deepseek/deepseek-v4-pro",
-      "api_key_env": "HIVY_PROXY_API_KEY",
-      "temperature": 0.3,
-      "max_output_tokens": 4096,
+      "max_output_tokens": 49152,
       "reasoning_effort": "medium",
       "extra_headers": {},
       "fallback": null
@@ -31,10 +20,10 @@
     "design": {
       "provider": "openai_compatible",
       "base_url": "https://openrouter.ai/api/v1",
-      "model_id": "moonshotai/kimi-k2.6",
+      "model_id": "stepfun/step-3.7-flash",
       "api_key_env": "HIVY_PROXY_API_KEY",
       "temperature": 0.3,
-      "max_output_tokens": 4096,
+      "max_output_tokens": 49152,
       "reasoning_effort": "medium",
       "extra_headers": {},
       "fallback": null
@@ -45,7 +34,7 @@
       "model_id": "xiaomi/mimo-v2.5-pro",
       "api_key_env": "HIVY_PROXY_API_KEY",
       "temperature": 0.3,
-      "max_output_tokens": 4096,
+      "max_output_tokens": 49152,
       "reasoning_effort": "medium",
       "extra_headers": {},
       "fallback": null
@@ -56,7 +45,7 @@
       "model_id": "deepseek/deepseek-v4-flash",
       "api_key_env": "HIVY_PROXY_API_KEY",
       "temperature": 0.3,
-      "max_output_tokens": 4096,
+      "max_output_tokens": 49152,
       "reasoning_effort": "medium",
       "extra_headers": {},
       "fallback": null
@@ -64,10 +53,10 @@
     "code-review": {
       "provider": "openai_compatible",
       "base_url": "https://openrouter.ai/api/v1",
-      "model_id": "deepseek/deepseek-v4-pro",
+      "model_id": "stepfun/step-3.7-flash",
       "api_key_env": "HIVY_PROXY_API_KEY",
       "temperature": 0.3,
-      "max_output_tokens": 4096,
+      "max_output_tokens": 49152,
       "reasoning_effort": "low",
       "extra_headers": {},
       "fallback": null
@@ -107,7 +96,7 @@
   "limits": {
     "max_turns_per_session": 5000,
     "input_token_budget": 180000,
-    "output_token_budget": 8000,
+    "output_token_budget": 49152,
     "tool_call_timeout_seconds": 120
   },
   "context": {
@@ -128,32 +117,13 @@
   "mcp_servers": [],
   "skills": [
     {
-      "name": "rails-no-build",
-      "description": "Rails 8.1 no-build implementation guide for Rails defaults, SQLite, ERB, Propshaft, Import Maps, Turbo, Stimulus, plain CSS, and Minitest.",
-      "trigger": {
-        "type": "keyword",
-        "patterns": [
-          "rails",
-          "no-build",
-          "hotwire",
-          "turbo",
-          "stimulus",
-          "sqlite"
-        ]
-      },
-      "instructions_ref": "scripts/eval/skills/rails-no-build/SKILL.md",
-      "files": {},
-      "category": "rails",
-      "tags": [
-        "rails",
-        "no-build",
-        "hotwire",
-        "sqlite",
-        "minitest"
-      ],
-      "related_skills": [],
-      "required_environment_variables": [],
-      "required_credential_files": [],
+      "name": "rails-specialist",
+      "description": "Rails 8.1 no-build specialist for app design and execution. Use this skill before any implementation work. It is the authoritative Rails guide in this eval.",
+      "trigger": { "type": "keyword", "patterns": ["rails", "model", "controller", "view", "erb", "migration", "test", "minitest", "turbo", "stimulus", "hotwire", "sqlite", "route", "validation", "scope", "partial", "layout", "helper", "form", "css", "no-build"] },
+      "instructions_ref": "scripts/eval/skills/rails-specialist/SKILL.md",
+      "files": {}, "category": "rails", "tags": ["rails", "no-build", "hotwire", "sqlite", "minitest", "models", "controllers", "views", "testing"],
+      "related_skills": ["rails-ai-models", "rails-ai-controllers", "rails-ai-views", "rails-ai-hotwire", "rails-ai-testing", "rails-no-build", "rails-ai-security", "rails-qa-evidence"],
+      "required_environment_variables": [], "required_credential_files": [],
       "pinned": true
     }
   ],
@@ -162,498 +132,41 @@
     "design-system": {
       "agent": {
         "name": "BrandSystemDesigner",
-        "description": "Rails no-build brand and design-system specialist."
+        "description": "Creates no-build Rails design systems: tokens, color, typography, component language, README brand guide."
       },
-      "mode": "employee",
+      "mode": "specialist",
       "specialist_profile": null,
-      "system_prompt": {
-        "cacheable_segments": [
-          {
-            "type": "static_text",
-            "config": {
-              "title": "Identity",
-              "content_ref": "scripts/eval/prompt-design-system.txt"
-            }
-          }
-        ],
-        "dynamic_segments": [
-          {
-            "type": "dynamic_context",
-            "config": {
-              "title": "Runtime Context",
-              "preamble": "",
-              "item_template": "{content}"
-            }
-          },
-          {
-            "type": "skill_catalog",
-            "config": {
-              "title": "Available skills",
-              "preamble": "Use skill_view(name) when a listed skill matches the current task. Do not load unrelated skills.",
-              "item_template": "- {name}: {description}"
-            }
-          }
-        ]
-      },
-      "model_key": "frontend",
+      "model_key": "design",
       "multimodal_model": null,
       "limits": {
-        "max_turns_per_session": 5000,
-        "input_token_budget": 180000,
-        "output_token_budget": 8000,
+        "max_turns_per_session": 200,
+        "input_token_budget": 80000,
+        "output_token_budget": 49152,
         "tool_call_timeout_seconds": 120
       },
       "context": {
         "max_history_events": null,
-        "compaction": {
-          "enabled": true,
-          "token_threshold": 90000,
-          "overlap_event_count": 10,
-          "chars_per_token": 4,
-          "summarizer_model": null
-        },
-        "memory": {
-          "entries": [],
-          "token_budget": 0
-        }
+        "memory": { "entries": [], "token_budget": 0 }
+      },
+      "system_prompt": {
+        "cacheable_segments": [
+          { "type": "static_text", "config": { "title": "Identity", "content_ref": "scripts/eval/prompt-design-system.txt" } }
+        ],
+        "dynamic_segments": [
+          { "type": "dynamic_context", "config": { "title": "Runtime Context", "preamble": "", "item_template": "{content}" } },
+          { "type": "skill_catalog", "config": { "title": "Available skills", "preamble": "Use skill_view(name) when a listed skill matches the current task.", "item_template": "- {name}: {description}" } }
+        ]
       },
       "tools_json_ref": "scripts/eval/config/subagent-tools.json",
       "mcp_servers": [],
       "skills": [
         {
           "name": "design-system-rails",
-          "description": "Local Hivy adapter for Rails no-build brand and design-system work: CSS tokens, component conventions, accessible colors, typography, and README brand guide.",
-          "trigger": {
-            "type": "keyword",
-            "patterns": [
-              "brand",
-              "design",
-              "theme",
-              "colors",
-              "typography",
-              "css"
-            ]
-          },
+          "description": "No-build Rails design system: CSS tokens, typography, component language, color palettes, accessibility.",
           "instructions_ref": "scripts/eval/skills/design-system-rails/SKILL.md",
-          "files": {},
-          "category": "design",
-          "tags": [
-            "design-system",
-            "branding",
-            "css",
-            "rails"
-          ],
-          "related_skills": [],
-          "required_environment_variables": [],
-          "required_credential_files": [],
-          "pinned": true
-        },
-        {
-          "name": "rails-ai-views",
-          "description": "Vendored Rails-AI views skill for Rails ERB structure, partials, helpers, forms, accessibility, layouts, and view organization.",
-          "trigger": {
-            "type": "keyword",
-            "patterns": [
-              "view",
-              "erb",
-              "partial",
-              "form",
-              "layout",
-              "accessibility"
-            ]
-          },
-          "instructions_ref": "scripts/eval/skills/rails-ai-views/SKILL.md",
-          "files": {},
-          "category": "rails",
-          "tags": [
-            "rails-ai",
-            "views",
-            "erb",
-            "accessibility"
-          ],
-          "related_skills": [],
-          "required_environment_variables": [],
-          "required_credential_files": [],
-          "pinned": true
-        }
-      ],
-      "outbound_channels": [],
-      "sub_agents": {}
-    },
-    "frontend-design": {
-      "agent": {
-        "name": "FrontendRailsDesigner",
-        "description": "Rails no-build frontend specialist for ERB, CSS, Turbo, Stimulus, and responsive UI."
-      },
-      "mode": "employee",
-      "specialist_profile": null,
-      "system_prompt": {
-        "cacheable_segments": [
-          {
-            "type": "static_text",
-            "config": {
-              "title": "Identity",
-              "content_ref": "scripts/eval/prompt-frontend.txt"
-            }
-          }
-        ],
-        "dynamic_segments": [
-          {
-            "type": "dynamic_context",
-            "config": {
-              "title": "Runtime Context",
-              "preamble": "",
-              "item_template": "{content}"
-            }
-          },
-          {
-            "type": "skill_catalog",
-            "config": {
-              "title": "Available skills",
-              "preamble": "Use skill_view(name) when a listed skill matches the current task. Do not load unrelated skills.",
-              "item_template": "- {name}: {description}"
-            }
-          }
-        ]
-      },
-      "model_key": "frontend",
-      "multimodal_model": null,
-      "limits": {
-        "max_turns_per_session": 5000,
-        "input_token_budget": 180000,
-        "output_token_budget": 8000,
-        "tool_call_timeout_seconds": 120
-      },
-      "context": {
-        "max_history_events": null,
-        "compaction": {
-          "enabled": true,
-          "token_threshold": 90000,
-          "overlap_event_count": 10,
-          "chars_per_token": 4,
-          "summarizer_model": null
-        },
-        "memory": {
-          "entries": [],
-          "token_budget": 0
-        }
-      },
-      "tools_json_ref": "scripts/eval/config/subagent-tools.json",
-      "mcp_servers": [],
-      "skills": [
-        {
-          "name": "rails-no-build",
-          "description": "Rails 8.1 no-build implementation guide for Rails defaults, SQLite, ERB, Propshaft, Import Maps, Turbo, Stimulus, plain CSS, and Minitest.",
-          "trigger": {
-            "type": "keyword",
-            "patterns": [
-              "rails",
-              "no-build",
-              "hotwire",
-              "turbo",
-              "stimulus",
-              "sqlite"
-            ]
-          },
-          "instructions_ref": "scripts/eval/skills/rails-no-build/SKILL.md",
-          "files": {},
-          "category": "rails",
-          "tags": [
-            "rails",
-            "no-build",
-            "hotwire",
-            "sqlite",
-            "minitest"
-          ],
-          "related_skills": [],
-          "required_environment_variables": [],
-          "required_credential_files": [],
-          "pinned": true
-        },
-        {
-          "name": "design-system-rails",
-          "description": "Local Hivy adapter for Rails no-build brand and design-system work: CSS tokens, component conventions, accessible colors, typography, and README brand guide.",
-          "trigger": {
-            "type": "keyword",
-            "patterns": [
-              "brand",
-              "design",
-              "theme",
-              "colors",
-              "typography",
-              "css"
-            ]
-          },
-          "instructions_ref": "scripts/eval/skills/design-system-rails/SKILL.md",
-          "files": {},
-          "category": "design",
-          "tags": [
-            "design-system",
-            "branding",
-            "css",
-            "rails"
-          ],
-          "related_skills": [],
-          "required_environment_variables": [],
-          "required_credential_files": [],
-          "pinned": true
-        },
-        {
-          "name": "rails-ai-views",
-          "description": "Vendored Rails-AI views skill for Rails ERB structure, partials, helpers, forms, accessibility, layouts, and view organization.",
-          "trigger": {
-            "type": "keyword",
-            "patterns": [
-              "view",
-              "erb",
-              "partial",
-              "form",
-              "layout",
-              "accessibility"
-            ]
-          },
-          "instructions_ref": "scripts/eval/skills/rails-ai-views/SKILL.md",
-          "files": {},
-          "category": "rails",
-          "tags": [
-            "rails-ai",
-            "views",
-            "erb",
-            "accessibility"
-          ],
-          "related_skills": [],
-          "required_environment_variables": [],
-          "required_credential_files": [],
-          "pinned": true
-        },
-        {
-          "name": "rails-ai-hotwire",
-          "description": "Vendored Rails-AI Hotwire skill for Turbo Drive, Turbo Frames, Turbo Streams, morphing, and Stimulus controllers.",
-          "trigger": {
-            "type": "keyword",
-            "patterns": [
-              "hotwire",
-              "turbo",
-              "stimulus",
-              "frame",
-              "stream"
-            ]
-          },
-          "instructions_ref": "scripts/eval/skills/rails-ai-hotwire/SKILL.md",
-          "files": {},
-          "category": "rails",
-          "tags": [
-            "rails-ai",
-            "hotwire",
-            "turbo",
-            "stimulus"
-          ],
-          "related_skills": [],
-          "required_environment_variables": [],
-          "required_credential_files": [],
-          "pinned": true
-        }
-      ],
-      "outbound_channels": [],
-      "sub_agents": {}
-    },
-    "backend-api": {
-      "agent": {
-        "name": "BackendRailsEngineer",
-        "description": "Rails backend specialist for models, migrations, controllers, routes, and tests."
-      },
-      "mode": "employee",
-      "specialist_profile": null,
-      "system_prompt": {
-        "cacheable_segments": [
-          {
-            "type": "static_text",
-            "config": {
-              "title": "Identity",
-              "content_ref": "scripts/eval/prompt-backend.txt"
-            }
-          }
-        ],
-        "dynamic_segments": [
-          {
-            "type": "dynamic_context",
-            "config": {
-              "title": "Runtime Context",
-              "preamble": "",
-              "item_template": "{content}"
-            }
-          },
-          {
-            "type": "skill_catalog",
-            "config": {
-              "title": "Available skills",
-              "preamble": "Use skill_view(name) when a listed skill matches the current task. Do not load unrelated skills.",
-              "item_template": "- {name}: {description}"
-            }
-          }
-        ]
-      },
-      "model_key": "backend",
-      "multimodal_model": null,
-      "limits": {
-        "max_turns_per_session": 5000,
-        "input_token_budget": 180000,
-        "output_token_budget": 8000,
-        "tool_call_timeout_seconds": 120
-      },
-      "context": {
-        "max_history_events": null,
-        "compaction": {
-          "enabled": true,
-          "token_threshold": 90000,
-          "overlap_event_count": 10,
-          "chars_per_token": 4,
-          "summarizer_model": null
-        },
-        "memory": {
-          "entries": [],
-          "token_budget": 0
-        }
-      },
-      "tools_json_ref": "scripts/eval/config/subagent-tools.json",
-      "mcp_servers": [],
-      "skills": [
-        {
-          "name": "rails-no-build",
-          "description": "Rails 8.1 no-build implementation guide for Rails defaults, SQLite, ERB, Propshaft, Import Maps, Turbo, Stimulus, plain CSS, and Minitest.",
-          "trigger": {
-            "type": "keyword",
-            "patterns": [
-              "rails",
-              "no-build",
-              "hotwire",
-              "turbo",
-              "stimulus",
-              "sqlite"
-            ]
-          },
-          "instructions_ref": "scripts/eval/skills/rails-no-build/SKILL.md",
-          "files": {},
-          "category": "rails",
-          "tags": [
-            "rails",
-            "no-build",
-            "hotwire",
-            "sqlite",
-            "minitest"
-          ],
-          "related_skills": [],
-          "required_environment_variables": [],
-          "required_credential_files": [],
-          "pinned": true
-        },
-        {
-          "name": "rails-ai-models",
-          "description": "Vendored Rails-AI model skill for Active Record patterns, validations, associations, scopes, query objects, form objects, and data integrity.",
-          "trigger": {
-            "type": "keyword",
-            "patterns": [
-              "model",
-              "active record",
-              "validation",
-              "association",
-              "scope",
-              "database"
-            ]
-          },
-          "instructions_ref": "scripts/eval/skills/rails-ai-models/SKILL.md",
-          "files": {},
-          "category": "rails",
-          "tags": [
-            "rails-ai",
-            "models",
-            "active-record"
-          ],
-          "related_skills": [],
-          "required_environment_variables": [],
-          "required_credential_files": [],
-          "pinned": true
-        },
-        {
-          "name": "rails-ai-controllers",
-          "description": "Vendored Rails-AI controller skill for RESTful routes, thin controllers, nested resources, concerns, and strong parameters.",
-          "trigger": {
-            "type": "keyword",
-            "patterns": [
-              "controller",
-              "route",
-              "params",
-              "rest",
-              "crud"
-            ]
-          },
-          "instructions_ref": "scripts/eval/skills/rails-ai-controllers/SKILL.md",
-          "files": {},
-          "category": "rails",
-          "tags": [
-            "rails-ai",
-            "controllers",
-            "routes"
-          ],
-          "related_skills": [],
-          "required_environment_variables": [],
-          "required_credential_files": [],
-          "pinned": true
-        },
-        {
-          "name": "rails-ai-testing",
-          "description": "Vendored Rails-AI testing skill adapted for autonomous Rails default Minitest usage with integration-first business behavior coverage.",
-          "trigger": {
-            "type": "keyword",
-            "patterns": [
-              "test",
-              "minitest",
-              "fixture",
-              "integration",
-              "business behavior",
-              "system test"
-            ]
-          },
-          "instructions_ref": "scripts/eval/skills/rails-ai-testing/SKILL.md",
-          "files": {},
-          "category": "testing",
-          "tags": [
-            "rails-ai",
-            "minitest",
-            "testing",
-            "integration-first"
-          ],
-          "related_skills": [],
-          "required_environment_variables": [],
-          "required_credential_files": [],
-          "pinned": true
-        },
-        {
-          "name": "rails-ai-security",
-          "description": "Vendored Rails-AI security skill for XSS, SQL injection, CSRF, file uploads, command injection, authentication, and authorization.",
-          "trigger": {
-            "type": "keyword",
-            "patterns": [
-              "security",
-              "xss",
-              "sql injection",
-              "csrf",
-              "auth",
-              "authorization"
-            ]
-          },
-          "instructions_ref": "scripts/eval/skills/rails-ai-security/SKILL.md",
-          "files": {},
-          "category": "security",
-          "tags": [
-            "rails-ai",
-            "security",
-            "rails"
-          ],
-          "related_skills": [],
-          "required_environment_variables": [],
-          "required_credential_files": [],
-          "pinned": true
+          "trigger": { "type": "keyword", "patterns": ["design", "brand", "token", "color", "typography", "css variable"] },
+          "files": {}, "category": "design", "tags": ["design", "css", "brand"],
+          "related_skills": [], "required_environment_variables": [], "required_credential_files": [], "pinned": true
         }
       ],
       "outbound_channels": [],
@@ -662,182 +175,49 @@
     "code-review": {
       "agent": {
         "name": "RailsCodeReviewer",
-        "description": "Rails no-build code review specialist for audit, security, tests, and stack compliance."
+        "description": "Audits Rails implementations for correctness, security, conventions, stack compliance, and test coverage."
       },
-      "mode": "employee",
+      "mode": "specialist",
       "specialist_profile": null,
       "model_key": "code-review",
-      "system_prompt": {
-        "cacheable_segments": [
-          {
-            "type": "static_text",
-            "config": {
-              "title": "Identity",
-              "content_ref": "scripts/eval/prompt-code-review.txt"
-            }
-          }
-        ],
-        "dynamic_segments": [
-          {
-            "type": "dynamic_context",
-            "config": {
-              "title": "Runtime Context",
-              "preamble": "",
-              "item_template": "{content}"
-            }
-          },
-          {
-            "type": "skill_catalog",
-            "config": {
-              "title": "Available skills",
-              "preamble": "Use skill_view(name) when a listed skill matches the current task. Do not load unrelated skills.",
-              "item_template": "- {name}: {description}"
-            }
-          }
-        ]
-      },
-      
       "multimodal_model": null,
       "limits": {
-        "max_turns_per_session": 5000,
-        "input_token_budget": 180000,
-        "output_token_budget": 8000,
+        "max_turns_per_session": 300,
+        "input_token_budget": 120000,
+        "output_token_budget": 49152,
         "tool_call_timeout_seconds": 120
       },
       "context": {
         "max_history_events": null,
-        "compaction": {
-          "enabled": true,
-          "token_threshold": 90000,
-          "overlap_event_count": 10,
-          "chars_per_token": 4,
-          "summarizer_model": null
-        },
-        "memory": {
-          "entries": [],
-          "token_budget": 0
-        }
+        "memory": { "entries": [], "token_budget": 0 }
+      },
+      "system_prompt": {
+        "cacheable_segments": [
+          { "type": "static_text", "config": { "title": "Identity", "content_ref": "scripts/eval/prompt-code-review.txt" } }
+        ],
+        "dynamic_segments": [
+          { "type": "dynamic_context", "config": { "title": "Runtime Context", "preamble": "", "item_template": "{content}" } },
+          { "type": "skill_catalog", "config": { "title": "Available skills", "preamble": "Use skill_view(name) when a listed skill matches the current task.", "item_template": "- {name}: {description}" } }
+        ]
       },
       "tools_json_ref": "scripts/eval/config/subagent-tools.json",
       "mcp_servers": [],
       "skills": [
         {
-          "name": "rails-no-build",
-          "description": "Rails 8.1 no-build implementation guide for Rails defaults, SQLite, ERB, Propshaft, Import Maps, Turbo, Stimulus, plain CSS, and Minitest.",
-          "trigger": {
-            "type": "keyword",
-            "patterns": [
-              "rails",
-              "no-build",
-              "hotwire",
-              "turbo",
-              "stimulus",
-              "sqlite"
-            ]
-          },
-          "instructions_ref": "scripts/eval/skills/rails-no-build/SKILL.md",
-          "files": {},
-          "category": "rails",
-          "tags": [
-            "rails",
-            "no-build",
-            "hotwire",
-            "sqlite",
-            "minitest"
-          ],
-          "related_skills": [],
-          "required_environment_variables": [],
-          "required_credential_files": [],
-          "pinned": true
-        },
-        {
-          "name": "rails-ai-testing",
-          "description": "Vendored Rails-AI testing skill adapted for autonomous Rails default Minitest usage with integration-first business behavior coverage.",
-          "trigger": {
-            "type": "keyword",
-            "patterns": [
-              "test",
-              "minitest",
-              "fixture",
-              "integration",
-              "business behavior",
-              "system test"
-            ]
-          },
-          "instructions_ref": "scripts/eval/skills/rails-ai-testing/SKILL.md",
-          "files": {},
-          "category": "testing",
-          "tags": [
-            "rails-ai",
-            "minitest",
-            "testing",
-            "integration-first"
-          ],
-          "related_skills": [],
-          "required_environment_variables": [],
-          "required_credential_files": [],
-          "pinned": true
+          "name": "rails-audit-thoughtbot",
+          "description": "Rails code audit patterns: security checklist, code smells, anti-patterns, PORO patterns, testing guidelines.",
+          "instructions_ref": "scripts/eval/skills/rails-audit-thoughtbot/SKILL.md",
+          "trigger": { "type": "keyword", "patterns": ["audit", "review", "security", "code smell", "anti-pattern"] },
+          "files": {}, "category": "rails", "tags": ["rails", "audit", "security", "code-review"],
+          "related_skills": [], "required_environment_variables": [], "required_credential_files": [], "pinned": true
         },
         {
           "name": "rails-ai-security",
-          "description": "Vendored Rails-AI security skill for XSS, SQL injection, CSRF, file uploads, command injection, authentication, and authorization.",
-          "trigger": {
-            "type": "keyword",
-            "patterns": [
-              "security",
-              "xss",
-              "sql injection",
-              "csrf",
-              "auth",
-              "authorization"
-            ]
-          },
+          "description": "Rails 8.1 security: strong params, Rails escaping, CSRF, SQL injection, safe queries.",
           "instructions_ref": "scripts/eval/skills/rails-ai-security/SKILL.md",
-          "files": {},
-          "category": "security",
-          "tags": [
-            "rails-ai",
-            "security",
-            "rails"
-          ],
-          "related_skills": [],
-          "required_environment_variables": [],
-          "required_credential_files": [],
-          "pinned": true
-        },
-        {
-          "name": "rails-audit-thoughtbot",
-          "description": "Vendored thoughtbot Rails audit skill adapted for autonomous Rails default Minitest review in this no-build runtime.",
-          "trigger": {
-            "type": "keyword",
-            "patterns": [
-              "audit",
-              "review",
-              "quality",
-              "rails",
-              "security"
-            ]
-          },
-          "instructions_ref": "scripts/eval/skills/rails-audit-thoughtbot/SKILL.md",
-          "files_ref": {
-            "references/code_smells.md": "scripts/eval/skills/rails-audit-thoughtbot/references/code_smells.md",
-            "references/testing_guidelines.md": "scripts/eval/skills/rails-audit-thoughtbot/references/testing_guidelines.md",
-            "references/poro_patterns.md": "scripts/eval/skills/rails-audit-thoughtbot/references/poro_patterns.md",
-            "references/security_checklist.md": "scripts/eval/skills/rails-audit-thoughtbot/references/security_checklist.md",
-            "references/rails_antipatterns.md": "scripts/eval/skills/rails-audit-thoughtbot/references/rails_antipatterns.md",
-            "references/report_template.md": "scripts/eval/skills/rails-audit-thoughtbot/references/report_template.md"
-          },
-          "category": "quality",
-          "tags": [
-            "thoughtbot",
-            "rails",
-            "audit",
-            "review"
-          ],
-          "related_skills": [],
-          "required_environment_variables": [],
-          "required_credential_files": [],
-          "pinned": true
+          "trigger": { "type": "keyword", "patterns": ["security", "strong params", "csrf", "escape", "injection"] },
+          "files": {}, "category": "rails", "tags": ["rails", "security"],
+          "related_skills": [], "required_environment_variables": [], "required_credential_files": [], "pinned": false
         }
       ],
       "outbound_channels": [],
@@ -846,157 +226,49 @@
     "qa-tester": {
       "agent": {
         "name": "RailsQATester",
-        "description": "Rails QA specialist using Rails commands and agent-browser evidence."
+        "description": "Validates Rails apps through browser testing, screenshots, recordings, and evidence reports."
       },
-      "mode": "employee",
+      "mode": "specialist",
       "specialist_profile": null,
-      "system_prompt": {
-        "cacheable_segments": [
-          {
-            "type": "static_text",
-            "config": {
-              "title": "Identity",
-              "content_ref": "scripts/eval/prompt-qa.txt"
-            }
-          }
-        ],
-        "dynamic_segments": [
-          {
-            "type": "dynamic_context",
-            "config": {
-              "title": "Runtime Context",
-              "preamble": "",
-              "item_template": "{content}"
-            }
-          },
-          {
-            "type": "skill_catalog",
-            "config": {
-              "title": "Available skills",
-              "preamble": "Use skill_view(name) when a listed skill matches the current task. Do not load unrelated skills.",
-              "item_template": "- {name}: {description}"
-            }
-          }
-        ]
-      },
       "model_key": "qa",
       "multimodal_model": null,
       "limits": {
-        "max_turns_per_session": 5000,
-        "input_token_budget": 180000,
-        "output_token_budget": 8000,
+        "max_turns_per_session": 300,
+        "input_token_budget": 120000,
+        "output_token_budget": 49152,
         "tool_call_timeout_seconds": 120
       },
       "context": {
         "max_history_events": null,
-        "compaction": {
-          "enabled": true,
-          "token_threshold": 90000,
-          "overlap_event_count": 10,
-          "chars_per_token": 4,
-          "summarizer_model": null
-        },
-        "memory": {
-          "entries": [],
-          "token_budget": 0
-        }
+        "memory": { "entries": [], "token_budget": 0 }
+      },
+      "system_prompt": {
+        "cacheable_segments": [
+          { "type": "static_text", "config": { "title": "Identity", "content_ref": "scripts/eval/prompt-qa.txt" } }
+        ],
+        "dynamic_segments": [
+          { "type": "dynamic_context", "config": { "title": "Runtime Context", "preamble": "", "item_template": "{content}" } },
+          { "type": "skill_catalog", "config": { "title": "Available skills", "preamble": "Use skill_view(name) when a listed skill matches the current task.", "item_template": "- {name}: {description}" } }
+        ]
       },
       "tools_json_ref": "scripts/eval/config/subagent-tools.json",
       "mcp_servers": [],
       "skills": [
         {
           "name": "agent-browser",
-          "description": "Browser automation CLI for AI agents. Use for navigating Rails pages, testing flows, taking screenshots, recording videos, and gathering QA evidence.",
-          "trigger": {
-            "type": "keyword",
-            "patterns": [
-              "browser",
-              "screenshot",
-              "test",
-              "web",
-              "navigate",
-              "click",
-              "form",
-              "video",
-              "record",
-              "qa"
-            ]
-          },
+          "description": "Browser automation CLI for AI agents. Use for navigating pages, filling forms, clicking buttons, taking screenshots, testing web apps, or automating any browser task.",
           "instructions_ref": "scripts/eval/skills/agent-browser/SKILL.md",
-          "files_ref": {
-            "references/commands.md": "scripts/eval/skills/agent-browser/references/commands.md",
-            "references/video-recording.md": "scripts/eval/skills/agent-browser/references/video-recording.md",
-            "references/snapshot-refs.md": "scripts/eval/skills/agent-browser/references/snapshot-refs.md"
-          },
-          "category": "testing",
-          "tags": [
-            "browser",
-            "automation",
-            "testing",
-            "screenshots",
-            "video"
-          ],
-          "related_skills": [],
-          "required_environment_variables": [],
-          "required_credential_files": [],
-          "pinned": true
+          "trigger": { "type": "keyword", "patterns": ["browser", "screenshot", "navigate", "click", "fill", "form", "test web", "qa"] },
+          "files": {}, "category": "testing", "tags": ["browser", "testing", "qa", "screenshots", "automation"],
+          "related_skills": [], "required_environment_variables": [], "required_credential_files": [], "pinned": true
         },
         {
           "name": "rails-qa-evidence",
-          "description": "Local Hivy adapter for autonomous QA evidence on Rails apps using Rails commands, local server startup, agent-browser screenshots, recordings, logs, and qa-report.md.",
-          "trigger": {
-            "type": "keyword",
-            "patterns": [
-              "qa",
-              "test",
-              "evidence",
-              "screenshot",
-              "video",
-              "rails"
-            ]
-          },
+          "description": "QA evidence capture patterns for Rails apps: screenshots, recordings, accessibility checks, test reports.",
           "instructions_ref": "scripts/eval/skills/rails-qa-evidence/SKILL.md",
-          "files": {},
-          "category": "testing",
-          "tags": [
-            "qa",
-            "rails",
-            "browser",
-            "screenshots",
-            "video"
-          ],
-          "related_skills": [],
-          "required_environment_variables": [],
-          "required_credential_files": [],
-          "pinned": true
-        },
-        {
-          "name": "rails-ai-testing",
-          "description": "Vendored Rails-AI testing skill adapted for autonomous Rails default Minitest usage with integration-first business behavior coverage.",
-          "trigger": {
-            "type": "keyword",
-            "patterns": [
-              "test",
-              "minitest",
-              "fixture",
-              "integration",
-              "business behavior",
-              "system test"
-            ]
-          },
-          "instructions_ref": "scripts/eval/skills/rails-ai-testing/SKILL.md",
-          "files": {},
-          "category": "testing",
-          "tags": [
-            "rails-ai",
-            "minitest",
-            "testing",
-            "integration-first"
-          ],
-          "related_skills": [],
-          "required_environment_variables": [],
-          "required_credential_files": [],
-          "pinned": true
+          "trigger": { "type": "keyword", "patterns": ["qa", "evidence", "screenshot", "recording", "accessibility"] },
+          "files": {}, "category": "testing", "tags": ["qa", "evidence", "testing"],
+          "related_skills": [], "required_environment_variables": [], "required_credential_files": [], "pinned": true
         }
       ],
       "outbound_channels": [],

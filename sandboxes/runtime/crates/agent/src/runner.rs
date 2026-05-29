@@ -6,13 +6,15 @@ use std::sync::Arc;
 
 use async_stream::stream;
 use domain::{
-    AgentDefinition, ConfigStore, MemoryContextConfig, MemoryContextEntry, ModelConfig, SessionId,
-    SystemPromptSegment,
+    AgentDefinition, ConfigStore, MemoryContextConfig, MemoryContextEntry, ModelConfig,
+    SafetyConfig, SessionId, SystemPromptSegment,
 };
 use futures::{stream::BoxStream, StreamExt};
 use gateway::ChannelGateway;
 use mcp::McpRegistry;
 use outbound::OutboundEmitter;
+use safety::thinking_guard::ThinkingGuard;
+use safety::{overthinking_feedback, xml_repair_reminder, SafetyHarness, TurnSafety};
 use storage::CronJobRepo;
 use tools::{JsonTool, LocalBashOperations, LocalFsOperations, ProcessRegistry, ToolBuildContext};
 
@@ -33,6 +35,8 @@ pub struct RigAgentRunner {
     event_repo: Option<Arc<dyn storage::EventRepo>>,
     mcp_registry: Option<Arc<McpRegistry>>,
     delegate_stream_creator: Option<crate::rig_tool_registry::DelegateStreamCreator>,
+    safety: SafetyHarness,
+    thinking_guard: ThinkingGuard,
 }
 
 impl RigAgentRunner {
@@ -52,6 +56,8 @@ impl RigAgentRunner {
             event_repo: None,
             mcp_registry: None,
             delegate_stream_creator: None,
+            safety: SafetyHarness::new(SafetyConfig::default()),
+            thinking_guard: ThinkingGuard::new(),
         }
     }
 
@@ -87,6 +93,11 @@ impl RigAgentRunner {
         self.delegate_stream_creator = Some(creator);
         self
     }
+
+    pub fn with_safety_config(mut self, config: SafetyConfig) -> Self {
+        self.safety = SafetyHarness::new(config);
+        self
+    }
 }
 
 #[async_trait::async_trait]
@@ -100,6 +111,7 @@ impl AgentRunner for RigAgentRunner {
         let snapshot = definition_override.unwrap_or_else(|| self.config.snapshot());
         let model_config = pick_model_for_turn(&snapshot, &user_input);
         let runtime_env = self.config.runtime_env();
+        let safety_config = snapshot.safety.clone();
         let ModelClientConfig {
             client,
             model_id,
@@ -152,6 +164,8 @@ impl AgentRunner for RigAgentRunner {
         let session_id = session_id.clone();
         let event_repo = self.event_repo.clone();
         let emitter = self.outbound_emitter.clone();
+        let safety = SafetyHarness::new(safety_config);
+        let thinking_guard = self.thinking_guard.clone();
         Ok(Box::pin(stream! {
             let mut final_text = String::new();
             let turn_id = format!("turn-{}", chrono::Utc::now().timestamp_millis());
@@ -164,7 +178,9 @@ impl AgentRunner for RigAgentRunner {
                 }),
             };
             let mut completed_with_final = false;
-            for _turn in 0..max_turns {
+            let mut effective_turn = 0u32;
+            while effective_turn < max_turns {
+                let mut turn_safety = TurnSafety::new(&safety);
                 let definitions = available_tools.iter().map(|tool| tool.definition()).collect();
                 let request = ModelRequest {
                     model: model_id.clone(),
@@ -206,14 +222,48 @@ impl AgentRunner for RigAgentRunner {
 
                 let mut turn_text = String::new();
                 let mut tool_calls: Vec<ToolCall> = Vec::new();
+                let mut killed_by_overthinking = false;
                 while let Some(event) = model_stream.next().await {
                     match event {
                         Ok(ModelStreamEvent::TextDelta(text)) => {
-                            turn_text.push_str(&text);
-                            yield AgentEvent::TokenChunk { text };
+                            if safety.config().thinking_strip {
+                                let (cleaned, had_thinking) = thinking_guard.strip_thinking(&text);
+                                if had_thinking {
+                                    if let Some(thinking) = thinking_guard.extract_thinking_content(&text) {
+                                        yield AgentEvent::ThinkingChunk { text: thinking };
+                                    }
+                                }
+                                turn_text.push_str(&cleaned);
+                                yield AgentEvent::TokenChunk { text: cleaned.to_string() };
+                            } else {
+                                turn_text.push_str(&text);
+                                yield AgentEvent::TokenChunk { text };
+                            }
                         }
                         Ok(ModelStreamEvent::ThinkingDelta(text)) => {
-                            yield AgentEvent::ThinkingChunk { text };
+                            yield AgentEvent::ThinkingChunk { text: text.clone() };
+                            if safety.config().overthinking.enabled {
+                                let status = turn_safety.overthinking.feed(&text);
+                                if status.is_overthinking() {
+                                    let reason = status.reason();
+                                    yield AgentEvent::RunEvent {
+                                        event: "overthinking_detected".to_string(),
+                                        payload: serde_json::json!({
+                                            "session_id": session_id.as_str(),
+                                            "turn_id": turn_id,
+                                            "model": model_id,
+                                            "reason": reason,
+                                        }),
+                                    };
+                                    let feedback = overthinking_feedback(&status);
+                                    messages.push(AgentMessage::user(format!(
+                                        "[system instruction] {feedback}"
+                                    )));
+                                    turn_safety.overthinking.reset();
+                                    killed_by_overthinking = true;
+                                    break;
+                                }
+                            }
                         }
                         Ok(ModelStreamEvent::ToolCalls(calls)) => tool_calls.extend(calls),
                         Ok(ModelStreamEvent::Usage(usage)) => {
@@ -262,6 +312,41 @@ impl AgentRunner for RigAgentRunner {
                     }
                 }
 
+                // XML tool call repair: detect and extract tool calls from text content
+                if safety.config().xml_tool_repair
+                    && tool_calls.is_empty()
+                    && !turn_text.is_empty()
+                {
+                    let known_names: Vec<String> = available_tools
+                        .iter()
+                        .map(|t| t.definition().name.clone())
+                        .collect();
+                    let (cleaned, xml_calls) = safety
+                        .xml_repair()
+                        .try_extract_tool_calls(&turn_text, &known_names);
+                    if !xml_calls.is_empty() {
+                        for xml_call in xml_calls {
+                            tool_calls.push(ToolCall {
+                                id: xml_call.id,
+                                name: xml_call.name,
+                                arguments: xml_call.arguments,
+                            });
+                        }
+                        turn_text = cleaned;
+                        let reminder = xml_repair_reminder();
+                        yield AgentEvent::ThinkingChunk {
+                            text: reminder.clone(),
+                        };
+                        messages.push(AgentMessage::user(format!(
+                            "[system instruction] {reminder}"
+                        )));
+                    }
+                }
+
+                if killed_by_overthinking {
+                    continue;
+                }
+
                 if tool_calls.is_empty() {
                     final_text = turn_text.clone();
                     completed_with_final = true;
@@ -284,6 +369,30 @@ impl AgentRunner for RigAgentRunner {
                 messages.push(assistant_tool_calls);
                 for call in tool_calls {
                     yield AgentEvent::ToolCall { id: call.id.clone(), tool: call.name.clone(), args: call.arguments.clone() };
+
+                    if safety.config().repeat_detection.enabled {
+                        if let Some(error_msg) = turn_safety.repeat_detector.check(&call.name, &call.arguments) {
+                            yield AgentEvent::RunEvent {
+                                event: "repeat_tool_call_rejected".to_string(),
+                                payload: serde_json::json!({
+                                    "session_id": session_id.as_str(),
+                                    "turn_id": turn_id,
+                                    "tool": call.name,
+                                    "reason": error_msg,
+                                }),
+                            };
+                            let result = json_error(&error_msg);
+                            yield AgentEvent::ToolResult { id: call.id.clone(), result: result.clone() };
+                            let message = AgentMessage::tool_result(call.id.clone(), result.to_string());
+                            if let Err(error) = append_model_message(event_repo.as_deref(), &session_id, &message).await {
+                                yield AgentEvent::Error { message: error.to_string() };
+                                return;
+                            }
+                            messages.push(message);
+                            continue;
+                        }
+                    }
+
                     let Some(tool) = available_tools.iter().find(|tool| tool.definition().name == call.name).cloned() else {
                         let result = json_error(&format!("tool '{}' not found", call.name));
                         let message = AgentMessage::tool_result(call.id, result.to_string());
@@ -318,6 +427,7 @@ impl AgentRunner for RigAgentRunner {
                         }
                     }
                 }
+                effective_turn += 1;
             }
 
             if !completed_with_final {
@@ -746,6 +856,7 @@ mod tests {
             skills: Vec::new(),
             outbound_channels: Vec::new(),
             sub_agents: Default::default(),
+            safety: Default::default(),
         }
     }
 

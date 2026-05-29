@@ -3,8 +3,8 @@ use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    mcp_specs::McpSpec, model_config::ModelConfig, outbound::OutboundChannelSpec,
-    skill_specs::SkillSpec, tool_specs::ToolSpec,
+    mcp_specs::McpSpec, model_config::ModelConfig, model_config::SafetyConfig,
+    outbound::OutboundChannelSpec, skill_specs::SkillSpec, tool_specs::ToolSpec,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -34,6 +34,8 @@ pub struct AgentDefinition {
     pub outbound_channels: Vec<OutboundChannelSpec>,
     #[serde(default)]
     pub sub_agents: HashMap<String, AgentDefinition>,
+    #[serde(default)]
+    pub safety: SafetyConfig,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]

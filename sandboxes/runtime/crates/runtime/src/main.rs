@@ -326,6 +326,7 @@ fn bootstrap_agent_definition() -> AgentDefinition {
         skills: Vec::new(),
         outbound_channels: Vec::new(),
         sub_agents: Default::default(),
+        safety: Default::default(),
     }
 }
 

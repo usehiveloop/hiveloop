@@ -6,6 +6,7 @@ use async_stream::stream;
 use domain::{ModelConfig, ReasoningEffort};
 use futures::{Stream, StreamExt};
 use reqwest::{Client, Response};
+use safety::json_repair::JsonRepair;
 use serde_json::Value;
 
 use crate::primitives::{
@@ -21,6 +22,7 @@ pub struct ChatModelClient {
     http: Client,
     endpoints: Vec<ModelEndpoint>,
     retry_policy: ModelRetryPolicy,
+    json_repair: JsonRepair,
 }
 
 impl ChatModelClient {
@@ -35,6 +37,7 @@ impl ChatModelClient {
                 cache_policy: CacheControlPolicy::Disabled,
             }],
             retry_policy: ModelRetryPolicy::default(),
+            json_repair: JsonRepair::new(),
         }
     }
 
@@ -56,6 +59,7 @@ impl ChatModelClient {
                 http: Client::new(),
                 endpoints,
                 retry_policy: ModelRetryPolicy::default(),
+                json_repair: JsonRepair::new(),
             },
             model_id,
             cache_policy,
@@ -76,7 +80,7 @@ impl ChatModelClient {
         for (endpoint_index, endpoint) in self.endpoints.iter().enumerate() {
             for attempt in 1..=self.retry_policy.max_attempts {
                 match self.send_once(endpoint, &request).await {
-                    Ok(response) => return Ok(stream_response(response)),
+                    Ok(response) => return Ok(stream_response(response, &self.json_repair)),
                     Err(failure) => {
                         let should_retry = failure.class.is_retryable()
                             && attempt < self.retry_policy.max_attempts;
@@ -309,8 +313,9 @@ impl ModelRequestFailure {
     }
 }
 
-fn stream_response(response: Response) -> ModelEventStream {
+fn stream_response(response: Response, json_repair: &JsonRepair) -> ModelEventStream {
     let bytes = response.bytes_stream();
+    let json_repair = json_repair.clone();
     Box::pin(stream! {
         let mut buffer = String::new();
         let mut tool_accumulator = ToolCallAccumulator::default();
@@ -331,7 +336,7 @@ fn stream_response(response: Response) -> ModelEventStream {
                     continue;
                 }
                 if data == "[DONE]" {
-                    let calls = tool_accumulator.finish();
+                    let calls = tool_accumulator.finish(&json_repair);
                     if !calls.is_empty() {
                         yield Ok(ModelStreamEvent::ToolCalls(calls));
                     }
@@ -583,19 +588,28 @@ impl ToolCallAccumulator {
         }
     }
 
-    fn finish(self) -> Vec<ToolCall> {
+    fn finish(self, repair: &JsonRepair) -> Vec<ToolCall> {
         self.calls
             .into_iter()
             .filter(|call| !call.name.is_empty())
-            .map(|call| ToolCall {
-                id: if call.id.is_empty() {
-                    format!("tool_{}", call.name)
-                } else {
-                    call.id
-                },
-                name: call.name,
-                arguments: serde_json::from_str(&call.arguments)
-                    .unwrap_or_else(|_| serde_json::json!({})),
+            .map(|call| {
+                let (repaired_args, was_repaired) = repair.repair(&call.arguments);
+                if was_repaired {
+                    tracing::debug!(
+                        tool = call.name,
+                        raw = call.arguments,
+                        "repaired malformed JSON tool arguments"
+                    );
+                }
+                ToolCall {
+                    id: if call.id.is_empty() {
+                        format!("tool_{}", call.name)
+                    } else {
+                        call.id
+                    },
+                    name: call.name,
+                    arguments: repaired_args,
+                }
             })
             .collect()
     }

@@ -3,7 +3,6 @@ use std::time::Duration;
 
 use async_trait::async_trait;
 use tokio::io::AsyncReadExt;
-use tracing::warn;
 
 #[derive(Debug, thiserror::Error)]
 pub enum FsError {
@@ -189,15 +188,19 @@ impl BashOperations for LocalBashOperations {
         });
 
         let wait_result = match options.timeout {
-            Some(duration) => match tokio::time::timeout(duration, child.wait()).await {
-                Ok(result) => Ok(result),
-                Err(_) => {
-                    if let Err(error) = child.kill().await {
-                        warn!(%error, "bash kill on timeout failed");
+            Some(duration) => {
+                // Use tokio::select! to race child.wait() against a timeout.
+                // This is more reliable than tokio::time::timeout which can fail
+                // to interrupt child.wait() when bash has backgrounded children.
+                tokio::select! {
+                    result = child.wait() => Ok(result),
+                    _ = tokio::time::sleep(duration) => {
+                        let _ = child.kill().await;
+                        let _ = child.wait().await;
+                        Err(BashError::Timeout(duration.as_secs()))
                     }
-                    Err(BashError::Timeout(duration.as_secs()))
                 }
-            },
+            }
             None => Ok(child.wait().await),
         };
 

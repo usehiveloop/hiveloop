@@ -53,12 +53,16 @@
     }
   },
   {
+    "type": "builtin.skills_list"
+  },
+  {
+    "type": "builtin.skill_view"
+  },
+  {
     "type": "builtin.delegate",
     "config": {
       "agents": [
         "design-system",
-        "frontend-design",
-        "backend-api",
         "code-review",
         "qa-tester"
       ]
@@ -68,18 +72,12 @@
     "type": "builtin.check_delegated_status"
   },
   {
-    "type": "builtin.wake"
-  },
-  {
     "type": "builtin.check_bash_status"
   },
   {
-    "type": "builtin.skills_list"
-  },
-  {
-    "type": "builtin.skill_view"
-  },
-  {
     "type": "builtin.search_sessions"
+  },
+  {
+    "type": "builtin.wake"
   }
 ]

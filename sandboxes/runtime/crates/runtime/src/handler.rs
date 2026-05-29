@@ -58,7 +58,8 @@ pub trait TurnEventSink: Send + Sync + 'static {
         _job_id: &str,
         _agent_name: &str,
         _stream_url: &str,
-    ) {}
+    ) {
+    }
 
     /// Emit on the PARENT stream when a delegate completes.
     async fn publish_subagent_completed(
@@ -66,7 +67,8 @@ pub trait TurnEventSink: Send + Sync + 'static {
         _parent_session_id: &str,
         _job_id: &str,
         _agent_name: &str,
-    ) {}
+    ) {
+    }
 
     /// Emit on the PARENT stream when a delegate errors.
     async fn publish_subagent_errored(
@@ -75,7 +77,8 @@ pub trait TurnEventSink: Send + Sync + 'static {
         _job_id: &str,
         _agent_name: &str,
         _error: &str,
-    ) {}
+    ) {
+    }
 }
 
 #[async_trait]
@@ -710,9 +713,7 @@ async fn process_single_turn(
 
             // Publish done on the delegate's own SSE stream
             if let Some(stream_id) = http_stream_id.as_deref() {
-                turn_event_sink
-                    .publish_done(stream_id, &session_id)
-                    .await;
+                turn_event_sink.publish_done(stream_id, &session_id).await;
             }
 
             // Emit subagent lifecycle event on the parent's SSE stream
@@ -723,7 +724,12 @@ async fn process_single_turn(
                 .unwrap_or("sub-agent");
             if delegate_error.is_some() {
                 turn_event_sink
-                    .publish_subagent_errored(parent_session_id, job_id, agent_name, delegate_error.unwrap_or("unknown"))
+                    .publish_subagent_errored(
+                        parent_session_id,
+                        job_id,
+                        agent_name,
+                        delegate_error.unwrap_or("unknown"),
+                    )
                     .await;
             } else {
                 turn_event_sink

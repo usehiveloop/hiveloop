@@ -29,7 +29,7 @@ fn test_job(id: &str, source: CronJobSource) -> CronJob {
         created_by_session: "test".into(),
         agent_name: None,
         last_result: None,
-                    delegate_stream_id: None,
+        delegate_stream_id: None,
     }
 }
 

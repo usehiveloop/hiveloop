@@ -12,6 +12,7 @@ members = [
     "crates/outbound",
     "crates/api",
     "crates/eval-harness",
+    "crates/safety",
     "crates/runtime",
 ]
 
@@ -70,6 +71,7 @@ mcp = { path = "crates/mcp" }
 skills = { path = "crates/skills" }
 outbound = { path = "crates/outbound" }
 api = { path = "crates/api" }
+safety = { path = "crates/safety" }
 
 [profile.release]
 lto = "thin"
