@@ -60,6 +60,17 @@
       "reasoning_effort": "medium",
       "extra_headers": {},
       "fallback": null
+    },
+    "code-review": {
+      "provider": "openai_compatible",
+      "base_url": "https://openrouter.ai/api/v1",
+      "model_id": "deepseek/deepseek-v4-pro",
+      "api_key_env": "HIVY_PROXY_API_KEY",
+      "temperature": 0.3,
+      "max_output_tokens": 4096,
+      "reasoning_effort": "low",
+      "extra_headers": {},
+      "fallback": null
     }
   },
   "system_prompt": {
@@ -655,6 +666,7 @@
       },
       "mode": "employee",
       "specialist_profile": null,
+      "model_key": "code-review",
       "system_prompt": {
         "cacheable_segments": [
           {
@@ -684,7 +696,7 @@
           }
         ]
       },
-      "model_key": "backend",
+      
       "multimodal_model": null,
       "limits": {
         "max_turns_per_session": 5000,

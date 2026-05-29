@@ -27,7 +27,7 @@ impl SqliteCronJobRepo {
 const SELECT_COLS: &str = "id, description, channel, task_prompt, cron_expression, \
     interval_seconds, repeat_count, repeat_completed, state, source, next_run_at, last_run_at, \
     last_status, last_error, delegated_session_id, session_continuation_id, created_at, created_by_session, \
-    agent_name, last_result";
+    agent_name, last_result, delegate_stream_id";
 
 #[async_trait]
 impl CronJobRepo for SqliteCronJobRepo {
@@ -221,6 +221,7 @@ struct CronJobRow {
     created_by_session: String,
     agent_name: Option<String>,
     last_result: Option<String>,
+    delegate_stream_id: Option<String>,
 }
 
 impl From<CronJobRow> for CronJob {
@@ -246,6 +247,7 @@ impl From<CronJobRow> for CronJob {
             created_by_session: r.created_by_session,
             agent_name: r.agent_name,
             last_result: r.last_result,
+            delegate_stream_id: r.delegate_stream_id,
         }
     }
 }

@@ -258,6 +258,7 @@ fn skill_manage_test_tool(workspace: PathBuf, outbox: Arc<FakeOutbox>) -> Arc<dy
         agent_registry: Arc::new(AgentDefinitionRegistry::from_definition(Arc::new(
             test_agent_definition(),
         ))),
+        delegate_stream_creator: None,
     };
     build_agent_tools(
         &[ToolSpec::SkillManage],
@@ -447,6 +448,7 @@ async fn wake_jobs_do_not_emit_schedule_events() {
         created_by_session: "C123-456.789".to_string(),
         agent_name: None,
         last_result: None,
+                    delegate_stream_id: None,
     };
     emit_schedule_event(
         Some(test_emitter(outbox.clone())),

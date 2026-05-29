@@ -32,6 +32,7 @@ pub struct RigAgentRunner {
     cron_repo: Option<Arc<dyn CronJobRepo>>,
     event_repo: Option<Arc<dyn storage::EventRepo>>,
     mcp_registry: Option<Arc<McpRegistry>>,
+    delegate_stream_creator: Option<crate::rig_tool_registry::DelegateStreamCreator>,
 }
 
 impl RigAgentRunner {
@@ -50,6 +51,7 @@ impl RigAgentRunner {
             cron_repo: None,
             event_repo: None,
             mcp_registry: None,
+            delegate_stream_creator: None,
         }
     }
 
@@ -75,6 +77,14 @@ impl RigAgentRunner {
 
     pub fn with_mcp_registry(mut self, registry: Arc<McpRegistry>) -> Self {
         self.mcp_registry = Some(registry);
+        self
+    }
+
+    pub fn with_delegate_stream_creator(
+        mut self,
+        creator: crate::rig_tool_registry::DelegateStreamCreator,
+    ) -> Self {
+        self.delegate_stream_creator = Some(creator);
         self
     }
 }
@@ -132,6 +142,7 @@ impl AgentRunner for RigAgentRunner {
                 workspace_root: tool_context.workspace_root.clone(),
                 outbound_emitter: self.outbound_emitter.clone(),
                 agent_registry: self.config.agent_registry(),
+                delegate_stream_creator: self.delegate_stream_creator.clone(),
             },
             mcp_registry.clone(),
         );

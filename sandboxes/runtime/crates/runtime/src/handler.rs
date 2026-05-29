@@ -50,6 +50,32 @@ pub trait TurnEventSink: Send + Sync + 'static {
         session_id: &SessionId,
         event: &AgentEvent,
     );
+
+    /// Emit on the PARENT stream when a delegate starts.
+    async fn publish_subagent_started(
+        &self,
+        _parent_session_id: &str,
+        _job_id: &str,
+        _agent_name: &str,
+        _stream_url: &str,
+    ) {}
+
+    /// Emit on the PARENT stream when a delegate completes.
+    async fn publish_subagent_completed(
+        &self,
+        _parent_session_id: &str,
+        _job_id: &str,
+        _agent_name: &str,
+    ) {}
+
+    /// Emit on the PARENT stream when a delegate errors.
+    async fn publish_subagent_errored(
+        &self,
+        _parent_session_id: &str,
+        _job_id: &str,
+        _agent_name: &str,
+        _error: &str,
+    ) {}
 }
 
 #[async_trait]
@@ -168,6 +194,67 @@ impl TurnEventSink for api::HttpStreamBroker {
                 .await;
             }
             AgentEvent::FinalMessage { .. } => {}
+        }
+    }
+
+    async fn publish_subagent_started(
+        &self,
+        parent_session_id: &str,
+        job_id: &str,
+        agent_name: &str,
+        stream_url: &str,
+    ) {
+        if let Some(parent_stream_id) = self.stream_id_for_session(parent_session_id).await {
+            self.publish(
+                &parent_stream_id,
+                "subagent_started",
+                serde_json::json!({
+                    "job_id": job_id,
+                    "agent_name": agent_name,
+                    "stream_url": stream_url,
+                }),
+            )
+            .await;
+        }
+    }
+
+    async fn publish_subagent_completed(
+        &self,
+        parent_session_id: &str,
+        job_id: &str,
+        agent_name: &str,
+    ) {
+        if let Some(parent_stream_id) = self.stream_id_for_session(parent_session_id).await {
+            self.publish(
+                &parent_stream_id,
+                "subagent_completed",
+                serde_json::json!({
+                    "job_id": job_id,
+                    "agent_name": agent_name,
+                }),
+            )
+            .await;
+        }
+    }
+
+    async fn publish_subagent_errored(
+        &self,
+        parent_session_id: &str,
+        job_id: &str,
+        agent_name: &str,
+        error: &str,
+    ) {
+        if let Some(parent_stream_id) = self.stream_id_for_session(parent_session_id).await {
+            self.publish(
+                &parent_stream_id,
+                "subagent_errored",
+                serde_json::json!({
+                    "job_id": job_id,
+                    "agent_name": agent_name,
+                    "error": error,
+                }),
+            )
+            .await;
         }
     }
 }
@@ -621,11 +708,29 @@ async fn process_single_turn(
                 warn!(error = %e, job_id = %job_id, "failed to record delegate result");
             }
 
+            // Publish done on the delegate's own SSE stream
+            if let Some(stream_id) = http_stream_id.as_deref() {
+                turn_event_sink
+                    .publish_done(stream_id, &session_id)
+                    .await;
+            }
+
+            // Emit subagent lifecycle event on the parent's SSE stream
             let agent_name = inbound
                 .raw
                 .get("agent_name")
                 .and_then(Value::as_str)
                 .unwrap_or("sub-agent");
+            if delegate_error.is_some() {
+                turn_event_sink
+                    .publish_subagent_errored(parent_session_id, job_id, agent_name, delegate_error.unwrap_or("unknown"))
+                    .await;
+            } else {
+                turn_event_sink
+                    .publish_subagent_completed(parent_session_id, job_id, agent_name)
+                    .await;
+            }
+
             let notification = InboundEvent {
                 envelope_id: format!("delegate-result-{}", Utc::now().timestamp_millis()),
                 session_id: SessionId::from(parent_session_id),

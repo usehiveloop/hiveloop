@@ -41,6 +41,8 @@ pub struct CronJob {
     pub agent_name: Option<String>,
     #[serde(default)]
     pub last_result: Option<String>,
+    #[serde(default)]
+    pub delegate_stream_id: Option<String>,
     pub created_at: DateTime<Utc>,
     pub created_by_session: String,
 }

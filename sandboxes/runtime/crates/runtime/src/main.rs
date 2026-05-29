@@ -194,21 +194,36 @@ async fn main() -> Result<()> {
             .with_database_queue(database_event_queue.clone()),
     );
 
+    let broker_for_streams = http_stream_broker.clone();
+    let delegate_stream_creator: agent::rig_tool_registry::DelegateStreamCreator =
+        Arc::new(move |session_id: &str| {
+            let broker = broker_for_streams.clone();
+            let session_id = session_id.to_string();
+            Box::pin(async move {
+                let stream_id = broker.create_stream().await;
+                broker.register_session(&session_id, &stream_id).await;
+                let stream_url = format!("/gateway/http/streams/{}", stream_id);
+                (stream_id, stream_url)
+            })
+        });
     let rig_runner = RigAgentRunner::new(config.clone(), workspace_root.clone())
         .with_outbound_emitter(emitter.clone())
         .with_gateway(channel_gateway.clone())
         .with_cron_repo(cron_repo.clone())
         .with_event_repo(event_repo.clone())
-        .with_mcp_registry(mcp_registry.clone());
+        .with_mcp_registry(mcp_registry.clone())
+        .with_delegate_stream_creator(delegate_stream_creator);
     let agent_runner: Arc<dyn AgentRunner> = Arc::new(rig_runner);
 
     let coordinator = Arc::new(SessionCoordinator::new());
 
+    let turn_event_sink_for_scheduler: Arc<dyn handler::TurnEventSink> = http_stream_broker.clone();
     let scheduler = CronScheduler::new(
         cron_repo.clone(),
         inbound_sink.clone(),
         Some(emitter.clone()),
         config.agent_registry(),
+        turn_event_sink_for_scheduler,
     );
     let _scheduler_handle = tokio::spawn(scheduler.run());
 

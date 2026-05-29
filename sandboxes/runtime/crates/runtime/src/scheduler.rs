@@ -12,6 +12,8 @@ use storage::CronJobRepo;
 use tokio::sync::mpsc;
 use tracing::{error, info};
 
+use crate::handler::TurnEventSink;
+
 const POLL_INTERVAL_SECONDS: u64 = 5;
 const STALE_GRACE_MULTIPLIER: f64 = 0.5;
 
@@ -20,6 +22,7 @@ pub struct CronScheduler {
     inbound_sink: mpsc::Sender<InboundEvent>,
     emitter: Option<Arc<OutboundEmitter>>,
     agent_registry: Arc<AgentDefinitionRegistry>,
+    event_sink: Arc<dyn TurnEventSink>,
 }
 
 impl CronScheduler {
@@ -28,12 +31,14 @@ impl CronScheduler {
         inbound_sink: mpsc::Sender<InboundEvent>,
         emitter: Option<Arc<OutboundEmitter>>,
         agent_registry: Arc<AgentDefinitionRegistry>,
+        event_sink: Arc<dyn TurnEventSink>,
     ) -> Self {
         Self {
             repo,
             inbound_sink,
             emitter,
             agent_registry,
+            event_sink,
         }
     }
 
@@ -166,6 +171,35 @@ impl CronScheduler {
             }
         }
 
+        let mut raw = serde_json::json!({
+            "source": "cron",
+            "job_id": job.id,
+            "agent_name": job.agent_name,
+            "parent_session_id": job.created_by_session,
+            "delegate_goal": job.task_prompt,
+        });
+
+        // For delegates with a stream, inject http_stream_id so events flow to the delegate's SSE stream
+        if job.source == CronJobSource::Delegate {
+            if let Some(ref stream_id) = job.delegate_stream_id {
+                raw.as_object_mut()
+                    .unwrap()
+                    .insert("http_stream_id".to_string(), serde_json::json!(stream_id));
+
+                // Emit subagent_started on the parent's stream
+                let stream_url = format!("/gateway/http/streams/{}", stream_id);
+                let agent_name = job.agent_name.as_deref().unwrap_or("sub-agent");
+                self.event_sink
+                    .publish_subagent_started(
+                        &job.created_by_session,
+                        &job.id,
+                        agent_name,
+                        &stream_url,
+                    )
+                    .await;
+            }
+        }
+
         let inbound = InboundEvent {
             envelope_id: envelope_id.clone(),
             session_id: session_id.clone(),
@@ -173,13 +207,7 @@ impl CronScheduler {
             user_display_name: Some("Scheduler".to_string()),
             text: job.task_prompt.clone(),
             attachments: Vec::new(),
-            raw: serde_json::json!({
-                "source": "cron",
-                "job_id": job.id,
-                "agent_name": job.agent_name,
-                "parent_session_id": job.created_by_session,
-                "delegate_goal": job.task_prompt,
-            }),
+            raw,
             inbound_handle: MessageHandle {
                 channel: job.channel.clone(),
                 ts: String::new(),

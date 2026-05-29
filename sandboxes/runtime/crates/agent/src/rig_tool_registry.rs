@@ -13,6 +13,11 @@ use gateway::ChannelGateway;
 use mcp::McpRegistry;
 use outbound::OutboundEmitter;
 use serde_json::{json, Value};
+
+/// Type alias for a function that creates an SSE stream for a delegate session.
+/// Returns (stream_id, stream_url).
+pub type DelegateStreamCreator =
+    Arc<dyn Fn(&str) -> Pin<Box<dyn Future<Output = (String, String)> + Send>> + Send + Sync>;
 use storage::{CronJobRepo, EventRepo};
 use tools::{JsonTool, ProcessRegistry, ToolDefinition};
 
@@ -55,6 +60,7 @@ pub struct ToolContext {
     pub workspace_root: PathBuf,
     pub outbound_emitter: Option<Arc<OutboundEmitter>>,
     pub agent_registry: Arc<AgentDefinitionRegistry>,
+    pub delegate_stream_creator: Option<DelegateStreamCreator>,
 }
 
 pub fn build_agent_tools(
@@ -116,6 +122,7 @@ pub fn build_agent_tools(
                             session_id.clone(),
                             ctx.agent_registry.clone(),
                             config.clone(),
+                            ctx.delegate_stream_creator.clone(),
                         ));
                     }
                 }
@@ -323,6 +330,7 @@ fn wake_tool(repo: Arc<dyn CronJobRepo>, session_id: SessionId) -> Arc<dyn JsonT
                     created_by_session: session_id.as_str().to_string(),
                     agent_name: None,
                     last_result: None,
+                    delegate_stream_id: None,
                 };
                 repo.create(&job).await?;
                 Ok(json!({"job_id": id, "next_run_at": job.next_run_at.to_rfc3339()}))
@@ -555,6 +563,7 @@ fn delegate_tool(
     session_id: SessionId,
     agent_registry: Arc<AgentDefinitionRegistry>,
     config: DelegateConfig,
+    stream_creator: Option<DelegateStreamCreator>,
 ) -> Arc<dyn JsonTool> {
     let agent_desc = build_agent_list_description(&agent_registry, &config.agents);
     let agent_names: Vec<String> = if config.agents.is_empty() {
@@ -590,6 +599,7 @@ fn delegate_tool(
             let agent_registry = agent_registry.clone();
             let agent_names = agent_names_clone.clone();
             let config_agents = config_agents.clone();
+            let stream_creator = stream_creator.clone();
             Box::pin(async move {
                 let goal = args
                     .get("goal")
@@ -620,6 +630,15 @@ fn delegate_tool(
                 let now = Utc::now();
                 let id = format!("delegate-{}", now.timestamp_millis());
                 let child_session = format!("{}-delegate-{}", session_id.as_str(), id);
+
+                // Create an SSE stream for the delegate session
+                let delegate_stream_id = if let Some(ref creator) = stream_creator {
+                    let (stream_id, _stream_url) = creator(&child_session).await;
+                    Some(stream_id)
+                } else {
+                    None
+                };
+
                 let job = domain::cron::CronJob {
                     id: id.clone(),
                     description: goal.chars().take(80).collect(),
@@ -641,6 +660,7 @@ fn delegate_tool(
                     created_by_session: session_id.as_str().to_string(),
                     agent_name: Some(agent_name),
                     last_result: None,
+                    delegate_stream_id,
                 };
                 repo.create(&job).await?;
                 Ok(json!({
@@ -738,6 +758,7 @@ async fn execute_cron(
                 created_by_session: session_id.as_str().to_string(),
                 agent_name: None,
                 last_result: None,
+                delegate_stream_id: None,
             };
             repo.create(&job).await?;
             emit_schedule_event(
