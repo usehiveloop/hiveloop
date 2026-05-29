@@ -308,12 +308,28 @@ pub struct MemoryContextEntry {
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct CompactionConfig {
     pub enabled: bool,
-    pub token_threshold: u32,
+    #[serde(default)]
+    pub token_threshold: Option<u32>,
+    #[serde(default)]
+    pub token_threshold_percentage: Option<f64>,
+    #[serde(default)]
+    pub turn_threshold: Option<u32>,
+    #[serde(default)]
+    pub message_threshold: Option<u32>,
+    #[serde(default = "default_eviction")]
+    pub eviction_window: f64,
+    #[serde(default)]
+    pub retention_window: u32,
     #[serde(default = "default_overlap")]
     pub overlap_event_count: u32,
     #[serde(default = "default_chars_per_token")]
     pub chars_per_token: u32,
-    pub summarizer_model: ModelConfig,
+    #[serde(default)]
+    pub on_turn_end: Option<bool>,
+}
+
+fn default_eviction() -> f64 {
+    0.2
 }
 
 fn default_overlap() -> u32 {

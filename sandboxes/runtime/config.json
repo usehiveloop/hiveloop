@@ -104,9 +104,12 @@
     "compaction": {
       "enabled": true,
       "token_threshold": 90000,
+      "token_threshold_percentage": 0.7,
       "overlap_event_count": 10,
       "chars_per_token": 4,
-      "summarizer_model": null
+      "eviction_window": 0.2,
+      "retention_window": 0,
+      "message_threshold": 50
     },
     "memory": {
       "entries": [],

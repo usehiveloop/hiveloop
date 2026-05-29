@@ -24,6 +24,7 @@ use crate::primitives::{AgentMessage, MessagePart, ModelRequest, ModelStreamEven
 use crate::rig_tool_registry::{
     build_agent_tools, emit_tool_error, emit_tool_invoked, DynamicTool, ToolContext,
 };
+use crate::compaction;
 use crate::{AgentEvent, AgentRunner, Result, TurnInput};
 
 pub struct RigAgentRunner {
@@ -102,6 +103,7 @@ impl RigAgentRunner {
 
 #[async_trait::async_trait]
 impl AgentRunner for RigAgentRunner {
+    #[allow(unused_assignments)]
     async fn run_turn(
         &self,
         session_id: &SessionId,
@@ -130,8 +132,14 @@ impl AgentRunner for RigAgentRunner {
             self.mcp_registry.as_deref(),
         )
         .await?;
-        if let Some(compaction) = snapshot.context.compaction.as_ref().filter(|c| c.enabled) {
-            messages = compact_messages_if_needed(messages, compaction, &runtime_env).await?;
+        let compaction_config = snapshot.context.compaction.clone();
+        if let Some(ref config) = compaction_config {
+            if config.enabled {
+                let ctx = compaction::CompactContext::from_messages(&messages);
+                if compaction::should_compact(&ctx, config) {
+                    compaction::compact(&mut messages, config);
+                }
+            }
         }
         let mut tool_context = self.tool_context.clone();
         tool_context.runtime_env = runtime_env;
@@ -179,6 +187,10 @@ impl AgentRunner for RigAgentRunner {
             };
             let mut completed_with_final = false;
             let mut effective_turn = 0u32;
+            let mut consecutive_empty_responses = 0u32;
+            let mut consecutive_model_failures = 0u32;
+            let mut cumulative_prompt_tokens: u64 = 0;
+            let mut cumulative_completion_tokens: u64 = 0;
             while effective_turn < max_turns {
                 let mut turn_safety = TurnSafety::new(&safety);
                 let definitions = available_tools.iter().map(|tool| tool.definition()).collect();
@@ -206,6 +218,7 @@ impl AgentRunner for RigAgentRunner {
                 let mut model_stream = match client.stream(request).await {
                     Ok(stream) => stream,
                     Err(error) => {
+                        consecutive_model_failures += 1;
                         yield AgentEvent::RunEvent {
                             event: "model_request_failed".to_string(),
                             payload: serde_json::json!({
@@ -213,16 +226,31 @@ impl AgentRunner for RigAgentRunner {
                                 "turn_id": turn_id,
                                 "model": model_id,
                                 "error": error.to_string(),
+                                "consecutive_failures": consecutive_model_failures,
                             }),
                         };
-                        yield AgentEvent::Error { message: error.to_string() };
-                        return;
+                        if consecutive_model_failures >= 3 {
+                            yield AgentEvent::Error {
+                                message: format!(
+                                    "model request failed {consecutive_model_failures} times consecutively: {error}"
+                                ),
+                            };
+                            return;
+                        }
+                        messages.push(AgentMessage::user(
+                            "[system instruction] The model request failed. This may be a temporary \
+                             network issue. Please continue where you left off — your previous work \
+                             and the conversation history are preserved."
+                                .to_string(),
+                        ));
+                        continue;
                     }
                 };
 
                 let mut turn_text = String::new();
                 let mut tool_calls: Vec<ToolCall> = Vec::new();
                 let mut killed_by_overthinking = false;
+                let mut killed_by_stream_failure = false;
                 while let Some(event) = model_stream.next().await {
                     match event {
                         Ok(ModelStreamEvent::TextDelta(text)) => {
@@ -267,6 +295,8 @@ impl AgentRunner for RigAgentRunner {
                         }
                         Ok(ModelStreamEvent::ToolCalls(calls)) => tool_calls.extend(calls),
                         Ok(ModelStreamEvent::Usage(usage)) => {
+                            cumulative_prompt_tokens += usage.prompt_tokens.max(0) as u64;
+                            cumulative_completion_tokens += usage.completion_tokens.max(0) as u64;
                             yield AgentEvent::RunEvent {
                                 event: "model_usage".to_string(),
                                 payload: serde_json::json!({
@@ -297,6 +327,7 @@ impl AgentRunner for RigAgentRunner {
                         }
                         Ok(ModelStreamEvent::Done) => {}
                         Err(error) => {
+                            consecutive_model_failures += 1;
                             yield AgentEvent::RunEvent {
                                 event: "model_stream_failed".to_string(),
                                 payload: serde_json::json!({
@@ -304,10 +335,25 @@ impl AgentRunner for RigAgentRunner {
                                     "turn_id": turn_id,
                                     "model": model_id,
                                     "error": error.to_string(),
+                                    "consecutive_failures": consecutive_model_failures,
                                 }),
                             };
-                            yield AgentEvent::Error { message: error.to_string() };
-                            return;
+                            if consecutive_model_failures >= 3 {
+                                yield AgentEvent::Error {
+                                    message: format!(
+                                        "model stream failed {consecutive_model_failures} times consecutively: {error}"
+                                    ),
+                                };
+                                return;
+                            }
+                            messages.push(AgentMessage::user(
+                                "[system instruction] The model stream was interrupted. \
+                                 This may be a temporary network issue. Please continue \
+                                 where you left off."
+                                    .to_string(),
+                            ));
+                            killed_by_stream_failure = true;
+                            break;
                         }
                     }
                 }
@@ -344,10 +390,43 @@ impl AgentRunner for RigAgentRunner {
                 }
 
                 if killed_by_overthinking {
+                    consecutive_empty_responses = 0;
+                    continue;
+                }
+
+                if killed_by_stream_failure {
                     continue;
                 }
 
                 if tool_calls.is_empty() {
+                    if turn_text.is_empty() {
+                        consecutive_empty_responses += 1;
+                        yield AgentEvent::RunEvent {
+                            event: "model_empty_response".to_string(),
+                            payload: serde_json::json!({
+                                "session_id": session_id.as_str(),
+                                "turn_id": turn_id,
+                                "model": model_id,
+                                "consecutive_empty": consecutive_empty_responses,
+                            }),
+                        };
+                        if consecutive_empty_responses >= 3 {
+                            yield AgentEvent::Error {
+                                message: "model produced empty responses 3 times consecutively".to_string(),
+                            };
+                            return;
+                        }
+                        messages.push(AgentMessage::user(
+                            "[system instruction] You produced an empty response. \
+                             Please continue working on the task. If you are unsure what \
+                             to do next, re-read the conversation history, check what has \
+                             already been completed, and pick up where you left off."
+                                .to_string(),
+                        ));
+                        continue;
+                    }
+                    consecutive_empty_responses = 0;
+                    consecutive_model_failures = 0;
                     final_text = turn_text.clone();
                     completed_with_final = true;
                     if !turn_text.is_empty() {
@@ -367,6 +446,8 @@ impl AgentRunner for RigAgentRunner {
                     return;
                 }
                 messages.push(assistant_tool_calls);
+                consecutive_empty_responses = 0;
+                consecutive_model_failures = 0;
                 for call in tool_calls {
                     yield AgentEvent::ToolCall { id: call.id.clone(), tool: call.name.clone(), args: call.arguments.clone() };
 
@@ -426,6 +507,62 @@ impl AgentRunner for RigAgentRunner {
                             messages.push(message);
                         }
                     }
+                }
+                if let Some(ref config) = compaction_config {
+                    if config.enabled {
+                        let ctx = compaction::CompactContext::from_messages(&messages);
+                        if compaction::should_compact(&ctx, config) {
+                            let tokens_before = compaction::estimate_tokens_static(&messages);
+                            compaction::compact(&mut messages, config);
+                            let tokens_after = compaction::estimate_tokens_static(&messages);
+                            yield AgentEvent::RunEvent {
+                                event: "compaction_applied".to_string(),
+                                payload: serde_json::json!({
+                                    "session_id": session_id.as_str(),
+                                    "turn_id": turn_id,
+                                    "tokens_before": tokens_before,
+                                    "tokens_after": tokens_after,
+                                }),
+                            };
+                        }
+                    }
+                }
+                let limits = &snapshot.limits;
+                if cumulative_prompt_tokens >= limits.input_token_budget as u64 {
+                    if let Some(ref config) = compaction_config {
+                        if config.enabled {
+                            compaction::compact(&mut messages, config);
+                            cumulative_prompt_tokens =
+                                compaction::estimate_tokens_static(&messages);
+                            yield AgentEvent::RunEvent {
+                                event: "token_budget_compaction".to_string(),
+                                payload: serde_json::json!({
+                                    "session_id": session_id.as_str(),
+                                    "turn_id": turn_id,
+                                    "cumulative_prompt": cumulative_prompt_tokens,
+                                    "budget": limits.input_token_budget,
+                                }),
+                            };
+                        } else {
+                            let keep = compaction_config
+                                .as_ref()
+                                .map(|c| c.overlap_event_count.max(1) as usize)
+                                .unwrap_or(10);
+                            let drain_end = messages.len().saturating_sub(keep);
+                            if drain_end > 2 {
+                                messages.drain(2..drain_end);
+                            }
+                            cumulative_prompt_tokens =
+                                compaction::estimate_tokens_static(&messages);
+                        }
+                    }
+                }
+                if cumulative_completion_tokens >= limits.output_token_budget as u64 * 80 / 100 {
+                    messages.push(AgentMessage::user(format!(
+                        "[system instruction] Approaching output token budget ({} of {} used). \
+                         Be concise and prioritize completing the task now.",
+                        cumulative_completion_tokens, limits.output_token_budget
+                    )));
                 }
                 effective_turn += 1;
             }
@@ -737,86 +874,6 @@ fn format_memory_entry(entry: &MemoryContextEntry) -> Option<String> {
     }
 }
 
-async fn compact_messages_if_needed(
-    messages: Vec<AgentMessage>,
-    config: &domain::CompactionConfig,
-    runtime_env: &std::collections::HashMap<String, String>,
-) -> Result<Vec<AgentMessage>> {
-    let threshold = config.token_threshold;
-    let estimated_tokens = estimate_tokens(&messages, config.chars_per_token.max(1));
-    if estimated_tokens <= threshold || messages.len() <= config.overlap_event_count as usize + 2 {
-        return Ok(messages);
-    }
-
-    let keep_count = config.overlap_event_count.max(1) as usize;
-    let split_at = messages.len().saturating_sub(keep_count);
-    let (older, recent) = messages.split_at(split_at);
-    let transcript = older
-        .iter()
-        .map(message_to_transcript_line)
-        .collect::<Vec<_>>()
-        .join("\n");
-    let summary = summarize_history(&config.summarizer_model, runtime_env, transcript).await?;
-
-    let mut compacted = Vec::new();
-    compacted.extend(messages.iter().take(2).cloned());
-    compacted.push(AgentMessage::system(format!(
-        "Conversation summary so far:\n{summary}"
-    )));
-    compacted.extend(recent.iter().cloned());
-    Ok(compacted)
-}
-
-async fn summarize_history(
-    model: &ModelConfig,
-    runtime_env: &std::collections::HashMap<String, String>,
-    transcript: String,
-) -> Result<String> {
-    let ModelClientConfig {
-        client,
-        model_id,
-        cache_policy,
-        reasoning_effort,
-        temperature,
-        max_output_tokens,
-    } = build_model_client(model, runtime_env)?;
-    let request = ModelRequest {
-        model: model_id,
-        messages: vec![
-            AgentMessage::system("Summarize the conversation history compactly while preserving user goals, decisions, tool results, and unresolved tasks."),
-            AgentMessage::user(transcript),
-        ],
-        tools: Vec::new(),
-        temperature,
-        max_output_tokens,
-        reasoning_effort,
-        cache_policy,
-    };
-    let mut stream = client.stream(request).await?;
-    let mut summary = String::new();
-    while let Some(event) = stream.next().await {
-        match event? {
-            ModelStreamEvent::TextDelta(text) => summary.push_str(&text),
-            ModelStreamEvent::ThinkingDelta(_) => {}
-            ModelStreamEvent::Done => break,
-            _ => {}
-        }
-    }
-    Ok(summary)
-}
-
-fn estimate_tokens(messages: &[AgentMessage], chars_per_token: u32) -> u32 {
-    let chars: usize = messages
-        .iter()
-        .flat_map(|message| message.parts.iter())
-        .map(|part| match part {
-            MessagePart::Text { text } => text.len(),
-            MessagePart::InlineData { data, .. } => data.len(),
-        })
-        .sum();
-    (chars as u32 / chars_per_token.max(1)).max(1)
-}
-
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
@@ -959,25 +1016,6 @@ mod tests {
             ],
         }
     }
-}
-
-fn message_to_transcript_line(message: &AgentMessage) -> String {
-    let role = match message.role {
-        crate::primitives::AgentMessageRole::System => "system",
-        crate::primitives::AgentMessageRole::User => "user",
-        crate::primitives::AgentMessageRole::Assistant => "assistant",
-        crate::primitives::AgentMessageRole::Tool => "tool",
-    };
-    let text = message
-        .parts
-        .iter()
-        .map(|part| match part {
-            MessagePart::Text { text } => text.as_str(),
-            MessagePart::InlineData { .. } => "[inline data]",
-        })
-        .collect::<Vec<_>>()
-        .join("\n");
-    format!("[{role}] {text}")
 }
 
 fn pick_model_for_turn<'a>(

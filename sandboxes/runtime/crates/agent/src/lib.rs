@@ -5,6 +5,7 @@ use domain::{AgentDefinition, SessionId};
 use futures::stream::BoxStream;
 use serde::{Deserialize, Serialize};
 
+pub mod compaction;
 pub mod history;
 pub mod model_client;
 pub mod primitives;
