@@ -69,6 +69,7 @@ impl ToolBuildContext {
 pub fn build_builtin_tools(
     specs: &[ToolSpec],
     context: &ToolBuildContext,
+    session_id: &domain::SessionId,
 ) -> Vec<Arc<dyn JsonTool>> {
     let mut tools: Vec<Arc<dyn JsonTool>> = Vec::new();
     for spec in specs {
@@ -82,6 +83,7 @@ pub fn build_builtin_tools(
                         context.runtime_env.clone(),
                     )
                     .with_process_registry(context.process_registry.clone())
+                    .with_session_id(session_id.as_str())
                     .into_tool(),
                 );
             }
@@ -114,7 +116,7 @@ pub fn build_builtin_tools(
                 );
             }
             ToolSpec::Cron
-            | ToolSpec::Delegate
+            | ToolSpec::Delegate(_)
             | ToolSpec::CheckDelegatedStatus
             | ToolSpec::CheckBashStatus
             | ToolSpec::Wake

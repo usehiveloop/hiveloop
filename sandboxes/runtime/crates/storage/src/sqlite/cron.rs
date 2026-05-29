@@ -4,52 +4,35 @@ use domain::cron::{CronJob, CronJobSource, CronJobState};
 use sqlx::SqlitePool;
 use std::sync::Arc;
 
-use crate::repos::{notify_write, CronJobRepo, Result, SharedWriteNotifier, StorageError};
+use crate::repos::{CronJobRepo, Result, StorageError};
+
+use super::{SqliteStore, SqliteWriteGateway};
+
+const DELEGATE_RUNNING_LEASE_SECONDS: i64 = 30 * 60;
 
 pub struct SqliteCronJobRepo {
     pool: Arc<SqlitePool>,
-    write_notifier: Option<SharedWriteNotifier>,
+    writer: Arc<SqliteWriteGateway>,
 }
 
 impl SqliteCronJobRepo {
-    pub fn new(pool: Arc<SqlitePool>) -> Self {
+    pub fn new(store: &SqliteStore) -> Self {
         Self {
-            pool,
-            write_notifier: None,
-        }
-    }
-
-    pub fn with_write_notifier(pool: Arc<SqlitePool>, write_notifier: SharedWriteNotifier) -> Self {
-        Self {
-            pool,
-            write_notifier: Some(write_notifier),
+            pool: store.read_pool(),
+            writer: store.writer(),
         }
     }
 }
 
 const SELECT_COLS: &str = "id, description, channel, task_prompt, cron_expression, \
     interval_seconds, repeat_count, repeat_completed, state, source, next_run_at, last_run_at, \
-    last_status, last_error, delegated_session_id, session_continuation_id, created_at, created_by_session";
+    last_status, last_error, delegated_session_id, session_continuation_id, created_at, created_by_session, \
+    agent_name, last_result";
 
 #[async_trait]
 impl CronJobRepo for SqliteCronJobRepo {
     async fn create(&self, job: &CronJob) -> Result<()> {
-        sqlx::query(&format!(
-            "INSERT INTO cron_jobs ({SELECT_COLS}) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
-        ))
-        .bind(&job.id).bind(&job.description).bind(&job.channel)
-        .bind(&job.task_prompt).bind(&job.cron_expression)
-        .bind(job.interval_seconds.map(|v| v as i64))
-        .bind(job.repeat_count.map(|v| v as i32)).bind(job.repeat_completed as i32)
-        .bind(state_str(job.state)).bind(source_str(job.source))
-        .bind(job.next_run_at.to_rfc3339())
-        .bind(job.last_run_at.map(|t| t.to_rfc3339()))
-        .bind(&job.last_status).bind(&job.last_error)
-        .bind(&job.delegated_session_id).bind(&job.session_continuation_id)
-        .bind(job.created_at.to_rfc3339()).bind(&job.created_by_session)
-        .execute(self.pool.as_ref()).await.map_err(StorageError::from)?;
-        notify_write(&self.write_notifier);
-        Ok(())
+        self.writer.create_cron(job.clone()).await
     }
 
     async fn get(&self, id: &str) -> Result<Option<CronJob>> {
@@ -85,10 +68,21 @@ impl CronJobRepo for SqliteCronJobRepo {
 
     async fn list_due(&self) -> Result<Vec<CronJob>> {
         let now = Utc::now().to_rfc3339();
+        let delegate_lease_cutoff =
+            (Utc::now() - chrono::Duration::seconds(DELEGATE_RUNNING_LEASE_SECONDS)).to_rfc3339();
         let rows: Vec<CronJobRow> = sqlx::query_as(&format!(
-            "SELECT {SELECT_COLS} FROM cron_jobs WHERE state = 'active' AND next_run_at <= ?"
+            "SELECT {SELECT_COLS} FROM cron_jobs
+             WHERE state = 'active'
+               AND next_run_at <= ?
+               AND NOT (
+                 source = 'delegate'
+                 AND last_status = 'running'
+                 AND last_run_at IS NOT NULL
+                 AND last_run_at > ?
+               )"
         ))
         .bind(&now)
+        .bind(&delegate_lease_cutoff)
         .fetch_all(self.pool.as_ref())
         .await
         .map_err(StorageError::from)?;
@@ -96,47 +90,25 @@ impl CronJobRepo for SqliteCronJobRepo {
     }
 
     async fn update_prompt(&self, id: &str, task_prompt: String) -> Result<()> {
-        sqlx::query("UPDATE cron_jobs SET task_prompt = ? WHERE id = ?")
-            .bind(&task_prompt)
-            .bind(id)
-            .execute(self.pool.as_ref())
+        self.writer
+            .update_cron_prompt(id.to_string(), task_prompt)
             .await
-            .map_err(StorageError::from)?;
-        notify_write(&self.write_notifier);
-        Ok(())
     }
 
     async fn update_interval(&self, id: &str, interval_seconds: u64) -> Result<()> {
-        sqlx::query("UPDATE cron_jobs SET interval_seconds = ? WHERE id = ?")
-            .bind(interval_seconds as i64)
-            .bind(id)
-            .execute(self.pool.as_ref())
+        self.writer
+            .update_cron_interval(id.to_string(), interval_seconds)
             .await
-            .map_err(StorageError::from)?;
-        notify_write(&self.write_notifier);
-        Ok(())
     }
 
     async fn update_next_run(&self, id: &str, next_run_at: DateTime<Utc>) -> Result<()> {
-        sqlx::query("UPDATE cron_jobs SET next_run_at = ? WHERE id = ?")
-            .bind(next_run_at.to_rfc3339())
-            .bind(id)
-            .execute(self.pool.as_ref())
+        self.writer
+            .update_cron_next_run(id.to_string(), next_run_at)
             .await
-            .map_err(StorageError::from)?;
-        notify_write(&self.write_notifier);
-        Ok(())
     }
 
     async fn set_state(&self, id: &str, state: CronJobState) -> Result<()> {
-        sqlx::query("UPDATE cron_jobs SET state = ? WHERE id = ?")
-            .bind(state_str(state))
-            .bind(id)
-            .execute(self.pool.as_ref())
-            .await
-            .map_err(StorageError::from)?;
-        notify_write(&self.write_notifier);
-        Ok(())
+        self.writer.set_cron_state(id.to_string(), state).await
     }
 
     async fn record_run(
@@ -146,53 +118,47 @@ impl CronJobRepo for SqliteCronJobRepo {
         status: &str,
         error: Option<&str>,
     ) -> Result<()> {
-        sqlx::query(
-            "UPDATE cron_jobs SET last_run_at = ?, last_status = ?, last_error = ? WHERE id = ?",
-        )
-        .bind(run_at.to_rfc3339())
-        .bind(status)
-        .bind(error)
-        .bind(id)
-        .execute(self.pool.as_ref())
-        .await
-        .map_err(StorageError::from)?;
-        notify_write(&self.write_notifier);
-        Ok(())
+        self.writer
+            .record_cron_run(
+                id.to_string(),
+                run_at,
+                status.to_string(),
+                error.map(ToString::to_string),
+            )
+            .await
     }
 
     async fn increment_repeat(&self, id: &str) -> Result<()> {
-        sqlx::query("UPDATE cron_jobs SET repeat_completed = repeat_completed + 1 WHERE id = ?")
-            .bind(id)
-            .execute(self.pool.as_ref())
+        self.writer.increment_cron_repeat(id.to_string()).await
+    }
+
+    async fn record_result(&self, id: &str, result: &str) -> Result<()> {
+        self.writer
+            .record_cron_result(id.to_string(), result.to_string())
             .await
-            .map_err(StorageError::from)?;
-        notify_write(&self.write_notifier);
-        Ok(())
+    }
+
+    async fn complete_delegate_result(
+        &self,
+        id: &str,
+        completed_at: DateTime<Utc>,
+        status: &str,
+        error: Option<&str>,
+        result: &str,
+    ) -> Result<()> {
+        self.writer
+            .complete_delegate_result(
+                id.to_string(),
+                completed_at,
+                status.to_string(),
+                error.map(ToString::to_string),
+                result.to_string(),
+            )
+            .await
     }
 
     async fn delete(&self, id: &str) -> Result<()> {
-        sqlx::query("DELETE FROM cron_jobs WHERE id = ?")
-            .bind(id)
-            .execute(self.pool.as_ref())
-            .await
-            .map_err(StorageError::from)?;
-        notify_write(&self.write_notifier);
-        Ok(())
-    }
-}
-
-fn state_str(state: CronJobState) -> &'static str {
-    match state {
-        CronJobState::Active => "active",
-        CronJobState::Paused => "paused",
-        CronJobState::Completed => "completed",
-    }
-}
-
-fn source_str(source: CronJobSource) -> &'static str {
-    match source {
-        CronJobSource::Cron => "cron",
-        CronJobSource::Delegate => "delegate",
+        self.writer.delete_cron(id.to_string()).await
     }
 }
 
@@ -200,6 +166,13 @@ fn parse_source(s: &str) -> CronJobSource {
     match s {
         "delegate" => CronJobSource::Delegate,
         _ => CronJobSource::Cron,
+    }
+}
+
+fn source_str(source: CronJobSource) -> &'static str {
+    match source {
+        CronJobSource::Cron => "cron",
+        CronJobSource::Delegate => "delegate",
     }
 }
 
@@ -246,6 +219,8 @@ struct CronJobRow {
     session_continuation_id: Option<String>,
     created_at: String,
     created_by_session: String,
+    agent_name: Option<String>,
+    last_result: Option<String>,
 }
 
 impl From<CronJobRow> for CronJob {
@@ -269,6 +244,8 @@ impl From<CronJobRow> for CronJob {
             session_continuation_id: r.session_continuation_id,
             created_at: parse_dt(&r.created_at),
             created_by_session: r.created_by_session,
+            agent_name: r.agent_name,
+            last_result: r.last_result,
         }
     }
 }

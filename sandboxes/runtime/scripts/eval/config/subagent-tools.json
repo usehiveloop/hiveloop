@@ -1,0 +1,67 @@
+[
+  {
+    "type": "builtin.bash",
+    "config": {
+      "workdir": "/workspace/app",
+      "timeout_seconds": 120,
+      "max_output_bytes": 262144,
+      "deny_patterns": [],
+      "env_passthrough": [
+        "PATH",
+        "HOME",
+        "LANG",
+        "LC_ALL",
+        "RAILS_ENV",
+        "RACK_ENV",
+        "BUNDLE_PATH",
+        "BUNDLE_WITHOUT",
+        "GEM_HOME",
+        "GEM_PATH",
+        "DATABASE_URL"
+      ],
+      "sandbox": "process_isolated"
+    }
+  },
+  {
+    "type": "builtin.read_file",
+    "config": {
+      "allowed_roots": [
+        "/workspace"
+      ],
+      "max_file_size_bytes": 5242880,
+      "deny_globs": [
+        "**/.env",
+        "**/.env.*",
+        "**/secrets/**"
+      ]
+    }
+  },
+  {
+    "type": "builtin.write_file",
+    "config": {
+      "allowed_roots": [
+        "/workspace"
+      ],
+      "max_file_size_bytes": 5242880,
+      "deny_globs": [
+        "**/.env",
+        "**/.env.*",
+        "**/.git/**",
+        "**/node_modules/**"
+      ],
+      "atomic": true
+    }
+  },
+  {
+    "type": "builtin.check_bash_status"
+  },
+  {
+    "type": "builtin.skills_list"
+  },
+  {
+    "type": "builtin.skill_view"
+  },
+  {
+    "type": "builtin.search_sessions"
+  }
+]

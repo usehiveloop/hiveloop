@@ -4,29 +4,22 @@ use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use sqlx::{Row, SqlitePool};
 
-use crate::repos::{notify_write, OutboxRepo, OutboxRow, Result, SharedWriteNotifier};
+use crate::repos::{OutboxRepo, OutboxRow, Result};
+
+use super::{SqliteStore, SqliteWriteGateway};
 
 const STATUS_PENDING: &str = "pending";
-const STATUS_DELIVERED: &str = "delivered";
-const STATUS_FAILED: &str = "failed";
 
 pub struct SqliteOutboxRepo {
     pool: Arc<SqlitePool>,
-    write_notifier: Option<SharedWriteNotifier>,
+    writer: Arc<SqliteWriteGateway>,
 }
 
 impl SqliteOutboxRepo {
-    pub fn new(pool: Arc<SqlitePool>) -> Self {
+    pub fn new(store: &SqliteStore) -> Self {
         Self {
-            pool,
-            write_notifier: None,
-        }
-    }
-
-    pub fn with_write_notifier(pool: Arc<SqlitePool>, write_notifier: SharedWriteNotifier) -> Self {
-        Self {
-            pool,
-            write_notifier: Some(write_notifier),
+            pool: store.read_pool(),
+            writer: store.writer(),
         }
     }
 }
@@ -40,22 +33,13 @@ impl OutboxRepo for SqliteOutboxRepo {
         payload: serde_json::Value,
     ) -> Result<i64> {
         let payload_json = serde_json::to_string(&payload)?;
-        let now = Utc::now().to_rfc3339();
-        let id: i64 = sqlx::query_scalar(
-            "INSERT INTO outbound_outbox \
-             (channel_name, event_type, payload_json, attempts, next_retry_at, status, created_at) \
-             VALUES (?, ?, ?, 0, ?, ?, ?) RETURNING id",
-        )
-        .bind(channel_name)
-        .bind(event_type)
-        .bind(&payload_json)
-        .bind(&now)
-        .bind(STATUS_PENDING)
-        .bind(&now)
-        .fetch_one(self.pool.as_ref())
-        .await?;
-        notify_write(&self.write_notifier);
-        Ok(id)
+        self.writer
+            .enqueue_outbox(
+                channel_name.to_string(),
+                event_type.to_string(),
+                payload_json,
+            )
+            .await
     }
 
     async fn claim_due(&self, limit: u32) -> Result<Vec<OutboxRow>> {
@@ -89,13 +73,7 @@ impl OutboxRepo for SqliteOutboxRepo {
     }
 
     async fn mark_delivered(&self, id: i64) -> Result<()> {
-        sqlx::query("UPDATE outbound_outbox SET status = ? WHERE id = ?")
-            .bind(STATUS_DELIVERED)
-            .bind(id)
-            .execute(self.pool.as_ref())
-            .await?;
-        notify_write(&self.write_notifier);
-        Ok(())
+        self.writer.mark_outbox_delivered(id).await
     }
 
     async fn schedule_retry(
@@ -104,26 +82,12 @@ impl OutboxRepo for SqliteOutboxRepo {
         attempts: i32,
         next_retry_at: DateTime<Utc>,
     ) -> Result<()> {
-        sqlx::query(
-            "UPDATE outbound_outbox SET attempts = ?, next_retry_at = ?, status = ? WHERE id = ?",
-        )
-        .bind(attempts)
-        .bind(next_retry_at.to_rfc3339())
-        .bind(STATUS_PENDING)
-        .bind(id)
-        .execute(self.pool.as_ref())
-        .await?;
-        notify_write(&self.write_notifier);
-        Ok(())
+        self.writer
+            .schedule_outbox_retry(id, attempts, next_retry_at)
+            .await
     }
 
     async fn mark_failed(&self, id: i64) -> Result<()> {
-        sqlx::query("UPDATE outbound_outbox SET status = ? WHERE id = ?")
-            .bind(STATUS_FAILED)
-            .bind(id)
-            .execute(self.pool.as_ref())
-            .await?;
-        notify_write(&self.write_notifier);
-        Ok(())
+        self.writer.mark_outbox_failed(id).await
     }
 }

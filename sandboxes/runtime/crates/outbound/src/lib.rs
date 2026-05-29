@@ -10,8 +10,11 @@ use async_trait::async_trait;
 use domain::OutboundEvent;
 
 pub use batch::StreamBatcher;
-pub use builder::{build_registry, build_registry_with_write_notifier};
-pub use database::DatabaseChannel;
+pub use builder::{build_registry, build_registry_with_env};
+pub use database::{
+    DatabaseChannel, DatabaseEventQueue, DATABASE_BATCH_FLUSH_INTERVAL, DATABASE_BATCH_MAX_BYTES,
+    DATABASE_BATCH_MAX_EVENTS,
+};
 pub use dispatcher::OutboundDispatcher;
 pub use emitter::OutboundEmitter;
 pub use registry::OutboundRegistry;

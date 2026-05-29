@@ -7,7 +7,7 @@ use tools::ProcessRegistry;
 #[tokio::test]
 async fn agent_spawns_background_process_and_polls_status() {
     let registry = ProcessRegistry::new();
-    let pid = registry.spawn("sleep 2 && echo done", HashMap::new(), 5);
+    let pid = registry.spawn("sleep 2 && echo done", HashMap::new(), 5, None);
     assert!(
         pid.starts_with("bash-"),
         "process ID should start with bash-"
@@ -29,7 +29,12 @@ async fn agent_spawns_background_process_and_polls_status() {
 #[tokio::test]
 async fn completed_background_process_shows_exit_code_and_output() {
     let registry = ProcessRegistry::new();
-    let pid = registry.spawn("echo 'build complete: 42 tests passed'", HashMap::new(), 5);
+    let pid = registry.spawn(
+        "echo 'build complete: 42 tests passed'",
+        HashMap::new(),
+        5,
+        None,
+    );
 
     let (exit_code, output) = wait_until_finished(&registry, &pid).await;
     assert_eq!(exit_code, Some(0));
@@ -53,11 +58,11 @@ async fn checking_nonexistent_process_returns_none() {
 #[tokio::test]
 async fn multiple_background_processes_get_unique_ids() {
     let registry = ProcessRegistry::new();
-    let pid1 = registry.spawn("sleep 1", HashMap::new(), 5);
+    let pid1 = registry.spawn("sleep 1", HashMap::new(), 5, None);
     tokio::time::sleep(std::time::Duration::from_millis(2)).await;
-    let pid2 = registry.spawn("echo task2", HashMap::new(), 5);
+    let pid2 = registry.spawn("echo task2", HashMap::new(), 5, None);
     tokio::time::sleep(std::time::Duration::from_millis(2)).await;
-    let pid3 = registry.spawn("echo task3", HashMap::new(), 5);
+    let pid3 = registry.spawn("echo task3", HashMap::new(), 5, None);
 
     assert_ne!(pid1, pid2, "each process must have unique ID");
     assert_ne!(pid2, pid3, "each process must have unique ID");
@@ -69,12 +74,21 @@ async fn multiple_background_processes_get_unique_ids() {
     assert!(registry.status(&pid3).is_some());
 }
 
+#[tokio::test]
+async fn running_processes_are_counted_by_session() {
+    let registry = ProcessRegistry::new();
+    let _pid = registry.spawn("sleep 1", HashMap::new(), 5, Some("session-1".to_string()));
+
+    assert_eq!(registry.running_for_session("session-1"), 1);
+    assert_eq!(registry.running_for_session("session-2"), 0);
+}
+
 // SCENARIO: Agent spawns a command that fails immediately.
 // Status shows the error output and non-zero exit code.
 #[tokio::test]
 async fn failed_command_shows_error_in_status() {
     let registry = ProcessRegistry::new();
-    let pid = registry.spawn("nonexistent_command_xyz 2>&1", HashMap::new(), 5);
+    let pid = registry.spawn("nonexistent_command_xyz 2>&1", HashMap::new(), 5, None);
 
     let (exit_code, output) = wait_until_finished(&registry, &pid).await;
     assert!(

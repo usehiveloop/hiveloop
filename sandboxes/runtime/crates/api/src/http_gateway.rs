@@ -194,7 +194,7 @@ impl HttpStreamBroker {
             "model_usage" => ObservabilityEventType::ModelUsage,
             "turn_completed" | "final" => ObservabilityEventType::TurnCompleted,
             "done" => ObservabilityEventType::RunCompleted,
-            "model_request_failed" | "model_stream_failed" | "error" => {
+            "model_request_failed" | "model_stream_failed" | "max_turns_exhausted" | "error" => {
                 ObservabilityEventType::Error
             }
             _ => return,
@@ -248,7 +248,8 @@ impl HttpStreamBroker {
             | "done"
             | "error"
             | "model_request_failed"
-            | "model_stream_failed" => {
+            | "model_stream_failed"
+            | "max_turns_exhausted" => {
                 let completed_at = event.occurred_at;
                 event.timings = EventTimings {
                     started_at: Some(context.started_at),
@@ -362,6 +363,7 @@ impl HttpGatewayState {
             is_direct_message: true,
             is_directly_addressed: true,
             link_previews: Vec::new(),
+            agent_definition: None,
         };
         self.inbound_sink.send(inbound).await?;
         Ok(HttpMessageResponse {

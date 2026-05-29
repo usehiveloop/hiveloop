@@ -37,6 +37,10 @@ pub struct CronJob {
     pub last_error: Option<String>,
     pub delegated_session_id: Option<String>,
     pub session_continuation_id: Option<String>,
+    #[serde(default)]
+    pub agent_name: Option<String>,
+    #[serde(default)]
+    pub last_result: Option<String>,
     pub created_at: DateTime<Utc>,
     pub created_by_session: String,
 }

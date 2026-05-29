@@ -1,5 +1,7 @@
+use std::sync::Arc;
+
 use async_trait::async_trait;
-use domain::SessionId;
+use domain::{AgentDefinition, SessionId};
 use futures::stream::BoxStream;
 use serde::{Deserialize, Serialize};
 
@@ -119,5 +121,10 @@ pub trait AgentRunner: Send + Sync + 'static {
         &self,
         session_id: &SessionId,
         user_input: TurnInput,
+        definition_override: Option<Arc<AgentDefinition>>,
     ) -> Result<BoxStream<'static, AgentEvent>>;
+
+    fn active_background_processes(&self, _session_id: &SessionId) -> usize {
+        0
+    }
 }

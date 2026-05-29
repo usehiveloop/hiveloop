@@ -1,5 +1,5 @@
 use domain::{EventKind, Session, SessionId, SessionStatus};
-use storage::{init_sqlite_pool, EventRepo, SessionRepo, SqliteEventRepo, SqliteSessionRepo};
+use storage::{init_sqlite_store, EventRepo, SessionRepo, SqliteEventRepo, SqliteSessionRepo};
 
 fn history_payload(text: &str, role: &str) -> serde_json::Value {
     serde_json::json!({
@@ -17,9 +17,11 @@ fn history_payload(text: &str, role: &str) -> serde_json::Value {
 async fn search_sessions_finds_readable_conversation_rows() {
     let dir = tempfile::tempdir().expect("tempdir");
     let db_path = dir.path().join("runtime.db");
-    let pool = init_sqlite_pool(&db_path).await.expect("init sqlite");
-    let sessions = SqliteSessionRepo::new(pool.clone());
-    let events = SqliteEventRepo::new(pool);
+    let store = init_sqlite_store(&db_path, None)
+        .await
+        .expect("init sqlite");
+    let sessions = SqliteSessionRepo::new(&store);
+    let events = SqliteEventRepo::new(&store);
     let now = chrono::Utc::now();
     let session_id = SessionId::from("session-search-1");
     sessions

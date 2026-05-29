@@ -157,5 +157,14 @@ pub trait CronJobRepo: Send + Sync + 'static {
         error: Option<&str>,
     ) -> Result<()>;
     async fn increment_repeat(&self, id: &str) -> Result<()>;
+    async fn record_result(&self, id: &str, result: &str) -> Result<()>;
+    async fn complete_delegate_result(
+        &self,
+        id: &str,
+        completed_at: DateTime<Utc>,
+        status: &str,
+        error: Option<&str>,
+        result: &str,
+    ) -> Result<()>;
     async fn delete(&self, id: &str) -> Result<()>;
 }

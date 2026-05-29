@@ -1,8 +1,11 @@
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 
 use chrono::Utc;
 use domain::cron::{CronJob, CronJobSource, CronJobState};
-use storage::{CronJobRepo, SqliteCronJobRepo};
+use storage::{init_sqlite_store, CronJobRepo, SqliteCronJobRepo};
+
+static DB_COUNTER: AtomicU64 = AtomicU64::new(0);
 
 fn test_job(id: &str, source: CronJobSource, interval: u64) -> CronJob {
     CronJob {
@@ -24,30 +27,19 @@ fn test_job(id: &str, source: CronJobSource, interval: u64) -> CronJob {
         session_continuation_id: None,
         created_at: Utc::now(),
         created_by_session: "test".into(),
+        agent_name: None,
+        last_result: None,
     }
 }
 
 async fn setup_repo() -> Arc<dyn CronJobRepo> {
-    let pool = sqlx::sqlite::SqlitePoolOptions::new()
-        .max_connections(2)
-        .connect("sqlite::memory:")
-        .await
-        .unwrap();
-    sqlx::query(
-        "CREATE TABLE cron_jobs (
-            id TEXT PRIMARY KEY NOT NULL, description TEXT NOT NULL, channel TEXT NOT NULL,
-            task_prompt TEXT NOT NULL, cron_expression TEXT, interval_seconds INTEGER,
-            repeat_count INTEGER, repeat_completed INTEGER NOT NULL DEFAULT 0,
-            state TEXT NOT NULL DEFAULT 'active', source TEXT NOT NULL DEFAULT 'cron',
-            next_run_at TEXT NOT NULL, last_run_at TEXT, last_status TEXT, last_error TEXT,
-            delegated_session_id TEXT, session_continuation_id TEXT,
-            created_at TEXT NOT NULL, created_by_session TEXT NOT NULL
-        )",
-    )
-    .execute(&pool)
-    .await
-    .unwrap();
-    Arc::new(SqliteCronJobRepo::new(Arc::new(pool)))
+    let unique = DB_COUNTER.fetch_add(1, Ordering::Relaxed);
+    let db_path = std::env::temp_dir().join(format!(
+        "delegate-wake-integration-{}-{unique}.db",
+        std::process::id()
+    ));
+    let store = init_sqlite_store(&db_path, None).await.unwrap();
+    Arc::new(SqliteCronJobRepo::new(&store))
 }
 
 // SCENARIO: User asks agent to do a big task. Agent decides to delegate 3 background jobs in parallel.

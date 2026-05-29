@@ -58,7 +58,8 @@ if [[ ! -f "$dockerfile_path" ]]; then
   exit 1
 fi
 
-cp "$dockerfile_path" "$TMP_CONTEXT/Dockerfile.runtime"
+dockerfile_name="$(basename "$dockerfile_path")"
+cp "$dockerfile_path" "$TMP_CONTEXT/$dockerfile_name"
 cp "$BINARY" "$TMP_CONTEXT/hivy-sandboxes-runtime"
 mkdir -p "$TMP_CONTEXT/docker"
 cp -R "$ROOT/docker/runtime" "$TMP_CONTEXT/docker/runtime"
@@ -70,7 +71,7 @@ fi
 
 "$DOCKER_BIN" build \
   "${build_args[@]}" \
-  -f "$TMP_CONTEXT/Dockerfile.runtime" \
+  -f "$TMP_CONTEXT/$dockerfile_name" \
   -t "$IMAGE" \
   "$TMP_CONTEXT"
 

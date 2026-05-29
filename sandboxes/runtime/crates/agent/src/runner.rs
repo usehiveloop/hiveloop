@@ -85,8 +85,9 @@ impl AgentRunner for RigAgentRunner {
         &self,
         session_id: &SessionId,
         user_input: TurnInput,
+        definition_override: Option<Arc<AgentDefinition>>,
     ) -> Result<BoxStream<'static, AgentEvent>> {
-        let snapshot = self.config.snapshot();
+        let snapshot = definition_override.unwrap_or_else(|| self.config.snapshot());
         let model_config = pick_model_for_turn(&snapshot, &user_input);
         let runtime_env = self.config.runtime_env();
         let ModelClientConfig {
@@ -130,6 +131,7 @@ impl AgentRunner for RigAgentRunner {
                 mcp_registry: mcp_registry.clone(),
                 workspace_root: tool_context.workspace_root.clone(),
                 outbound_emitter: self.outbound_emitter.clone(),
+                agent_registry: self.config.agent_registry(),
             },
             mcp_registry.clone(),
         );
@@ -150,6 +152,7 @@ impl AgentRunner for RigAgentRunner {
                     "model": model_id,
                 }),
             };
+            let mut completed_with_final = false;
             for _turn in 0..max_turns {
                 let definitions = available_tools.iter().map(|tool| tool.definition()).collect();
                 let request = ModelRequest {
@@ -250,6 +253,7 @@ impl AgentRunner for RigAgentRunner {
 
                 if tool_calls.is_empty() {
                     final_text = turn_text.clone();
+                    completed_with_final = true;
                     if !turn_text.is_empty() {
                         let assistant = AgentMessage::assistant(turn_text);
                         if let Err(error) = append_model_message(event_repo.as_deref(), &session_id, &assistant).await {
@@ -305,6 +309,21 @@ impl AgentRunner for RigAgentRunner {
                 }
             }
 
+            if !completed_with_final {
+                let message = format!("max turns exhausted before final response: limit={max_turns}");
+                yield AgentEvent::RunEvent {
+                    event: "max_turns_exhausted".to_string(),
+                    payload: serde_json::json!({
+                        "session_id": session_id.as_str(),
+                        "turn_id": turn_id,
+                        "limit": max_turns,
+                        "model": model_id,
+                    }),
+                };
+                yield AgentEvent::Error { message };
+                return;
+            }
+
             yield AgentEvent::RunEvent {
                 event: "turn_completed".to_string(),
                 payload: serde_json::json!({
@@ -315,6 +334,12 @@ impl AgentRunner for RigAgentRunner {
             };
             yield AgentEvent::FinalMessage { text: final_text };
         }))
+    }
+
+    fn active_background_processes(&self, session_id: &SessionId) -> usize {
+        self.tool_context
+            .process_registry
+            .running_for_session(session_id.as_str())
     }
 }
 
@@ -709,6 +734,7 @@ mod tests {
             mcp_servers: Vec::new(),
             skills: Vec::new(),
             outbound_channels: Vec::new(),
+            sub_agents: Default::default(),
         }
     }
 
@@ -858,7 +884,7 @@ fn build_all_tools(
     tool_context: &ToolContext,
     mcp_registry: Option<Arc<McpRegistry>>,
 ) -> Vec<Arc<dyn JsonTool>> {
-    let mut tools = tools::build_builtin_tools(specs, context);
+    let mut tools = tools::build_builtin_tools(specs, context, session_id);
     tools.extend(build_agent_tools(specs, session_id, tool_context));
     if let Some(registry) = mcp_registry {
         for def in registry.loaded_tools() {

@@ -1,29 +1,23 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use chrono::Utc;
 use domain::AgentDefinition;
 use sqlx::SqlitePool;
 
-use crate::repos::{notify_write, ConfigRepo, Result, SharedWriteNotifier, StorageError};
+use crate::repos::{ConfigRepo, Result};
+
+use super::{SqliteStore, SqliteWriteGateway};
 
 pub struct SqliteConfigRepo {
     pool: Arc<SqlitePool>,
-    write_notifier: Option<SharedWriteNotifier>,
+    writer: Arc<SqliteWriteGateway>,
 }
 
 impl SqliteConfigRepo {
-    pub fn new(pool: Arc<SqlitePool>) -> Self {
+    pub fn new(store: &SqliteStore) -> Self {
         Self {
-            pool,
-            write_notifier: None,
-        }
-    }
-
-    pub fn with_write_notifier(pool: Arc<SqlitePool>, write_notifier: SharedWriteNotifier) -> Self {
-        Self {
-            pool,
-            write_notifier: Some(write_notifier),
+            pool: store.read_pool(),
+            writer: store.writer(),
         }
     }
 }
@@ -42,20 +36,6 @@ impl ConfigRepo for SqliteConfigRepo {
     }
 
     async fn upsert(&self, definition: &AgentDefinition) -> Result<()> {
-        let definition_json = serde_json::to_string(definition)?;
-        let updated_at = Utc::now().to_rfc3339();
-        sqlx::query(
-            "INSERT INTO agent_config (id, definition_json, updated_at) VALUES (1, ?, ?) \
-             ON CONFLICT(id) DO UPDATE SET \
-             definition_json = excluded.definition_json, \
-             updated_at = excluded.updated_at",
-        )
-        .bind(&definition_json)
-        .bind(&updated_at)
-        .execute(self.pool.as_ref())
-        .await
-        .map_err(StorageError::from)?;
-        notify_write(&self.write_notifier);
-        Ok(())
+        self.writer.upsert_config(definition).await
     }
 }

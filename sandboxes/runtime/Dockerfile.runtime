@@ -1,7 +1,11 @@
 FROM debian:13.4
 
 ENV DEBIAN_FRONTEND=noninteractive
-ENV NVM_DIR=/usr/local/nvm
+ENV MISE_INSTALL_DIR=/usr/local/bin
+ENV MISE_DATA_DIR=/usr/local/share/mise
+ENV MISE_CONFIG_DIR=/usr/local/etc/mise
+ENV MISE_CACHE_DIR=/usr/local/cache/mise
+ENV PATH=/usr/local/share/mise/shims:${PATH}
 ARG JUST_VERSION=1.38.0
 ARG VERSION=dev
 ARG COMMIT=unknown
@@ -29,11 +33,11 @@ RUN apt-get update \
     iputils-ping \
     jq \
     less \
+    libsqlite3-dev \
+    libyaml-dev \
     lsof \
     make \
     netcat-openbsd \
-    nodejs \
-    npm \
     openssh-client \
     pkg-config \
     procps \
@@ -57,15 +61,14 @@ RUN apt-get update \
     zip \
     zsh \
   && ln -s /usr/bin/fdfind /usr/local/bin/fd \
-  && just_arch="$(case "$(dpkg --print-architecture)" in amd64) echo x86_64 ;; arm64) echo aarch64 ;; *) dpkg --print-architecture; exit 1 ;; esac)" \
-  && curl -fsSL "https://github.com/casey/just/releases/download/${JUST_VERSION}/just-${JUST_VERSION}-${just_arch}-unknown-linux-musl.tar.gz" \
-    | tar -xz -C /usr/local/bin just \
   && git lfs install --system \
+  && curl -fsSL https://mise.run | sh \
+  && mv /root/.local/bin/mise /usr/local/bin/mise \
+  && mise use -g just@${JUST_VERSION} \
+  && mise use -g node@lts \
   && npm install -g pnpm@10 \
-  && mkdir -p "$NVM_DIR" \
-  && curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | PROFILE=/dev/null bash \
-  && printf '%s\n' 'export NVM_DIR="/usr/local/nvm"' '[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"' >/etc/profile.d/nvm.sh \
   && python3 -m pip install --break-system-packages --no-cache-dir uv \
+  && printf '%s\n' 'eval "$(mise activate bash)"' >/etc/profile.d/mise.sh \
   && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -89,4 +92,4 @@ ENV HIVY_SANDBOXES_RUNTIME_COMMIT=${COMMIT}
 
 EXPOSE 7080
 
-ENTRYPOINT ["/usr/bin/tini", "--", "/bin/sh", "-c", "git config --system user.name \"$HIVY_GIT_USERNAME\"; git config --system user.email \"$HIVY_GIT_EMAIL\"; exec /usr/local/bin/hivy-sandboxes-runtime"]
+ENTRYPOINT ["/usr/bin/tini", "--", "/usr/local/bin/hivy-sandboxes-runtime"]

@@ -5,13 +5,18 @@ FROM debian:13.4
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 ENV DEBIAN_FRONTEND=noninteractive
-ENV NVM_DIR=/usr/local/nvm
-ENV RVM_PATH=/usr/local/rvm
-ENV PATH=/usr/local/go/bin:/usr/local/rvm/bin:/usr/local/rvm/rubies/default/bin:/usr/local/nvm/versions/node/default/bin:${PATH}
+ENV MISE_INSTALL_DIR=/usr/local/bin
+ENV MISE_DATA_DIR=/usr/local/share/mise
+ENV MISE_CONFIG_DIR=/usr/local/etc/mise
+ENV MISE_CACHE_DIR=/usr/local/cache/mise
+ENV PATH=/usr/local/share/mise/shims:/root/.cargo/bin:/usr/local/go/bin:${PATH}
+ENV RUSTUP_HOME=/root/.rustup
+ENV CARGO_HOME=/root/.cargo
 
-ARG GO_VERSION=1.25.10
 ARG JUST_VERSION=1.38.0
-ARG NODE_INSTALL_VERSION=--lts
+ARG RUBY_VERSION=3.3.8
+ARG NODE_VERSION=lts
+ARG GO_VERSION=1.25.10
 ARG VERSION=dev
 ARG COMMIT=unknown
 
@@ -55,7 +60,6 @@ RUN apt-get update \
     git \
     git-lfs \
     gnupg2 \
-    golang-go \
     gradle \
     graphicsmagick \
     gzip \
@@ -69,9 +73,15 @@ RUN apt-get update \
     libatk1.0-0 \
     libcups2 \
     libgbm1 \
+    libgdbm-dev \
+    libgmp-dev \
     libgtk-3-0 \
+    libncurses-dev \
     libnss3 \
+    libreadline-dev \
+    libssl-dev \
     libvips-tools \
+    libyaml-dev \
     lsof \
     make \
     maven \
@@ -93,12 +103,9 @@ RUN apt-get update \
     python3-dev \
     python3-pip \
     python3-venv \
-    rake \
     redis-tools \
     ripgrep \
     rsync \
-    ruby-dev \
-    ruby-full \
     shellcheck \
     shfmt \
     socat \
@@ -122,21 +129,13 @@ RUN apt-get update \
   && rm -rf /var/lib/apt/lists/*
 
 RUN ln -sf /usr/bin/fdfind /usr/local/bin/fd \
-  && just_arch="$(case "$(dpkg --print-architecture)" in amd64) echo x86_64 ;; arm64) echo aarch64 ;; *) dpkg --print-architecture; exit 1 ;; esac)" \
-  && curl -fsSL "https://github.com/casey/just/releases/download/${JUST_VERSION}/just-${JUST_VERSION}-${just_arch}-unknown-linux-musl.tar.gz" \
-    | tar -xz -C /usr/local/bin just \
-  && go_arch="$(case "$(dpkg --print-architecture)" in amd64) echo amd64 ;; arm64) echo arm64 ;; *) dpkg --print-architecture; exit 1 ;; esac)" \
-  && curl -fsSL "https://go.dev/dl/go${GO_VERSION}.linux-${go_arch}.tar.gz" \
-    | tar -xz -C /usr/local \
   && git lfs install --system
 
-RUN mkdir -p "$NVM_DIR" \
-  && curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | PROFILE=/dev/null bash \
-  && source "$NVM_DIR/nvm.sh" \
-  && nvm install "$NODE_INSTALL_VERSION" \
-  && nvm alias default node \
-  && default_node="$(nvm version default)" \
-  && ln -s "$NVM_DIR/versions/node/$default_node" "$NVM_DIR/versions/node/default" \
+RUN curl -fsSL https://mise.run | sh \
+  && mv /root/.local/bin/mise /usr/local/bin/mise \
+  && mise use -g just@${JUST_VERSION}
+
+RUN mise use -g node@${NODE_VERSION} \
   && corepack enable \
   && corepack prepare pnpm@10 --activate \
   && corepack prepare yarn@stable --activate \
@@ -147,12 +146,7 @@ RUN mkdir -p "$NVM_DIR" \
     markdownlint-cli \
     mongosh \
     prettier \
-  && npm cache clean --force \
-  && printf '%s\n' \
-    'export NVM_DIR="/usr/local/nvm"' \
-    '[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"' \
-    'export PATH="/usr/local/nvm/versions/node/default/bin:$PATH"' \
-    >/etc/profile.d/nvm.sh
+  && npm cache clean --force
 
 RUN python3 -m pip install --break-system-packages --no-cache-dir \
     awscli \
@@ -168,9 +162,8 @@ RUN python3 -m pip install --break-system-packages --no-cache-dir \
     ruff \
     uv
 
-RUN curl -fsSL https://sh.rustup.rs \
-    | sh -s -- -y --profile default --default-toolchain stable \
-  && source /root/.cargo/env \
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile default --default-toolchain stable \
+  && . /root/.cargo/env \
   && rustup component add clippy rustfmt \
   && ln -sf /root/.cargo/bin/cargo /usr/local/bin/cargo \
   && ln -sf /root/.cargo/bin/rustc /usr/local/bin/rustc \
@@ -178,14 +171,10 @@ RUN curl -fsSL https://sh.rustup.rs \
   && ln -sf /root/.cargo/bin/cargo-clippy /usr/local/bin/cargo-clippy \
   && ln -sf /root/.cargo/bin/rustup /usr/local/bin/rustup
 
-RUN curl -fsSL https://rvm.io/mpapis.asc | gpg --import - \
-  && curl -fsSL https://rvm.io/pkuczynski.asc | gpg --import - \
-  && gem install --no-document bundler rails rubocop \
-  && curl -fsSL https://get.rvm.io | bash -s stable \
-  && printf '%s\n' \
-    'export rvm_path="/usr/local/rvm"' \
-    '[ -s "/usr/local/rvm/scripts/rvm" ] && \. "/usr/local/rvm/scripts/rvm"' \
-    >/etc/profile.d/rvm.sh
+RUN mise use -g ruby@${RUBY_VERSION} \
+  && gem install --no-document bundler rails rubocop
+
+RUN printf '%s\n' 'eval "$(mise activate bash)"' >/etc/profile.d/mise.sh
 
 WORKDIR /app
 
@@ -210,4 +199,4 @@ ENV NO_BROWSER=1
 
 EXPOSE 7080
 
-ENTRYPOINT ["/usr/bin/tini", "--", "/bin/sh", "-c", "git config --system user.name \"$HIVY_GIT_USERNAME\"; git config --system user.email \"$HIVY_GIT_EMAIL\"; exec /usr/local/bin/hivy-sandboxes-runtime"]
+ENTRYPOINT ["/usr/bin/tini", "--", "/usr/local/bin/hivy-sandboxes-runtime"]

@@ -43,6 +43,16 @@ impl SessionCoordinator {
             .map(|(_, queue)| queue.into_inner().unwrap())
             .unwrap_or_default()
     }
+
+    pub fn drain_queued(&self, session_id: &SessionId) -> Vec<InboundEvent> {
+        self.sessions
+            .get(session_id)
+            .map(|queue| {
+                let mut queue = queue.lock().unwrap();
+                std::mem::take(&mut *queue)
+            })
+            .unwrap_or_default()
+    }
 }
 
 #[cfg(test)]
@@ -71,6 +81,7 @@ mod tests {
             is_direct_message: false,
             is_directly_addressed: true,
             link_previews: Vec::new(),
+            agent_definition: None,
         }
     }
 

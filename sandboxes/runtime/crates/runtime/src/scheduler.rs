@@ -3,7 +3,8 @@ use std::time::Duration;
 
 use agent::rig_tool_registry::{emit_schedule_event, schedule_run_key, ScheduleRunPayload};
 use chrono::Utc;
-use domain::cron::CronJobState;
+use domain::agent_registry::AgentDefinitionRegistry;
+use domain::cron::{CronJobSource, CronJobState};
 use domain::event_types;
 use domain::{CronJob, InboundEvent, MessageHandle, SessionId};
 use outbound::OutboundEmitter;
@@ -18,6 +19,7 @@ pub struct CronScheduler {
     repo: Arc<dyn CronJobRepo>,
     inbound_sink: mpsc::Sender<InboundEvent>,
     emitter: Option<Arc<OutboundEmitter>>,
+    agent_registry: Arc<AgentDefinitionRegistry>,
 }
 
 impl CronScheduler {
@@ -25,11 +27,13 @@ impl CronScheduler {
         repo: Arc<dyn CronJobRepo>,
         inbound_sink: mpsc::Sender<InboundEvent>,
         emitter: Option<Arc<OutboundEmitter>>,
+        agent_registry: Arc<AgentDefinitionRegistry>,
     ) -> Self {
         Self {
             repo,
             inbound_sink,
             emitter,
+            agent_registry,
         }
     }
 
@@ -134,6 +138,34 @@ impl CronScheduler {
         )
         .await;
 
+        let agent_definition = job
+            .agent_name
+            .as_deref()
+            .and_then(|name| self.agent_registry.resolve(name));
+
+        if let Some(ref name) = job.agent_name {
+            if agent_definition.is_none() {
+                error!(
+                    job_id = %job.id,
+                    agent_name = %name,
+                    "cron: sub-agent not found in registry"
+                );
+                let _ = self
+                    .repo
+                    .record_run(
+                        &job.id,
+                        Utc::now(),
+                        "failed",
+                        Some(&format!("sub-agent '{}' not found", name)),
+                    )
+                    .await;
+                if job.source == CronJobSource::Delegate {
+                    let _ = self.repo.set_state(&job.id, CronJobState::Completed).await;
+                }
+                return;
+            }
+        }
+
         let inbound = InboundEvent {
             envelope_id: envelope_id.clone(),
             session_id: session_id.clone(),
@@ -141,7 +173,13 @@ impl CronScheduler {
             user_display_name: Some("Scheduler".to_string()),
             text: job.task_prompt.clone(),
             attachments: Vec::new(),
-            raw: serde_json::json!({"source": "cron", "job_id": job.id}),
+            raw: serde_json::json!({
+                "source": "cron",
+                "job_id": job.id,
+                "agent_name": job.agent_name,
+                "parent_session_id": job.created_by_session,
+                "delegate_goal": job.task_prompt,
+            }),
             inbound_handle: MessageHandle {
                 channel: job.channel.clone(),
                 ts: String::new(),
@@ -149,6 +187,7 @@ impl CronScheduler {
             is_direct_message: false,
             is_directly_addressed: true,
             link_previews: Vec::new(),
+            agent_definition,
         };
 
         info!(
@@ -205,6 +244,12 @@ impl CronScheduler {
             .ok()
             .flatten()
             .unwrap_or(running_job);
+        // Delegate jobs are completed by the handler after recording the result.
+        // Skip SCHEDULE_RUN_COMPLETED and cleanup — the handler manages the lifecycle.
+        if job.source == CronJobSource::Delegate {
+            return;
+        }
+
         emit_schedule_event(
             self.emitter.clone(),
             event_types::SCHEDULE_RUN_COMPLETED,

@@ -5,27 +5,20 @@ use chrono::{DateTime, Utc};
 use domain::{Session, SessionId, SessionStatus};
 use sqlx::{Row, SqlitePool};
 
-use crate::repos::{
-    notify_write, Result, SessionListFilter, SessionRepo, SharedWriteNotifier, StorageError,
-};
+use crate::repos::{Result, SessionListFilter, SessionRepo, StorageError};
+
+use super::{SqliteStore, SqliteWriteGateway};
 
 pub struct SqliteSessionRepo {
     pool: Arc<SqlitePool>,
-    write_notifier: Option<SharedWriteNotifier>,
+    writer: Arc<SqliteWriteGateway>,
 }
 
 impl SqliteSessionRepo {
-    pub fn new(pool: Arc<SqlitePool>) -> Self {
+    pub fn new(store: &SqliteStore) -> Self {
         Self {
-            pool,
-            write_notifier: None,
-        }
-    }
-
-    pub fn with_write_notifier(pool: Arc<SqlitePool>, write_notifier: SharedWriteNotifier) -> Self {
-        Self {
-            pool,
-            write_notifier: Some(write_notifier),
+            pool: store.read_pool(),
+            writer: store.writer(),
         }
     }
 }
@@ -88,49 +81,15 @@ impl SessionRepo for SqliteSessionRepo {
     }
 
     async fn create(&self, session: &Session) -> Result<()> {
-        let result = sqlx::query(
-            "INSERT INTO sessions (id, channel, thread_ts, agent_session_id, status, created_at, \
-             last_activity_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
-        )
-        .bind(session.id.as_str())
-        .bind(&session.channel)
-        .bind(&session.thread_ts)
-        .bind(&session.agent_session_id)
-        .bind(status_to_str(session.status))
-        .bind(session.created_at.to_rfc3339())
-        .bind(session.last_activity_at.to_rfc3339())
-        .execute(self.pool.as_ref())
-        .await;
-        match result {
-            Ok(_) => {
-                notify_write(&self.write_notifier);
-                Ok(())
-            }
-            Err(sqlx::Error::Database(db_err)) if db_err.is_unique_violation() => {
-                Err(StorageError::Conflict)
-            }
-            Err(e) => Err(StorageError::from(e)),
-        }
+        self.writer.create_session(session.clone()).await
     }
 
     async fn touch(&self, id: &SessionId, at: DateTime<Utc>) -> Result<()> {
-        sqlx::query("UPDATE sessions SET last_activity_at = ? WHERE id = ?")
-            .bind(at.to_rfc3339())
-            .bind(id.as_str())
-            .execute(self.pool.as_ref())
-            .await?;
-        notify_write(&self.write_notifier);
-        Ok(())
+        self.writer.touch_session(id.clone(), at).await
     }
 
     async fn set_status(&self, id: &SessionId, status: SessionStatus) -> Result<()> {
-        sqlx::query("UPDATE sessions SET status = ? WHERE id = ?")
-            .bind(status_to_str(status))
-            .bind(id.as_str())
-            .execute(self.pool.as_ref())
-            .await?;
-        notify_write(&self.write_notifier);
-        Ok(())
+        self.writer.set_session_status(id.clone(), status).await
     }
 
     async fn list(&self, filter: SessionListFilter, limit: u32) -> Result<Vec<Session>> {

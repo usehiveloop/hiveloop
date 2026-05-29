@@ -13,7 +13,7 @@ pub enum ToolSpec {
     #[serde(rename = "builtin.cron")]
     Cron,
     #[serde(rename = "builtin.delegate")]
-    Delegate,
+    Delegate(#[serde(default)] DelegateConfig),
     #[serde(rename = "builtin.check_delegated_status")]
     CheckDelegatedStatus,
     #[serde(rename = "builtin.check_bash_status")]
@@ -70,4 +70,12 @@ pub struct WriteFileConfig {
 
 fn default_atomic() -> bool {
     true
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct DelegateConfig {
+    /// Allowlist of sub-agent names. Empty = all sub-agents available.
+    #[serde(default)]
+    pub agents: Vec<String>,
 }

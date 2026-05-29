@@ -1,16 +1,22 @@
 use chrono::Utc;
 use domain::{EventKind, Session, SessionId, SessionStatus};
-use storage::{init_sqlite_pool, EventRepo, SessionRepo, SqliteEventRepo, SqliteSessionRepo};
+use std::sync::atomic::{AtomicU64, Ordering};
+use storage::{init_sqlite_store, EventRepo, SessionRepo, SqliteEventRepo, SqliteSessionRepo};
+
+static DB_COUNTER: AtomicU64 = AtomicU64::new(0);
 
 #[tokio::test]
 async fn idempotent_event_append_is_enforced_by_sqlite() {
+    let unique = DB_COUNTER.fetch_add(1, Ordering::Relaxed);
     let db_path = std::env::temp_dir().join(format!(
-        "employee-event-idempotency-{}.db",
-        Utc::now().timestamp_nanos_opt().unwrap_or_default()
+        "employee-event-idempotency-{}-{unique}.db",
+        std::process::id()
     ));
-    let pool = init_sqlite_pool(&db_path).await.expect("init sqlite");
-    let sessions = SqliteSessionRepo::new(pool.clone());
-    let events = SqliteEventRepo::new(pool);
+    let store = init_sqlite_store(&db_path, None)
+        .await
+        .expect("init sqlite");
+    let sessions = SqliteSessionRepo::new(&store);
+    let events = SqliteEventRepo::new(&store);
     let now = Utc::now();
     let session_id = SessionId::from("session-1");
     sessions

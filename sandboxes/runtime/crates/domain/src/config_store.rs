@@ -1,3 +1,4 @@
+use crate::agent_registry::AgentDefinitionRegistry;
 use crate::AgentDefinition;
 use arc_swap::ArcSwap;
 use std::collections::HashMap;
@@ -15,6 +16,7 @@ use std::sync::Arc;
 pub struct ConfigStore {
     inner: Arc<ArcSwap<AgentDefinition>>,
     runtime_env: Arc<ArcSwap<HashMap<String, String>>>,
+    agent_registry: Arc<ArcSwap<AgentDefinitionRegistry>>,
 }
 
 impl ConfigStore {
@@ -26,9 +28,13 @@ impl ConfigStore {
         initial: AgentDefinition,
         runtime_env: HashMap<String, String>,
     ) -> Self {
+        let inner = Arc::new(ArcSwap::from_pointee(initial));
+        let parent = inner.load_full();
+        let registry = AgentDefinitionRegistry::from_definition(parent);
         Self {
-            inner: Arc::new(ArcSwap::from_pointee(initial)),
+            inner,
             runtime_env: Arc::new(ArcSwap::from_pointee(runtime_env)),
+            agent_registry: Arc::new(ArcSwap::from_pointee(registry)),
         }
     }
 
@@ -57,5 +63,16 @@ impl ConfigStore {
 
     pub fn replace(&self, def: AgentDefinition) {
         self.inner.store(Arc::new(def));
+        self.rebuild_agent_registry();
+    }
+
+    pub fn agent_registry(&self) -> Arc<AgentDefinitionRegistry> {
+        self.agent_registry.load_full()
+    }
+
+    fn rebuild_agent_registry(&self) {
+        let snapshot = self.snapshot();
+        let registry = AgentDefinitionRegistry::from_definition(snapshot);
+        self.agent_registry.store(Arc::new(registry));
     }
 }

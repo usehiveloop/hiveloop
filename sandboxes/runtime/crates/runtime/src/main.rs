@@ -28,13 +28,13 @@ use domain::{
 use gateway::ChannelGateway;
 use mcp::McpRegistry;
 use outbound::{
-    build_registry_with_write_notifier, OutboundDispatcher, OutboundEmitter, OutboundRegistry,
-    StreamBatcher,
+    build_registry_with_env, DatabaseEventQueue, OutboundDispatcher, OutboundEmitter,
+    OutboundRegistry, StreamBatcher, DATABASE_BATCH_FLUSH_INTERVAL, DATABASE_BATCH_MAX_BYTES,
+    DATABASE_BATCH_MAX_EVENTS,
 };
 use skills::SkillWriter;
-use sqlx::SqlitePool;
 use storage::{
-    init_sqlite_pool, SqliteConfigRepo, SqliteCronJobRepo, SqliteEventRepo,
+    init_sqlite_store, SqliteConfigRepo, SqliteCronJobRepo, SqliteEventRepo,
     SqliteInboundDedupeRepo, SqliteOutboxRepo, SqliteSessionRepo,
 };
 use tokio::sync::{mpsc, RwLock};
@@ -82,50 +82,15 @@ async fn main() -> Result<()> {
     info!(workspace = %workspace_root.display(), "workspace ready");
     info!(database = %database_path, "initializing storage");
     let database_path = PathBuf::from(&database_path);
-    let sqlite_pool = init_sqlite_pool(database_path.clone()).await?;
-    let write_notifier: Option<storage::SharedWriteNotifier> = None;
-    let config_repo: Arc<dyn storage::ConfigRepo> = match write_notifier.clone() {
-        Some(notifier) => Arc::new(SqliteConfigRepo::with_write_notifier(
-            sqlite_pool.clone(),
-            notifier,
-        )),
-        None => Arc::new(SqliteConfigRepo::new(sqlite_pool.clone())),
-    };
-    let session_repo: Arc<dyn storage::SessionRepo> = match write_notifier.clone() {
-        Some(notifier) => Arc::new(SqliteSessionRepo::with_write_notifier(
-            sqlite_pool.clone(),
-            notifier,
-        )),
-        None => Arc::new(SqliteSessionRepo::new(sqlite_pool.clone())),
-    };
-    let event_repo: Arc<dyn storage::EventRepo> = match write_notifier.clone() {
-        Some(notifier) => Arc::new(SqliteEventRepo::with_write_notifier(
-            sqlite_pool.clone(),
-            notifier,
-        )),
-        None => Arc::new(SqliteEventRepo::new(sqlite_pool.clone())),
-    };
-    let outbox_repo: Arc<dyn storage::OutboxRepo> = match write_notifier.clone() {
-        Some(notifier) => Arc::new(SqliteOutboxRepo::with_write_notifier(
-            sqlite_pool.clone(),
-            notifier,
-        )),
-        None => Arc::new(SqliteOutboxRepo::new(sqlite_pool.clone())),
-    };
-    let _dedupe_repo: Arc<dyn storage::InboundDedupeRepo> = match write_notifier.clone() {
-        Some(notifier) => Arc::new(SqliteInboundDedupeRepo::with_write_notifier(
-            sqlite_pool.clone(),
-            notifier,
-        )),
-        None => Arc::new(SqliteInboundDedupeRepo::new(sqlite_pool.clone())),
-    };
-    let cron_repo: Arc<dyn storage::CronJobRepo> = match write_notifier.clone() {
-        Some(notifier) => Arc::new(SqliteCronJobRepo::with_write_notifier(
-            sqlite_pool.clone(),
-            notifier,
-        )),
-        None => Arc::new(SqliteCronJobRepo::new(sqlite_pool.clone())),
-    };
+    let sqlite_store = init_sqlite_store(database_path.clone(), None).await?;
+    let config_repo: Arc<dyn storage::ConfigRepo> = Arc::new(SqliteConfigRepo::new(&sqlite_store));
+    let session_repo: Arc<dyn storage::SessionRepo> =
+        Arc::new(SqliteSessionRepo::new(&sqlite_store));
+    let event_repo: Arc<dyn storage::EventRepo> = Arc::new(SqliteEventRepo::new(&sqlite_store));
+    let outbox_repo: Arc<dyn storage::OutboxRepo> = Arc::new(SqliteOutboxRepo::new(&sqlite_store));
+    let _dedupe_repo: Arc<dyn storage::InboundDedupeRepo> =
+        Arc::new(SqliteInboundDedupeRepo::new(&sqlite_store));
+    let cron_repo: Arc<dyn storage::CronJobRepo> = Arc::new(SqliteCronJobRepo::new(&sqlite_store));
 
     let mut persisted_definition_loaded = false;
     let initial_definition = match config_repo.load().await? {
@@ -143,20 +108,13 @@ async fn main() -> Result<()> {
     let config = ConfigStore::with_runtime_env(initial_definition.clone(), runtime_env);
     let initial_runtime_env = config.runtime_env();
     let mcp_registry = Arc::new(McpRegistry::from_specs(&[], &initial_runtime_env).await);
-    let registry = build_registry_with_write_notifier(
-        sqlite_pool.clone(),
-        &[],
-        write_notifier.clone(),
-        &initial_runtime_env,
-    )
-    .map_err(|e| anyhow::anyhow!("build outbound registry: {e}"))?;
+    let registry = build_registry_with_env(&[], &initial_runtime_env)
+        .map_err(|e| anyhow::anyhow!("build outbound registry: {e}"))?;
     let registry = Arc::new(RwLock::new(registry));
     let stream_batcher = Arc::new(RwLock::new(None));
     let outbound_reloader: Arc<dyn OutboundConfigReloader> = Arc::new(RegistryReloader {
         config: config.clone(),
-        sqlite_pool: sqlite_pool.clone(),
         registry: registry.clone(),
-        write_notifier: write_notifier.clone(),
         stream_batcher: stream_batcher.clone(),
     });
 
@@ -220,10 +178,20 @@ async fn main() -> Result<()> {
 
     let dispatcher = OutboundDispatcher::new(outbox_repo.clone(), registry.clone());
     let (dispatcher_handle, dispatcher_cancel) = dispatcher.spawn();
+    let database_event_queue = DatabaseEventQueue::new(sqlite_store.writer());
+    info!(
+        database_channel = "queued",
+        db_flush_max_events = DATABASE_BATCH_MAX_EVENTS,
+        db_flush_max_bytes = DATABASE_BATCH_MAX_BYTES,
+        db_flush_interval_ms = DATABASE_BATCH_FLUSH_INTERVAL.as_millis(),
+        "database event queue enabled"
+    );
+    let _database_event_queue_handle = database_event_queue.clone().spawn();
 
     let emitter = Arc::new(
         OutboundEmitter::new(outbox_repo.clone(), registry.clone())
-            .with_stream_batcher(stream_batcher.clone()),
+            .with_stream_batcher(stream_batcher.clone())
+            .with_database_queue(database_event_queue.clone()),
     );
 
     let rig_runner = RigAgentRunner::new(config.clone(), workspace_root.clone())
@@ -240,6 +208,7 @@ async fn main() -> Result<()> {
         cron_repo.clone(),
         inbound_sink.clone(),
         Some(emitter.clone()),
+        config.agent_registry(),
     );
     let _scheduler_handle = tokio::spawn(scheduler.run());
 
@@ -253,6 +222,8 @@ async fn main() -> Result<()> {
             let session_repo = session_repo.clone();
             let coordinator = coordinator.clone();
             let turn_event_sink: Arc<dyn handler::TurnEventSink> = http_stream_broker.clone();
+            let inbound_sink = inbound_sink.clone();
+            let cron_repo = cron_repo.clone();
             tokio::spawn(async move {
                 if let Err(e) = handler::handle_inbound(
                     runner,
@@ -262,6 +233,8 @@ async fn main() -> Result<()> {
                     session_repo,
                     coordinator,
                     turn_event_sink,
+                    inbound_sink,
+                    cron_repo,
                     inbound,
                 )
                 .await
@@ -279,6 +252,12 @@ async fn main() -> Result<()> {
 
     let _ = dispatcher_cancel.send(());
     let _ = dispatcher_handle.await;
+    if let Err(error) = database_event_queue.flush().await {
+        warn!(%error, "database event queue final flush failed");
+    }
+    if let Err(error) = sqlite_store.flush_writes().await {
+        warn!(%error, "sqlite write gateway final flush failed");
+    }
     let _ = api_cancel.send(());
     let _ = api_handle.await;
     drop(sentry_guard);
@@ -287,9 +266,7 @@ async fn main() -> Result<()> {
 
 struct RegistryReloader {
     config: ConfigStore,
-    sqlite_pool: Arc<SqlitePool>,
     registry: Arc<RwLock<OutboundRegistry>>,
-    write_notifier: Option<storage::SharedWriteNotifier>,
     stream_batcher: Arc<RwLock<Option<Arc<StreamBatcher>>>>,
 }
 
@@ -297,13 +274,8 @@ struct RegistryReloader {
 impl OutboundConfigReloader for RegistryReloader {
     async fn reload_outbound_channels(&self, specs: &[OutboundChannelSpec]) -> anyhow::Result<()> {
         let runtime_env = self.config.runtime_env();
-        let next = build_registry_with_write_notifier(
-            self.sqlite_pool.clone(),
-            specs,
-            self.write_notifier.clone(),
-            &runtime_env,
-        )
-        .map_err(|error| anyhow::anyhow!("build outbound registry: {error}"))?;
+        let next = build_registry_with_env(specs, &runtime_env)
+            .map_err(|error| anyhow::anyhow!("build outbound registry: {error}"))?;
         let names = next.names();
         let next_batcher = StreamBatcher::from_specs(specs, &runtime_env)
             .map_err(|error| anyhow::anyhow!("build stream batcher: {error}"))?;
@@ -338,6 +310,7 @@ fn bootstrap_agent_definition() -> AgentDefinition {
         mcp_servers: Vec::new(),
         skills: Vec::new(),
         outbound_channels: Vec::new(),
+        sub_agents: Default::default(),
     }
 }
 
@@ -417,7 +390,7 @@ fn default_builtin_tool_specs() -> Vec<ToolSpec> {
             atomic: true,
         }),
         ToolSpec::Cron,
-        ToolSpec::Delegate,
+        ToolSpec::Delegate(Default::default()),
         ToolSpec::CheckDelegatedStatus,
         ToolSpec::CheckBashStatus,
         ToolSpec::SearchSessions,

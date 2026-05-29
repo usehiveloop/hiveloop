@@ -15,6 +15,7 @@ pub struct BackgroundProcessStatus {
 struct BackgroundProcess {
     status: Arc<Mutex<BackgroundProcessStatus>>,
     started_at: std::time::Instant,
+    session_id: Option<String>,
 }
 
 pub struct ProcessRegistry {
@@ -33,6 +34,7 @@ impl ProcessRegistry {
         command: &str,
         env: HashMap<String, String>,
         timeout_seconds: u64,
+        session_id: Option<String>,
     ) -> String {
         let process_id = format!("bash-{}", chrono::Utc::now().timestamp_millis());
         let status = Arc::new(Mutex::new(BackgroundProcessStatus {
@@ -49,6 +51,7 @@ impl ProcessRegistry {
             BackgroundProcess {
                 status: status_clone,
                 started_at: std::time::Instant::now(),
+                session_id,
             },
         );
 
@@ -74,6 +77,16 @@ impl ProcessRegistry {
             exit_code: inner.exit_code,
             output: inner.output.clone(),
         })
+    }
+
+    pub fn running_for_session(&self, session_id: &str) -> usize {
+        self.processes
+            .iter()
+            .filter(|entry| {
+                entry.session_id.as_deref() == Some(session_id)
+                    && entry.status.lock().is_ok_and(|status| status.running)
+            })
+            .count()
     }
 }
 

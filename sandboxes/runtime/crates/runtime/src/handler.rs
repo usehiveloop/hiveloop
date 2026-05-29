@@ -11,13 +11,16 @@ use anyhow::Result;
 use async_trait::async_trait;
 use chrono::Utc;
 use domain::{
-    event_types, ConfigStore, InboundEvent, OutboundEvent, Reply, SessionId, SessionStatus,
+    event_types, ConfigStore, InboundEvent, MessageHandle, OutboundEvent, Reply, SessionId,
+    SessionStatus,
 };
 use futures::StreamExt;
 use gateway::ChannelGateway;
 use outbound::OutboundEmitter;
 use serde_json::Value;
+use storage::CronJobRepo;
 use storage::SessionRepo;
+use tokio::sync::mpsc;
 use tracing::{info, warn};
 
 use composition::compose_annotated_text;
@@ -36,6 +39,10 @@ pub trait TurnEventSink: Send + Sync + 'static {
     async fn clear_active_session_stream(&self, _session_id: &SessionId, _stream_id: &str) {}
 
     async fn publish_final(&self, _stream_id: &str, _session_id: &SessionId, _text: &str) {}
+
+    async fn publish_done(&self, _stream_id: &str, _session_id: &SessionId) {}
+
+    async fn publish_waiting(&self, _stream_id: &str, _session_id: &SessionId, _reason: &str) {}
 
     async fn publish_agent_event(
         &self,
@@ -67,11 +74,26 @@ impl TurnEventSink for api::HttpStreamBroker {
             }),
         )
         .await;
+    }
+
+    async fn publish_done(&self, stream_id: &str, session_id: &SessionId) {
         self.publish(
             stream_id,
             "done",
             serde_json::json!({
                 "session_id": session_id.as_str(),
+            }),
+        )
+        .await;
+    }
+
+    async fn publish_waiting(&self, stream_id: &str, session_id: &SessionId, reason: &str) {
+        self.publish(
+            stream_id,
+            "session_waiting",
+            serde_json::json!({
+                "session_id": session_id.as_str(),
+                "reason": reason,
             }),
         )
         .await;
@@ -159,6 +181,8 @@ pub async fn handle_inbound(
     session_repo: Arc<dyn SessionRepo>,
     coordinator: Arc<SessionCoordinator>,
     turn_event_sink: Arc<dyn TurnEventSink>,
+    inbound_sink: mpsc::Sender<InboundEvent>,
+    cron_repo: Arc<dyn CronJobRepo>,
     inbound: InboundEvent,
 ) -> Result<()> {
     let submission = coordinator.submit_or_queue(inbound.clone());
@@ -173,12 +197,16 @@ pub async fn handle_inbound(
                     "Queued. I will process this after the current turn finishes.",
                 )
                 .await;
+            turn_event_sink
+                .publish_done(&stream_id, &inbound.session_id)
+                .await;
         }
         return Ok(());
     }
 
     let mut current_inbound = inbound;
-    loop {
+    let http_stream_id = session_stream_id(&current_inbound);
+    'turns: loop {
         process_single_turn(
             runner.clone(),
             gateway.clone(),
@@ -187,19 +215,92 @@ pub async fn handle_inbound(
             session_repo.clone(),
             &current_inbound,
             turn_event_sink.clone(),
+            inbound_sink.clone(),
+            cron_repo.clone(),
         )
         .await?;
 
-        let follow_ups = coordinator.finish_turn(&current_inbound.session_id);
-        if follow_ups.is_empty() {
-            break;
-        }
+        let mut published_waiting = false;
+        loop {
+            let follow_ups = coordinator.drain_queued(&current_inbound.session_id);
+            if !follow_ups.is_empty() {
+                current_inbound = merge_queued_inbound(&current_inbound, follow_ups);
+                continue 'turns;
+            }
 
-        current_inbound = merge_queued_inbound(&current_inbound, follow_ups);
-        coordinator.reserve(&current_inbound.session_id);
+            if session_has_active_delegates(cron_repo.as_ref(), &current_inbound.session_id).await {
+                if !published_waiting {
+                    if let Some(stream_id) = http_stream_id.as_deref() {
+                        turn_event_sink
+                            .publish_waiting(
+                                stream_id,
+                                &current_inbound.session_id,
+                                "delegated_tasks",
+                            )
+                            .await;
+                    }
+                    published_waiting = true;
+                }
+                tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+                continue;
+            }
+
+            if runner.active_background_processes(&current_inbound.session_id) > 0 {
+                if !published_waiting {
+                    if let Some(stream_id) = http_stream_id.as_deref() {
+                        turn_event_sink
+                            .publish_waiting(
+                                stream_id,
+                                &current_inbound.session_id,
+                                "background_processes",
+                            )
+                            .await;
+                    }
+                    published_waiting = true;
+                }
+                tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+                continue;
+            }
+
+            if published_waiting {
+                tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+                let follow_ups = coordinator.drain_queued(&current_inbound.session_id);
+                if !follow_ups.is_empty() {
+                    current_inbound = merge_queued_inbound(&current_inbound, follow_ups);
+                    continue 'turns;
+                }
+            }
+
+            let follow_ups = coordinator.finish_turn(&current_inbound.session_id);
+            if follow_ups.is_empty() {
+                if let Some(stream_id) = http_stream_id.as_deref() {
+                    turn_event_sink
+                        .publish_done(stream_id, &current_inbound.session_id)
+                        .await;
+                }
+                break 'turns;
+            }
+
+            current_inbound = merge_queued_inbound(&current_inbound, follow_ups);
+            coordinator.reserve(&current_inbound.session_id);
+            continue 'turns;
+        }
     }
 
     Ok(())
+}
+
+async fn session_has_active_delegates(repo: &dyn CronJobRepo, session_id: &SessionId) -> bool {
+    let Ok(jobs) = repo
+        .list_by_source(domain::cron::CronJobSource::Delegate)
+        .await
+    else {
+        return false;
+    };
+    jobs.into_iter().any(|job| {
+        job.created_by_session == session_id.as_str()
+            && matches!(job.state, domain::cron::CronJobState::Active)
+    })
 }
 
 fn merge_queued_inbound(current: &InboundEvent, queued: Vec<InboundEvent>) -> InboundEvent {
@@ -288,6 +389,7 @@ mod queue_tests {
             is_direct_message: false,
             is_directly_addressed: true,
             link_previews: Vec::new(),
+            agent_definition: None,
         }
     }
 
@@ -372,6 +474,7 @@ mod queue_tests {
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 async fn process_single_turn(
     runner: Arc<dyn AgentRunner>,
     gateway: Arc<dyn ChannelGateway>,
@@ -380,6 +483,8 @@ async fn process_single_turn(
     session_repo: Arc<dyn SessionRepo>,
     inbound: &InboundEvent,
     turn_event_sink: Arc<dyn TurnEventSink>,
+    inbound_sink: mpsc::Sender<InboundEvent>,
+    cron_repo: Arc<dyn CronJobRepo>,
 ) -> Result<()> {
     if inbound.text.trim().is_empty() && inbound.attachments.is_empty() {
         return Ok(());
@@ -420,7 +525,9 @@ async fn process_single_turn(
             .await;
     }
 
-    let stream_result = runner.run_turn(&session_id, turn_input).await;
+    let stream_result = runner
+        .run_turn(&session_id, turn_input, inbound.agent_definition.clone())
+        .await;
     let outcome = match stream_result {
         Ok(stream) => {
             consume_agent_stream(
@@ -476,6 +583,7 @@ async fn process_single_turn(
             .emit(OutboundEvent::new(event_types::AGENT_MESSAGE_SENT, payload))
             .await;
     }
+    emitter.flush_database().await;
 
     if let Some(stream_id) = http_stream_id.as_deref() {
         turn_event_sink
@@ -484,6 +592,70 @@ async fn process_single_turn(
     }
 
     info!(session = %session_id, len = outcome.text.len(), "turn complete");
+
+    // If this is a delegate session, notify the parent and record the result.
+    if let Some(parent_session_id) = inbound.raw.get("parent_session_id").and_then(Value::as_str) {
+        if let Some(job_id) = inbound.raw.get("job_id").and_then(Value::as_str) {
+            let delegate_error = outcome.error.as_deref();
+            let result_text = if let Some(err) = delegate_error {
+                format!("[Sub-agent error: {}]", err)
+            } else {
+                outcome.text.clone()
+            };
+            let delegate_status = if delegate_error.is_some() {
+                "failed"
+            } else {
+                "completed"
+            };
+
+            if let Err(e) = cron_repo
+                .complete_delegate_result(
+                    job_id,
+                    Utc::now(),
+                    delegate_status,
+                    delegate_error,
+                    &result_text,
+                )
+                .await
+            {
+                warn!(error = %e, job_id = %job_id, "failed to record delegate result");
+            }
+
+            let agent_name = inbound
+                .raw
+                .get("agent_name")
+                .and_then(Value::as_str)
+                .unwrap_or("sub-agent");
+            let notification = InboundEvent {
+                envelope_id: format!("delegate-result-{}", Utc::now().timestamp_millis()),
+                session_id: SessionId::from(parent_session_id),
+                user: "system".to_string(),
+                user_display_name: Some("Sub-agent".to_string()),
+                text: format!(
+                    "Sub-agent '{}' completed task (job: {}):\n\n{}",
+                    agent_name, job_id, result_text
+                ),
+                attachments: Vec::new(),
+                raw: serde_json::json!({
+                    "source": "delegate_result",
+                    "job_id": job_id,
+                    "agent_name": agent_name,
+                }),
+                inbound_handle: MessageHandle {
+                    channel: "delegate".to_string(),
+                    ts: String::new(),
+                },
+                is_direct_message: false,
+                is_directly_addressed: true,
+                link_previews: Vec::new(),
+                agent_definition: None,
+            };
+            if let Err(e) = inbound_sink.send(notification).await {
+                warn!(error = %e, job_id = %job_id, "failed to notify parent session");
+            }
+        }
+    }
+
     Ok(())
 }
 
@@ -558,6 +730,11 @@ fn copy_inbound_metadata(payload: &mut Value, inbound: &InboundEvent) {
         "thread_id",
         "external_message_id",
         "callback_url",
+        // Delegation metadata:
+        "job_id",
+        "agent_name",
+        "parent_session_id",
+        "delegate_goal",
     ] {
         if let Some(value) = inbound.raw.get(key) {
             map.insert(key.to_string(), value.clone());
@@ -599,12 +776,12 @@ async fn consume_agent_stream(
     let mut sequence: u64 = 0;
     while let Some(event) = stream.next().await {
         sequence += 1;
-        emit_agent_stream_event(emitter, session_id, source, sequence, &event).await;
         if let Some(stream_id) = stream_id.as_deref() {
             event_sink
                 .publish_agent_event(stream_id, session_id, &event)
                 .await;
         }
+        emit_agent_stream_event(emitter, session_id, source, sequence, &event).await;
         match event {
             AgentEvent::ThinkingChunk { .. } => {}
             AgentEvent::TokenChunk { text } => accumulated.push_str(&text),

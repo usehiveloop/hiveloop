@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -30,6 +32,8 @@ pub struct AgentDefinition {
     pub skills: Vec<SkillSpec>,
     #[serde(default)]
     pub outbound_channels: Vec<OutboundChannelSpec>,
+    #[serde(default)]
+    pub sub_agents: HashMap<String, AgentDefinition>,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -249,7 +253,7 @@ pub struct Limits {
 impl Default for Limits {
     fn default() -> Self {
         Self {
-            max_turns_per_session: 50,
+            max_turns_per_session: 5_000,
             input_token_budget: 180_000,
             output_token_budget: 8_000,
             tool_call_timeout_seconds: 60,

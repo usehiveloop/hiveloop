@@ -38,6 +38,7 @@ pub struct BashTool {
     operations: Arc<dyn BashOperations>,
     runtime_env: Arc<HashMap<String, String>>,
     process_registry: Option<Arc<ProcessRegistry>>,
+    session_id: Option<String>,
 }
 
 impl BashTool {
@@ -53,11 +54,17 @@ impl BashTool {
             operations,
             runtime_env,
             process_registry: None,
+            session_id: None,
         }
     }
 
     pub fn with_process_registry(mut self, registry: Arc<ProcessRegistry>) -> Self {
         self.process_registry = Some(registry);
+        self
+    }
+
+    pub fn with_session_id(mut self, session_id: impl Into<String>) -> Self {
+        self.session_id = Some(session_id.into());
         self
     }
 
@@ -109,7 +116,7 @@ impl BashTool {
                 .process_registry
                 .as_ref()
                 .ok_or_else(|| anyhow!("background processes not available"))?;
-            let process_id = registry.spawn(command, env, timeout as u64);
+            let process_id = registry.spawn(command, env, timeout as u64, self.session_id.clone());
             return Ok(json!({
                 "background": true,
                 "process_id": process_id,

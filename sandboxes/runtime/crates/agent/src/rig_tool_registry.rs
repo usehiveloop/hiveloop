@@ -6,8 +6,9 @@ use std::sync::Arc;
 use anyhow::{anyhow, Result};
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
+use domain::agent_registry::AgentDefinitionRegistry;
 use domain::cron::{CronJob, CronJobSource, CronJobState};
-use domain::{event_types, OutboundEvent, SessionId, ToolSpec};
+use domain::{event_types, DelegateConfig, OutboundEvent, SessionId, ToolSpec};
 use gateway::ChannelGateway;
 use mcp::McpRegistry;
 use outbound::OutboundEmitter;
@@ -53,6 +54,7 @@ pub struct ToolContext {
     pub mcp_registry: Option<Arc<McpRegistry>>,
     pub workspace_root: PathBuf,
     pub outbound_emitter: Option<Arc<OutboundEmitter>>,
+    pub agent_registry: Arc<AgentDefinitionRegistry>,
 }
 
 pub fn build_agent_tools(
@@ -106,10 +108,15 @@ pub fn build_agent_tools(
                     ctx.outbound_emitter.clone(),
                 ));
             }
-            ToolSpec::Delegate => {
+            ToolSpec::Delegate(config) => {
                 if let Some(repo) = &ctx.cron_repo {
                     if !session_is_cron {
-                        tools.push(delegate_tool(repo.clone(), session_id.clone()));
+                        tools.push(delegate_tool(
+                            repo.clone(),
+                            session_id.clone(),
+                            ctx.agent_registry.clone(),
+                            config.clone(),
+                        ));
                     }
                 }
             }
@@ -314,6 +321,8 @@ fn wake_tool(repo: Arc<dyn CronJobRepo>, session_id: SessionId) -> Arc<dyn JsonT
                     session_continuation_id: Some(session_id.as_str().to_string()),
                     created_at: now,
                     created_by_session: session_id.as_str().to_string(),
+                    agent_name: None,
+                    last_result: None,
                 };
                 repo.create(&job).await?;
                 Ok(json!({"job_id": id, "next_run_at": job.next_run_at.to_rfc3339()}))
@@ -517,57 +526,131 @@ fn check_bash_status_tool(registry: Arc<ProcessRegistry>) -> Arc<dyn JsonTool> {
     ))
 }
 
-fn delegate_tool(repo: Arc<dyn CronJobRepo>, session_id: SessionId) -> Arc<dyn JsonTool> {
+fn build_agent_list_description(
+    registry: &AgentDefinitionRegistry,
+    allowlist: &[String],
+) -> String {
+    let agents = if allowlist.is_empty() {
+        registry.available_agents()
+    } else {
+        allowlist.to_vec()
+    };
+    let mut parts = Vec::new();
+    for name in &agents {
+        let desc = registry.agent_description(name);
+        if name == "self" {
+            parts.push(format!("{} (Main agent, default)", desc));
+        } else {
+            parts.push(format!("{} - {}", name, desc));
+        }
+    }
+    format!(
+        "Sub-agent name. Default 'self'. Available: {}",
+        parts.join(", ")
+    )
+}
+
+fn delegate_tool(
+    repo: Arc<dyn CronJobRepo>,
+    session_id: SessionId,
+    agent_registry: Arc<AgentDefinitionRegistry>,
+    config: DelegateConfig,
+) -> Arc<dyn JsonTool> {
+    let agent_desc = build_agent_list_description(&agent_registry, &config.agents);
+    let agent_names: Vec<String> = if config.agents.is_empty() {
+        agent_registry.available_agents()
+    } else {
+        config.agents.clone()
+    };
+    let agent_names_clone = agent_names.clone();
+    let config_agents = config.agents.clone();
+
     Arc::new(DynamicTool::new(
         ToolDefinition {
             name: "delegate".into(),
-            description: "Spawn background delegated tasks in isolated conversations.".into(),
-            parameters: json!({"type":"object","properties":{"run_in_background":{"type":"boolean"},"tasks":{"type":"array","items":{"type":"object","properties":{"goal":{"type":"string"},"context":{"type":["string","null"]},"toolsets":{"type":["array","null"],"items":{"type":"string"}}},"required":["goal"]}}},"required":["tasks"]}),
+            description: "Delegate a task to a sub-agent in an isolated background session.".into(),
+            parameters: json!({
+                "type": "object",
+                "properties": {
+                    "goal": {
+                        "type": "string",
+                        "description": "The task to delegate."
+                    },
+                    "agent": {
+                        "type": "string",
+                        "description": agent_desc
+                    }
+                },
+                "required": ["goal", "agent"]
+            }),
         },
         move |args| {
             let repo = repo.clone();
             let session_id = session_id.clone();
+            let agent_registry = agent_registry.clone();
+            let agent_names = agent_names_clone.clone();
+            let config_agents = config_agents.clone();
             Box::pin(async move {
-                let tasks = args
-                    .get("tasks")
-                    .and_then(Value::as_array)
-                    .ok_or_else(|| anyhow!("tasks required"))?;
-                let now = Utc::now();
-                let mut jobs = Vec::new();
-                for (idx, task) in tasks.iter().enumerate() {
-                    let goal = task
-                        .get("goal")
-                        .and_then(Value::as_str)
-                        .ok_or_else(|| anyhow!("task.goal required"))?
-                        .to_string();
-                    let id = format!("delegate-{}-{idx}", now.timestamp_millis());
-                    let child_session = format!("{}-delegate-{}", session_id.as_str(), id);
-                    let job = domain::cron::CronJob {
-                        id: id.clone(),
-                        description: goal.chars().take(80).collect(),
-                        channel: derive_channel(&session_id),
-                        task_prompt: goal,
-                        cron_expression: None,
-                        interval_seconds: None,
-                        repeat_count: Some(1),
-                        repeat_completed: 0,
-                        state: domain::cron::CronJobState::Active,
-                        source: domain::cron::CronJobSource::Delegate,
-                        next_run_at: now,
-                        last_run_at: None,
-                        last_status: Some("queued".into()),
-                        last_error: None,
-                        delegated_session_id: Some(child_session.clone()),
-                        session_continuation_id: None,
-                        created_at: now,
-                        created_by_session: session_id.as_str().to_string(),
-                    };
-                    repo.create(&job).await?;
-                    jobs.push(
-                        json!({"job_id": id, "session_id": child_session, "state": "queued"}),
-                    );
+                let goal = args
+                    .get("goal")
+                    .and_then(Value::as_str)
+                    .ok_or_else(|| anyhow!("goal required"))?
+                    .to_string();
+                let agent_name = args
+                    .get("agent")
+                    .and_then(Value::as_str)
+                    .ok_or_else(|| anyhow!("agent required"))?
+                    .to_string();
+
+                if !config_agents.is_empty() && !config_agents.contains(&agent_name) {
+                    return Err(anyhow!(
+                        "agent '{}' not in allowlist. Allowed: {:?}",
+                        agent_name,
+                        config_agents
+                    ));
                 }
-                Ok(json!({"jobs": jobs}))
+                if agent_registry.resolve(&agent_name).is_none() {
+                    return Err(anyhow!(
+                        "unknown agent '{}'. Available: {:?}",
+                        agent_name,
+                        agent_names
+                    ));
+                }
+
+                let now = Utc::now();
+                let id = format!("delegate-{}", now.timestamp_millis());
+                let child_session = format!("{}-delegate-{}", session_id.as_str(), id);
+                let job = domain::cron::CronJob {
+                    id: id.clone(),
+                    description: goal.chars().take(80).collect(),
+                    channel: derive_channel(&session_id),
+                    task_prompt: goal,
+                    cron_expression: None,
+                    interval_seconds: None,
+                    repeat_count: Some(1),
+                    repeat_completed: 0,
+                    state: domain::cron::CronJobState::Active,
+                    source: domain::cron::CronJobSource::Delegate,
+                    next_run_at: now,
+                    last_run_at: None,
+                    last_status: Some("queued".into()),
+                    last_error: None,
+                    delegated_session_id: Some(child_session.clone()),
+                    session_continuation_id: None,
+                    created_at: now,
+                    created_by_session: session_id.as_str().to_string(),
+                    agent_name: Some(agent_name),
+                    last_result: None,
+                };
+                repo.create(&job).await?;
+                Ok(json!({
+                    "job_id": id,
+                    "state": "queued",
+                    "message": format!(
+                        "The subagent is now working. You will be automatically notified once the subagent is done working. If you need to check on its progress, please call the check_delegate_status tool with job id {}.",
+                        id
+                    )
+                }))
             })
         },
     ))
@@ -592,7 +675,7 @@ fn check_delegated_status_tool(repo: Arc<dyn CronJobRepo>) -> Arc<dyn JsonTool> 
                     .await?
                     .ok_or_else(|| anyhow!("job not found"))?;
                 Ok(
-                    json!({"job_id": job.id, "state": format!("{:?}", job.state), "last_status": job.last_status, "last_error": job.last_error, "session_id": job.delegated_session_id}),
+                    json!({"job_id": job.id, "state": format!("{:?}", job.state), "last_status": job.last_status, "last_error": job.last_error, "result": job.last_result, "session_id": job.delegated_session_id}),
                 )
             })
         },
@@ -653,6 +736,8 @@ async fn execute_cron(
                 session_continuation_id: None,
                 created_at: now,
                 created_by_session: session_id.as_str().to_string(),
+                agent_name: None,
+                last_result: None,
             };
             repo.create(&job).await?;
             emit_schedule_event(
@@ -810,11 +895,14 @@ pub fn schedule_run_key(job_id: &str, scheduled_at: DateTime<Utc>) -> String {
 }
 
 fn is_persistent_schedule_job(job: &CronJob) -> bool {
-    job.source == CronJobSource::Cron && job.session_continuation_id.is_none()
+    match job.source {
+        CronJobSource::Cron => job.session_continuation_id.is_none(),
+        CronJobSource::Delegate => true,
+    }
 }
 
 fn schedule_payload(job: &CronJob, session_id: &SessionId, origin: &str) -> Value {
-    json!({
+    let mut payload = json!({
         "job_id": job.id,
         "source": cron_source_string(job.source),
         "state": cron_state_string(job.state),
@@ -833,7 +921,11 @@ fn schedule_payload(job: &CronJob, session_id: &SessionId, origin: &str) -> Valu
         "created_at": job.created_at.to_rfc3339(),
         "session_id": session_id.as_str(),
         "origin": origin,
-    })
+    });
+    if let Some(ref agent_name) = job.agent_name {
+        payload["agent_name"] = Value::String(agent_name.clone());
+    }
+    payload
 }
 
 fn cron_source_string(source: CronJobSource) -> &'static str {
@@ -860,408 +952,5 @@ fn derive_channel(session_id: &SessionId) -> String {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    use async_trait::async_trait;
-    use chrono::{DateTime, Utc};
-    use domain::ToolSpec;
-    use outbound::{OutboundChannel, OutboundError, OutboundRegistry};
-    use std::collections::HashMap;
-    use std::fs;
-    use std::sync::Mutex;
-    use storage::{OutboxRepo, OutboxRow};
-    use tokio::sync::RwLock;
-
-    #[derive(Default)]
-    struct FakeOutbox {
-        rows: Mutex<Vec<(String, String, Value)>>,
-    }
-
-    #[derive(Default)]
-    struct FakeCronRepo {
-        jobs: Mutex<HashMap<String, CronJob>>,
-    }
-
-    #[async_trait]
-    impl OutboxRepo for FakeOutbox {
-        async fn enqueue(
-            &self,
-            channel_name: &str,
-            event_type: &str,
-            payload: Value,
-        ) -> storage::Result<i64> {
-            let mut rows = self.rows.lock().expect("outbox lock");
-            rows.push((channel_name.to_string(), event_type.to_string(), payload));
-            Ok(rows.len() as i64)
-        }
-
-        async fn claim_due(&self, _limit: u32) -> storage::Result<Vec<OutboxRow>> {
-            Ok(Vec::new())
-        }
-
-        async fn mark_delivered(&self, _id: i64) -> storage::Result<()> {
-            Ok(())
-        }
-
-        async fn schedule_retry(
-            &self,
-            _id: i64,
-            _attempts: i32,
-            _next_retry_at: DateTime<Utc>,
-        ) -> storage::Result<()> {
-            Ok(())
-        }
-
-        async fn mark_failed(&self, _id: i64) -> storage::Result<()> {
-            Ok(())
-        }
-    }
-
-    #[async_trait]
-    impl CronJobRepo for FakeCronRepo {
-        async fn create(&self, job: &CronJob) -> storage::Result<()> {
-            self.jobs
-                .lock()
-                .expect("cron lock")
-                .insert(job.id.clone(), job.clone());
-            Ok(())
-        }
-
-        async fn get(&self, id: &str) -> storage::Result<Option<CronJob>> {
-            Ok(self.jobs.lock().expect("cron lock").get(id).cloned())
-        }
-
-        async fn list_all(&self) -> storage::Result<Vec<CronJob>> {
-            Ok(self
-                .jobs
-                .lock()
-                .expect("cron lock")
-                .values()
-                .cloned()
-                .collect())
-        }
-
-        async fn list_by_source(&self, source: CronJobSource) -> storage::Result<Vec<CronJob>> {
-            Ok(self
-                .jobs
-                .lock()
-                .expect("cron lock")
-                .values()
-                .filter(|job| job.source == source)
-                .cloned()
-                .collect())
-        }
-
-        async fn list_due(&self) -> storage::Result<Vec<CronJob>> {
-            Ok(Vec::new())
-        }
-
-        async fn update_prompt(&self, id: &str, task_prompt: String) -> storage::Result<()> {
-            if let Some(job) = self.jobs.lock().expect("cron lock").get_mut(id) {
-                job.task_prompt = task_prompt;
-            }
-            Ok(())
-        }
-
-        async fn update_interval(&self, id: &str, interval_seconds: u64) -> storage::Result<()> {
-            if let Some(job) = self.jobs.lock().expect("cron lock").get_mut(id) {
-                job.interval_seconds = Some(interval_seconds);
-            }
-            Ok(())
-        }
-
-        async fn update_next_run(
-            &self,
-            id: &str,
-            next_run_at: DateTime<Utc>,
-        ) -> storage::Result<()> {
-            if let Some(job) = self.jobs.lock().expect("cron lock").get_mut(id) {
-                job.next_run_at = next_run_at;
-            }
-            Ok(())
-        }
-
-        async fn set_state(&self, id: &str, state: CronJobState) -> storage::Result<()> {
-            if let Some(job) = self.jobs.lock().expect("cron lock").get_mut(id) {
-                job.state = state;
-            }
-            Ok(())
-        }
-
-        async fn record_run(
-            &self,
-            id: &str,
-            run_at: DateTime<Utc>,
-            status: &str,
-            error: Option<&str>,
-        ) -> storage::Result<()> {
-            if let Some(job) = self.jobs.lock().expect("cron lock").get_mut(id) {
-                job.last_run_at = Some(run_at);
-                job.last_status = Some(status.to_string());
-                job.last_error = error.map(ToString::to_string);
-            }
-            Ok(())
-        }
-
-        async fn increment_repeat(&self, id: &str) -> storage::Result<()> {
-            if let Some(job) = self.jobs.lock().expect("cron lock").get_mut(id) {
-                job.repeat_completed += 1;
-            }
-            Ok(())
-        }
-
-        async fn delete(&self, id: &str) -> storage::Result<()> {
-            self.jobs.lock().expect("cron lock").remove(id);
-            Ok(())
-        }
-    }
-
-    struct SkillSyncChannel;
-
-    #[async_trait]
-    impl OutboundChannel for SkillSyncChannel {
-        fn name(&self) -> &str {
-            "skill-sync"
-        }
-
-        fn kind(&self) -> &'static str {
-            "test"
-        }
-
-        fn accepts(&self, event_type: &str) -> bool {
-            event_type == event_types::SKILL_SYNCED || event_type.starts_with("schedule.")
-        }
-
-        async fn deliver(&self, _event: &OutboundEvent) -> outbound::Result<()> {
-            Err(OutboundError::Delivery("not used in emitter tests".into()))
-        }
-    }
-
-    fn temp_workspace() -> PathBuf {
-        let path = std::env::temp_dir().join(format!(
-            "hivy-sandboxes-runtime-skill-sync-{}",
-            Utc::now().timestamp_nanos_opt().unwrap_or_default()
-        ));
-        fs::create_dir_all(&path).expect("create temp workspace");
-        path
-    }
-
-    fn test_emitter(outbox: Arc<FakeOutbox>) -> Arc<OutboundEmitter> {
-        let registry = OutboundRegistry::new().with_channel(Arc::new(SkillSyncChannel));
-        Arc::new(OutboundEmitter::new(
-            outbox,
-            Arc::new(RwLock::new(registry)),
-        ))
-    }
-
-    fn skill_manage_test_tool(workspace: PathBuf, outbox: Arc<FakeOutbox>) -> Arc<dyn JsonTool> {
-        let emitter = test_emitter(outbox);
-        let ctx = ToolContext {
-            gateway: None,
-            cron_repo: None,
-            event_repo: None,
-            process_registry: None,
-            mcp_registry: None,
-            workspace_root: workspace,
-            outbound_emitter: Some(emitter),
-        };
-        build_agent_tools(
-            &[ToolSpec::SkillManage],
-            &SessionId::from("C123-456.789"),
-            &ctx,
-        )
-        .into_iter()
-        .find(|tool| tool.definition().name == "skill_manage")
-        .expect("skill_manage tool")
-    }
-
-    #[tokio::test]
-    async fn skill_manage_create_emits_complete_sync_snapshot() {
-        let workspace = temp_workspace();
-        let outbox = Arc::new(FakeOutbox::default());
-        let tool = skill_manage_test_tool(workspace.clone(), outbox.clone());
-
-        tool.call(json!({
-            "action": "create",
-            "name": "debug-deploys",
-            "category": "engineering",
-            "content": "---\nname: debug-deploys\ndescription: Debug deploy failures.\ntags: deploy, debug\n---\n# Debug\nCheck logs first."
-        }))
-        .await
-        .expect("skill create");
-        tool.call(json!({
-            "action": "write_file",
-            "name": "debug-deploys",
-            "file_path": "references/errors.md",
-            "file_content": "# Errors"
-        }))
-        .await
-        .expect("supporting file write");
-
-        let rows = outbox.rows.lock().expect("outbox lock");
-        assert_eq!(rows.len(), 2);
-        let (_, event_type, payload) = &rows[1];
-        assert_eq!(event_type, event_types::SKILL_SYNCED);
-        assert_eq!(payload["action"], "write_file");
-        assert_eq!(payload["name"], "debug-deploys");
-        assert_eq!(payload["source"], "unknown");
-        assert_eq!(payload["description"], "Debug deploy failures.");
-        assert_eq!(payload["files"]["references/errors.md"], "# Errors");
-        assert!(payload["content"]
-            .as_str()
-            .expect("content string")
-            .contains("# Debug"));
-
-        let _ = fs::remove_dir_all(workspace);
-    }
-
-    #[tokio::test]
-    async fn skill_manage_failed_call_emits_no_sync_event() {
-        let workspace = temp_workspace();
-        let outbox = Arc::new(FakeOutbox::default());
-        let tool = skill_manage_test_tool(workspace.clone(), outbox.clone());
-
-        let result = tool
-            .call(json!({
-                "action": "write_file",
-                "name": "missing-skill",
-                "file_path": "references/errors.md",
-                "content": "# Errors"
-            }))
-            .await;
-
-        assert!(result.is_err());
-        assert!(outbox.rows.lock().expect("outbox lock").is_empty());
-        let _ = fs::remove_dir_all(workspace);
-    }
-
-    #[tokio::test]
-    async fn skill_manage_delete_emits_tombstone() {
-        let workspace = temp_workspace();
-        let outbox = Arc::new(FakeOutbox::default());
-        let tool = skill_manage_test_tool(workspace.clone(), outbox.clone());
-
-        tool.call(json!({
-            "action": "create",
-            "name": "debug-deploys",
-            "content": "---\nname: debug-deploys\n---\n# Debug"
-        }))
-        .await
-        .expect("skill create");
-        tool.call(json!({
-            "action": "create",
-            "name": "deploy-ops",
-            "content": "---\nname: deploy-ops\n---\n# Deploy ops"
-        }))
-        .await
-        .expect("absorbed target create");
-        tool.call(json!({
-            "action": "delete",
-            "name": "debug-deploys",
-            "absorbed_into": "deploy-ops"
-        }))
-        .await
-        .expect("skill delete");
-
-        let rows = outbox.rows.lock().expect("outbox lock");
-        assert_eq!(rows.len(), 3);
-        let (_, event_type, payload) = &rows[2];
-        assert_eq!(event_type, event_types::SKILL_SYNCED);
-        assert_eq!(payload["action"], "delete");
-        assert_eq!(payload["deleted"], true);
-        assert_eq!(payload["absorbed_into"], "deploy-ops");
-        assert!(payload.get("content").is_none());
-
-        let _ = fs::remove_dir_all(workspace);
-    }
-
-    #[tokio::test]
-    async fn cron_create_update_pause_resume_cancel_emit_schedule_events() {
-        let repo = Arc::new(FakeCronRepo::default());
-        let outbox = Arc::new(FakeOutbox::default());
-        let tool = cron_tool(
-            repo,
-            SessionId::from("C123-456.789"),
-            Some(test_emitter(outbox.clone())),
-        );
-
-        let created = tool
-            .call(json!({
-                "action": "create",
-                "task_prompt": "Check deploy health",
-                "interval_seconds": 3600,
-                "description": "Deploy health"
-            }))
-            .await
-            .expect("create cron");
-        let job_id = created["job_id"].as_str().expect("job id").to_string();
-        tool.call(json!({"action": "update", "job_id": job_id, "task_prompt": "Check API health", "interval_seconds": 7200}))
-            .await
-            .expect("update cron");
-        tool.call(json!({"action": "pause", "job_id": job_id}))
-            .await
-            .expect("pause cron");
-        tool.call(json!({"action": "resume", "job_id": job_id}))
-            .await
-            .expect("resume cron");
-        tool.call(json!({"action": "cancel", "job_id": job_id}))
-            .await
-            .expect("cancel cron");
-
-        let rows = outbox.rows.lock().expect("outbox lock");
-        let event_types: Vec<_> = rows
-            .iter()
-            .map(|(_, event_type, _)| event_type.as_str())
-            .collect();
-        assert_eq!(
-            event_types,
-            vec![
-                event_types::SCHEDULE_CREATED,
-                event_types::SCHEDULE_UPDATED,
-                event_types::SCHEDULE_PAUSED,
-                event_types::SCHEDULE_RESUMED,
-                event_types::SCHEDULE_CANCELLED,
-            ]
-        );
-        assert_eq!(rows[0].2["source"], "cron");
-        assert_eq!(rows[0].2["origin"], "tool");
-        assert_eq!(rows[0].2["task_prompt"], "Check deploy health");
-    }
-
-    #[tokio::test]
-    async fn wake_jobs_do_not_emit_schedule_events() {
-        let now = Utc::now();
-        let outbox = Arc::new(FakeOutbox::default());
-        let job = CronJob {
-            id: "wake-1".to_string(),
-            description: "Wake".to_string(),
-            channel: "C123".to_string(),
-            task_prompt: "Wake up".to_string(),
-            cron_expression: None,
-            interval_seconds: None,
-            repeat_count: Some(1),
-            repeat_completed: 0,
-            state: CronJobState::Active,
-            source: CronJobSource::Cron,
-            next_run_at: now,
-            last_run_at: None,
-            last_status: None,
-            last_error: None,
-            delegated_session_id: None,
-            session_continuation_id: Some("C123-456.789".to_string()),
-            created_at: now,
-            created_by_session: "C123-456.789".to_string(),
-        };
-        emit_schedule_event(
-            Some(test_emitter(outbox.clone())),
-            event_types::SCHEDULE_CREATED,
-            &job,
-            &SessionId::from("C123-456.789"),
-            "tool",
-            None,
-        )
-        .await;
-        assert!(outbox.rows.lock().expect("outbox lock").is_empty());
-    }
-}
+#[path = "rig_tool_registry_tests.rs"]
+mod tests;

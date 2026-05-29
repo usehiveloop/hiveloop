@@ -1,4 +1,6 @@
-use crate::{reply::MessageHandle, session::SessionId};
+use std::sync::Arc;
+
+use crate::{reply::MessageHandle, session::SessionId, AgentDefinition, ConfigStore};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone)]
@@ -14,6 +16,17 @@ pub struct InboundEvent {
     pub is_direct_message: bool,
     pub is_directly_addressed: bool,
     pub link_previews: Vec<LinkPreview>,
+    /// When set, the handler uses this definition instead of `config.snapshot()`.
+    /// Set by the scheduler for sub-agent delegation.
+    pub agent_definition: Option<Arc<AgentDefinition>>,
+}
+
+impl InboundEvent {
+    pub fn effective_definition(&self, config: &ConfigStore) -> Arc<AgentDefinition> {
+        self.agent_definition
+            .clone()
+            .unwrap_or_else(|| config.snapshot())
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

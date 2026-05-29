@@ -692,6 +692,7 @@ mod tests {
             mcp_servers: Vec::new(),
             skills: Vec::new(),
             outbound_channels: Vec::new(),
+            sub_agents: Default::default(),
         }
     }
 

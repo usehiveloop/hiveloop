@@ -1,7 +1,10 @@
 use chrono::Utc;
 use domain::cron::{CronJob, CronJobSource, CronJobState};
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
-use storage::{CronJobRepo, SqliteCronJobRepo};
+use storage::{init_sqlite_store, CronJobRepo, SqliteCronJobRepo};
+
+static DB_COUNTER: AtomicU64 = AtomicU64::new(0);
 
 fn test_job(id: &str, interval: u64) -> CronJob {
     CronJob {
@@ -23,41 +26,19 @@ fn test_job(id: &str, interval: u64) -> CronJob {
         session_continuation_id: None,
         created_at: Utc::now(),
         created_by_session: "test-session".into(),
+        agent_name: None,
+        last_result: None,
     }
 }
 
 async fn setup_repo() -> Arc<dyn CronJobRepo> {
-    let pool = sqlx::sqlite::SqlitePoolOptions::new()
-        .max_connections(2)
-        .connect("sqlite::memory:")
-        .await
-        .unwrap();
-    sqlx::query(
-        "CREATE TABLE cron_jobs (
-            id TEXT PRIMARY KEY NOT NULL,
-            description TEXT NOT NULL,
-            channel TEXT NOT NULL,
-            task_prompt TEXT NOT NULL,
-            cron_expression TEXT,
-            interval_seconds INTEGER,
-            repeat_count INTEGER,
-            repeat_completed INTEGER NOT NULL DEFAULT 0,
-            state TEXT NOT NULL DEFAULT 'active',
-            source TEXT NOT NULL DEFAULT 'cron',
-            next_run_at TEXT NOT NULL,
-            last_run_at TEXT,
-            last_status TEXT,
-            last_error TEXT,
-            delegated_session_id TEXT,
-            session_continuation_id TEXT,
-            created_at TEXT NOT NULL,
-            created_by_session TEXT NOT NULL
-        )",
-    )
-    .execute(&pool)
-    .await
-    .unwrap();
-    Arc::new(SqliteCronJobRepo::new(Arc::new(pool)))
+    let unique = DB_COUNTER.fetch_add(1, Ordering::Relaxed);
+    let db_path = std::env::temp_dir().join(format!(
+        "cron-integration-{}-{unique}.db",
+        std::process::id()
+    ));
+    let store = init_sqlite_store(&db_path, None).await.unwrap();
+    Arc::new(SqliteCronJobRepo::new(&store))
 }
 
 #[tokio::test]
@@ -100,6 +81,71 @@ async fn list_due_only_returns_active_and_due() {
     let due = repo.list_due().await.unwrap();
     assert_eq!(due.len(), 1);
     assert_eq!(due[0].id, "active-due");
+}
+
+#[tokio::test]
+async fn list_due_does_not_redispatch_running_delegate_with_active_lease() {
+    let repo = setup_repo().await;
+    let mut job = test_job("delegate-running", 0);
+    job.source = CronJobSource::Delegate;
+    job.delegated_session_id = Some("parent-delegate-delegate-running".into());
+    job.next_run_at = Utc::now() - chrono::Duration::seconds(10);
+    job.last_run_at = Some(Utc::now() - chrono::Duration::seconds(60));
+    job.last_status = Some("running".into());
+    repo.create(&job).await.unwrap();
+
+    let due = repo.list_due().await.unwrap();
+    assert!(
+        due.is_empty(),
+        "running delegate lease must prevent redispatch"
+    );
+}
+
+#[tokio::test]
+async fn list_due_allows_stale_running_delegate_recovery() {
+    let repo = setup_repo().await;
+    let mut job = test_job("delegate-stale", 0);
+    job.source = CronJobSource::Delegate;
+    job.delegated_session_id = Some("parent-delegate-delegate-stale".into());
+    job.next_run_at = Utc::now() - chrono::Duration::seconds(10);
+    job.last_run_at = Some(Utc::now() - chrono::Duration::minutes(31));
+    job.last_status = Some("running".into());
+    repo.create(&job).await.unwrap();
+
+    let due = repo.list_due().await.unwrap();
+    assert_eq!(due.len(), 1);
+    assert_eq!(due[0].id, "delegate-stale");
+}
+
+#[tokio::test]
+async fn complete_delegate_result_marks_job_terminal() {
+    let repo = setup_repo().await;
+    let mut job = test_job("delegate-done", 0);
+    job.source = CronJobSource::Delegate;
+    job.repeat_count = Some(1);
+    job.delegated_session_id = Some("parent-delegate-delegate-done".into());
+    repo.create(&job).await.unwrap();
+
+    repo.complete_delegate_result(
+        "delegate-done",
+        Utc::now(),
+        "failed",
+        Some("HTTP 402"),
+        "[Sub-agent error: HTTP 402]",
+    )
+    .await
+    .unwrap();
+
+    let fetched = repo.get("delegate-done").await.unwrap().unwrap();
+    assert_eq!(fetched.state, CronJobState::Completed);
+    assert_eq!(fetched.last_status.as_deref(), Some("failed"));
+    assert_eq!(fetched.last_error.as_deref(), Some("HTTP 402"));
+    assert_eq!(
+        fetched.last_result.as_deref(),
+        Some("[Sub-agent error: HTTP 402]")
+    );
+    assert_eq!(fetched.repeat_completed, 1);
+    assert!(repo.list_due().await.unwrap().is_empty());
 }
 
 #[tokio::test]

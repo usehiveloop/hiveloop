@@ -16,6 +16,7 @@ fn make_event(session_id: &str, user: &str) -> InboundEvent {
         is_direct_message: false,
         is_directly_addressed: true,
         link_previews: vec![],
+        agent_definition: None,
     }
 }
 
