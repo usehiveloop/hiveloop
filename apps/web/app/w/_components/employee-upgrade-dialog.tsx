@@ -41,35 +41,19 @@ const UPGRADE_STEPS: UpgradeStep[] = [
     description: "Create a single upgrade operation for this employee.",
   },
   {
-    phase: "backup",
-    label: "Back up runtime database",
-    description:
-      "Snapshot and verify the SQLite database in the current sandbox.",
-  },
-  {
-    phase: "stopping_old",
-    label: "Pause current sandbox",
-    description: "Stop the current runtime before the replacement starts.",
-  },
-  {
     phase: "creating_new",
     label: "Create replacement sandbox",
     description: "Provision a fresh sandbox from the current employee image.",
   },
   {
-    phase: "restore",
-    label: "Restore database snapshot",
-    description: "Download, verify, and install the SQLite snapshot.",
-  },
-  {
-    phase: "restart_new",
-    label: "Restart runtime",
-    description: "Restart the employee bridge and wait for health checks.",
-  },
-  {
     phase: "sync",
     label: "Sync config and readiness",
     description: "Push the current employee config and require readiness.",
+  },
+  {
+    phase: "pausing_old",
+    label: "Pause current sandbox",
+    description: "Stop the current runtime now that the replacement is ready.",
   },
   {
     phase: "cleanup_old",

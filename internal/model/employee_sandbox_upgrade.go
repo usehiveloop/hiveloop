@@ -13,12 +13,9 @@ const (
 	EmployeeSandboxUpgradeStatusFailed    = "failed"
 
 	EmployeeSandboxUpgradePhaseQueued      = "queued"
-	EmployeeSandboxUpgradePhaseBackup      = "backup"
-	EmployeeSandboxUpgradePhaseStoppingOld = "stopping_old"
 	EmployeeSandboxUpgradePhaseCreatingNew = "creating_new"
-	EmployeeSandboxUpgradePhaseRestore     = "restore"
-	EmployeeSandboxUpgradePhaseRestartNew  = "restart_new"
 	EmployeeSandboxUpgradePhaseSync        = "sync"
+	EmployeeSandboxUpgradePhasePausingOld  = "pausing_old"
 	EmployeeSandboxUpgradePhaseCleanupOld  = "cleanup_old"
 	EmployeeSandboxUpgradePhaseCompleted   = "completed"
 	EmployeeSandboxUpgradePhaseFailed      = "failed"
@@ -40,10 +37,6 @@ type EmployeeSandboxUpgrade struct {
 
 	Status string `gorm:"not null;default:'queued';size:32;index"`
 	Phase  string `gorm:"not null;default:'queued';size:64"`
-
-	BackupKey    *string
-	BackupSHA256 *string
-	BackupBytes  int64 `gorm:"not null;default:0"`
 
 	ErrorMessage *string
 	CompletedAt  *time.Time

@@ -19,9 +19,7 @@ import (
 	"github.com/usehivy/hivy/internal/tasks"
 )
 
-type startEmployeeSandboxUpgradeRequest struct {
-	SmokeTest bool `json:"smoke_test"`
-}
+type startEmployeeSandboxUpgradeRequest struct{}
 
 type employeeSandboxUpgradeResponse struct {
 	UpgradeID    string     `json:"upgrade_id"`
@@ -29,9 +27,6 @@ type employeeSandboxUpgradeResponse struct {
 	Phase        string     `json:"phase"`
 	OldSandboxID *string    `json:"old_sandbox_id,omitempty"`
 	NewSandboxID *string    `json:"new_sandbox_id,omitempty"`
-	BackupKey    *string    `json:"backup_key,omitempty"`
-	BackupSHA256 *string    `json:"backup_sha256,omitempty"`
-	BackupBytes  int64      `json:"backup_bytes"`
 	ErrorMessage *string    `json:"error_message,omitempty"`
 	CreatedAt    time.Time  `json:"created_at"`
 	UpdatedAt    time.Time  `json:"updated_at"`
@@ -39,15 +34,13 @@ type employeeSandboxUpgradeResponse struct {
 }
 
 // @Summary Start an employee sandbox upgrade
-// @Description Queues a control-plane upgrade that snapshots the employee runtime SQLite database,
-// @Description recreates the sandbox on the current employee image, restores the database,
-// @Description syncs config, and verifies readiness. If an upgrade is already queued or
-// @Description running for the employee, the active operation is returned.
+// @Description Queues a control-plane upgrade that creates a new sandbox, syncs config,
+// @Description verifies readiness, pauses the old sandbox, and schedules cleanup.
+// @Description If an upgrade is already queued or running for the employee, the active operation is returned.
 // @Tags employees
 // @Accept json
 // @Produce json
 // @Param id path string true "Employee agent ID"
-// @Param body body startEmployeeSandboxUpgradeRequest false "Upgrade options"
 // @Success 202 {object} employeeSandboxUpgradeResponse
 // @Failure 400 {object} errorResponse
 // @Failure 401 {object} errorResponse
@@ -140,7 +133,7 @@ func (h *EmployeeHandler) StartSandboxUpgrade(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	task, opts, err := tasks.NewEmployeeSandboxUpgradeTask(upgrade.ID, agent.ID, req.SmokeTest)
+	task, opts, err := tasks.NewEmployeeSandboxUpgradeTask(upgrade.ID, agent.ID)
 	if err != nil {
 		h.markUpgradeFailed(ctx, &upgrade, model.EmployeeSandboxUpgradePhaseQueued, err.Error())
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to build upgrade task"})
@@ -252,9 +245,6 @@ func toEmployeeSandboxUpgradeResponse(upgrade *model.EmployeeSandboxUpgrade) emp
 		UpgradeID:    upgrade.ID.String(),
 		Status:       upgrade.Status,
 		Phase:        upgrade.Phase,
-		BackupKey:    upgrade.BackupKey,
-		BackupSHA256: upgrade.BackupSHA256,
-		BackupBytes:  upgrade.BackupBytes,
 		ErrorMessage: upgrade.ErrorMessage,
 		CreatedAt:    upgrade.CreatedAt,
 		UpdatedAt:    upgrade.UpdatedAt,

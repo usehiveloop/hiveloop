@@ -15,7 +15,6 @@ const employeeSandboxRetireDelay = 24 * time.Hour
 type EmployeeSandboxUpgradePayload struct {
 	UpgradeID  uuid.UUID `json:"upgrade_id"`
 	EmployeeID uuid.UUID `json:"employee_id"`
-	SmokeTest  bool      `json:"smoke_test,omitempty"`
 }
 
 type EmployeeSandboxRetirePayload struct {
@@ -24,11 +23,10 @@ type EmployeeSandboxRetirePayload struct {
 	SandboxID  uuid.UUID `json:"sandbox_id"`
 }
 
-func NewEmployeeSandboxUpgradeTask(upgradeID, agentID uuid.UUID, smokeTest bool) (*asynq.Task, []asynq.Option, error) {
+func NewEmployeeSandboxUpgradeTask(upgradeID, agentID uuid.UUID) (*asynq.Task, []asynq.Option, error) {
 	payload, err := json.Marshal(EmployeeSandboxUpgradePayload{
 		UpgradeID:  upgradeID,
 		EmployeeID: agentID,
-		SmokeTest:  smokeTest,
 	})
 	if err != nil {
 		return nil, nil, fmt.Errorf("marshal employee sandbox upgrade payload: %w", err)

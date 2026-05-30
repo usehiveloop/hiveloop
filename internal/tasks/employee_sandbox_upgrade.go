@@ -15,21 +15,11 @@ import (
 	"github.com/usehivy/hivy/internal/logging"
 	"github.com/usehivy/hivy/internal/model"
 	"github.com/usehivy/hivy/internal/sandbox"
-	"github.com/usehivy/hivy/internal/storage"
 )
-
-const employeeSandboxUpgradeCommandTimeout = 60 * time.Minute
-
-type employeeSandboxUpgradeBackupStore interface {
-	Head(ctx context.Context, key string) (*storage.S3ObjectInfo, error)
-	PresignedURL(ctx context.Context, key string, ttl time.Duration) (string, error)
-	PresignedPutURL(ctx context.Context, key string, ttl time.Duration) (string, error)
-}
 
 type EmployeeSandboxUpgradeHandler struct {
 	db           *gorm.DB
 	orchestrator *sandbox.Orchestrator
-	store        employeeSandboxUpgradeBackupStore
 	compileDeps  employeeruntime.CompileDeps
 	enqueuer     enqueue.TaskEnqueuer
 }
@@ -37,21 +27,19 @@ type EmployeeSandboxUpgradeHandler struct {
 func NewEmployeeSandboxUpgradeHandler(
 	db *gorm.DB,
 	orchestrator *sandbox.Orchestrator,
-	store employeeSandboxUpgradeBackupStore,
 	compileDeps employeeruntime.CompileDeps,
 	enqueuer enqueue.TaskEnqueuer,
 ) *EmployeeSandboxUpgradeHandler {
 	return &EmployeeSandboxUpgradeHandler{
 		db:           db,
 		orchestrator: orchestrator,
-		store:        store,
 		compileDeps:  compileDeps,
 		enqueuer:     enqueuer,
 	}
 }
 
 func (h *EmployeeSandboxUpgradeHandler) Handle(ctx context.Context, task *asynq.Task) error {
-	if h == nil || h.db == nil || h.orchestrator == nil || h.store == nil || h.compileDeps.EncKey == nil || h.enqueuer == nil {
+	if h == nil || h.db == nil || h.orchestrator == nil || h.compileDeps.EncKey == nil || h.enqueuer == nil {
 		return fmt.Errorf("employee sandbox upgrade handler not configured")
 	}
 	var payload EmployeeSandboxUpgradePayload
@@ -76,7 +64,7 @@ func (h *EmployeeSandboxUpgradeHandler) run(ctx context.Context, payload Employe
 	}
 	annotateEmployeeSandboxUpgradeSentry(ctx, upgrade, agent, oldSandbox)
 
-	var oldStopped bool
+	var oldPaused bool
 	var newSandbox *model.Sandbox
 	fail := func(phase string, cause error) error {
 		msg := cause.Error()
@@ -93,7 +81,7 @@ func (h *EmployeeSandboxUpgradeHandler) run(ctx context.Context, payload Employe
 			}
 		}
 		if oldSandbox != nil && oldSandbox.ID != uuid.Nil {
-			if oldStopped {
+			if oldPaused {
 				if err := h.orchestrator.StartEmployeeSandbox(ctx, oldSandbox); err != nil {
 					msg += "; failed to restart old sandbox during rollback: " + err.Error()
 				} else if err := h.syncEmployeeRuntime(ctx, agent, oldSandbox); err != nil {
@@ -112,37 +100,9 @@ func (h *EmployeeSandboxUpgradeHandler) run(ctx context.Context, payload Employe
 		return cause
 	}
 
-	if err := h.markPhase(ctx, upgrade, model.EmployeeSandboxUpgradePhaseBackup); err != nil {
-		return err
-	}
-	if err := h.db.WithContext(ctx).Model(oldSandbox).Updates(map[string]any{
-		"status":        "upgrading",
-		"error_message": nil,
-	}).Error; err != nil {
-		return fail(model.EmployeeSandboxUpgradePhaseBackup, fmt.Errorf("mark old sandbox upgrading: %w", err))
-	}
-	oldSandbox.Status = "upgrading"
-	oldSandbox.ErrorMessage = nil
-
-	backupMeta, err := h.runBackup(ctx, upgrade, agent, oldSandbox)
-	if err != nil {
-		return fail(model.EmployeeSandboxUpgradePhaseBackup, err)
-	}
-	if err := h.verifyAndRecordBackup(ctx, upgrade, backupMeta); err != nil {
-		return fail(model.EmployeeSandboxUpgradePhaseBackup, err)
-	}
-	recordEmployeeSandboxUpgradeBackup(ctx, upgrade, backupMeta)
-
-	if err := h.markPhase(ctx, upgrade, model.EmployeeSandboxUpgradePhaseStoppingOld); err != nil {
-		return fail(model.EmployeeSandboxUpgradePhaseStoppingOld, err)
-	}
-	if err := h.orchestrator.StopSandbox(ctx, oldSandbox); err != nil {
-		return fail(model.EmployeeSandboxUpgradePhaseStoppingOld, err)
-	}
-	oldStopped = true
-
+	// Phase 1: Create new sandbox
 	if err := h.markPhase(ctx, upgrade, model.EmployeeSandboxUpgradePhaseCreatingNew); err != nil {
-		return fail(model.EmployeeSandboxUpgradePhaseCreatingNew, err)
+		return err
 	}
 	secrets, err := employeeruntime.PrepareStartup(ctx, h.compileDeps, agent)
 	if err != nil {
@@ -158,32 +118,24 @@ func (h *EmployeeSandboxUpgradeHandler) run(ctx context.Context, payload Employe
 	upgrade.NewSandboxID = &newSandbox.ID
 	recordEmployeeSandboxUpgradeNewSandbox(ctx, upgrade, newSandbox)
 
-	if err := h.markPhase(ctx, upgrade, model.EmployeeSandboxUpgradePhaseRestore); err != nil {
-		return fail(model.EmployeeSandboxUpgradePhaseRestore, err)
-	}
-	if err := h.runRestore(ctx, backupMeta, newSandbox); err != nil {
-		return fail(model.EmployeeSandboxUpgradePhaseRestore, err)
-	}
-
-	if err := h.markPhase(ctx, upgrade, model.EmployeeSandboxUpgradePhaseRestartNew); err != nil {
-		return fail(model.EmployeeSandboxUpgradePhaseRestartNew, err)
-	}
-	if err := h.orchestrator.RestartEmployeeSandbox(ctx, newSandbox); err != nil {
-		return fail(model.EmployeeSandboxUpgradePhaseRestartNew, err)
-	}
-
+	// Phase 2: Sync config to new sandbox
 	if err := h.markPhase(ctx, upgrade, model.EmployeeSandboxUpgradePhaseSync); err != nil {
 		return fail(model.EmployeeSandboxUpgradePhaseSync, err)
 	}
 	if err := h.syncEmployeeRuntime(ctx, agent, newSandbox); err != nil {
 		return fail(model.EmployeeSandboxUpgradePhaseSync, err)
 	}
-	if payload.SmokeTest {
-		if err := h.runSmokeTest(ctx, newSandbox); err != nil {
-			return fail(model.EmployeeSandboxUpgradePhaseSync, err)
-		}
-	}
 
+	// Phase 3: Pause old sandbox
+	if err := h.markPhase(ctx, upgrade, model.EmployeeSandboxUpgradePhasePausingOld); err != nil {
+		return fail(model.EmployeeSandboxUpgradePhasePausingOld, err)
+	}
+	if err := h.orchestrator.StopSandbox(ctx, oldSandbox); err != nil {
+		return fail(model.EmployeeSandboxUpgradePhasePausingOld, err)
+	}
+	oldPaused = true
+
+	// Phase 4: Schedule old sandbox retirement
 	if err := h.markPhase(ctx, upgrade, model.EmployeeSandboxUpgradePhaseCleanupOld); err != nil {
 		return fail(model.EmployeeSandboxUpgradePhaseCleanupOld, err)
 	}
@@ -191,6 +143,7 @@ func (h *EmployeeSandboxUpgradeHandler) run(ctx context.Context, payload Employe
 		logging.Capture(ctx, fmt.Errorf("employee sandbox upgrade %s: schedule old sandbox retirement failed: %w", upgrade.ID, err))
 	}
 
+	// Phase 5: Mark succeeded
 	now := time.Now().UTC()
 	if err := h.db.WithContext(ctx).Model(upgrade).Updates(map[string]any{
 		"status":       model.EmployeeSandboxUpgradeStatusSucceeded,

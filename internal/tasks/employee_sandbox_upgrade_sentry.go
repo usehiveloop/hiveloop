@@ -41,21 +41,6 @@ func recordEmployeeSandboxUpgradePhase(ctx context.Context, upgrade *model.Emplo
 	})
 }
 
-func recordEmployeeSandboxUpgradeBackup(ctx context.Context, upgrade *model.EmployeeSandboxUpgrade, meta *employeeSandboxBackupMetadata) {
-	hub := employeeUpgradeHub(ctx)
-	if hub == nil || upgrade == nil || meta == nil {
-		return
-	}
-	setEmployeeUpgradeContext(hub, upgrade, nil, sentrygo.Context{
-		"backup_key":    meta.Key,
-		"backup_sha256": meta.SHA256,
-		"backup_bytes":  meta.Bytes,
-	})
-	addEmployeeUpgradeBreadcrumb(ctx, "backup verified", sentrygo.LevelInfo, sentrygo.Context{
-		"backup_bytes": meta.Bytes,
-	})
-}
-
 func recordEmployeeSandboxUpgradeNewSandbox(ctx context.Context, upgrade *model.EmployeeSandboxUpgrade, sb *model.Sandbox) {
 	hub := employeeUpgradeHub(ctx)
 	if hub == nil || upgrade == nil || sb == nil {
@@ -126,12 +111,11 @@ func employeeUpgradeHub(ctx context.Context) *sentrygo.Hub {
 
 func setEmployeeUpgradeContext(hub *sentrygo.Hub, upgrade *model.EmployeeSandboxUpgrade, oldSandbox *model.Sandbox, extra sentrygo.Context) {
 	data := sentrygo.Context{
-		"upgrade_id":   upgrade.ID.String(),
-		"org_id":       upgrade.OrgID.String(),
-		"employee_id":  upgrade.EmployeeID.String(),
-		"status":       upgrade.Status,
-		"phase":        upgrade.Phase,
-		"backup_bytes": upgrade.BackupBytes,
+		"upgrade_id":  upgrade.ID.String(),
+		"org_id":      upgrade.OrgID.String(),
+		"employee_id": upgrade.EmployeeID.String(),
+		"status":      upgrade.Status,
+		"phase":       upgrade.Phase,
 	}
 	if upgrade.OldSandboxID != nil {
 		data["old_sandbox_id"] = upgrade.OldSandboxID.String()

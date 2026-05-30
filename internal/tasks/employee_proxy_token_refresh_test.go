@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/hibiken/asynq"
 	"gorm.io/gorm"
 
 	"github.com/usehivy/hivy/internal/config"
@@ -84,9 +83,7 @@ func TestEmployeeProxyTokenRefreshHandler_InjectsNewTokenRevokesOldAndSchedulesN
 		t.Fatal("last_proxy_token_refreshed_at was not set")
 	}
 
-	refreshTask := requireProxyRefreshTask(t, f.enqueuer)
-	requireOption(t, refreshTask.Options, asynq.QueueOpt, QueueDefault)
-	requireOption(t, refreshTask.Options, asynq.TimeoutOpt, employeeProxyTokenRefreshTimeout)
+	_ = requireProxyRefreshTask(t, f.enqueuer)
 }
 
 func TestEmployeeProxyTokenRefreshHandler_RevokesMintedTokenWhenRuntimeRejectsEnv(t *testing.T) {

@@ -146,7 +146,7 @@ func newEmployeeUpgradeFixture(t *testing.T) *employeeUpgradeFixture {
 	if err := db.Create(&upgrade).Error; err != nil {
 		t.Fatalf("create upgrade: %v", err)
 	}
-	handler := NewEmployeeSandboxUpgradeHandler(db, orch, fakeEmployeeUpgradeStore{size: 12}, employeeruntime.CompileDeps{
+	handler := NewEmployeeSandboxUpgradeHandler(db, orch, employeeruntime.CompileDeps{
 		DB:         db,
 		KMS:        kms,
 		EncKey:     encKey,
@@ -184,7 +184,7 @@ func testTasksKMS(t *testing.T) *crypto.KeyWrapper {
 
 func employeeUpgradeTask(t *testing.T, upgradeID, agentID uuid.UUID) *asynq.Task {
 	t.Helper()
-	task, _, err := NewEmployeeSandboxUpgradeTask(upgradeID, agentID, false)
+	task, _, err := NewEmployeeSandboxUpgradeTask(upgradeID, agentID)
 	if err != nil {
 		t.Fatalf("new task: %v", err)
 	}

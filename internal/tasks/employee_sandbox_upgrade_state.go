@@ -37,7 +37,7 @@ func (h *EmployeeSandboxUpgradeHandler) loadAndStart(ctx context.Context, payloa
 		}
 		return tx.Model(&upgrade).Updates(map[string]any{
 			"status": model.EmployeeSandboxUpgradeStatusRunning,
-			"phase":  model.EmployeeSandboxUpgradePhaseBackup,
+			"phase":  model.EmployeeSandboxUpgradePhaseCreatingNew,
 		}).Error
 	})
 	if err != nil {
@@ -50,17 +50,17 @@ func (h *EmployeeSandboxUpgradeHandler) loadAndStart(ctx context.Context, payloa
 		return nil, nil, nil, nil
 	}
 	upgrade.Status = model.EmployeeSandboxUpgradeStatusRunning
-	upgrade.Phase = model.EmployeeSandboxUpgradePhaseBackup
+	upgrade.Phase = model.EmployeeSandboxUpgradePhaseCreatingNew
 
 	var agent model.Employee
 	if err := h.db.WithContext(ctx).
 		Where("id = ? AND org_id = ? AND status <> ?", upgrade.EmployeeID, upgrade.OrgID, "archived").
 		First(&agent).Error; err != nil {
-		h.markFailed(ctx, &upgrade, model.EmployeeSandboxUpgradePhaseBackup, "employee not found")
+		h.markFailed(ctx, &upgrade, model.EmployeeSandboxUpgradePhaseCreatingNew, "employee not found")
 		return nil, nil, nil, fmt.Errorf("load employee: %w", err)
 	}
 	if agent.OrgID == nil {
-		h.markFailed(ctx, &upgrade, model.EmployeeSandboxUpgradePhaseBackup, "employee missing org")
+		h.markFailed(ctx, &upgrade, model.EmployeeSandboxUpgradePhaseCreatingNew, "employee missing org")
 		return nil, nil, nil, fmt.Errorf("employee missing org")
 	}
 	var oldSandbox model.Sandbox
@@ -69,7 +69,7 @@ func (h *EmployeeSandboxUpgradeHandler) loadAndStart(ctx context.Context, payloa
 		query = query.Where("id = ?", *upgrade.OldSandboxID)
 	}
 	if err := query.Order("created_at DESC").Limit(1).First(&oldSandbox).Error; err != nil {
-		h.markFailed(ctx, &upgrade, model.EmployeeSandboxUpgradePhaseBackup, "current sandbox not found")
+		h.markFailed(ctx, &upgrade, model.EmployeeSandboxUpgradePhaseCreatingNew, "current sandbox not found")
 		return nil, nil, nil, fmt.Errorf("load current sandbox: %w", err)
 	}
 	if upgrade.OldSandboxID == nil {

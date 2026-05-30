@@ -218,7 +218,7 @@ func TestEmployeeSQLiteBackup_UpgradeIDWritesImmutableUpgradeKey(t *testing.T) {
 		EmployeeID:   h.agentID,
 		OldSandboxID: &h.sandboxID,
 		Status:       model.EmployeeSandboxUpgradeStatusRunning,
-		Phase:        model.EmployeeSandboxUpgradePhaseBackup,
+		Phase:        model.EmployeeSandboxUpgradePhaseCreatingNew,
 	}
 	if err := h.db.Create(&upgrade).Error; err != nil {
 		t.Fatalf("create upgrade: %v", err)

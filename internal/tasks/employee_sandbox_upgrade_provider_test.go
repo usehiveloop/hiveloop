@@ -4,19 +4,17 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strings"
 	"sync"
 	"time"
 
 	"github.com/usehivy/hivy/internal/sandbox"
-	"github.com/usehivy/hivy/internal/storage"
 )
 
 type employeeUpgradeProvider struct {
 	mu           sync.Mutex
 	endpoint     string
-	failBackup   bool
-	failRestore  bool
+	failCreate   bool
+	failSync     bool
 	created      []sandbox.CreateSandboxOpts
 	started      []string
 	stopped      []string
@@ -39,6 +37,9 @@ func (p *employeeUpgradeProvider) RuntimeLayout() sandbox.RuntimeLayout {
 func (p *employeeUpgradeProvider) CreateSandbox(_ context.Context, opts sandbox.CreateSandboxOpts) (*sandbox.SandboxInfo, error) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
+	if p.failCreate {
+		return nil, errors.New("create failed")
+	}
 	p.nextExternal++
 	p.created = append(p.created, opts)
 	return &sandbox.SandboxInfo{ExternalID: fmt.Sprintf("new-external-%d", p.nextExternal), Status: sandbox.StatusRunning}, nil
@@ -109,38 +110,9 @@ func (p *employeeUpgradeProvider) ExecuteCommandWithTimeout(_ context.Context, _
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	p.commands = append(p.commands, command)
-	switch {
-	case strings.Contains(command, "VACUUM main INTO"):
-		if p.failBackup {
-			return "", errors.New("backup failed")
-		}
-		return `{"sha256":"` + strings.Repeat("a", 64) + `","bytes":12}`, nil
-	case strings.Contains(command, "install -m 600"):
-		if p.failRestore {
-			return "", errors.New("restore failed")
-		}
-		return `{"status":"ok"}`, nil
-	default:
-		return "", nil
-	}
+	return "", nil
 }
 
 func (p *employeeUpgradeProvider) GetResourceUsage(context.Context, string) (*sandbox.ResourceUsage, error) {
 	return &sandbox.ResourceUsage{}, nil
-}
-
-type fakeEmployeeUpgradeStore struct {
-	size int64
-}
-
-func (s fakeEmployeeUpgradeStore) Head(context.Context, string) (*storage.S3ObjectInfo, error) {
-	return &storage.S3ObjectInfo{Size: s.size}, nil
-}
-
-func (s fakeEmployeeUpgradeStore) PresignedURL(context.Context, string, time.Duration) (string, error) {
-	return "https://s3.example/backup.db.gz", nil
-}
-
-func (s fakeEmployeeUpgradeStore) PresignedPutURL(context.Context, string, time.Duration) (string, error) {
-	return "https://s3.example/upload.db.gz?signature=test", nil
 }

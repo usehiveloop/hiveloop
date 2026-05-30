@@ -108,7 +108,7 @@ func TestEmployeeSandboxUpgrade_DuplicateActiveReturnsExisting(t *testing.T) {
 		EmployeeID:   agent.ID,
 		OldSandboxID: &oldSandbox.ID,
 		Status:       model.EmployeeSandboxUpgradeStatusRunning,
-		Phase:        model.EmployeeSandboxUpgradePhaseBackup,
+		Phase:        model.EmployeeSandboxUpgradePhaseCreatingNew,
 	}
 	if err := h.db.Create(&existing).Error; err != nil {
 		t.Fatalf("create upgrade: %v", err)
