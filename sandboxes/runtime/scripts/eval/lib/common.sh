@@ -32,7 +32,7 @@ eval_init() {
   EVAL_TRACE_SUMMARY="${EVAL_TRACE_SUMMARY:-$EVAL_RUN_DIR/trace-summary.json}"
   DOCKER_LOG_PID=""
 
-  DEFAULT_EVAL_TASK="Build me a habit tracker where I can add habits, check them off each day, see my current streaks, edit a habit, and delete habits I no longer want."
+  DEFAULT_EVAL_TASK="I need a responsive website for my cake brand called Velvet Crumb"
   EVAL_TASK="${EVAL_TASK:-$DEFAULT_EVAL_TASK}"
 
   RED=$'\033[0;31m'

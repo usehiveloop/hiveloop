@@ -237,7 +237,6 @@ async fn main() -> Result<()> {
             let session_repo = session_repo.clone();
             let coordinator = coordinator.clone();
             let turn_event_sink: Arc<dyn handler::TurnEventSink> = http_stream_broker.clone();
-            let inbound_sink = inbound_sink.clone();
             let cron_repo = cron_repo.clone();
             tokio::spawn(async move {
                 if let Err(e) = handler::handle_inbound(
@@ -248,7 +247,6 @@ async fn main() -> Result<()> {
                     session_repo,
                     coordinator,
                     turn_event_sink,
-                    inbound_sink,
                     cron_repo,
                     inbound,
                 )

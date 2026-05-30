@@ -204,8 +204,18 @@ impl BashOperations for LocalBashOperations {
             None => Ok(child.wait().await),
         };
 
-        let stdout_bytes = stdout_task.await.unwrap_or_default();
-        let stderr_bytes = stderr_task.await.unwrap_or_default();
+        // After the child exits, backgrounded processes may still hold stdout/stderr
+        // pipes open (e.g. `nohup server &`). Give a short flush window then return
+        // whatever we have. This prevents the tool from hanging forever.
+        let flush_deadline = Duration::from_secs(5);
+        let stdout_bytes = tokio::time::timeout(flush_deadline, stdout_task)
+            .await
+            .unwrap_or(Ok(Vec::new()))
+            .unwrap_or_default();
+        let stderr_bytes = tokio::time::timeout(flush_deadline, stderr_task)
+            .await
+            .unwrap_or(Ok(Vec::new()))
+            .unwrap_or_default();
         let mut combined = stdout_bytes;
         combined.extend_from_slice(&stderr_bytes);
         let truncated = combined.len() >= max_bytes;

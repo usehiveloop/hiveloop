@@ -9,40 +9,37 @@ mod read;
 mod truncate;
 mod write;
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
-use async_trait::async_trait;
 use domain::ToolSpec;
-use serde_json::Value;
+
+pub use operations::*;
+pub use truncate::*;
 
 pub use bash::BashTool;
 pub use edit::EditTool;
-pub use operations::{
-    BashError, BashExecOptions, BashExecResult, BashOperations, EditOperations, FsError,
-    LocalBashOperations, LocalFsOperations, ReadOperations, WriteOperations,
-};
 pub use process_registry::ProcessRegistry;
 pub use read::ReadTool;
 pub use write::WriteTool;
 
-#[derive(Debug, Clone)]
+#[async_trait::async_trait]
+pub trait JsonTool: Send + Sync {
+    fn definition(&self) -> ToolDefinition;
+    async fn call(&self, args: serde_json::Value) -> anyhow::Result<serde_json::Value>;
+}
+
+pub fn schema_for<T: schemars::JsonSchema>() -> serde_json::Value {
+    serde_json::to_value(schemars::schema_for!(T))
+        .unwrap_or_else(|_| serde_json::json!({"type":"object"}))
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct ToolDefinition {
     pub name: String,
     pub description: String,
-    pub parameters: Value,
-}
-
-#[async_trait]
-pub trait JsonTool: Send + Sync {
-    fn definition(&self) -> ToolDefinition;
-    async fn call(&self, args: Value) -> anyhow::Result<Value>;
-}
-
-pub fn schema_for<T: schemars::JsonSchema>() -> Value {
-    serde_json::to_value(schemars::schema_for!(T))
-        .unwrap_or_else(|_| serde_json::json!({"type":"object"}))
+    pub parameters: serde_json::Value,
 }
 
 #[derive(Clone)]
@@ -52,6 +49,7 @@ pub struct ToolBuildContext {
     pub bash: Arc<LocalBashOperations>,
     pub runtime_env: Arc<HashMap<String, String>>,
     pub process_registry: Arc<ProcessRegistry>,
+    pub files_read: Arc<Mutex<HashSet<PathBuf>>>,
 }
 
 impl ToolBuildContext {
@@ -62,6 +60,7 @@ impl ToolBuildContext {
             bash: Arc::new(LocalBashOperations),
             runtime_env: Arc::new(HashMap::new()),
             process_registry: Arc::new(ProcessRegistry::new()),
+            files_read: Arc::new(Mutex::new(HashSet::new())),
         }
     }
 }
@@ -94,6 +93,7 @@ pub fn build_builtin_tools(
                         context.workspace_root.clone(),
                         context.fs.clone(),
                     )
+                    .with_files_read(context.files_read.clone())
                     .into_tool(),
                 );
             }
@@ -112,6 +112,7 @@ pub fn build_builtin_tools(
                         context.workspace_root.clone(),
                         context.fs.clone(),
                     )
+                    .with_files_read(context.files_read.clone())
                     .into_tool(),
                 );
             }

@@ -1,5 +1,6 @@
+use std::collections::HashSet;
 use std::path::PathBuf;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 use anyhow::{anyhow, Result};
 use async_trait::async_trait;
@@ -42,6 +43,7 @@ pub struct EditTool {
     config: WriteFileConfig,
     workspace_root: PathBuf,
     operations: Arc<dyn EditOperations>,
+    files_read: Option<Arc<Mutex<HashSet<PathBuf>>>>,
 }
 
 impl EditTool {
@@ -54,7 +56,13 @@ impl EditTool {
             config,
             workspace_root,
             operations,
+            files_read: None,
         }
+    }
+
+    pub fn with_files_read(mut self, files_read: Arc<Mutex<HashSet<PathBuf>>>) -> Self {
+        self.files_read = Some(files_read);
+        self
     }
 
     pub fn into_tool(self) -> Arc<dyn JsonTool> {
@@ -76,6 +84,24 @@ impl EditTool {
         .map_err(map_path_error)?;
         let deny_globs = build_glob_set(&self.config.deny_globs);
         enforce_deny_globs(&resolved, &deny_globs).map_err(map_path_error)?;
+
+        // Enforce read-before-edit: the file must have been read before editing
+        if let Some(ref files_read) = self.files_read {
+            let was_read = files_read
+                .lock()
+                .map(|guard| {
+                    guard.contains(&resolved)
+                        || guard.contains(&PathBuf::from(&parsed.path))
+                })
+                .unwrap_or(false);
+            if !was_read {
+                return Err(anyhow!(
+                    "You must read '{}' with read_file before editing it. \
+                     This prevents blind edits that could corrupt file content.",
+                    parsed.path
+                ));
+            }
+        }
 
         self.operations
             .access(&resolved)

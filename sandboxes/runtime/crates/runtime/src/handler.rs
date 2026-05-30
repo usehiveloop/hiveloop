@@ -20,7 +20,6 @@ use outbound::OutboundEmitter;
 use serde_json::Value;
 use storage::CronJobRepo;
 use storage::SessionRepo;
-use tokio::sync::mpsc;
 use tracing::{info, warn};
 
 use composition::compose_annotated_text;
@@ -271,7 +270,6 @@ pub async fn handle_inbound(
     session_repo: Arc<dyn SessionRepo>,
     coordinator: Arc<SessionCoordinator>,
     turn_event_sink: Arc<dyn TurnEventSink>,
-    inbound_sink: mpsc::Sender<InboundEvent>,
     cron_repo: Arc<dyn CronJobRepo>,
     inbound: InboundEvent,
 ) -> Result<()> {
@@ -305,8 +303,8 @@ pub async fn handle_inbound(
             session_repo.clone(),
             &current_inbound,
             turn_event_sink.clone(),
-            inbound_sink.clone(),
             cron_repo.clone(),
+            coordinator.clone(),
         )
         .await?;
 
@@ -573,8 +571,8 @@ async fn process_single_turn(
     session_repo: Arc<dyn SessionRepo>,
     inbound: &InboundEvent,
     turn_event_sink: Arc<dyn TurnEventSink>,
-    inbound_sink: mpsc::Sender<InboundEvent>,
     cron_repo: Arc<dyn CronJobRepo>,
+    coordinator: Arc<SessionCoordinator>,
 ) -> Result<()> {
     if inbound.text.trim().is_empty() && inbound.attachments.is_empty() {
         return Ok(());
@@ -698,19 +696,6 @@ async fn process_single_turn(
                 "completed"
             };
 
-            if let Err(e) = cron_repo
-                .complete_delegate_result(
-                    job_id,
-                    Utc::now(),
-                    delegate_status,
-                    delegate_error,
-                    &result_text,
-                )
-                .await
-            {
-                warn!(error = %e, job_id = %job_id, "failed to record delegate result");
-            }
-
             // Publish done on the delegate's own SSE stream
             if let Some(stream_id) = http_stream_id.as_deref() {
                 turn_event_sink.publish_done(stream_id, &session_id).await;
@@ -737,6 +722,9 @@ async fn process_single_turn(
                     .await;
             }
 
+            // Send notification to parent BEFORE marking job as completed.
+            // This prevents a race where the parent's polling loop sees the
+            // delegate as no longer active before the notification arrives.
             let notification = InboundEvent {
                 envelope_id: format!("delegate-result-{}", Utc::now().timestamp_millis()),
                 session_id: SessionId::from(parent_session_id),
@@ -761,8 +749,23 @@ async fn process_single_turn(
                 link_previews: Vec::new(),
                 agent_definition: None,
             };
-            if let Err(e) = inbound_sink.send(notification).await {
-                warn!(error = %e, job_id = %job_id, "failed to notify parent session");
+
+            // Queue via coordinator so the parent's polling loop picks it up
+            // in drain_queued() before it exits.
+            coordinator.submit_or_queue(notification);
+
+            // NOW mark the job as completed (after notification is queued).
+            if let Err(e) = cron_repo
+                .complete_delegate_result(
+                    job_id,
+                    Utc::now(),
+                    delegate_status,
+                    delegate_error,
+                    &result_text,
+                )
+                .await
+            {
+                warn!(error = %e, job_id = %job_id, "failed to record delegate result");
             }
         }
     }

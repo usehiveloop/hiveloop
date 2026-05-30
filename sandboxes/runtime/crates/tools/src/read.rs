@@ -1,5 +1,6 @@
+use std::collections::HashSet;
 use std::path::PathBuf;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 use anyhow::{anyhow, Result};
 use async_trait::async_trait;
@@ -37,6 +38,7 @@ pub struct ReadTool {
     config: ReadFileConfig,
     workspace_root: PathBuf,
     operations: Arc<dyn ReadOperations>,
+    files_read: Option<Arc<Mutex<HashSet<PathBuf>>>>,
 }
 
 impl ReadTool {
@@ -49,7 +51,13 @@ impl ReadTool {
             config,
             workspace_root,
             operations,
+            files_read: None,
         }
+    }
+
+    pub fn with_files_read(mut self, files_read: Arc<Mutex<HashSet<PathBuf>>>) -> Self {
+        self.files_read = Some(files_read);
+        self
     }
 
     pub fn into_tool(self) -> Arc<dyn JsonTool> {
@@ -86,6 +94,13 @@ impl ReadTool {
             .read_file(&resolved)
             .await
             .map_err(|e| anyhow!("read failed for {}: {e}", parsed.path))?;
+
+        // Track that this file was read, for read-before-edit enforcement
+        if let Some(ref files_read) = self.files_read {
+            if let Ok(mut guard) = files_read.lock() {
+                guard.insert(resolved.clone());
+            }
+        }
         let max_bytes = self.config.max_file_size_bytes as usize;
         if bytes.len() > max_bytes {
             return Err(anyhow!(

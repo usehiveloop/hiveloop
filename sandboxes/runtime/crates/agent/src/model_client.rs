@@ -10,7 +10,7 @@ use safety::json_repair::JsonRepair;
 use serde_json::Value;
 
 use crate::primitives::{
-    CacheControlPolicy, ModelRequest, ModelStreamEvent, ProviderUsage, ToolCall,
+    CacheControlPolicy, FinishReason, ModelRequest, ModelStreamEvent, ProviderUsage, ToolCall,
 };
 use crate::request_builder::build_openai_compatible_request;
 use crate::{AgentError, Result};
@@ -319,6 +319,7 @@ fn stream_response(response: Response, json_repair: &JsonRepair) -> ModelEventSt
     Box::pin(stream! {
         let mut buffer = String::new();
         let mut tool_accumulator = ToolCallAccumulator::default();
+        let mut last_finish_reason: Option<FinishReason> = None;
         futures::pin_mut!(bytes);
         while let Some(chunk) = bytes.next().await {
             let chunk = match chunk {
@@ -340,7 +341,8 @@ fn stream_response(response: Response, json_repair: &JsonRepair) -> ModelEventSt
                     if !calls.is_empty() {
                         yield Ok(ModelStreamEvent::ToolCalls(calls));
                     }
-                    yield Ok(ModelStreamEvent::Done);
+                    let reason = last_finish_reason.take().unwrap_or(FinishReason::Unknown("no_finish_reason".to_string()));
+                    yield Ok(ModelStreamEvent::Done(reason));
                     return;
                 }
                 let Ok(value) = serde_json::from_str::<Value>(data) else {
@@ -351,6 +353,11 @@ fn stream_response(response: Response, json_repair: &JsonRepair) -> ModelEventSt
                 }
                 if let Some(choices) = value.get("choices").and_then(|v| v.as_array()) {
                     for choice in choices {
+                        if let Some(fr) = choice.get("finish_reason").and_then(|v| v.as_str()) {
+                            if !fr.is_empty() {
+                                last_finish_reason = Some(fr.parse().unwrap_or(FinishReason::Unknown(fr.to_string())));
+                            }
+                        }
                         let Some(delta) = choice.get("delta") else { continue };
                         if let Some(text) = delta.get("content").and_then(|v| v.as_str()) {
                             if !text.is_empty() {

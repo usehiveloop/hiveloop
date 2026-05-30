@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use std::str::FromStr;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -112,5 +113,38 @@ pub enum ModelStreamEvent {
     ThinkingDelta(String),
     ToolCalls(Vec<ToolCall>),
     Usage(ProviderUsage),
-    Done,
+    Done(FinishReason),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum FinishReason {
+    Stop,
+    Length,
+    ToolCalls,
+    ContentFilter,
+    Unknown(String),
+}
+
+impl FinishReason {
+    pub fn is_complete(&self) -> bool {
+        matches!(self, Self::Stop)
+    }
+
+    pub fn is_cut_off(&self) -> bool {
+        matches!(self, Self::Length)
+    }
+}
+
+impl FromStr for FinishReason {
+    type Err = std::convert::Infallible;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(match s {
+            "stop" | "end_turn" => Self::Stop,
+            "length" | "max_tokens" => Self::Length,
+            "tool_calls" | "tool_use" => Self::ToolCalls,
+            "content_filter" | "safety" | "recitation" => Self::ContentFilter,
+            other => Self::Unknown(other.to_string()),
+        })
+    }
 }

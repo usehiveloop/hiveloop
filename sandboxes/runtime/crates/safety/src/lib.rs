@@ -1,3 +1,4 @@
+pub mod error_tracker;
 pub mod json_repair;
 pub mod repeat_detector;
 pub mod thinking_guard;

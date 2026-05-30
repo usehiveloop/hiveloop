@@ -14,13 +14,14 @@ use gateway::ChannelGateway;
 use mcp::McpRegistry;
 use outbound::OutboundEmitter;
 use safety::thinking_guard::ThinkingGuard;
+use safety::error_tracker::ToolErrorTracker;
 use safety::{overthinking_feedback, xml_repair_reminder, SafetyHarness, TurnSafety};
 use storage::CronJobRepo;
-use tools::{JsonTool, LocalBashOperations, LocalFsOperations, ProcessRegistry, ToolBuildContext};
+use tools::{JsonTool, ToolBuildContext};
 
 use crate::history::{append_model_message, load_model_history, seed_model_history_from_gateway};
 use crate::model_client::{ChatModelClient, ModelClientConfig};
-use crate::primitives::{AgentMessage, MessagePart, ModelRequest, ModelStreamEvent, ToolCall};
+use crate::primitives::{AgentMessage, FinishReason, MessagePart, ModelRequest, ModelStreamEvent, ToolCall};
 use crate::rig_tool_registry::{
     build_agent_tools, emit_tool_error, emit_tool_invoked, DynamicTool, ToolContext,
 };
@@ -44,13 +45,7 @@ impl RigAgentRunner {
     pub fn new(config: ConfigStore, workspace_root: PathBuf) -> Self {
         Self {
             config,
-            tool_context: ToolBuildContext {
-                workspace_root,
-                fs: Arc::new(LocalFsOperations),
-                bash: Arc::new(LocalBashOperations),
-                process_registry: Arc::new(ProcessRegistry::new()),
-                runtime_env: Arc::new(HashMap::new()),
-            },
+            tool_context: ToolBuildContext::new(workspace_root),
             outbound_emitter: None,
             gateway: None,
             cron_repo: None,
@@ -189,10 +184,33 @@ impl AgentRunner for RigAgentRunner {
             let mut effective_turn = 0u32;
             let mut consecutive_empty_responses = 0u32;
             let mut consecutive_model_failures = 0u32;
-            let mut cumulative_prompt_tokens: u64 = 0;
             let mut cumulative_completion_tokens: u64 = 0;
             while effective_turn < max_turns {
                 let mut turn_safety = TurnSafety::new(&safety);
+                let mut error_tracker = ToolErrorTracker::new(3);
+
+                // Compaction: check actual conversation size before each request
+                if let Some(ref config) = compaction_config {
+                    if config.enabled {
+                        let current_tokens = compaction::estimate_tokens_static(&messages);
+                        let threshold = compaction::effective_token_threshold(config);
+                        if current_tokens >= threshold {
+                            let tokens_before = current_tokens;
+                            compaction::compact(&mut messages, config);
+                            let tokens_after = compaction::estimate_tokens_static(&messages);
+                            yield AgentEvent::RunEvent {
+                                event: "compaction_applied".to_string(),
+                                payload: serde_json::json!({
+                                    "session_id": session_id.as_str(),
+                                    "turn_id": turn_id,
+                                    "tokens_before": tokens_before,
+                                    "tokens_after": tokens_after,
+                                }),
+                            };
+                        }
+                    }
+                }
+
                 let definitions = available_tools.iter().map(|tool| tool.definition()).collect();
                 let request = ModelRequest {
                     model: model_id.clone(),
@@ -251,6 +269,8 @@ impl AgentRunner for RigAgentRunner {
                 let mut tool_calls: Vec<ToolCall> = Vec::new();
                 let mut killed_by_overthinking = false;
                 let mut killed_by_stream_failure = false;
+                let mut had_thinking = false;
+                let mut last_finish_reason: Option<FinishReason> = None;
                 while let Some(event) = model_stream.next().await {
                     match event {
                         Ok(ModelStreamEvent::TextDelta(text)) => {
@@ -269,6 +289,7 @@ impl AgentRunner for RigAgentRunner {
                             }
                         }
                         Ok(ModelStreamEvent::ThinkingDelta(text)) => {
+                            had_thinking = true;
                             yield AgentEvent::ThinkingChunk { text: text.clone() };
                             if safety.config().overthinking.enabled {
                                 let status = turn_safety.overthinking.feed(&text);
@@ -295,7 +316,6 @@ impl AgentRunner for RigAgentRunner {
                         }
                         Ok(ModelStreamEvent::ToolCalls(calls)) => tool_calls.extend(calls),
                         Ok(ModelStreamEvent::Usage(usage)) => {
-                            cumulative_prompt_tokens += usage.prompt_tokens.max(0) as u64;
                             cumulative_completion_tokens += usage.completion_tokens.max(0) as u64;
                             yield AgentEvent::RunEvent {
                                 event: "model_usage".to_string(),
@@ -325,7 +345,9 @@ impl AgentRunner for RigAgentRunner {
                                 "model usage"
                             );
                         }
-                        Ok(ModelStreamEvent::Done) => {}
+                        Ok(ModelStreamEvent::Done(reason)) => {
+                            last_finish_reason = Some(reason);
+                        }
                         Err(error) => {
                             consecutive_model_failures += 1;
                             yield AgentEvent::RunEvent {
@@ -399,45 +421,125 @@ impl AgentRunner for RigAgentRunner {
                 }
 
                 if tool_calls.is_empty() {
-                    if turn_text.is_empty() {
+                    let reason = last_finish_reason.as_ref();
+
+                    let is_cut_off = reason.is_some_and(|r| r.is_cut_off());
+                    // Stream interrupted mid-content (model was producing text, stream died)
+                    let is_stream_interrupted = reason.is_none() && !turn_text.is_empty();
+                    // Model only produced thinking, no content at all
+                    let is_thinking_only = !reason.is_some_and(|r| r.is_complete())
+                        && had_thinking
+                        && turn_text.is_empty();
+
+                    if is_cut_off || is_stream_interrupted {
+                        // Model hit token limit or stream was interrupted mid-content — reprompt aggressively
                         consecutive_empty_responses += 1;
                         yield AgentEvent::RunEvent {
-                            event: "model_empty_response".to_string(),
+                            event: "model_cut_off".to_string(),
                             payload: serde_json::json!({
                                 "session_id": session_id.as_str(),
                                 "turn_id": turn_id,
                                 "model": model_id,
-                                "consecutive_empty": consecutive_empty_responses,
+                                "finish_reason": reason.map(|r| format!("{:?}", r)),
+                                "had_thinking": had_thinking,
+                                "consecutive": consecutive_empty_responses,
                             }),
                         };
-                        if consecutive_empty_responses >= 3 {
+                        if consecutive_empty_responses >= 5 {
                             yield AgentEvent::Error {
-                                message: "model produced empty responses 3 times consecutively".to_string(),
+                                message: "model was cut off 5 times consecutively".to_string(),
                             };
                             return;
                         }
                         messages.push(AgentMessage::user(
-                            "[system instruction] You produced an empty response. \
-                             Please continue working on the task. If you are unsure what \
-                             to do next, re-read the conversation history, check what has \
-                             already been completed, and pick up where you left off."
+                            "[system instruction] Your response was interrupted. \
+                             You must act immediately — call a tool, write code, or provide your \
+                             final answer. Do not think further; take action now."
                                 .to_string(),
                         ));
+                        let backoff = std::time::Duration::from_millis(
+                            500 * 2u64.saturating_pow(consecutive_empty_responses.saturating_sub(1)),
+                        ).min(std::time::Duration::from_secs(5));
+                        tokio::time::sleep(backoff).await;
                         continue;
                     }
-                    consecutive_empty_responses = 0;
-                    consecutive_model_failures = 0;
-                    final_text = turn_text.clone();
-                    completed_with_final = true;
-                    if !turn_text.is_empty() {
+
+                    if is_thinking_only {
+                        // Model produced only thinking tokens with no content.
+                        // Per Forgecode's approach: do NOT inject anything into the conversation.
+                        // Retry with the exact same context — the model has no knowledge of
+                        // the failed attempt. This prevents the model from restarting thinking
+                        // from scratch in response to injected instructions.
+                        consecutive_empty_responses += 1;
+                        yield AgentEvent::RunEvent {
+                            event: "model_thinking_only".to_string(),
+                            payload: serde_json::json!({
+                                "session_id": session_id.as_str(),
+                                "turn_id": turn_id,
+                                "model": model_id,
+                                "consecutive": consecutive_empty_responses,
+                            }),
+                        };
+                        if consecutive_empty_responses >= 3 {
+                            yield AgentEvent::Error {
+                                message: "model produced only thinking (no content) 3 times consecutively".to_string(),
+                            };
+                            return;
+                        }
+                        had_thinking = false;
+                        let backoff = std::time::Duration::from_millis(
+                            500 * 2u64.saturating_pow(consecutive_empty_responses.saturating_sub(1)),
+                        ).min(std::time::Duration::from_secs(5));
+                        tokio::time::sleep(backoff).await;
+                        continue;
+                    }
+
+                    if reason.is_some_and(|r| r.is_complete()) && !turn_text.is_empty() {
+                        // Model finished normally with text — this is a real completion
+                        consecutive_empty_responses = 0;
+                        consecutive_model_failures = 0;
+                        had_thinking = false;
+                        final_text = turn_text.clone();
+                        completed_with_final = true;
                         let assistant = AgentMessage::assistant(turn_text);
                         if let Err(error) = append_model_message(event_repo.as_deref(), &session_id, &assistant).await {
                             yield AgentEvent::Error { message: error.to_string() };
                             return;
                         }
                         messages.push(assistant);
+                        break;
                     }
-                    break;
+
+                    // Model finished with Stop but no text, or no finish_reason — reprompt
+                    consecutive_empty_responses += 1;
+                    yield AgentEvent::RunEvent {
+                        event: "model_empty_response".to_string(),
+                        payload: serde_json::json!({
+                            "session_id": session_id.as_str(),
+                            "turn_id": turn_id,
+                            "model": model_id,
+                            "finish_reason": reason.map(|r| format!("{:?}", r)),
+                            "had_thinking": had_thinking,
+                            "consecutive_empty": consecutive_empty_responses,
+                        }),
+                    };
+                    if consecutive_empty_responses >= 5 {
+                        yield AgentEvent::Error {
+                            message: "model produced empty responses 5 times consecutively".to_string(),
+                        };
+                        return;
+                    }
+                    messages.push(AgentMessage::user(
+                        "[system instruction] You produced an empty response. \
+                         Please continue working on the task. Call a tool, write code, \
+                         or provide your final answer."
+                            .to_string(),
+                    ));
+                    let backoff = std::time::Duration::from_millis(
+                        500 * 2u64.saturating_pow(consecutive_empty_responses.saturating_sub(1)),
+                    ).min(std::time::Duration::from_secs(5));
+                    tokio::time::sleep(backoff).await;
+                    continue;
                 }
 
                 let assistant_tool_calls = AgentMessage::assistant_tool_calls(tool_calls.clone());
@@ -448,6 +550,7 @@ impl AgentRunner for RigAgentRunner {
                 messages.push(assistant_tool_calls);
                 consecutive_empty_responses = 0;
                 consecutive_model_failures = 0;
+                had_thinking = false;
                 for call in tool_calls {
                     yield AgentEvent::ToolCall { id: call.id.clone(), tool: call.name.clone(), args: call.arguments.clone() };
 
@@ -486,6 +589,7 @@ impl AgentRunner for RigAgentRunner {
                     };
                     match tool.call(call.arguments.clone()).await {
                         Ok(result) => {
+                            error_tracker.reset(&call.name);
                             emit_tool_invoked(emitter.clone(), &session_id, &call.name, &call.arguments, &result).await;
                             yield AgentEvent::ToolResult { id: call.id.clone(), result: result.clone() };
                             let message = AgentMessage::tool_result(call.id, result.to_string());
@@ -496,8 +600,10 @@ impl AgentRunner for RigAgentRunner {
                             messages.push(message);
                         }
                         Err(error) => {
-                            emit_tool_error(emitter.clone(), &session_id, &call.name, &call.arguments, &error.to_string()).await;
-                            let result = json_error(&error.to_string());
+                            error_tracker.record_failure(&call.name);
+                            let error_msg = error_tracker.format_retry_hint(&call.name, &error.to_string());
+                            emit_tool_error(emitter.clone(), &session_id, &call.name, &call.arguments, &error_msg).await;
+                            let result = json_error(&error_msg);
                             yield AgentEvent::ToolResult { id: call.id.clone(), result: result.clone() };
                             let message = AgentMessage::tool_result(call.id, result.to_string());
                             if let Err(error) = append_model_message(event_repo.as_deref(), &session_id, &message).await {
@@ -508,60 +614,11 @@ impl AgentRunner for RigAgentRunner {
                         }
                     }
                 }
-                if let Some(ref config) = compaction_config {
-                    if config.enabled {
-                        let ctx = compaction::CompactContext::from_messages(&messages);
-                        if compaction::should_compact(&ctx, config) {
-                            let tokens_before = compaction::estimate_tokens_static(&messages);
-                            compaction::compact(&mut messages, config);
-                            let tokens_after = compaction::estimate_tokens_static(&messages);
-                            yield AgentEvent::RunEvent {
-                                event: "compaction_applied".to_string(),
-                                payload: serde_json::json!({
-                                    "session_id": session_id.as_str(),
-                                    "turn_id": turn_id,
-                                    "tokens_before": tokens_before,
-                                    "tokens_after": tokens_after,
-                                }),
-                            };
-                        }
-                    }
-                }
-                let limits = &snapshot.limits;
-                if cumulative_prompt_tokens >= limits.input_token_budget as u64 {
-                    if let Some(ref config) = compaction_config {
-                        if config.enabled {
-                            compaction::compact(&mut messages, config);
-                            cumulative_prompt_tokens =
-                                compaction::estimate_tokens_static(&messages);
-                            yield AgentEvent::RunEvent {
-                                event: "token_budget_compaction".to_string(),
-                                payload: serde_json::json!({
-                                    "session_id": session_id.as_str(),
-                                    "turn_id": turn_id,
-                                    "cumulative_prompt": cumulative_prompt_tokens,
-                                    "budget": limits.input_token_budget,
-                                }),
-                            };
-                        } else {
-                            let keep = compaction_config
-                                .as_ref()
-                                .map(|c| c.overlap_event_count.max(1) as usize)
-                                .unwrap_or(10);
-                            let drain_end = messages.len().saturating_sub(keep);
-                            if drain_end > 2 {
-                                messages.drain(2..drain_end);
-                            }
-                            cumulative_prompt_tokens =
-                                compaction::estimate_tokens_static(&messages);
-                        }
-                    }
-                }
-                if cumulative_completion_tokens >= limits.output_token_budget as u64 * 80 / 100 {
+                if cumulative_completion_tokens >= snapshot.limits.output_token_budget as u64 * 80 / 100 {
                     messages.push(AgentMessage::user(format!(
                         "[system instruction] Approaching output token budget ({} of {} used). \
                          Be concise and prioritize completing the task now.",
-                        cumulative_completion_tokens, limits.output_token_budget
+                        cumulative_completion_tokens, snapshot.limits.output_token_budget
                     )));
                 }
                 effective_turn += 1;
