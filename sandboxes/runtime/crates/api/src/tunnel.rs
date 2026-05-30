@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::time::{SystemTime, UNIX_EPOCH};
 
+use axum::extract::FromRequest;
 use axum::{
     body::Body,
     extract::{Query, State},
@@ -8,7 +9,6 @@ use axum::{
     response::{IntoResponse, Redirect, Response},
     Json,
 };
-use axum::extract::FromRequest;
 use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
 use futures::{SinkExt, StreamExt};
 use hmac::{Hmac, Mac};
@@ -147,10 +147,7 @@ fn authenticate(
     request_path: &str,
     state: &ApiState,
 ) -> Result<(), Box<Response>> {
-    if let Some(cookies) = headers
-        .get(header::COOKIE)
-        .and_then(|v| v.to_str().ok())
-    {
+    if let Some(cookies) = headers.get(header::COOKIE).and_then(|v| v.to_str().ok()) {
         let parsed = parse_cookies(cookies);
         if let Some(token) = parsed.get(TUNNEL_COOKIE_NAME) {
             let bearer = state.bearer_token.try_read();
@@ -194,7 +191,10 @@ pub async fn get_tunnel_auth(
     let return_to = params.get("return_to").cloned().unwrap_or_default();
 
     if state.tunnel_password.is_none() && !return_to.is_empty() {
-        let cookie = sign_cookie(now_unix() + COOKIE_MAX_AGE, &state.bearer_token.read().await);
+        let cookie = sign_cookie(
+            now_unix() + COOKIE_MAX_AGE,
+            &state.bearer_token.read().await,
+        );
         let mut response = Redirect::temporary(&return_to).into_response();
         if let Ok(val) = HeaderValue::from_str(&format!(
             "{}={}; Path=/tunnel; Max-Age={}; HttpOnly; Secure; SameSite=Lax",
@@ -244,20 +244,21 @@ pub async fn post_tunnel_auth(
         .and_then(|v| v.to_str().ok())
         .unwrap_or("");
 
-    let (password, return_to, is_form) = if content_type.contains("application/x-www-form-urlencoded") {
-        let params = parse_form_urlencoded(&body);
-        (
-            params.get("password").cloned().unwrap_or_default(),
-            params.get("return_to").cloned().unwrap_or_default(),
-            true,
-        )
-    } else {
-        let req: TunnelAuthRequest = match serde_json::from_str(&body) {
-            Ok(r) => r,
-            Err(_) => return (StatusCode::BAD_REQUEST, "invalid request body").into_response(),
+    let (password, return_to, is_form) =
+        if content_type.contains("application/x-www-form-urlencoded") {
+            let params = parse_form_urlencoded(&body);
+            (
+                params.get("password").cloned().unwrap_or_default(),
+                params.get("return_to").cloned().unwrap_or_default(),
+                true,
+            )
+        } else {
+            let req: TunnelAuthRequest = match serde_json::from_str(&body) {
+                Ok(r) => r,
+                Err(_) => return (StatusCode::BAD_REQUEST, "invalid request body").into_response(),
+            };
+            (req.password, String::new(), false)
         };
-        (req.password, String::new(), false)
-    };
 
     if let Some(ref expected) = state.tunnel_password {
         if password.len() != expected.len()
@@ -276,7 +277,10 @@ pub async fn post_tunnel_auth(
         }
     }
 
-    let cookie = sign_cookie(now_unix() + COOKIE_MAX_AGE, &state.bearer_token.read().await);
+    let cookie = sign_cookie(
+        now_unix() + COOKIE_MAX_AGE,
+        &state.bearer_token.read().await,
+    );
     let cookie_value = format!(
         "{}={}; Path=/tunnel; Max-Age={}; HttpOnly; Secure; SameSite=Lax",
         TUNNEL_COOKIE_NAME, cookie, COOKIE_MAX_AGE,
@@ -451,8 +455,8 @@ async fn proxy_http(
         }
     };
 
-    let status = StatusCode::from_u16(upstream_resp.status().as_u16())
-        .unwrap_or(StatusCode::BAD_GATEWAY);
+    let status =
+        StatusCode::from_u16(upstream_resp.status().as_u16()).unwrap_or(StatusCode::BAD_GATEWAY);
     let resp_headers = upstream_resp.headers().clone();
 
     let mut response = Response::new(Body::empty());
@@ -513,10 +517,17 @@ async fn proxy_ws(
     };
 
     ws_upgrade.on_upgrade(move |client_ws| async move {
-        let upstream_path = if path.is_empty() { "/".to_string() } else { format!("/{path}") };
+        let upstream_path = if path.is_empty() {
+            "/".to_string()
+        } else {
+            format!("/{path}")
+        };
         let upstream_url = format!("ws://localhost:{port}{upstream_path}");
 
-        let mut request_builder = tokio_tungstenite::tungstenite::client::IntoClientRequest::into_client_request(&upstream_url)
+        let mut request_builder =
+            tokio_tungstenite::tungstenite::client::IntoClientRequest::into_client_request(
+                &upstream_url,
+            )
             .unwrap_or_else(|_| {
                 let mut r = http::Request::new(());
                 *r.uri_mut() = upstream_url.parse().unwrap();

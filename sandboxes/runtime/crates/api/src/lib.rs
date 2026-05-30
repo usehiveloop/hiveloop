@@ -149,7 +149,10 @@ pub fn build_router(state: ApiState) -> Router {
             "/observability/traces/:trace_id/summary",
             get(observability_handlers::get_trace_summary),
         )
-        .route("/tunnel/auth", post(tunnel::post_tunnel_auth).get(tunnel::get_tunnel_auth))
+        .route(
+            "/tunnel/auth",
+            post(tunnel::post_tunnel_auth).get(tunnel::get_tunnel_auth),
+        )
         .fallback(tunnel::handle_tunnel)
         .layer(axum::middleware::from_fn_with_state(
             state.clone(),

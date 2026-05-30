@@ -20,7 +20,8 @@ impl CompactContext {
     pub fn from_messages(messages: &[AgentMessage]) -> Self {
         let estimated_tokens = estimate_tokens(messages);
         let mut user_turns = 0u32;
-        let last_message_is_user = matches!(messages.last(), Some(m) if m.role == AgentMessageRole::User);
+        let last_message_is_user =
+            matches!(messages.last(), Some(m) if m.role == AgentMessageRole::User);
 
         for msg in messages {
             if msg.role == AgentMessageRole::User {
@@ -104,9 +105,9 @@ fn find_eviction_range(
         return None;
     }
 
-    let start = messages
-        .iter()
-        .position(|msg| msg.role == AgentMessageRole::Assistant || msg.role == AgentMessageRole::User)?;
+    let start = messages.iter().position(|msg| {
+        msg.role == AgentMessageRole::Assistant || msg.role == AgentMessageRole::User
+    })?;
 
     let end = len.saturating_sub(retention).saturating_sub(1);
     if start >= end || end == 0 {
@@ -139,10 +140,20 @@ fn build_structured_summary(messages: &[AgentMessage]) -> String {
 
 #[derive(Debug, Clone)]
 enum SummaryEntry {
-    UserText { text: String },
-    AssistantText { text: String },
-    ToolCall { name: String, args: String, success: Option<bool> },
-    SystemMsg { text: String },
+    UserText {
+        text: String,
+    },
+    AssistantText {
+        text: String,
+    },
+    ToolCall {
+        name: String,
+        args: String,
+        success: Option<bool>,
+    },
+    SystemMsg {
+        text: String,
+    },
 }
 
 fn build_entry(msg: &AgentMessage) -> Option<SummaryEntry> {
@@ -167,8 +178,7 @@ fn build_entry(msg: &AgentMessage) -> Option<SummaryEntry> {
         }
         AgentMessageRole::Assistant if !msg.tool_calls.is_empty() => {
             let call = &msg.tool_calls[0];
-            let args = serde_json::to_string(&call.arguments)
-                .unwrap_or_else(|_| "{}".to_string());
+            let args = serde_json::to_string(&call.arguments).unwrap_or_else(|_| "{}".to_string());
             let args_short = if args.len() > 200 {
                 format!("{}...", &args[..200])
             } else {
@@ -402,10 +412,7 @@ mod tests {
     fn token_threshold_triggers() {
         let mut messages: Vec<AgentMessage> = Vec::new();
         for _ in 0..50 {
-            messages.push(make_msg(
-                AgentMessageRole::User,
-                "a".repeat(100).as_str(),
-            ));
+            messages.push(make_msg(AgentMessageRole::User, "a".repeat(100).as_str()));
         }
         let ctx = CompactContext::from_messages(&messages);
         let config = CompactionConfig {

@@ -13,19 +13,21 @@ use futures::{stream::BoxStream, StreamExt};
 use gateway::ChannelGateway;
 use mcp::McpRegistry;
 use outbound::OutboundEmitter;
-use safety::thinking_guard::ThinkingGuard;
 use safety::error_tracker::ToolErrorTracker;
+use safety::thinking_guard::ThinkingGuard;
 use safety::{overthinking_feedback, xml_repair_reminder, SafetyHarness, TurnSafety};
 use storage::CronJobRepo;
 use tools::{JsonTool, ToolBuildContext};
 
+use crate::compaction;
 use crate::history::{append_model_message, load_model_history, seed_model_history_from_gateway};
 use crate::model_client::{ChatModelClient, ModelClientConfig};
-use crate::primitives::{AgentMessage, FinishReason, MessagePart, ModelRequest, ModelStreamEvent, ToolCall};
+use crate::primitives::{
+    AgentMessage, FinishReason, MessagePart, ModelRequest, ModelStreamEvent, ToolCall,
+};
 use crate::rig_tool_registry::{
     build_agent_tools, emit_tool_error, emit_tool_invoked, DynamicTool, ToolContext,
 };
-use crate::compaction;
 use crate::{AgentEvent, AgentRunner, Result, TurnInput};
 
 pub struct RigAgentRunner {

@@ -90,8 +90,7 @@ impl EditTool {
             let was_read = files_read
                 .lock()
                 .map(|guard| {
-                    guard.contains(&resolved)
-                        || guard.contains(&PathBuf::from(&parsed.path))
+                    guard.contains(&resolved) || guard.contains(&PathBuf::from(&parsed.path))
                 })
                 .unwrap_or(false);
             if !was_read {
