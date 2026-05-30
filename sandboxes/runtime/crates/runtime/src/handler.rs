@@ -975,8 +975,8 @@ fn session_stream_id(inbound: &InboundEvent) -> Option<String> {
 
 fn format_final_message(outcome: &StreamOutcome) -> String {
     if let Some(internal_error) = &outcome.error {
-        warn!(error = %internal_error, "agent turn errored; replying with generic message");
-        return GENERIC_ERROR_REPLY.to_string();
+        warn!(error = %internal_error, "agent turn errored; replying with error detail");
+        return format!("An error occurred: {internal_error}");
     }
     if outcome.text.trim().is_empty() {
         warn!("agent produced no response; replying with generic message");

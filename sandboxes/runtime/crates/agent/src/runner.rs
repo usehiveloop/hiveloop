@@ -247,20 +247,19 @@ impl AgentRunner for RigAgentRunner {
                                 "consecutive_failures": consecutive_model_failures,
                             }),
                         };
-                        if consecutive_model_failures >= 3 {
-                            yield AgentEvent::Error {
-                                message: format!(
-                                    "model request failed {consecutive_model_failures} times consecutively: {error}"
-                                ),
-                            };
-                            return;
+                        if consecutive_model_failures % 3 == 0 {
+                            messages.push(AgentMessage::user(
+                                "[system instruction] The model request failed multiple times. \
+                                 This may be a temporary network issue. Please continue where \
+                                 you left off — your previous work and the conversation history \
+                                 are preserved."
+                                    .to_string(),
+                            ));
                         }
-                        messages.push(AgentMessage::user(
-                            "[system instruction] The model request failed. This may be a temporary \
-                             network issue. Please continue where you left off — your previous work \
-                             and the conversation history are preserved."
-                                .to_string(),
-                        ));
+                        let backoff = std::time::Duration::from_millis(
+                            500 * 2u64.saturating_pow(consecutive_model_failures.saturating_sub(1)),
+                        ).min(std::time::Duration::from_secs(30));
+                        tokio::time::sleep(backoff).await;
                         continue;
                     }
                 };
@@ -445,12 +444,6 @@ impl AgentRunner for RigAgentRunner {
                                 "consecutive": consecutive_empty_responses,
                             }),
                         };
-                        if consecutive_empty_responses >= 5 {
-                            yield AgentEvent::Error {
-                                message: "model was cut off 5 times consecutively".to_string(),
-                            };
-                            return;
-                        }
                         messages.push(AgentMessage::user(
                             "[system instruction] Your response was interrupted. \
                              You must act immediately — call a tool, write code, or provide your \
@@ -459,17 +452,12 @@ impl AgentRunner for RigAgentRunner {
                         ));
                         let backoff = std::time::Duration::from_millis(
                             500 * 2u64.saturating_pow(consecutive_empty_responses.saturating_sub(1)),
-                        ).min(std::time::Duration::from_secs(5));
+                        ).min(std::time::Duration::from_secs(30));
                         tokio::time::sleep(backoff).await;
                         continue;
                     }
 
                     if is_thinking_only {
-                        // Model produced only thinking tokens with no content.
-                        // Per Forgecode's approach: do NOT inject anything into the conversation.
-                        // Retry with the exact same context — the model has no knowledge of
-                        // the failed attempt. This prevents the model from restarting thinking
-                        // from scratch in response to injected instructions.
                         consecutive_empty_responses += 1;
                         yield AgentEvent::RunEvent {
                             event: "model_thinking_only".to_string(),
@@ -480,16 +468,26 @@ impl AgentRunner for RigAgentRunner {
                                 "consecutive": consecutive_empty_responses,
                             }),
                         };
-                        if consecutive_empty_responses >= 3 {
-                            yield AgentEvent::Error {
-                                message: "model produced only thinking (no content) 3 times consecutively".to_string(),
-                            };
-                            return;
-                        }
                         had_thinking = false;
+                        if consecutive_empty_responses <= 2 {
+                            // Per Forgecode's approach: do NOT inject anything into the conversation.
+                            // Retry with the exact same context — the model has no knowledge of
+                            // the failed attempt. This prevents the model from restarting thinking
+                            // from scratch in response to injected instructions.
+                        } else {
+                            // After 2 silent retries, the model is stuck in a thinking loop.
+                            // Inject a prompt to break the loop and force actual content.
+                            messages.push(AgentMessage::user(
+                                "[system instruction] You have been producing only internal \
+                                 reasoning without any visible response. You MUST produce \
+                                 actual text content or call a tool immediately. Do not \
+                                 continue thinking — provide your response now."
+                                    .to_string(),
+                            ));
+                        }
                         let backoff = std::time::Duration::from_millis(
                             500 * 2u64.saturating_pow(consecutive_empty_responses.saturating_sub(1)),
-                        ).min(std::time::Duration::from_secs(5));
+                        ).min(std::time::Duration::from_secs(30));
                         tokio::time::sleep(backoff).await;
                         continue;
                     }
@@ -523,12 +521,6 @@ impl AgentRunner for RigAgentRunner {
                             "consecutive_empty": consecutive_empty_responses,
                         }),
                     };
-                    if consecutive_empty_responses >= 5 {
-                        yield AgentEvent::Error {
-                            message: "model produced empty responses 5 times consecutively".to_string(),
-                        };
-                        return;
-                    }
                     messages.push(AgentMessage::user(
                         "[system instruction] You produced an empty response. \
                          Please continue working on the task. Call a tool, write code, \
@@ -537,7 +529,7 @@ impl AgentRunner for RigAgentRunner {
                     ));
                     let backoff = std::time::Duration::from_millis(
                         500 * 2u64.saturating_pow(consecutive_empty_responses.saturating_sub(1)),
-                    ).min(std::time::Duration::from_secs(5));
+                    ).min(std::time::Duration::from_secs(30));
                     tokio::time::sleep(backoff).await;
                     continue;
                 }
@@ -625,7 +617,6 @@ impl AgentRunner for RigAgentRunner {
             }
 
             if !completed_with_final {
-                let message = format!("max turns exhausted before final response: limit={max_turns}");
                 yield AgentEvent::RunEvent {
                     event: "max_turns_exhausted".to_string(),
                     payload: serde_json::json!({
@@ -635,8 +626,9 @@ impl AgentRunner for RigAgentRunner {
                         "model": model_id,
                     }),
                 };
-                yield AgentEvent::Error { message };
-                return;
+                if final_text.is_empty() {
+                    final_text = "[Agent reached the turn limit. The task may be partially complete.]".to_string();
+                }
             }
 
             yield AgentEvent::RunEvent {
