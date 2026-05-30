@@ -14,6 +14,90 @@ pub struct OutboundEmitter {
     database_queue: Option<Arc<DatabaseEventQueue>>,
 }
 
+impl OutboundEmitter {
+    pub fn new(outbox: Arc<dyn OutboxRepo>, registry: Arc<RwLock<OutboundRegistry>>) -> Self {
+        Self {
+            outbox,
+            registry,
+            stream_batcher: Arc::new(RwLock::new(None)),
+            database_queue: None,
+        }
+    }
+
+    pub fn with_stream_batcher(
+        mut self,
+        stream_batcher: Arc<RwLock<Option<Arc<StreamBatcher>>>>,
+    ) -> Self {
+        self.stream_batcher = stream_batcher;
+        self
+    }
+
+    pub fn with_database_queue(mut self, database_queue: Arc<DatabaseEventQueue>) -> Self {
+        self.database_queue = Some(database_queue);
+        self
+    }
+
+    pub async fn emit(&self, event: OutboundEvent) {
+        if let Some(database_queue) = &self.database_queue {
+            if let Err(error) = database_queue.enqueue(&event).await {
+                warn!(event_type = %event.event_type, %error, "database event enqueue failed");
+            }
+        }
+
+        if let Some(batcher) = self.stream_batcher.read().await.clone() {
+            match batcher.emit(event.clone()).await {
+                Ok(true) => return,
+                Ok(false) => {}
+                Err(error) => {
+                    warn!(event_type = %event.event_type, %error, "stream batch enqueue failed")
+                }
+            }
+            if let Err(error) = batcher.flush_before_event(&event).await {
+                warn!(event_type = %event.event_type, %error, "stream batch flush before event failed");
+            }
+        }
+
+        let channels = {
+            let registry = self.registry.read().await;
+            registry
+                .matching(&event.event_type)
+                .map(|channel| channel.name().to_string())
+                .collect::<Vec<_>>()
+        };
+
+        if channels.is_empty() {
+            return;
+        }
+
+        for channel_name in channels {
+            if let Err(error) = self
+                .outbox
+                .enqueue(&channel_name, &event.event_type, event.payload.clone())
+                .await
+            {
+                warn!(channel = %channel_name, event_type = %event.event_type, %error, "outbox enqueue failed");
+            }
+        }
+    }
+
+    pub async fn flush_streams_for_session(&self, session_id: &str) {
+        if let Some(batcher) = self.stream_batcher.read().await.clone() {
+            if let Err(error) = batcher.flush_session(session_id).await {
+                warn!(session_id, %error, "stream batch flush failed");
+            }
+        }
+        self.flush_database().await;
+    }
+
+    pub async fn flush_database(&self) {
+        if let Some(database_queue) = &self.database_queue {
+            if let Err(error) = database_queue.flush().await {
+                warn!(%error, "database event queue flush failed");
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
@@ -173,89 +257,5 @@ mod tests {
 
         assert_eq!(event_log_count(&store).await, 1);
         assert!(outbox.rows.lock().expect("outbox lock").is_empty());
-    }
-}
-
-impl OutboundEmitter {
-    pub fn new(outbox: Arc<dyn OutboxRepo>, registry: Arc<RwLock<OutboundRegistry>>) -> Self {
-        Self {
-            outbox,
-            registry,
-            stream_batcher: Arc::new(RwLock::new(None)),
-            database_queue: None,
-        }
-    }
-
-    pub fn with_stream_batcher(
-        mut self,
-        stream_batcher: Arc<RwLock<Option<Arc<StreamBatcher>>>>,
-    ) -> Self {
-        self.stream_batcher = stream_batcher;
-        self
-    }
-
-    pub fn with_database_queue(mut self, database_queue: Arc<DatabaseEventQueue>) -> Self {
-        self.database_queue = Some(database_queue);
-        self
-    }
-
-    pub async fn emit(&self, event: OutboundEvent) {
-        if let Some(database_queue) = &self.database_queue {
-            if let Err(error) = database_queue.enqueue(&event).await {
-                warn!(event_type = %event.event_type, %error, "database event enqueue failed");
-            }
-        }
-
-        if let Some(batcher) = self.stream_batcher.read().await.clone() {
-            match batcher.emit(event.clone()).await {
-                Ok(true) => return,
-                Ok(false) => {}
-                Err(error) => {
-                    warn!(event_type = %event.event_type, %error, "stream batch enqueue failed")
-                }
-            }
-            if let Err(error) = batcher.flush_before_event(&event).await {
-                warn!(event_type = %event.event_type, %error, "stream batch flush before event failed");
-            }
-        }
-
-        let channels = {
-            let registry = self.registry.read().await;
-            registry
-                .matching(&event.event_type)
-                .map(|channel| channel.name().to_string())
-                .collect::<Vec<_>>()
-        };
-
-        if channels.is_empty() {
-            return;
-        }
-
-        for channel_name in channels {
-            if let Err(error) = self
-                .outbox
-                .enqueue(&channel_name, &event.event_type, event.payload.clone())
-                .await
-            {
-                warn!(channel = %channel_name, event_type = %event.event_type, %error, "outbox enqueue failed");
-            }
-        }
-    }
-
-    pub async fn flush_streams_for_session(&self, session_id: &str) {
-        if let Some(batcher) = self.stream_batcher.read().await.clone() {
-            if let Err(error) = batcher.flush_session(session_id).await {
-                warn!(session_id, %error, "stream batch flush failed");
-            }
-        }
-        self.flush_database().await;
-    }
-
-    pub async fn flush_database(&self) {
-        if let Some(database_queue) = &self.database_queue {
-            if let Err(error) = database_queue.flush().await {
-                warn!(%error, "database event queue flush failed");
-            }
-        }
     }
 }
