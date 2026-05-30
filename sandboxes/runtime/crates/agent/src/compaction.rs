@@ -264,14 +264,12 @@ fn deduplicate_entries(entries: Vec<SummaryEntry>) -> Vec<SummaryEntry> {
 
     for entry in entries {
         let should_keep = match &entry {
-            SummaryEntry::ToolCall { name, args, .. } => {
-                if name == "read_file" || name == "write_file" || name == "edit_file" {
-                    if let Some(path) = extract_file_path(args) {
-                        let key = format!("{name}:{path}");
-                        !seen_paths.contains(&key)
-                    } else {
-                        true
-                    }
+            SummaryEntry::ToolCall { name, args, .. }
+                if name == "read_file" || name == "write_file" || name == "edit_file" =>
+            {
+                if let Some(path) = extract_file_path(args) {
+                    let key = format!("{name}:{path}");
+                    !seen_paths.contains(&key)
                 } else {
                     true
                 }
