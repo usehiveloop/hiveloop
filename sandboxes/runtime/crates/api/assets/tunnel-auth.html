@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Preview Access — Hivy</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --background:#FFFAFA;--foreground:#2D0A0F;
+  --primary:#881337;--primary-foreground:#FFFFFF;
+  --secondary:#FFFFFF;--secondary-foreground:#881337;
+  --muted:#FFF1F2;--muted-foreground:#7C4A52;
+  --border:#FECDD3;--input:#FECDD3;--ring:#FB7185;
+  --card:#FFFFFF;
+  --glow-left:#FECDD3;--glow-center:#FFE4E6;--glow-right:#FDA4AF;
+  --radius:0.625rem;
+  --font-heading:'Recoleta','Georgia','Times New Roman',serif;
+  --font-body:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+}
+@media(prefers-color-scheme:dark){
+  :root{
+    --background:#1A080E;--foreground:#FFFFFF;
+    --primary:#FF4D6D;--primary-foreground:#FFFFFF;
+    --secondary:#2A1218;--secondary-foreground:#FECDD3;
+    --muted:#3D1A22;--muted-foreground:#F0D4DA;
+    --border:#4A202A;--input:#4A202A;--ring:#E05A6F;
+    --card:#240D14;
+    --glow-left:#5A2028;--glow-center:#4A1A22;--glow-right:#5A2028;
+  }
+}
+html{height:100%}
+body{
+  min-height:100%;display:flex;align-items:center;justify-content:center;
+  font-family:var(--font-body);color:var(--foreground);
+  background:var(--background);padding:1rem;
+  -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
+}
+
+/* Background glow blobs */
+.glow{
+  pointer-events:none;position:fixed;inset:0;overflow:hidden;
+}
+.glow span{
+  position:absolute;border-radius:9999px;filter:blur(140px);opacity:.35;
+}
+.glow .l{top:-13rem;left:-7rem;width:20rem;height:28rem;background:var(--glow-left)}
+.glow .c{top:-10rem;left:50%;width:20rem;height:28rem;background:var(--glow-center);transform:translateX(-50%)}
+.glow .r{top:-13rem;right:-7rem;width:20rem;height:28rem;background:var(--glow-right)}
+
+/* Card */
+.card{
+  position:relative;z-index:10;width:100%;max-width:26.25rem;
+  border-radius:1rem;border:1px solid var(--border);
+  background:color-mix(in srgb, var(--secondary) 80%, transparent);
+  padding:2.5rem 2rem;backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
+  box-shadow:0 1px 3px rgba(0,0,0,.04),0 20px 40px rgba(136,19,55,.06);
+}
+@media(prefers-color-scheme:dark){
+  .card{box-shadow:0 1px 3px rgba(0,0,0,.3),0 20px 40px rgba(0,0,0,.5)}
+}
+@media(min-width:640px){
+  .card{padding:2.5rem}
+}
+
+/* Ghost logo */
+.logo-wrap{display:flex;flex-direction:column;align-items:center;gap:1rem;margin-bottom:1.5rem}
+.ghost{
+  width:48px;height:48px;color:var(--muted-foreground);
+  filter:drop-shadow(0 0 16px rgba(139,140,246,.2));
+  animation:pulse 1.2s ease-in-out infinite;
+}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}
+
+/* Typography */
+h1{
+  font-family:var(--font-heading);font-size:1.5rem;font-weight:400;
+  letter-spacing:-0.02em;color:var(--foreground);text-align:center;
+}
+.sub{margin-top:.375rem;font-size:.875rem;color:var(--muted-foreground);text-align:center;line-height:1.5}
+
+/* Toast error */
+.toast{
+  display:none;margin-bottom:1rem;padding:.75rem 1rem;
+  font-size:.8125rem;line-height:1.4;color:#9F1239;
+  background:#FFF1F2;border:1px solid #FECDD3;border-radius:var(--radius);
+}
+@media(prefers-color-scheme:dark){
+  .toast{color:#FCA5A5;background:rgba(74,16,32,.6);border-color:#5A2030}
+}
+.toast.show{display:flex;align-items:center;gap:.5rem}
+
+/* Form */
+.form{display:flex;flex-direction:column;gap:.75rem}
+.field{display:flex;flex-direction:column;gap:.5rem}
+label{
+  font-size:.8125rem;font-weight:500;line-height:1;color:var(--foreground);
+  display:flex;align-items:center;gap:.5rem;
+}
+input[type="password"]{
+  width:100%;height:3rem;padding:.5rem .75rem;font-size:.9375rem;
+  font-family:var(--font-body);color:var(--foreground);
+  background:color-mix(in srgb, var(--input) 10%, transparent);
+  border:1px solid var(--border);border-radius:var(--radius);
+  outline:none;transition:border-color .15s,box-shadow .15s;
+}
+input[type="password"]::placeholder{color:var(--muted-foreground)}
+input[type="password"]:focus{
+  border-color:var(--ring);box-shadow:0 0 0 3px color-mix(in srgb, var(--ring) 20%, transparent);
+}
+button[type="submit"]{
+  width:100%;height:3rem;padding:0 2rem;font-size:.875rem;font-weight:600;
+  font-family:var(--font-body);color:var(--primary-foreground);
+  background:var(--primary);border:none;border-radius:var(--radius);
+  cursor:pointer;transition:opacity .15s,transform .1s;
+  box-shadow:0 0 16px rgba(0,0,0,.08);
+}
+button[type="submit"]:hover{opacity:.92}
+button[type="submit"]:active{transform:scale(.98)}
+button[type="submit"]:disabled{opacity:.5;cursor:not-allowed}
+
+/* Footer */
+.footer{margin-top:1.75rem;text-align:center}
+.footer p{font-size:.75rem;color:color-mix(in srgb, var(--muted-foreground) 60%, transparent);line-height:1.6}
+.footer a{color:var(--muted-foreground);text-decoration:underline;text-underline-offset:2px;transition:color .15s}
+.footer a:hover{color:var(--foreground)}
+
+/* Back link */
+.back{
+  position:fixed;top:1.25rem;left:1rem;z-index:50;
+  display:inline-flex;align-items:center;gap:.375rem;
+  font-size:.8125rem;font-weight:500;color:var(--muted-foreground);
+  text-decoration:none;transition:color .15s;
+  font-family:var(--font-body);
+}
+.back:hover{color:var(--foreground)}
+.back svg{width:14px;height:14px}
+
+/* Brand footer */
+.brand{margin-top:2rem;text-align:center;font-size:.6875rem;color:var(--muted-foreground)}
+.brand a{color:var(--primary);text-decoration:none;font-weight:500}
+.brand a:hover{text-decoration:underline}
+</style>
+</head>
+<body>
+
+<a class="back" href="/">
+  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M10 12L6 8l4-4"/>
+  </svg>
+  Home
+</a>
+
+<div class="glow"><span class="l"></span><span class="c"></span><span class="r"></span></div>
+
+<div class="card">
+  <div class="logo-wrap">
+    <svg class="ghost" viewBox="0 0 640 640" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+      <path d="M63.7314 260.875C115.623 104.119 238.334 51.5019 291.736 44.0986C600.403 1.30772 662.211 304.136 543.862 460.66C441.808 595.633 262.075 620.78 154.214 585.754C59.2103 554.903 6.44755 433.92 63.7314 260.875Z"/>
+      <ellipse cx="318.5" cy="282" rx="45.5" ry="101" fill="var(--background)"/>
+      <ellipse cx="457.5" cy="282" rx="45.5" ry="101" fill="var(--background)"/>
+    </svg>
+  </div>
+
+  <h1>Preview access</h1>
+  <p class="sub">Enter the tunnel password to view this preview.</p>
+
+  <div class="toast{ERROR_CLASS}" id="toast">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+      <circle cx="8" cy="8" r="6.5"/><path d="M8 5v3.5"/><circle cx="8" cy="11.5" r=".5" fill="currentColor" stroke="none"/>
+    </svg>
+    Incorrect password. Try again.
+  </div>
+
+  <form class="form" method="POST" action="/tunnel/auth">
+    <input type="hidden" name="return_to" value="{RETURN_TO}">
+    <div class="field">
+      <label for="password">Password</label>
+      <input type="password" id="password" name="password"
+             autocomplete="current-password" autofocus required
+             placeholder="Enter password">
+    </div>
+    <button type="submit">Continue</button>
+  </form>
+
+  <div class="footer">
+    <p>
+      By continuing, you agree to our
+      <a href="https://usehivy.com/terms">Terms</a> and
+      <a href="https://usehivy.com/legal">Privacy Policy</a>.
+    </p>
+  </div>
+
+  <div class="brand">
+    Powered by <a href="https://usehivy.com" target="_blank" rel="noopener">Hivy</a>
+  </div>
+</div>
+
+</body>
+</html>

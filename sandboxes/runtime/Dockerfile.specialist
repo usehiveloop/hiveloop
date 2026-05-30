@@ -181,11 +181,13 @@ WORKDIR /app
 COPY hivy-sandboxes-runtime /usr/local/bin/hivy-sandboxes-runtime
 COPY docker/runtime/git-credential-hivy /usr/local/bin/git-credential-hivy
 COPY docker/runtime/gh-wrapper /usr/local/bin/gh-wrapper
+COPY scripts/hivy-guardian.sh /usr/local/bin/hivy-guardian
 
 RUN chmod +x /usr/local/bin/hivy-sandboxes-runtime \
   && mkdir -p /app/data /workspace \
   && chmod +x /usr/local/bin/git-credential-hivy \
   && chmod +x /usr/local/bin/gh-wrapper \
+  && chmod +x /usr/local/bin/hivy-guardian \
   && git config --system credential.helper /usr/local/bin/git-credential-hivy \
   && ln -sf /usr/local/bin/gh-wrapper /usr/local/bin/gh
 

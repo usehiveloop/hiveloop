@@ -3,6 +3,7 @@ mod handlers;
 mod http_gateway;
 mod observability_handlers;
 mod state;
+pub mod tunnel;
 
 use std::net::SocketAddr;
 
@@ -147,6 +148,11 @@ pub fn build_router(state: ApiState) -> Router {
         .route(
             "/observability/traces/:trace_id/summary",
             get(observability_handlers::get_trace_summary),
+        )
+        .route("/tunnel/auth", post(tunnel::post_tunnel_auth).get(tunnel::get_tunnel_auth))
+        .route(
+            "/tunnel/:port/{*path}",
+            axum::routing::any(tunnel::handle_tunnel),
         )
         .layer(axum::middleware::from_fn_with_state(
             state.clone(),

@@ -67,6 +67,10 @@ async fn main() -> Result<()> {
     let bind_addr: SocketAddr = bind_addr_text
         .parse()
         .context("HIVY_RUNTIME_BIND_ADDR must be a socket address")?;
+    let tunnel_password = runtime_env
+        .get("HIVY_TUNNEL_PASSWORD")
+        .cloned()
+        .filter(|s| !s.is_empty());
     let database_path = runtime_env
         .get("HIVY_DB_PATH")
         .cloned()
@@ -147,6 +151,7 @@ async fn main() -> Result<()> {
         }),
         Some(mcp_registry.clone()),
         Some(outbound_reloader),
+        tunnel_password,
     );
     let (api_handle, api_cancel) = api::serve(bind_addr, api_state.clone()).await;
     api_state.mark_gateway_ready();

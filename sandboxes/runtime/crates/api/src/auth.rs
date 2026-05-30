@@ -12,7 +12,8 @@ pub async fn bearer_auth(
     request: Request<axum::body::Body>,
     next: Next,
 ) -> Result<Response, StatusCode> {
-    if request.uri().path() == "/healthz" {
+    let path = request.uri().path();
+    if path == "/healthz" || path.starts_with("/tunnel/") {
         return Ok(next.run(request).await);
     }
     let authorization_header = request

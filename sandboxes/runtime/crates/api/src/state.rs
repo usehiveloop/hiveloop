@@ -30,6 +30,7 @@ pub struct ApiState {
     pub mcp_registry: Option<Arc<McpRegistry>>,
     pub outbound_reloader: Option<Arc<dyn OutboundConfigReloader>>,
     pub observability: ObservabilityRecorder,
+    pub tunnel_password: Option<String>,
 }
 
 #[async_trait]
@@ -51,6 +52,7 @@ impl ApiState {
         http_gateway: Option<HttpGatewayState>,
         mcp_registry: Option<Arc<McpRegistry>>,
         outbound_reloader: Option<Arc<dyn OutboundConfigReloader>>,
+        tunnel_password: Option<String>,
     ) -> Self {
         let observability = http_gateway
             .as_ref()
@@ -72,6 +74,7 @@ impl ApiState {
             mcp_registry,
             outbound_reloader,
             observability,
+            tunnel_password,
         }
     }
 
