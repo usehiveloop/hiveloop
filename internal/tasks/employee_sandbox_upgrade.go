@@ -15,11 +15,21 @@ import (
 	"github.com/usehivy/hivy/internal/logging"
 	"github.com/usehivy/hivy/internal/model"
 	"github.com/usehivy/hivy/internal/sandbox"
+	"github.com/usehivy/hivy/internal/storage"
 )
+
+const employeeSandboxUpgradeCommandTimeout = 60 * time.Minute
+
+type employeeSandboxUpgradeBackupStore interface {
+	Head(ctx context.Context, key string) (*storage.S3ObjectInfo, error)
+	PresignedURL(ctx context.Context, key string, ttl time.Duration) (string, error)
+	PresignedPutURL(ctx context.Context, key string, ttl time.Duration) (string, error)
+}
 
 type EmployeeSandboxUpgradeHandler struct {
 	db           *gorm.DB
 	orchestrator *sandbox.Orchestrator
+	store        employeeSandboxUpgradeBackupStore
 	compileDeps  employeeruntime.CompileDeps
 	enqueuer     enqueue.TaskEnqueuer
 }
@@ -27,19 +37,21 @@ type EmployeeSandboxUpgradeHandler struct {
 func NewEmployeeSandboxUpgradeHandler(
 	db *gorm.DB,
 	orchestrator *sandbox.Orchestrator,
+	store employeeSandboxUpgradeBackupStore,
 	compileDeps employeeruntime.CompileDeps,
 	enqueuer enqueue.TaskEnqueuer,
 ) *EmployeeSandboxUpgradeHandler {
 	return &EmployeeSandboxUpgradeHandler{
 		db:           db,
 		orchestrator: orchestrator,
+		store:        store,
 		compileDeps:  compileDeps,
 		enqueuer:     enqueuer,
 	}
 }
 
 func (h *EmployeeSandboxUpgradeHandler) Handle(ctx context.Context, task *asynq.Task) error {
-	if h == nil || h.db == nil || h.orchestrator == nil || h.compileDeps.EncKey == nil || h.enqueuer == nil {
+	if h == nil || h.db == nil || h.orchestrator == nil || h.store == nil || h.compileDeps.EncKey == nil || h.enqueuer == nil {
 		return fmt.Errorf("employee sandbox upgrade handler not configured")
 	}
 	var payload EmployeeSandboxUpgradePayload
@@ -100,7 +112,20 @@ func (h *EmployeeSandboxUpgradeHandler) run(ctx context.Context, payload Employe
 		return cause
 	}
 
-	// Phase 1: Create new sandbox
+	// Phase 1: Snapshot the old runtime while it is still available.
+	if err := h.markPhase(ctx, upgrade, model.EmployeeSandboxUpgradePhaseBackup); err != nil {
+		return err
+	}
+	backupMeta, err := h.runBackup(ctx, upgrade, agent, oldSandbox)
+	if err != nil {
+		return fail(model.EmployeeSandboxUpgradePhaseBackup, err)
+	}
+	if err := h.verifyAndRecordBackup(ctx, upgrade, backupMeta); err != nil {
+		return fail(model.EmployeeSandboxUpgradePhaseBackup, err)
+	}
+	recordEmployeeSandboxUpgradeBackup(ctx, upgrade, backupMeta)
+
+	// Phase 2: Create new sandbox.
 	if err := h.markPhase(ctx, upgrade, model.EmployeeSandboxUpgradePhaseCreatingNew); err != nil {
 		return err
 	}
@@ -118,7 +143,23 @@ func (h *EmployeeSandboxUpgradeHandler) run(ctx context.Context, payload Employe
 	upgrade.NewSandboxID = &newSandbox.ID
 	recordEmployeeSandboxUpgradeNewSandbox(ctx, upgrade, newSandbox)
 
-	// Phase 2: Sync config to new sandbox
+	// Phase 3: Restore the verified SQLite snapshot into the new runtime.
+	if err := h.markPhase(ctx, upgrade, model.EmployeeSandboxUpgradePhaseRestore); err != nil {
+		return fail(model.EmployeeSandboxUpgradePhaseRestore, err)
+	}
+	if err := h.runRestore(ctx, backupMeta, newSandbox); err != nil {
+		return fail(model.EmployeeSandboxUpgradePhaseRestore, err)
+	}
+
+	// Phase 4: Restart new sandbox so the runtime opens the restored DB cleanly.
+	if err := h.markPhase(ctx, upgrade, model.EmployeeSandboxUpgradePhaseRestartNew); err != nil {
+		return fail(model.EmployeeSandboxUpgradePhaseRestartNew, err)
+	}
+	if err := h.orchestrator.RestartEmployeeSandbox(ctx, newSandbox); err != nil {
+		return fail(model.EmployeeSandboxUpgradePhaseRestartNew, err)
+	}
+
+	// Phase 5: Sync current control-plane config to the restored runtime.
 	if err := h.markPhase(ctx, upgrade, model.EmployeeSandboxUpgradePhaseSync); err != nil {
 		return fail(model.EmployeeSandboxUpgradePhaseSync, err)
 	}
@@ -126,7 +167,7 @@ func (h *EmployeeSandboxUpgradeHandler) run(ctx context.Context, payload Employe
 		return fail(model.EmployeeSandboxUpgradePhaseSync, err)
 	}
 
-	// Phase 3: Pause old sandbox
+	// Phase 6: Pause old sandbox only after the new one is restored and ready.
 	if err := h.markPhase(ctx, upgrade, model.EmployeeSandboxUpgradePhasePausingOld); err != nil {
 		return fail(model.EmployeeSandboxUpgradePhasePausingOld, err)
 	}
@@ -135,7 +176,7 @@ func (h *EmployeeSandboxUpgradeHandler) run(ctx context.Context, payload Employe
 	}
 	oldPaused = true
 
-	// Phase 4: Schedule old sandbox retirement
+	// Phase 7: Schedule old sandbox retirement.
 	if err := h.markPhase(ctx, upgrade, model.EmployeeSandboxUpgradePhaseCleanupOld); err != nil {
 		return fail(model.EmployeeSandboxUpgradePhaseCleanupOld, err)
 	}
@@ -143,7 +184,7 @@ func (h *EmployeeSandboxUpgradeHandler) run(ctx context.Context, payload Employe
 		logging.Capture(ctx, fmt.Errorf("employee sandbox upgrade %s: schedule old sandbox retirement failed: %w", upgrade.ID, err))
 	}
 
-	// Phase 5: Mark succeeded
+	// Phase 8: Mark succeeded.
 	now := time.Now().UTC()
 	if err := h.db.WithContext(ctx).Model(upgrade).Updates(map[string]any{
 		"status":       model.EmployeeSandboxUpgradeStatusSucceeded,

@@ -2210,11 +2210,6 @@ definitions:
       total_cost:
         type: number
     type: object
-  startEmployeeSandboxUpgradeRequest:
-    properties:
-      smoke_test:
-        type: boolean
-    type: object
   statusResponse:
     properties:
       message:
@@ -2600,7 +2595,7 @@ definitions:
 host: api.dev.usehivy.com
 info:
   contact: {}
-  description: Proxy bridge for LLM API credentials.
+  description: Proxy runtime for LLM API credentials.
   title: Hivy API
   version: "1.0"
 paths:
@@ -4274,19 +4269,14 @@ paths:
       description: |-
         Queues a control-plane upgrade that snapshots the employee runtime SQLite database,
         recreates the sandbox on the current employee image, restores the database,
-        syncs config, and verifies readiness. If an upgrade is already queued or
-        running for the employee, the active operation is returned.
+        syncs config, verifies readiness, pauses the old sandbox, and schedules cleanup.
+        If an upgrade is already queued or running for the employee, the active operation is returned.
       parameters:
       - description: Employee agent ID
         in: path
         name: id
         required: true
         type: string
-      - description: Upgrade options
-        in: body
-        name: body
-        schema:
-          $ref: '#/definitions/startEmployeeSandboxUpgradeRequest'
       produces:
       - application/json
       responses:

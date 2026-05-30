@@ -3273,8 +3273,8 @@ export interface paths {
          * Start an employee sandbox upgrade
          * @description Queues a control-plane upgrade that snapshots the employee runtime SQLite database,
          *     recreates the sandbox on the current employee image, restores the database,
-         *     syncs config, and verifies readiness. If an upgrade is already queued or
-         *     running for the employee, the active operation is returned.
+         *     syncs config, verifies readiness, pauses the old sandbox, and schedules cleanup.
+         *     If an upgrade is already queued or running for the employee, the active operation is returned.
          */
         post: {
             parameters: {
@@ -3286,12 +3286,7 @@ export interface paths {
                 };
                 cookie?: never;
             };
-            /** @description Upgrade options */
-            requestBody?: {
-                content: {
-                    "application/json": components["schemas"]["startEmployeeSandboxUpgradeRequest"];
-                };
-            };
+            requestBody?: never;
             responses: {
                 /** @description Accepted */
                 202: {
@@ -8649,9 +8644,6 @@ export interface components {
         spendOverTime: {
             date?: string;
             total_cost?: number;
-        };
-        startEmployeeSandboxUpgradeRequest: {
-            smoke_test?: boolean;
         };
         statusResponse: {
             message?: string;

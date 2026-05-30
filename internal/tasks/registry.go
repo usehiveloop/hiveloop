@@ -116,9 +116,9 @@ func NewServeMux(deps *WorkerDeps) *asynq.ServeMux {
 		mux.HandleFunc(TypeEmployeeMemoryRetain, NewEmployeeMemoryRetainHandler(deps.DB, deps.Hindsight, deps.Enqueuer).Handle)
 		mux.HandleFunc(TypeEmployeeMemoryRefresh, NewEmployeeMemoryRefreshHandler(deps.DB, deps.EmployeeCompile).Handle)
 	}
-	if deps.Orchestrator != nil && deps.EmployeeCompile.EncKey != nil && deps.EmployeeCompile.KMS != nil {
+	if deps.Orchestrator != nil && deps.S3Client != nil && deps.EmployeeCompile.EncKey != nil && deps.EmployeeCompile.KMS != nil {
 		mux.HandleFunc(TypeEmployeeSandboxUpgrade,
-			NewEmployeeSandboxUpgradeHandler(deps.DB, deps.Orchestrator, deps.EmployeeCompile, deps.Enqueuer).Handle)
+			NewEmployeeSandboxUpgradeHandler(deps.DB, deps.Orchestrator, deps.S3Client, deps.EmployeeCompile, deps.Enqueuer).Handle)
 	}
 
 	if deps.Orchestrator != nil && deps.EmployeeCompile.EncKey != nil && deps.Enqueuer != nil {

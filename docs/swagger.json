@@ -4,7 +4,7 @@
     ],
     "swagger": "2.0",
     "info": {
-        "description": "Proxy bridge for LLM API credentials.",
+        "description": "Proxy runtime for LLM API credentials.",
         "title": "Hivy API",
         "contact": {},
         "version": "1.0"
@@ -2548,7 +2548,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "Queues a control-plane upgrade that snapshots the employee runtime SQLite database,\nrecreates the sandbox on the current employee image, restores the database,\nsyncs config, and verifies readiness. If an upgrade is already queued or\nrunning for the employee, the active operation is returned.",
+                "description": "Queues a control-plane upgrade that snapshots the employee runtime SQLite database,\nrecreates the sandbox on the current employee image, restores the database,\nsyncs config, verifies readiness, pauses the old sandbox, and schedules cleanup.\nIf an upgrade is already queued or running for the employee, the active operation is returned.",
                 "consumes": [
                     "application/json"
                 ],
@@ -2566,14 +2566,6 @@
                         "name": "id",
                         "in": "path",
                         "required": true
-                    },
-                    {
-                        "description": "Upgrade options",
-                        "name": "body",
-                        "in": "body",
-                        "schema": {
-                            "$ref": "#/definitions/startEmployeeSandboxUpgradeRequest"
-                        }
                     }
                 ],
                 "responses": {
@@ -9572,14 +9564,6 @@
                 },
                 "total_cost": {
                     "type": "number"
-                }
-            }
-        },
-        "startEmployeeSandboxUpgradeRequest": {
-            "type": "object",
-            "properties": {
-                "smoke_test": {
-                    "type": "boolean"
                 }
             }
         },

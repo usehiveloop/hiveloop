@@ -41,9 +41,24 @@ const UPGRADE_STEPS: UpgradeStep[] = [
     description: "Create a single upgrade operation for this employee.",
   },
   {
+    phase: "backup",
+    label: "Back up runtime database",
+    description: "Snapshot, upload, and verify the current SQLite database.",
+  },
+  {
     phase: "creating_new",
     label: "Create replacement sandbox",
     description: "Provision a fresh sandbox from the current employee image.",
+  },
+  {
+    phase: "restore",
+    label: "Restore runtime database",
+    description: "Copy the verified backup into the replacement sandbox.",
+  },
+  {
+    phase: "restart_new",
+    label: "Restart replacement runtime",
+    description: "Reopen the restored database before applying config.",
   },
   {
     phase: "sync",
@@ -152,7 +167,6 @@ export function EmployeeUpgradeDialog({
     startUpgrade.mutate(
       {
         params: { path: { id: employeeID } },
-        body: { smoke_test: false },
       },
       {
         onSuccess: (data) => {

@@ -2551,7 +2551,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Queues a control-plane upgrade that snapshots the employee runtime SQLite database,\nrecreates the sandbox on the current employee image, restores the database,\nsyncs config, and verifies readiness. If an upgrade is already queued or\nrunning for the employee, the active operation is returned.",
+                "description": "Queues a control-plane upgrade that snapshots the employee runtime SQLite database,\nrecreates the sandbox on the current employee image, restores the database,\nsyncs config, verifies readiness, pauses the old sandbox, and schedules cleanup.\nIf an upgrade is already queued or running for the employee, the active operation is returned.",
                 "consumes": [
                     "application/json"
                 ],
@@ -2569,14 +2569,6 @@ const docTemplate = `{
                         "name": "id",
                         "in": "path",
                         "required": true
-                    },
-                    {
-                        "description": "Upgrade options",
-                        "name": "body",
-                        "in": "body",
-                        "schema": {
-                            "$ref": "#/definitions/startEmployeeSandboxUpgradeRequest"
-                        }
                     }
                 ],
                 "responses": {
@@ -9578,14 +9570,6 @@ const docTemplate = `{
                 }
             }
         },
-        "startEmployeeSandboxUpgradeRequest": {
-            "type": "object",
-            "properties": {
-                "smoke_test": {
-                    "type": "boolean"
-                }
-            }
-        },
         "statusResponse": {
             "type": "object",
             "properties": {
@@ -10189,7 +10173,7 @@ var SwaggerInfo = &swag.Spec{
 	BasePath:         "/",
 	Schemes:          []string{"https"},
 	Title:            "Hivy API",
-	Description:      "Proxy bridge for LLM API credentials.",
+	Description:      "Proxy runtime for LLM API credentials.",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 	LeftDelim:        "{{",

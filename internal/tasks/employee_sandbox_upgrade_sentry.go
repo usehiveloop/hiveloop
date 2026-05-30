@@ -53,6 +53,22 @@ func recordEmployeeSandboxUpgradeNewSandbox(ctx context.Context, upgrade *model.
 	})
 }
 
+func recordEmployeeSandboxUpgradeBackup(ctx context.Context, upgrade *model.EmployeeSandboxUpgrade, meta *employeeSandboxBackupMetadata) {
+	hub := employeeUpgradeHub(ctx)
+	if hub == nil || upgrade == nil || meta == nil {
+		return
+	}
+	setEmployeeUpgradeContext(hub, upgrade, nil, sentrygo.Context{
+		"backup_key":    meta.Key,
+		"backup_sha256": meta.SHA256,
+		"backup_bytes":  meta.Bytes,
+	})
+	addEmployeeUpgradeBreadcrumb(ctx, "backup captured", sentrygo.LevelInfo, sentrygo.Context{
+		"backup_key":   meta.Key,
+		"backup_bytes": meta.Bytes,
+	})
+}
+
 func recordEmployeeSandboxUpgradeFailure(ctx context.Context, upgrade *model.EmployeeSandboxUpgrade, phase, message string) {
 	hub := employeeUpgradeHub(ctx)
 	if hub == nil || upgrade == nil {

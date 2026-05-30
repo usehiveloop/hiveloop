@@ -40,8 +40,8 @@ func newEmployeeUpgradeFixture(t *testing.T) *employeeUpgradeFixture {
 	kms := testTasksKMS(t)
 	cfg := &config.Config{
 		SandboxesRuntimeBaseImage: "ghcr.io/usehivy/hivy-sandboxes-runtime:test-v2",
-		SpecialistSandboxHost:           "cp.hivy.test",
-		ProxyHost:                       "proxy.hivy.test",
+		SpecialistSandboxHost:     "cp.hivy.test",
+		ProxyHost:                 "proxy.hivy.test",
 	}
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
@@ -146,7 +146,7 @@ func newEmployeeUpgradeFixture(t *testing.T) *employeeUpgradeFixture {
 	if err := db.Create(&upgrade).Error; err != nil {
 		t.Fatalf("create upgrade: %v", err)
 	}
-	handler := NewEmployeeSandboxUpgradeHandler(db, orch, employeeruntime.CompileDeps{
+	handler := NewEmployeeSandboxUpgradeHandler(db, orch, fakeEmployeeUpgradeStore{size: 12}, employeeruntime.CompileDeps{
 		DB:         db,
 		KMS:        kms,
 		EncKey:     encKey,

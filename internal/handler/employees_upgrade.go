@@ -27,6 +27,9 @@ type employeeSandboxUpgradeResponse struct {
 	Phase        string     `json:"phase"`
 	OldSandboxID *string    `json:"old_sandbox_id,omitempty"`
 	NewSandboxID *string    `json:"new_sandbox_id,omitempty"`
+	BackupKey    *string    `json:"backup_key,omitempty"`
+	BackupSHA256 *string    `json:"backup_sha256,omitempty"`
+	BackupBytes  int64      `json:"backup_bytes,omitempty"`
 	ErrorMessage *string    `json:"error_message,omitempty"`
 	CreatedAt    time.Time  `json:"created_at"`
 	UpdatedAt    time.Time  `json:"updated_at"`
@@ -34,8 +37,9 @@ type employeeSandboxUpgradeResponse struct {
 }
 
 // @Summary Start an employee sandbox upgrade
-// @Description Queues a control-plane upgrade that creates a new sandbox, syncs config,
-// @Description verifies readiness, pauses the old sandbox, and schedules cleanup.
+// @Description Queues a control-plane upgrade that snapshots the employee runtime SQLite database,
+// @Description recreates the sandbox on the current employee image, restores the database,
+// @Description syncs config, verifies readiness, pauses the old sandbox, and schedules cleanup.
 // @Description If an upgrade is already queued or running for the employee, the active operation is returned.
 // @Tags employees
 // @Accept json
@@ -246,6 +250,9 @@ func toEmployeeSandboxUpgradeResponse(upgrade *model.EmployeeSandboxUpgrade) emp
 		Status:       upgrade.Status,
 		Phase:        upgrade.Phase,
 		ErrorMessage: upgrade.ErrorMessage,
+		BackupKey:    upgrade.BackupKey,
+		BackupSHA256: upgrade.BackupSHA256,
+		BackupBytes:  upgrade.BackupBytes,
 		CreatedAt:    upgrade.CreatedAt,
 		UpdatedAt:    upgrade.UpdatedAt,
 		CompletedAt:  upgrade.CompletedAt,
