@@ -3,7 +3,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use axum::{
     body::Body,
-    extract::{Path, Query, State},
+    extract::{Query, State},
     http::{header, HeaderMap, HeaderValue, Request, StatusCode},
     response::{IntoResponse, Redirect, Response},
     Json,
@@ -339,17 +339,27 @@ fn constant_time_eq(a: &[u8], b: &[u8]) -> bool {
 
 pub async fn handle_tunnel(
     State(state): State<ApiState>,
-    Path((port, path)): Path<(u16, String)>,
     Query(params): Query<HashMap<String, String>>,
     headers: HeaderMap,
     request: Request<Body>,
 ) -> Response {
+    let path = request.uri().path().to_string();
+    let remainder = path.strip_prefix("/tunnel/").unwrap_or("");
+    let (port_str, sub_path) = match remainder.split_once('/') {
+        Some((p, rest)) => (p, rest.to_string()),
+        None => (remainder, String::new()),
+    };
+
+    let port: u16 = match port_str.parse() {
+        Ok(p) => p,
+        Err(_) => return (StatusCode::BAD_REQUEST, "invalid port").into_response(),
+    };
+
     if let Err((status, msg)) = validate_port(port) {
         return (status, msg).into_response();
     }
 
-    let request_path = request.uri().path().to_string();
-    if let Err(resp) = authenticate(&headers, &params, port, &request_path, &state) {
+    if let Err(resp) = authenticate(&headers, &params, port, &path, &state) {
         return *resp;
     }
 
@@ -360,9 +370,9 @@ pub async fn handle_tunnel(
         .unwrap_or(false);
 
     if is_ws {
-        proxy_ws(port, path, headers, request, state).await
+        proxy_ws(port, sub_path, headers, request, state).await
     } else {
-        proxy_http(port, path, params, headers, request).await
+        proxy_http(port, sub_path, params, headers, request).await
     }
 }
 

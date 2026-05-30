@@ -61,8 +61,9 @@ fi
 dockerfile_name="$(basename "$dockerfile_path")"
 cp "$dockerfile_path" "$TMP_CONTEXT/$dockerfile_name"
 cp "$BINARY" "$TMP_CONTEXT/hivy-sandboxes-runtime"
-mkdir -p "$TMP_CONTEXT/docker"
+mkdir -p "$TMP_CONTEXT/docker" "$TMP_CONTEXT/scripts"
 cp -R "$ROOT/docker/runtime" "$TMP_CONTEXT/docker/runtime"
+cp "$ROOT/scripts/hivy-guardian.sh" "$TMP_CONTEXT/scripts/hivy-guardian.sh"
 
 build_args=()
 if [[ -n "$PLATFORM" ]]; then

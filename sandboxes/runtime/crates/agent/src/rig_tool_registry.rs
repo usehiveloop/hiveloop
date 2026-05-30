@@ -523,12 +523,20 @@ fn check_bash_status_tool(registry: Arc<ProcessRegistry>) -> Arc<dyn JsonTool> {
                 let status = registry
                     .status(id)
                     .ok_or_else(|| anyhow!("process not found"))?;
-                Ok(json!({
+                let mut result = json!({
                     "process_id": id,
                     "running": status.running,
                     "exit_code": status.exit_code,
                     "output": status.output,
-                }))
+                });
+                if status.running {
+                    result["_hint"] = serde_json::json!(format!(
+                        "This process is still running. Use the wake tool \
+                         (seconds=10, task_prompt='Check status of process {id}') \
+                         to check again later instead of polling immediately."
+                    ));
+                }
+                Ok(result)
             })
         },
     ))
@@ -694,9 +702,16 @@ fn check_delegated_status_tool(repo: Arc<dyn CronJobRepo>) -> Arc<dyn JsonTool> 
                     .get(id)
                     .await?
                     .ok_or_else(|| anyhow!("job not found"))?;
-                Ok(
-                    json!({"job_id": job.id, "state": format!("{:?}", job.state), "last_status": job.last_status, "last_error": job.last_error, "result": job.last_result, "session_id": job.delegated_session_id}),
-                )
+                let mut result = json!({"job_id": job.id, "state": format!("{:?}", job.state), "last_status": job.last_status, "last_error": job.last_error, "result": job.last_result, "session_id": job.delegated_session_id});
+                if matches!(job.state, domain::cron::CronJobState::Active) {
+                    result["_hint"] = serde_json::json!(format!(
+                        "This task is still running. Use the wake tool \
+                         (seconds=10, task_prompt='Check status of job {}') \
+                         to check again later instead of polling immediately.",
+                        job.id
+                    ));
+                }
+                Ok(result)
             })
         },
     ))

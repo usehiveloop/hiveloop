@@ -150,10 +150,7 @@ pub fn build_router(state: ApiState) -> Router {
             get(observability_handlers::get_trace_summary),
         )
         .route("/tunnel/auth", post(tunnel::post_tunnel_auth).get(tunnel::get_tunnel_auth))
-        .route(
-            "/tunnel/:port/{*path}",
-            axum::routing::any(tunnel::handle_tunnel),
-        )
+        .fallback(tunnel::handle_tunnel)
         .layer(axum::middleware::from_fn_with_state(
             state.clone(),
             auth::bearer_auth,
