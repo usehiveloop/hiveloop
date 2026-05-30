@@ -30,10 +30,8 @@ cat >"${out}" <<EOF
   },
   "runtimeConfig": {
     "HIVY_SPECIALIST_SANDBOX_RUNTIME_VERSION": "${RELEASE_TAG}",
-    "HIVY_RAILWAY_RUNTIME_IMAGE": "ghcr.io/usehivy/hivy-sandboxes-runtime:${RELEASE_TAG}",
-    "HIVY_RAILWAY_SPECIALIST_RUNTIME_IMAGE": "ghcr.io/usehivy/hivy-sandboxes-runtime-specialist:${RELEASE_TAG}",
-    "HIVY_SANDBOXES_RUNTIME_BASE_IMAGE_PREFIX": "hivy-sandboxes-runtime-${RELEASE_DASHED}-small-v1",
-    "HIVY_SANDBOXES_RUNTIME_SPECIALIST_IMAGE_PREFIX": "hivy-sandboxes-runtime-specialist-${RELEASE_DASHED}-small-v1"
+    "HIVY_SANDBOXES_RUNTIME_BASE_IMAGE": "ghcr.io/usehivy/hivy-sandboxes-runtime:${RELEASE_TAG}",
+    "HIVY_SANDBOXES_RUNTIME_SPECIALIST_IMAGE": "ghcr.io/usehivy/hivy-sandboxes-runtime-specialist:${RELEASE_TAG}"
   },
   "snapshots": {
     "sandboxesRuntime": {

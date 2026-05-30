@@ -61,7 +61,7 @@ func TestIntegration_EmployeesGet_ReportsSandboxUpgradeAvailability(t *testing.T
 	m := h.createOrg(t)
 	emp := h.seedEmployeeAgent(t, m)
 	sb := h.seedSandbox(t, m, emp.ID)
-	h.setSandboxSnapshot(t, sb.ID, &h.cfg.SandboxesRuntimeBaseImagePrefix)
+	h.setSandboxSnapshot(t, sb.ID, &h.cfg.SandboxesRuntimeBaseImage)
 
 	rr := h.getEmployee(t, m, emp.ID.String())
 	if rr.Code != http.StatusOK {

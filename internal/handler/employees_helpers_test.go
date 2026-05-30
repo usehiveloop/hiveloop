@@ -228,7 +228,7 @@ func newEmployeeHarness(t *testing.T) *employeeHarness {
 	kms := newTestKMS(t)
 
 	cfg := &config.Config{
-		SandboxesRuntimeBaseImagePrefix: "hivy-sandboxes-runtime-test-small-v1",
+		SandboxesRuntimeBaseImage: "ghcr.io/usehivy/hivy-sandboxes-runtime:test",
 		SpecialistSandboxHost:           "cp.hivy.test",
 		ProxyHost:                       "proxy.hivy.test",
 		MCPBaseURL:                      "https://mcp.hivy.test",

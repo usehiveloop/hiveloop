@@ -17,7 +17,6 @@ type Config struct {
 	APIToken      string
 	ProjectID     string
 	EnvironmentID string
-	RuntimeImage  string
 	Region        string
 	RuntimePort   int
 }
@@ -26,7 +25,6 @@ type Driver struct {
 	client        *railwayapi.Client
 	projectID     string
 	environmentID string
-	runtimeImage  string
 	region        string
 	runtimePort   int
 }
@@ -44,7 +42,6 @@ func NewDriver(cfg Config) (*Driver, error) {
 		client:        client,
 		projectID:     strings.TrimSpace(cfg.ProjectID),
 		environmentID: strings.TrimSpace(cfg.EnvironmentID),
-		runtimeImage:  strings.TrimSpace(cfg.RuntimeImage),
 		region:        strings.TrimSpace(cfg.Region),
 		runtimePort:   port,
 	}, nil
@@ -72,7 +69,7 @@ func (d *Driver) RuntimeLayout() sandbox.RuntimeLayout {
 func (d *Driver) CreateWarmSlot(ctx context.Context, opts sandbox.WarmSlotCreateOpts) (*sandbox.WarmSlotInfo, error) {
 	image := strings.TrimSpace(opts.RuntimeImage)
 	if image == "" {
-		image = d.runtimeImage
+		return nil, fmt.Errorf("railway: RuntimeImage is required")
 	}
 	port := opts.RuntimePort
 	if port == 0 {

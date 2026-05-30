@@ -113,7 +113,7 @@ func (h *employeeHarness) seedSandbox(t *testing.T, m orgWithMember, agentID uui
 	sb := model.Sandbox{
 		OrgID:                  &m.org.ID,
 		EmployeeID:             &agentID,
-		SnapshotID:             &h.cfg.SandboxesRuntimeBaseImagePrefix,
+		SnapshotID:             &h.cfg.SandboxesRuntimeBaseImage,
 		ExternalID:             "stub-sb-" + uuid.NewString()[:8],
 		RuntimeURL:             h.sidecarSrv.URL,
 		EncryptedRuntimeSecret: encryptedKey,

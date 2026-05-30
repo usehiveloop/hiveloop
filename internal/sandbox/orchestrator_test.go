@@ -60,7 +60,7 @@ func setupOrchestrator(t *testing.T) (*Orchestrator, *mockProvider, *gorm.DB) {
 	provider.endpointOverride = bridgeSrv.URL
 
 	cfg := &config.Config{
-		SandboxesRuntimeSpecialistImagePrefix: "hivy-sandboxes-runtime-specialist-test-small-v1",
+		SandboxesRuntimeSpecialistImage: "ghcr.io/usehivy/hivy-sandboxes-runtime-specialist:test",
 		SpecialistSandboxHost:                 "test.usehivy.com",
 		SpecialistSandboxGracePeriodMins:      5,
 	}

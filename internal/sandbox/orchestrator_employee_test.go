@@ -16,7 +16,7 @@ import (
 func TestCreateEmployeeSandbox_ClonesSelectedGitHubProfileRepositories(t *testing.T) {
 	orch, provider, db := setupOrchestrator(t)
 	provider.endpointOverride = employeeRuntimeEndpoint(t)
-	orch.cfg.SandboxesRuntimeBaseImagePrefix = "employee-snapshot-v1"
+	orch.cfg.SandboxesRuntimeBaseImage = "ghcr.io/usehivy/hivy-sandboxes-runtime:test-v1"
 
 	org := createTestOrg(t, db)
 	cred := createTestCred(t, db, org.ID)
@@ -74,7 +74,7 @@ func TestCreateEmployeeSandbox_NoGitHubSelectionSkipsRepositoryClone(t *testing.
 		t.Run(tt.name, func(t *testing.T) {
 			orch, provider, db := setupOrchestrator(t)
 			provider.endpointOverride = employeeRuntimeEndpoint(t)
-			orch.cfg.SandboxesRuntimeBaseImagePrefix = "employee-snapshot-v1"
+	orch.cfg.SandboxesRuntimeBaseImage = "ghcr.io/usehivy/hivy-sandboxes-runtime:test-v1"
 
 			org := createTestOrg(t, db)
 			cred := createTestCred(t, db, org.ID)
@@ -110,7 +110,7 @@ func TestCreateEmployeeSandbox_NoGitHubSelectionSkipsRepositoryClone(t *testing.
 func TestCreateEmployeeSandbox_RepositoryCloneFailureMarksSandboxError(t *testing.T) {
 	orch, provider, db := setupOrchestrator(t)
 	provider.endpointOverride = employeeRuntimeEndpoint(t)
-	orch.cfg.SandboxesRuntimeBaseImagePrefix = "employee-snapshot-v1"
+	orch.cfg.SandboxesRuntimeBaseImage = "ghcr.io/usehivy/hivy-sandboxes-runtime:test-v1"
 
 	org := createTestOrg(t, db)
 	cred := createTestCred(t, db, org.ID)

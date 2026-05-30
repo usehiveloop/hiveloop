@@ -51,7 +51,6 @@ func newSandboxProvider(cfg *config.Config) (sandbox.Provider, error) {
 			APIToken:      cfg.RailwayAPIToken,
 			ProjectID:     cfg.RailwayProjectID,
 			EnvironmentID: cfg.RailwayEnvironmentID,
-			RuntimeImage:  cfg.RailwayRuntimeImage,
 			Region:        cfg.RailwayRegion,
 			RuntimePort:   cfg.RailwayRuntimePort,
 		})

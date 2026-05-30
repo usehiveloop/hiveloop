@@ -39,7 +39,7 @@ func (o *Orchestrator) CreateEmployeeSandbox(ctx context.Context, agent *model.E
 		return nil, fmt.Errorf("encrypting runtime secret: %w", err)
 	}
 
-	snapshotID := o.cfg.SandboxesRuntimeBaseImagePrefix
+	snapshotID := o.cfg.SandboxesRuntimeBaseImage
 	sb := model.Sandbox{
 		OrgID:                  &orgID,
 		EmployeeID:             &agent.ID,
@@ -166,7 +166,7 @@ func (o *Orchestrator) CreateSpecialistRuntimeSandbox(ctx context.Context, agent
 		return nil, fmt.Errorf("encrypting runtime secret: %w", err)
 	}
 
-	snapshotID := o.cfg.SandboxesRuntimeSpecialistImagePrefix
+	snapshotID := o.cfg.SandboxesRuntimeSpecialistImage
 	sb := model.Sandbox{
 		OrgID:                  &orgID,
 		EmployeeID:             &agent.ID,

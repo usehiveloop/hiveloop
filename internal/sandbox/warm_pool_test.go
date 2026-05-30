@@ -27,7 +27,7 @@ func TestWarmPoolReconcileCreatesWarmSlotAndClaimMarksClaiming(t *testing.T) {
 	pool := NewWarmPool(db, provider, testEncKey(t), &config.Config{
 		SandboxWarmPoolEmployeeSize:     1,
 		RailwayRuntimePort:              7080,
-		SandboxesRuntimeBaseImagePrefix: "runtime:test",
+		SandboxesRuntimeBaseImage: "runtime:test",
 	})
 	if pool == nil {
 		t.Fatal("warm pool is nil")

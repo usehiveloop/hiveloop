@@ -192,7 +192,7 @@ func (h *EmployeeHandler) currentEmployeeSandboxSnapshotID() string {
 	if h == nil || h.compileDeps.Cfg == nil {
 		return ""
 	}
-	return h.compileDeps.Cfg.SandboxesRuntimeBaseImagePrefix
+	return h.compileDeps.Cfg.SandboxesRuntimeBaseImage
 }
 
 func (h *EmployeeHandler) employeeListItem(ctx context.Context, orgID uuid.UUID, agent model.Employee) employeeListItem {

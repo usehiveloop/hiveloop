@@ -39,7 +39,7 @@ func newEmployeeUpgradeFixture(t *testing.T) *employeeUpgradeFixture {
 	encKey := testTasksEncKey(t)
 	kms := testTasksKMS(t)
 	cfg := &config.Config{
-		SandboxesRuntimeBaseImagePrefix: "employee-runtime-test-v2",
+		SandboxesRuntimeBaseImage: "ghcr.io/usehivy/hivy-sandboxes-runtime:test-v2",
 		SpecialistSandboxHost:           "cp.hivy.test",
 		ProxyHost:                       "proxy.hivy.test",
 	}
@@ -127,7 +127,7 @@ func newEmployeeUpgradeFixture(t *testing.T) *employeeUpgradeFixture {
 	old := model.Sandbox{
 		OrgID:                  &org.ID,
 		EmployeeID:             &agent.ID,
-		SnapshotID:             &cfg.SandboxesRuntimeBaseImagePrefix,
+		SnapshotID:             &cfg.SandboxesRuntimeBaseImage,
 		ExternalID:             "old-external",
 		RuntimeURL:             server.URL,
 		EncryptedRuntimeSecret: encryptedKey,

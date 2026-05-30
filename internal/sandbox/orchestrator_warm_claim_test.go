@@ -30,7 +30,7 @@ func TestClaimWarmRuntimeSlotWaitsAndDispatchesReconcile(t *testing.T) {
 	pool := NewWarmPool(db, provider, testEncKey(t), &config.Config{
 		SandboxWarmPoolEmployeeSize:     1,
 		RailwayRuntimePort:              7080,
-		SandboxesRuntimeBaseImagePrefix: "runtime:test",
+		SandboxesRuntimeBaseImage: "runtime:test",
 	})
 	orch := NewOrchestrator(db, provider, testEncKey(t), &config.Config{})
 	orch.warmPool = pool

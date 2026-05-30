@@ -181,7 +181,7 @@ func (o *Orchestrator) resolveTemplateRef(agent *model.Employee) string {
 			}
 		}
 	}
-	return o.cfg.SandboxesRuntimeSpecialistImagePrefix
+	return o.cfg.SandboxesRuntimeSpecialistImage
 }
 
 func (o *Orchestrator) resolveTemplateResources(agent *model.Employee) (int, int, int) {

@@ -92,7 +92,7 @@ func sandboxPeriodicTasksConfigured(cfg *config.Config) bool {
 		return strings.TrimSpace(cfg.RailwayAPIToken) != "" &&
 			strings.TrimSpace(cfg.RailwayProjectID) != "" &&
 			strings.TrimSpace(cfg.RailwayEnvironmentID) != "" &&
-			strings.TrimSpace(cfg.RailwayRuntimeImage) != ""
+			strings.TrimSpace(cfg.SandboxesRuntimeBaseImage) != ""
 	default:
 		return false
 	}

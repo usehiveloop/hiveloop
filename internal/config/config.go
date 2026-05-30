@@ -95,13 +95,11 @@ type Config struct {
 	SandboxDockerContainerLabelPrefix string `env:"HIVY_SANDBOX_DOCKER_CONTAINER_LABEL_PREFIX" envDefault:"hivy"`
 
 	// Railway sandbox provider.
-	RailwayAPIToken               string `env:"HIVY_RAILWAY_API_TOKEN"`
-	RailwayProjectID              string `env:"HIVY_RAILWAY_PROJECT_ID"`
-	RailwayEnvironmentID          string `env:"HIVY_RAILWAY_ENVIRONMENT_ID"`
-	RailwayRuntimeImage           string `env:"HIVY_RAILWAY_RUNTIME_IMAGE"`
-	RailwaySpecialistRuntimeImage string `env:"HIVY_RAILWAY_SPECIALIST_RUNTIME_IMAGE"`
-	RailwayRegion                 string `env:"HIVY_RAILWAY_REGION"`
-	RailwayRuntimePort            int    `env:"HIVY_RAILWAY_RUNTIME_PORT" envDefault:"7080"`
+	RailwayAPIToken      string `env:"HIVY_RAILWAY_API_TOKEN"`
+	RailwayProjectID     string `env:"HIVY_RAILWAY_PROJECT_ID"`
+	RailwayEnvironmentID string `env:"HIVY_RAILWAY_ENVIRONMENT_ID"`
+	RailwayRegion        string `env:"HIVY_RAILWAY_REGION"`
+	RailwayRuntimePort   int    `env:"HIVY_RAILWAY_RUNTIME_PORT" envDefault:"7080"`
 	SandboxWarmPoolEmployeeSize   int    `env:"HIVY_SANDBOX_WARM_POOL_EMPLOYEE_SIZE" envDefault:"0"`
 	SandboxWarmPoolSpecialistSize int    `env:"HIVY_SANDBOX_WARM_POOL_SPECIALIST_SIZE" envDefault:"0"`
 
@@ -117,8 +115,8 @@ type Config struct {
 	ProxyHost                       string `env:"HIVY_PROXY_HOST" envDefault:"proxy.usehivy.com"`                 // LLM proxy hostname (proxy.usehivy.com)
 
 	// Employee sandbox runtime — ghcr.io/usehivy/hivy-sandboxes-runtime image.
-	SandboxesRuntimeBaseImagePrefix       string `env:"HIVY_SANDBOXES_RUNTIME_BASE_IMAGE_PREFIX" envDefault:"hivy-sandboxes-runtime-0-0-3-small-v1"`
-	SandboxesRuntimeSpecialistImagePrefix string `env:"HIVY_SANDBOXES_RUNTIME_SPECIALIST_IMAGE_PREFIX" envDefault:"hivy-sandboxes-runtime-specialist-0-0-3-small-v1"`
+	SandboxesRuntimeBaseImage       string `env:"HIVY_SANDBOXES_RUNTIME_BASE_IMAGE" envDefault:"ghcr.io/usehivy/hivy-sandboxes-runtime:latest"`
+	SandboxesRuntimeSpecialistImage string `env:"HIVY_SANDBOXES_RUNTIME_SPECIALIST_IMAGE" envDefault:"ghcr.io/usehivy/hivy-sandboxes-runtime-specialist:latest"`
 
 	// Hindsight (agent memory)
 	HindsightAPIURL string `env:"HIVY_HINDSIGHT_API_URL"` // e.g. http://hindsight.railway.internal:8888 — empty = memory disabled
