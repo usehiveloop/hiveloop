@@ -40,6 +40,7 @@ import { api } from "@/lib/api/client"
 import { $api } from "@/lib/api/hooks"
 import { AuthProvider, useAuth } from "@/lib/auth/auth-context"
 import { cn } from "@/lib/utils"
+import { UpgradeBanner } from "./_components/upgrade-banner"
 
 const navSections = [
   {
@@ -164,6 +165,7 @@ export default function WorkspaceV2Layout({
               style={{ backgroundColor: "var(--glow-right)" }}
             />
             <main className="relative z-10 flex h-full flex-1 flex-col overflow-y-auto p-6 md:p-8">
+              <UpgradeBanner />
               {children}
             </main>
           </SidebarInset>
