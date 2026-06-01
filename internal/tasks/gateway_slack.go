@@ -214,6 +214,9 @@ func (h *GatewaySlackHandler) deliverSlackResponse(ctx context.Context, payload 
 
 func (h *GatewaySlackHandler) startStream(ctx context.Context, client slackGatewayClient, payload GatewaySlackPayload, fields map[string]any) (string, error) {
 	opts := []slacksdk.MsgOption{slacksdk.MsgOptionTS(payload.ThreadTS)}
+	if strings.TrimSpace(payload.TeamID) != "" {
+		opts = append(opts, slacksdk.MsgOptionRecipientTeamID(strings.TrimSpace(payload.TeamID)))
+	}
 	if strings.TrimSpace(payload.SenderID) != "" {
 		opts = append(opts, slacksdk.MsgOptionRecipientUserID(strings.TrimSpace(payload.SenderID)))
 	}

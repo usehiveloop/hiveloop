@@ -14,6 +14,7 @@ type GatewaySlackPayload struct {
 	EmployeeID     string `json:"employee_id"`
 	ChannelID      string `json:"channel_id"`
 	ThreadTS       string `json:"thread_ts"`
+	TeamID         string `json:"team_id,omitempty"`
 	StreamURL      string `json:"stream_url"`
 	RuntimeURL     string `json:"runtime_url"`
 	RuntimeAPIKey  string `json:"runtime_api_key"`

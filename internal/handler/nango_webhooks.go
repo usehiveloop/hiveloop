@@ -199,6 +199,7 @@ func gatewaySlackPayload(envelope gateway.WebhookEnvelope, result *gateway.Recei
 		EmployeeID:     envelope.EmployeeID.String(),
 		ChannelID:      result.Inbound.ChannelID,
 		ThreadTS:       result.Inbound.ThreadID,
+		TeamID:         slackInboundTeamID(result.Inbound.Raw),
 		StreamURL:      result.StreamURL,
 		RuntimeURL:     result.RuntimeURL,
 		RuntimeAPIKey:  result.RuntimeAPIKey,
@@ -211,6 +212,14 @@ func gatewaySlackPayload(envelope gateway.WebhookEnvelope, result *gateway.Recei
 		NangoConnID:    conn.NangoConnectionID,
 		ProviderKey:    providerKey,
 	}
+}
+
+func slackInboundTeamID(raw map[string]any) string {
+	if raw == nil {
+		return ""
+	}
+	teamID, _ := raw["team_id"].(string)
+	return teamID
 }
 
 func (h *NangoWebhookHandler) acknowledge(w http.ResponseWriter) {

@@ -69,6 +69,9 @@ func TestGatewaySlackHandler_UsesStartedStreamTimestamp(t *testing.T) {
 			if call.Form.Get("recipient_user_id") != "U123" {
 				t.Fatalf("startStream recipient_user_id = %q", call.Form.Get("recipient_user_id"))
 			}
+			if call.Form.Get("recipient_team_id") != "T123" {
+				t.Fatalf("startStream recipient_team_id = %q", call.Form.Get("recipient_team_id"))
+			}
 			writeSlackOK(t, w, "1710000001.456")
 		case "/chat.appendStream":
 			if call.Form.Get("ts") != "1710000001.456" {
@@ -268,6 +271,7 @@ func gatewaySlackTestPayload() GatewaySlackPayload {
 		EmployeeID:   "employee-1",
 		ChannelID:    "C123",
 		ThreadTS:     "1710000000.123",
+		TeamID:       "T123",
 		SessionID:    "session-1",
 		TraceID:      "trace-1",
 		TurnID:       "turn-1",

@@ -111,6 +111,7 @@ func TestGatewaySlackPayloadIncludesRuntimeAPIKey(t *testing.T) {
 			ChannelID: "C123",
 			ThreadID:  "1710000000.123",
 			SenderID:  "U123",
+			Raw:       map[string]any{"team_id": "T123"},
 		},
 		Session: model.EmployeeSession{
 			ID: sessionID,
@@ -135,5 +136,8 @@ func TestGatewaySlackPayloadIncludesRuntimeAPIKey(t *testing.T) {
 	}
 	if payload.NangoConnID != conn.NangoConnectionID {
 		t.Fatalf("NangoConnID = %q, want %q", payload.NangoConnID, conn.NangoConnectionID)
+	}
+	if payload.TeamID != "T123" {
+		t.Fatalf("TeamID = %q, want T123", payload.TeamID)
 	}
 }
