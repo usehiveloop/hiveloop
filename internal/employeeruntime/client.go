@@ -21,6 +21,8 @@ type Client struct {
 	http    *http.Client
 }
 
+const defaultHTTPTimeout = 2 * time.Minute
+
 type SyncResponse struct {
 	Applied          int      `json:"applied"`
 	Deleted          int      `json:"deleted"`
@@ -53,10 +55,17 @@ type HTTPMessageResponse struct {
 }
 
 func NewClient(baseURL, apiKey string) *Client {
+	return NewClientWithTimeout(baseURL, apiKey, defaultHTTPTimeout)
+}
+
+func NewClientWithTimeout(baseURL, apiKey string, timeout time.Duration) *Client {
+	if timeout <= 0 {
+		timeout = defaultHTTPTimeout
+	}
 	return &Client{
 		baseURL: strings.TrimRight(baseURL, "/"),
 		apiKey:  apiKey,
-		http:    &http.Client{Timeout: 2 * time.Minute},
+		http:    &http.Client{Timeout: timeout},
 	}
 }
 
