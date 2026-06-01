@@ -12,6 +12,7 @@ import (
 )
 
 const defaultRuntimePort = 7080
+const runtimeCommandHTTPTimeoutPadding = 30 * time.Second
 
 type Config struct {
 	APIToken      string
@@ -201,7 +202,7 @@ func (d *Driver) ExecuteCommandViaRuntime(ctx context.Context, cmdCtx sandbox.Ru
 	if seconds <= 0 {
 		seconds = 120
 	}
-	client := employeeruntime.NewClient(cmdCtx.RuntimeURL, cmdCtx.RuntimeSecret)
+	client := employeeruntime.NewClientWithTimeout(cmdCtx.RuntimeURL, cmdCtx.RuntimeSecret, runtimeCommandHTTPTimeout(time.Duration(seconds)*time.Second))
 	resp, err := client.RunCommands(ctx, employeeruntime.ControlCommandsRequest{
 		Commands:       []string{command},
 		TimeoutSeconds: seconds,
@@ -218,4 +219,11 @@ func (d *Driver) ExecuteCommandViaRuntime(ctx context.Context, cmdCtx sandbox.Ru
 		return result.Output, fmt.Errorf("command failed in runtime: exit_code=%v timed_out=%v", result.ExitCode, result.TimedOut)
 	}
 	return result.Output, nil
+}
+
+func runtimeCommandHTTPTimeout(commandTimeout time.Duration) time.Duration {
+	if commandTimeout <= 0 {
+		commandTimeout = 120 * time.Second
+	}
+	return commandTimeout + runtimeCommandHTTPTimeoutPadding
 }
