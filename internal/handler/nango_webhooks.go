@@ -149,23 +149,7 @@ func (h *NangoWebhookHandler) Handle(w http.ResponseWriter, r *http.Request) {
 
 		providerKey := nangoProviderConfigKey(wctx.connection.Integration.UniqueKey)
 
-		task, err := tasks.NewGatewaySlackTask(tasks.GatewaySlackPayload{
-			ConnectionID:   envelope.ConnectionID.String(),
-			OrgID:          envelope.OrgID.String(),
-			EmployeeID:     envelope.EmployeeID.String(),
-			ChannelID:      result.Inbound.ChannelID,
-			ThreadTS:       result.Inbound.ThreadID,
-			StreamURL:      result.StreamURL,
-			RuntimeURL:     result.RuntimeURL,
-			SessionID:      result.Session.ID.String(),
-			RuntimeConvoID: result.RuntimeConversationID,
-			TraceID:        result.TraceID,
-			TurnID:         result.TurnID,
-			SenderID:       result.Inbound.SenderID,
-			ActionToken:    result.ActionToken,
-			NangoConnID:    wctx.connection.NangoConnectionID,
-			ProviderKey:    providerKey,
-		})
+		task, err := tasks.NewGatewaySlackTask(gatewaySlackPayload(envelope, result, wctx.connection, providerKey))
 		if err != nil {
 			logging.CaptureWithFields(r.Context(), fmt.Errorf("slack webhook: build task: %w", err), map[string]any{
 				"connection_id": envelope.ConnectionID.String(),
@@ -206,6 +190,27 @@ func (h *NangoWebhookHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	dispatchWebhookEvent(r.Context(), h.enqueuer, &wh, wctx)
 
 	h.acknowledge(w)
+}
+
+func gatewaySlackPayload(envelope gateway.WebhookEnvelope, result *gateway.ReceiveConnectionResult, conn *model.Connection, providerKey string) tasks.GatewaySlackPayload {
+	return tasks.GatewaySlackPayload{
+		ConnectionID:   envelope.ConnectionID.String(),
+		OrgID:          envelope.OrgID.String(),
+		EmployeeID:     envelope.EmployeeID.String(),
+		ChannelID:      result.Inbound.ChannelID,
+		ThreadTS:       result.Inbound.ThreadID,
+		StreamURL:      result.StreamURL,
+		RuntimeURL:     result.RuntimeURL,
+		RuntimeAPIKey:  result.RuntimeAPIKey,
+		SessionID:      result.Session.ID.String(),
+		RuntimeConvoID: result.RuntimeConversationID,
+		TraceID:        result.TraceID,
+		TurnID:         result.TurnID,
+		SenderID:       result.Inbound.SenderID,
+		ActionToken:    result.ActionToken,
+		NangoConnID:    conn.NangoConnectionID,
+		ProviderKey:    providerKey,
+	}
 }
 
 func (h *NangoWebhookHandler) acknowledge(w http.ResponseWriter) {
