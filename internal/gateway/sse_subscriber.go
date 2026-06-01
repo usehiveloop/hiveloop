@@ -66,7 +66,8 @@ func (s *SSESubscriber) Subscribe(ctx context.Context, streamURL, apiKey string)
 					data := json.RawMessage(strings.Join(dataLines, "\n"))
 					select {
 					case ch <- SSEEvent{Type: eventType, Data: data}:
-					default:
+					case <-ctx.Done():
+						return
 					}
 				}
 				eventType = ""

@@ -141,3 +141,15 @@ func TestGatewaySlackPayloadIncludesRuntimeAPIKey(t *testing.T) {
 		t.Fatalf("TeamID = %q, want T123", payload.TeamID)
 	}
 }
+
+func TestIsSlackGatewayEvent(t *testing.T) {
+	if !isSlackGatewayEvent(map[string]any{"provider": "slack"}) {
+		t.Fatal("expected slack gateway event")
+	}
+	if isSlackGatewayEvent(map[string]any{"provider": "fake-slack"}) {
+		t.Fatal("fake-slack must still use the generic gateway final path")
+	}
+	if isSlackGatewayEvent(map[string]any{}) {
+		t.Fatal("missing provider must still use the generic gateway final path")
+	}
+}

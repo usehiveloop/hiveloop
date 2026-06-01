@@ -216,7 +216,7 @@ func (h *EmployeeOutboundWebhookHandler) storeAndMaybeEnqueue(ctx context.Contex
 			return
 		}
 	}
-	if event.EventType == "agent.message.sent" && source == gateway.Source && h.gateway != nil {
+	if event.EventType == "agent.message.sent" && source == gateway.Source && h.gateway != nil && !isSlackGatewayEvent(payload) {
 		if _, err := h.gateway.HandleRuntimeFinal(ctx, gateway.AgentResponse{
 			EmployeeSession:  *session,
 			RuntimeSessionID: sessionID,
@@ -233,6 +233,10 @@ func (h *EmployeeOutboundWebhookHandler) storeAndMaybeEnqueue(ctx context.Contex
 	if event.EventType == "session.completed" {
 		h.markEmployeeSessionEnded(ctx, session.ID, event.At)
 	}
+}
+
+func isSlackGatewayEvent(payload map[string]any) bool {
+	return strings.EqualFold(strings.TrimSpace(stringValue(payload, "provider")), gateway.SlackProvider)
 }
 
 func (h *EmployeeOutboundWebhookHandler) enqueueEmployeeMemoryRetain(ctx context.Context, sb *model.Sandbox, session *model.EmployeeSession, sessionID, reason, sourceEvent string) {

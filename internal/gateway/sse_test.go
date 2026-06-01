@@ -1,7 +1,12 @@
 package gateway
 
 import (
+	"context"
 	"encoding/json"
+	"fmt"
+	"net/http"
+	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -49,15 +54,51 @@ func TestSSESubscriberParseEvents(t *testing.T) {
 	})
 }
 
+func TestSSESubscriberDoesNotDropTerminalEventsBehindFullBuffer(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "text/event-stream")
+		flusher, _ := w.(http.Flusher)
+		for i := 0; i < 80; i++ {
+			_, _ = fmt.Fprintf(w, "event: token\ndata: {\"text\":\"%03d\"}\n\n", i)
+		}
+		_, _ = fmt.Fprint(w, "event: final\ndata: {\"text\":\"complete\"}\n\n")
+		_, _ = fmt.Fprint(w, "event: done\ndata: {\"session_id\":\"s1\"}\n\n")
+		if flusher != nil {
+			flusher.Flush()
+		}
+	}))
+	defer server.Close()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	events, err := NewSSESubscriber(server.Client()).Subscribe(ctx, server.URL, "test-key")
+	if err != nil {
+		t.Fatalf("subscribe: %v", err)
+	}
+
+	var got []string
+	for event := range events {
+		got = append(got, event.Type)
+	}
+	joined := strings.Join(got, ",")
+	if !strings.Contains(joined, "final") {
+		t.Fatalf("final event missing from %d events: %s", len(got), joined)
+	}
+	if !strings.Contains(joined, "done") {
+		t.Fatalf("done event missing from %d events: %s", len(got), joined)
+	}
+}
+
 func TestReceiveConnectionResultFields(t *testing.T) {
 	now := time.Now()
 	result := ReceiveConnectionResult{
 		Inbound: InboundEnvelope{
-			Provider:  SlackProvider,
-			ChannelID: "C456",
-			ThreadID:  "1234567890.000000",
-			SenderID:  "U789",
-			Text:      "hello",
+			Provider:   SlackProvider,
+			ChannelID:  "C456",
+			ThreadID:   "1234567890.000000",
+			SenderID:   "U789",
+			Text:       "hello",
 			ReceivedAt: now,
 		},
 		Session: model.EmployeeSession{
