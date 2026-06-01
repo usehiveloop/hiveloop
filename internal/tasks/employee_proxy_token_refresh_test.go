@@ -50,12 +50,20 @@ func TestEmployeeProxyTokenRefreshHandler_InjectsNewTokenRevokesOldAndSchedulesN
 	f.runtime.mu.Lock()
 	envCalls := f.runtime.envCalls
 	injected := f.runtime.lastEnv[employeeruntime.ProxyAPIKeyEnv]
+	runtimeSecret := f.runtime.lastEnv[employeeruntime.EmployeeEnvRuntimeSecret]
+	employeeID := f.runtime.lastEnv[employeeruntime.EmployeeEnvEmployeeID]
 	f.runtime.mu.Unlock()
 	if envCalls != 1 {
 		t.Fatalf("runtime env calls = %d, want 1", envCalls)
 	}
 	if !strings.HasPrefix(injected, "ptok_") || injected == oldToken.Token {
 		t.Fatalf("injected proxy token was not refreshed: %q", injected)
+	}
+	if runtimeSecret == "" {
+		t.Fatalf("runtime config did not include runtime secret env")
+	}
+	if employeeID != f.agent.ID.String() {
+		t.Fatalf("runtime config employee id env = %q, want %s", employeeID, f.agent.ID)
 	}
 
 	var old model.Token

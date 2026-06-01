@@ -3,9 +3,11 @@ package tasks
 import (
 	"context"
 	"encoding/base64"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/google/uuid"
@@ -27,10 +29,30 @@ type employeeUpgradeFixture struct {
 	provider *employeeUpgradeProvider
 	enqueuer *enqueue.MockClient
 	handler  *EmployeeSandboxUpgradeHandler
+	runtime  *employeeUpgradeRuntime
 	org      model.Org
 	agent    model.Employee
 	old      model.Sandbox
 	upgrade  model.EmployeeSandboxUpgrade
+}
+
+type employeeUpgradeRuntime struct {
+	mu     sync.Mutex
+	calls  int
+	config employeeruntime.ConfigUpdateRequest
+}
+
+func (r *employeeUpgradeRuntime) record(config employeeruntime.ConfigUpdateRequest) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.calls++
+	r.config = config
+}
+
+func (r *employeeUpgradeRuntime) snapshot() (int, employeeruntime.ConfigUpdateRequest) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return r.calls, r.config
 }
 
 func newEmployeeUpgradeFixture(t *testing.T) *employeeUpgradeFixture {
@@ -43,6 +65,7 @@ func newEmployeeUpgradeFixture(t *testing.T) *employeeUpgradeFixture {
 		SpecialistSandboxHost:     "cp.hivy.test",
 		ProxyHost:                 "proxy.hivy.test",
 	}
+	runtime := &employeeUpgradeRuntime{}
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/healthz":
@@ -58,6 +81,11 @@ func newEmployeeUpgradeFixture(t *testing.T) *employeeUpgradeFixture {
 				w.WriteHeader(http.StatusUnauthorized)
 				return
 			}
+			var config employeeruntime.ConfigUpdateRequest
+			if err := json.NewDecoder(r.Body).Decode(&config); err != nil {
+				t.Fatalf("decode config: %v", err)
+			}
+			runtime.record(config)
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
 			_, _ = w.Write([]byte(`{"applied":1}`))
@@ -164,7 +192,7 @@ func newEmployeeUpgradeFixture(t *testing.T) *employeeUpgradeFixture {
 		db.Where("id = ?", user.ID).Delete(&model.User{})
 	})
 	return &employeeUpgradeFixture{
-		db: db, server: server, provider: provider, enqueuer: enqueuer, handler: handler,
+		db: db, server: server, provider: provider, enqueuer: enqueuer, handler: handler, runtime: runtime,
 		org: org, agent: agent, old: old, upgrade: upgrade,
 	}
 }

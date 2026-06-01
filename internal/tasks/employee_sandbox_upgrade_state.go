@@ -86,16 +86,15 @@ func (h *EmployeeSandboxUpgradeHandler) syncEmployeeRuntime(ctx context.Context,
 	if err != nil {
 		return fmt.Errorf("decrypt runtime secret: %w", err)
 	}
-	def, err := employeeruntime.Compile(ctx, h.compileDeps, agent)
+	configUpdate, _, err := employeeruntime.BuildEmployeeRuntimeConfigUpdate(ctx, h.compileDeps, agent, sb, apiKey)
 	if err != nil {
-		return fmt.Errorf("compile employee config: %w", err)
+		return fmt.Errorf("build employee runtime config: %w", err)
 	}
-	def.OutboundChannels = employeeruntime.ControlPlaneOutboundChannels(h.compileDeps.Cfg, sb.ID)
 	client := employeeruntime.NewClient(sb.RuntimeURL, apiKey)
 	if err := client.Healthz(ctx); err != nil {
 		return fmt.Errorf("employee runtime healthz: %w", err)
 	}
-	if _, err := client.PutConfig(ctx, def); err != nil {
+	if _, err := client.PutRuntimeConfig(ctx, configUpdate); err != nil {
 		return fmt.Errorf("employee runtime put config: %w", err)
 	}
 	if err := client.Readyz(ctx); err != nil {

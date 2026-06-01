@@ -21,12 +21,21 @@ import (
 )
 
 type GatewaySlackHandler struct {
-	db          *gorm.DB
-	nangoClient *nango.Client
+	db                 *gorm.DB
+	nangoClient        *nango.Client
+	slackClientFactory func(string) slackGatewayClient
 }
 
 func NewGatewaySlackHandler(db *gorm.DB, nangoClient *nango.Client) *GatewaySlackHandler {
 	return &GatewaySlackHandler{db: db, nangoClient: nangoClient}
+}
+
+type slackGatewayClient interface {
+	SetAssistantThreadsStatusContext(context.Context, slacksdk.AssistantThreadsSetStatusParameters) error
+	StartStreamContext(context.Context, string, ...slacksdk.MsgOption) (string, string, error)
+	AppendStreamContext(context.Context, string, string, ...slacksdk.MsgOption) (string, string, error)
+	StopStreamContext(context.Context, string, string, ...slacksdk.MsgOption) (string, string, error)
+	PostMessageContext(context.Context, string, ...slacksdk.MsgOption) (string, string, error)
 }
 
 func (h *GatewaySlackHandler) Handle(ctx context.Context, t *asynq.Task) error {
@@ -55,7 +64,7 @@ func (h *GatewaySlackHandler) Handle(ctx context.Context, t *asynq.Task) error {
 		return err
 	}
 
-	client := slacksdk.New(botToken)
+	client := h.newSlackClient(botToken)
 
 	streamURL := payload.StreamURL
 	subscriber := gateway.NewSSESubscriber(&http.Client{Timeout: 610 * time.Second})
@@ -65,14 +74,35 @@ func (h *GatewaySlackHandler) Handle(ctx context.Context, t *asynq.Task) error {
 		return err
 	}
 
+	text, delivered, err := h.deliverSlackResponse(ctx, payload, client, events, fields)
+	if delivered {
+		h.recordDelivery(ctx, payload, text)
+	}
+	return err
+}
+
+func (h *GatewaySlackHandler) newSlackClient(botToken string) slackGatewayClient {
+	if h.slackClientFactory != nil {
+		return h.slackClientFactory(botToken)
+	}
+	return slacksdk.New(botToken)
+}
+
+func (h *GatewaySlackHandler) deliverSlackResponse(ctx context.Context, payload GatewaySlackPayload, client slackGatewayClient, events <-chan gateway.SSEEvent, fields map[string]any) (string, bool, error) {
 	statusCleared := false
 	tokenCount := 0
+	appendFailureCount := 0
+	var streamedText strings.Builder
+	var slackStreamTS string
+	streamStartFailed := false
 
 	for event := range events {
 		if ctx.Err() != nil {
 			logging.CaptureWithFields(ctx, fmt.Errorf("gateway slack: context cancelled"), fields)
-			h.stopStream(ctx, client, payload.ChannelID, payload.ThreadTS, "Request cancelled.")
-			return ctx.Err()
+			if slackStreamTS != "" {
+				_ = h.stopStream(ctx, client, payload.ChannelID, slackStreamTS, "Request cancelled.", fields)
+			}
+			return "", false, ctx.Err()
 		}
 
 		switch event.Type {
@@ -83,13 +113,25 @@ func (h *GatewaySlackHandler) Handle(ctx context.Context, t *asynq.Task) error {
 			if err := json.Unmarshal(event.Data, &data); err != nil || data.Text == "" {
 				continue
 			}
+			streamedText.WriteString(data.Text)
 
 			if !statusCleared {
-				h.clearStatus(ctx, client, payload.ChannelID, payload.ThreadTS)
+				h.clearStatus(ctx, client, payload.ChannelID, payload.ThreadTS, fields)
 				statusCleared = true
 			}
 
-			h.appendStream(ctx, client, payload.ChannelID, payload.ThreadTS, data.Text)
+			if slackStreamTS == "" && !streamStartFailed {
+				var err error
+				slackStreamTS, err = h.startStream(ctx, client, payload, fields)
+				if err != nil {
+					streamStartFailed = true
+				}
+			}
+			if slackStreamTS != "" {
+				if err := h.appendStream(ctx, client, payload.ChannelID, slackStreamTS, data.Text, fields); err != nil {
+					appendFailureCount++
+				}
+			}
 			tokenCount++
 
 		case "final":
@@ -99,40 +141,63 @@ func (h *GatewaySlackHandler) Handle(ctx context.Context, t *asynq.Task) error {
 			_ = json.Unmarshal(event.Data, &data)
 
 			if !statusCleared {
-				h.clearStatus(ctx, client, payload.ChannelID, payload.ThreadTS)
+				h.clearStatus(ctx, client, payload.ChannelID, payload.ThreadTS, fields)
 			}
 
 			text := data.Text
 			if text == "" {
 				text = "No response generated."
 			}
-			h.stopStream(ctx, client, payload.ChannelID, payload.ThreadTS, text)
-			h.recordDelivery(ctx, payload, text)
+			method, err := h.finishSlackResponse(ctx, client, payload, slackStreamTS, text, fields)
+			if err != nil {
+				return "", false, err
+			}
 
 			logging.FromContext(ctx).InfoContext(ctx, "gateway_slack_completed",
 				"connection_id", payload.ConnectionID,
 				"org_id", payload.OrgID,
 				"channel_id", payload.ChannelID,
 				"thread_ts", payload.ThreadTS,
+				"slack_stream_ts", slackStreamTS,
+				"delivery_method", method,
 				"token_count", tokenCount,
+				"append_failure_count", appendFailureCount,
 				"response_length", len(text),
 			)
-			return nil
+			return text, true, nil
 
 		case "done":
+			if slackStreamTS != "" {
+				text := streamedText.String()
+				if strings.TrimSpace(text) == "" {
+					text = "Done."
+				}
+				method, err := h.finishSlackResponse(ctx, client, payload, slackStreamTS, text, fields)
+				if err != nil {
+					return "", false, err
+				}
+				logging.FromContext(ctx).InfoContext(ctx, "gateway_slack_stream_done",
+					"connection_id", payload.ConnectionID,
+					"token_count", tokenCount,
+					"delivery_method", method,
+				)
+				return text, true, nil
+			}
 			logging.FromContext(ctx).InfoContext(ctx, "gateway_slack_stream_done",
 				"connection_id", payload.ConnectionID,
 				"token_count", tokenCount,
 			)
-			return nil
+			return "", false, nil
 
 		case "error":
 			if !statusCleared {
-				h.clearStatus(ctx, client, payload.ChannelID, payload.ThreadTS)
+				h.clearStatus(ctx, client, payload.ChannelID, payload.ThreadTS, fields)
 			}
-			h.stopStream(ctx, client, payload.ChannelID, payload.ThreadTS, "Something went wrong. Please try again.")
+			if _, err := h.finishSlackResponse(ctx, client, payload, slackStreamTS, "Something went wrong. Please try again.", fields); err != nil {
+				return "", false, err
+			}
 			logging.CaptureWithFields(ctx, fmt.Errorf("gateway slack: agent error in stream"), fields)
-			return fmt.Errorf("agent error in stream")
+			return "", false, fmt.Errorf("agent error in stream")
 
 		case "thinking", "tool_call", "tool_result", "model_usage", "turn_started", "turn_completed":
 			continue
@@ -140,19 +205,50 @@ func (h *GatewaySlackHandler) Handle(ctx context.Context, t *asynq.Task) error {
 	}
 
 	if !statusCleared {
-		h.clearStatus(ctx, client, payload.ChannelID, payload.ThreadTS)
+		h.clearStatus(ctx, client, payload.ChannelID, payload.ThreadTS, fields)
 	}
-	h.stopStream(ctx, client, payload.ChannelID, payload.ThreadTS, "Response timed out. Please try again.")
+	_, _ = h.finishSlackResponse(ctx, client, payload, slackStreamTS, "Response timed out. Please try again.", fields)
 	logging.CaptureWithFields(ctx, fmt.Errorf("gateway slack: stream ended without final/done"), fields)
-	return fmt.Errorf("stream ended without final/done")
+	return "", false, fmt.Errorf("stream ended without final/done")
 }
 
-func (h *GatewaySlackHandler) clearStatus(ctx context.Context, client *slacksdk.Client, channelID, threadTS string) {
+func (h *GatewaySlackHandler) startStream(ctx context.Context, client slackGatewayClient, payload GatewaySlackPayload, fields map[string]any) (string, error) {
+	opts := []slacksdk.MsgOption{slacksdk.MsgOptionTS(payload.ThreadTS)}
+	if strings.TrimSpace(payload.SenderID) != "" {
+		opts = append(opts, slacksdk.MsgOptionRecipientUserID(strings.TrimSpace(payload.SenderID)))
+	}
+	_, streamTS, err := client.StartStreamContext(ctx, payload.ChannelID, opts...)
+	if err != nil {
+		logging.CaptureWithFields(ctx, fmt.Errorf("gateway slack: start stream: %w", err), fields)
+		logging.FromContext(ctx).WarnContext(ctx, "gateway slack: start stream failed, falling back to chat.postMessage",
+			"channel_id", payload.ChannelID,
+			"thread_ts", payload.ThreadTS,
+			"error", err,
+		)
+		return "", err
+	}
+	return streamTS, nil
+}
+
+func (h *GatewaySlackHandler) finishSlackResponse(ctx context.Context, client slackGatewayClient, payload GatewaySlackPayload, slackStreamTS, text string, fields map[string]any) (string, error) {
+	if slackStreamTS != "" {
+		if err := h.stopStream(ctx, client, payload.ChannelID, slackStreamTS, text, fields); err == nil {
+			return "stream", nil
+		}
+	}
+	if err := h.postThreadReply(ctx, client, payload.ChannelID, payload.ThreadTS, text, fields); err != nil {
+		return "", err
+	}
+	return "post_message", nil
+}
+
+func (h *GatewaySlackHandler) clearStatus(ctx context.Context, client slackGatewayClient, channelID, threadTS string, fields map[string]any) {
 	if err := client.SetAssistantThreadsStatusContext(ctx, slacksdk.AssistantThreadsSetStatusParameters{
 		ChannelID: channelID,
 		ThreadTS:  threadTS,
 		Status:    "",
 	}); err != nil {
+		logging.CaptureWithFields(ctx, fmt.Errorf("gateway slack: clear status: %w", err), fields)
 		logging.FromContext(ctx).WarnContext(ctx, "gateway slack: clear status failed",
 			"channel_id", channelID,
 			"thread_ts", threadTS,
@@ -161,28 +257,50 @@ func (h *GatewaySlackHandler) clearStatus(ctx context.Context, client *slacksdk.
 	}
 }
 
-func (h *GatewaySlackHandler) appendStream(ctx context.Context, client *slacksdk.Client, channelID, threadTS, text string) {
-	if _, _, err := client.AppendStreamContext(ctx, channelID, threadTS,
+func (h *GatewaySlackHandler) appendStream(ctx context.Context, client slackGatewayClient, channelID, streamTS, text string, fields map[string]any) error {
+	if _, _, err := client.AppendStreamContext(ctx, channelID, streamTS,
 		slacksdk.MsgOptionMarkdownText(text),
 	); err != nil {
+		logging.CaptureWithFields(ctx, fmt.Errorf("gateway slack: append stream: %w", err), fields)
 		logging.FromContext(ctx).WarnContext(ctx, "gateway slack: append stream failed",
 			"channel_id", channelID,
-			"thread_ts", threadTS,
+			"slack_stream_ts", streamTS,
 			"error", err,
 		)
+		return err
 	}
+	return nil
 }
 
-func (h *GatewaySlackHandler) stopStream(ctx context.Context, client *slacksdk.Client, channelID, threadTS, text string) {
-	if _, _, err := client.StopStreamContext(ctx, channelID, threadTS,
+func (h *GatewaySlackHandler) stopStream(ctx context.Context, client slackGatewayClient, channelID, streamTS, text string, fields map[string]any) error {
+	if _, _, err := client.StopStreamContext(ctx, channelID, streamTS,
 		slacksdk.MsgOptionMarkdownText(text),
 	); err != nil {
+		logging.CaptureWithFields(ctx, fmt.Errorf("gateway slack: stop stream: %w", err), fields)
 		logging.FromContext(ctx).WarnContext(ctx, "gateway slack: stop stream failed",
+			"channel_id", channelID,
+			"slack_stream_ts", streamTS,
+			"error", err,
+		)
+		return err
+	}
+	return nil
+}
+
+func (h *GatewaySlackHandler) postThreadReply(ctx context.Context, client slackGatewayClient, channelID, threadTS, text string, fields map[string]any) error {
+	if _, _, err := client.PostMessageContext(ctx, channelID,
+		slacksdk.MsgOptionText(text, false),
+		slacksdk.MsgOptionTS(threadTS),
+	); err != nil {
+		logging.CaptureWithFields(ctx, fmt.Errorf("gateway slack: post thread reply: %w", err), fields)
+		logging.FromContext(ctx).WarnContext(ctx, "gateway slack: post thread reply failed",
 			"channel_id", channelID,
 			"thread_ts", threadTS,
 			"error", err,
 		)
+		return err
 	}
+	return nil
 }
 
 func (h *GatewaySlackHandler) loadBotToken(ctx context.Context, nangoConnID, providerKey string) (string, error) {

@@ -276,12 +276,15 @@ func (h *EmployeeTriggerDispatchHandler) loadEmployeeSandbox(ctx context.Context
 }
 
 func (h *EmployeeTriggerDispatchHandler) syncRuntime(ctx context.Context, agent *model.Employee, sb *model.Sandbox, client *employeeruntime.Client) error {
-	def, err := employeeruntime.Compile(ctx, h.compileDeps, agent)
+	runtimeSecret, err := h.compileDeps.EncKey.DecryptString(sb.EncryptedRuntimeSecret)
 	if err != nil {
-		return fmt.Errorf("compile employee config: %w", err)
+		return fmt.Errorf("decrypt runtime secret: %w", err)
 	}
-	def.OutboundChannels = employeeruntime.ControlPlaneOutboundChannels(h.compileDeps.Cfg, sb.ID)
-	if _, err := client.PutConfig(ctx, def); err != nil {
+	configUpdate, _, err := employeeruntime.BuildEmployeeRuntimeConfigUpdate(ctx, h.compileDeps, agent, sb, runtimeSecret)
+	if err != nil {
+		return fmt.Errorf("build employee runtime config: %w", err)
+	}
+	if _, err := client.PutRuntimeConfig(ctx, configUpdate); err != nil {
 		return fmt.Errorf("employee runtime put config: %w", err)
 	}
 	if err := client.Readyz(ctx); err != nil {

@@ -29,6 +29,30 @@ func BuildRuntimeEnv(ctx context.Context, deps CompileDeps, agent *model.Employe
 	return BuildRuntimeEnvWithProxyToken(ctx, deps, agent, sb, runtimeSecret, token)
 }
 
+func BuildEmployeeRuntimeConfigUpdate(ctx context.Context, deps CompileDeps, agent *model.Employee, sb *model.Sandbox, runtimeSecret string) (ConfigUpdateRequest, *ProxyTokenResult, error) {
+	sandboxID := uuid.Nil
+	if sb != nil {
+		sandboxID = sb.ID
+	}
+	token, err := MintProxyToken(ctx, deps, agent, sandboxID)
+	if err != nil {
+		return ConfigUpdateRequest{}, nil, err
+	}
+	env, err := BuildRuntimeEnvWithProxyToken(ctx, deps, agent, sb, runtimeSecret, token)
+	if err != nil {
+		return ConfigUpdateRequest{}, token, err
+	}
+	def, err := CompileWithProxyToken(ctx, deps, agent, token)
+	if err != nil {
+		return ConfigUpdateRequest{}, token, err
+	}
+	def.OutboundChannels = ControlPlaneOutboundChannels(deps.Cfg, sandboxID)
+	return ConfigUpdateRequest{
+		Definition: def,
+		RuntimeEnv: env,
+	}, token, nil
+}
+
 func BuildRuntimeEnvWithProxyToken(ctx context.Context, deps CompileDeps, agent *model.Employee, sb *model.Sandbox, runtimeSecret string, token *ProxyTokenResult) (map[string]string, error) {
 	env := make(map[string]string)
 	if agent == nil {

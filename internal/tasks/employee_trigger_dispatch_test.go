@@ -1,12 +1,17 @@
 package tasks
 
 import (
+	"context"
 	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 
 	"github.com/google/uuid"
 
+	"github.com/usehivy/hivy/internal/config"
+	"github.com/usehivy/hivy/internal/employeeruntime"
 	"github.com/usehivy/hivy/internal/mcp/catalog"
 	"github.com/usehivy/hivy/internal/model"
 )
@@ -133,5 +138,97 @@ func TestTriggerConditionsMatch(t *testing.T) {
 	})
 	if ok {
 		t.Fatal("expected non-matching payload to fail")
+	}
+}
+
+func TestEmployeeTriggerDispatchSyncRuntime_PushesFullRuntimeConfig(t *testing.T) {
+	db := openTasksMemoryTestDB(t)
+	encKey := testTasksEncKey(t)
+	orgID := uuid.New()
+	agentID := uuid.New()
+	sandboxID := uuid.New()
+	if err := db.Create(&model.Org{ID: orgID, Name: "trigger-sync-" + uuid.NewString()[:8], Active: true}).Error; err != nil {
+		t.Fatalf("create org: %v", err)
+	}
+	cred := model.Credential{
+		OrgID:        &orgID,
+		Label:        "trigger-sync",
+		BaseURL:      "https://proxy.test",
+		AuthScheme:   "bearer",
+		EncryptedKey: []byte("enc"),
+		WrappedDEK:   []byte("dek"),
+		ProviderID:   "openrouter",
+	}
+	if err := db.Create(&cred).Error; err != nil {
+		t.Fatalf("create credential: %v", err)
+	}
+	agent := model.Employee{
+		ID:           agentID,
+		OrgID:        &orgID,
+		Name:         "Aria",
+		IsEmployee:   true,
+		Status:       "active",
+		Model:        employeeruntime.DefaultEmployeeModel,
+		CredentialID: &cred.ID,
+	}
+	if err := db.Create(&agent).Error; err != nil {
+		t.Fatalf("create agent: %v", err)
+	}
+	encryptedSecret, err := encKey.EncryptString("runtime-secret")
+	if err != nil {
+		t.Fatalf("encrypt secret: %v", err)
+	}
+	sb := model.Sandbox{
+		ID:                     sandboxID,
+		OrgID:                  &orgID,
+		EmployeeID:             &agentID,
+		ExternalID:             "sb",
+		EncryptedRuntimeSecret: encryptedSecret,
+		Status:                 "running",
+	}
+
+	var received employeeruntime.ConfigUpdateRequest
+	runtime := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/readyz":
+			w.WriteHeader(http.StatusOK)
+		case "/config":
+			if r.Header.Get("Authorization") != "Bearer runtime-secret" {
+				t.Fatalf("authorization = %q", r.Header.Get("Authorization"))
+			}
+			if err := json.NewDecoder(r.Body).Decode(&received); err != nil {
+				t.Fatalf("decode config: %v", err)
+			}
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"applied":1}`))
+		default:
+			t.Fatalf("unexpected runtime path: %s", r.URL.Path)
+		}
+	}))
+	defer runtime.Close()
+	sb.RuntimeURL = runtime.URL
+	if err := db.Create(&sb).Error; err != nil {
+		t.Fatalf("create sandbox: %v", err)
+	}
+
+	handler := &EmployeeTriggerDispatchHandler{
+		db: db,
+		compileDeps: employeeruntime.CompileDeps{
+			DB:         db,
+			EncKey:     encKey,
+			SigningKey: []byte("test-signing-key-32-bytes-long!!"),
+			Cfg:        &config.Config{ProxyHost: "proxy.hivy.test"},
+		},
+	}
+	client := employeeruntime.NewClient(runtime.URL, "runtime-secret")
+	if err := handler.syncRuntime(context.Background(), &agent, &sb, client); err != nil {
+		t.Fatalf("sync runtime: %v", err)
+	}
+	if received.Definition == nil {
+		t.Fatalf("runtime config missing definition")
+	}
+	proxyToken := received.RuntimeEnv[employeeruntime.ProxyAPIKeyEnv]
+	if !strings.HasPrefix(proxyToken, "ptok_") {
+		t.Fatalf("runtime config missing proxy token env: %q", proxyToken)
 	}
 }

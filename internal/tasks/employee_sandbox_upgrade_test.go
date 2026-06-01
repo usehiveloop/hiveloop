@@ -8,6 +8,7 @@ import (
 
 	"github.com/hibiken/asynq"
 
+	"github.com/usehivy/hivy/internal/employeeruntime"
 	"github.com/usehivy/hivy/internal/enqueue"
 	"github.com/usehivy/hivy/internal/model"
 	"github.com/usehivy/hivy/internal/sandbox"
@@ -50,6 +51,17 @@ func TestEmployeeSandboxUpgradeWorker_SucceedsAndSchedulesOldRetirement(t *testi
 	}
 	if len(f.provider.deleted) != 0 {
 		t.Fatalf("old sandbox deleted immediately: %v", f.provider.deleted)
+	}
+	configCalls, config := f.runtime.snapshot()
+	if configCalls != 1 {
+		t.Fatalf("runtime config calls = %d", configCalls)
+	}
+	if config.Definition == nil {
+		t.Fatalf("runtime config missing definition")
+	}
+	proxyToken := config.RuntimeEnv[employeeruntime.ProxyAPIKeyEnv]
+	if !strings.HasPrefix(proxyToken, "ptok_") {
+		t.Fatalf("runtime config missing proxy token env: %q", proxyToken)
 	}
 	if upgrade.NewSandboxID == nil {
 		t.Fatalf("new sandbox id not recorded")

@@ -139,7 +139,19 @@ func TestEmployeeMemoryRefreshHandler_TracksSuccessAndFailure(t *testing.T) {
 	if err := db.Create(&model.Org{ID: orgID, Name: "refresh-org-" + uuid.NewString()[:8], Active: true}).Error; err != nil {
 		t.Fatalf("create org: %v", err)
 	}
-	agent := model.Employee{ID: agentID, OrgID: &orgID, Name: "Aria", IsEmployee: true, Status: "active", Model: employeeruntime.DefaultEmployeeModel}
+	cred := model.Credential{
+		OrgID:        &orgID,
+		Label:        "memory-refresh",
+		BaseURL:      "https://proxy.test",
+		AuthScheme:   "bearer",
+		EncryptedKey: []byte("enc"),
+		WrappedDEK:   []byte("dek"),
+		ProviderID:   "openrouter",
+	}
+	if err := db.Create(&cred).Error; err != nil {
+		t.Fatalf("create credential: %v", err)
+	}
+	agent := model.Employee{ID: agentID, OrgID: &orgID, Name: "Aria", IsEmployee: true, Status: "active", Model: employeeruntime.DefaultEmployeeModel, CredentialID: &cred.ID}
 	if err := db.Create(&agent).Error; err != nil {
 		t.Fatalf("create agent: %v", err)
 	}
@@ -149,6 +161,7 @@ func TestEmployeeMemoryRefreshHandler_TracksSuccessAndFailure(t *testing.T) {
 		t.Fatalf("encrypt secret: %v", err)
 	}
 	var configCalls int
+	var lastConfig employeeruntime.ConfigUpdateRequest
 	runtime := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/healthz", "/readyz":
@@ -157,6 +170,9 @@ func TestEmployeeMemoryRefreshHandler_TracksSuccessAndFailure(t *testing.T) {
 			configCalls++
 			if r.Header.Get("Authorization") != "Bearer runtime-secret" {
 				t.Fatalf("authorization = %q", r.Header.Get("Authorization"))
+			}
+			if err := json.NewDecoder(r.Body).Decode(&lastConfig); err != nil {
+				t.Fatalf("decode config: %v", err)
 			}
 			w.WriteHeader(http.StatusOK)
 			_, _ = w.Write([]byte(`{"applied":1}`))
@@ -170,9 +186,10 @@ func TestEmployeeMemoryRefreshHandler_TracksSuccessAndFailure(t *testing.T) {
 	}
 
 	handler := NewEmployeeMemoryRefreshHandler(db, employeeruntime.CompileDeps{
-		DB:     db,
-		EncKey: encKey,
-		Cfg:    &config.Config{},
+		DB:         db,
+		EncKey:     encKey,
+		SigningKey: []byte("test-signing-key-32-bytes-long!!"),
+		Cfg:        &config.Config{ProxyHost: "proxy.hivy.test"},
 	})
 	task, err := NewEmployeeMemoryRefreshTask(EmployeeMemoryRefreshPayload{EmployeeID: agentID, SandboxID: sandboxID, Reason: "test"})
 	if err != nil {
@@ -190,6 +207,13 @@ func TestEmployeeMemoryRefreshHandler_TracksSuccessAndFailure(t *testing.T) {
 	}
 	if configCalls != 1 {
 		t.Fatalf("config calls = %d", configCalls)
+	}
+	if lastConfig.Definition == nil {
+		t.Fatalf("runtime config missing definition")
+	}
+	proxyToken := lastConfig.RuntimeEnv[employeeruntime.ProxyAPIKeyEnv]
+	if !strings.HasPrefix(proxyToken, "ptok_") {
+		t.Fatalf("runtime config missing proxy token env: %q", proxyToken)
 	}
 
 	failing := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

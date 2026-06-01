@@ -102,10 +102,6 @@ func (c *Client) GetConfig(ctx context.Context) (*AgentDefinition, error) {
 	return &out, nil
 }
 
-func (c *Client) PutConfig(ctx context.Context, def *AgentDefinition) (*SyncResponse, error) {
-	return c.PutRuntimeConfig(ctx, ConfigUpdateRequest{Definition: def})
-}
-
 func (c *Client) PutRuntimeConfig(ctx context.Context, body ConfigUpdateRequest) (*SyncResponse, error) {
 	if body.RuntimeEnv == nil {
 		body.RuntimeEnv = map[string]string{}

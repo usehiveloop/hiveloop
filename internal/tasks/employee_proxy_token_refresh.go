@@ -149,20 +149,14 @@ func (h *EmployeeProxyTokenRefreshHandler) run(ctx context.Context, payload Empl
 		return fmt.Errorf("employee runtime healthz: %w", err)
 	}
 
-	refreshed, err := employeeruntime.MintProxyToken(ctx, h.compileDeps, agent, sb.ID)
+	configUpdate, refreshed, err := employeeruntime.BuildEmployeeRuntimeConfigUpdate(ctx, h.compileDeps, agent, sb, apiKey)
 	if err != nil {
-		return err
+		if refreshed != nil {
+			h.revokeToken(ctx, refreshed.JTI)
+		}
+		return fmt.Errorf("build employee runtime config: %w", err)
 	}
-	def, err := employeeruntime.CompileWithProxyToken(ctx, h.compileDeps, agent, refreshed)
-	if err != nil {
-		h.revokeToken(ctx, refreshed.JTI)
-		return fmt.Errorf("compile employee runtime config: %w", err)
-	}
-	def.OutboundChannels = employeeruntime.ControlPlaneOutboundChannels(h.compileDeps.Cfg, sb.ID)
-	if _, err := client.PutRuntimeConfig(ctx, employeeruntime.ConfigUpdateRequest{
-		Definition: def,
-		RuntimeEnv: map[string]string{employeeruntime.ProxyAPIKeyEnv: refreshed.Token},
-	}); err != nil {
+	if _, err := client.PutRuntimeConfig(ctx, configUpdate); err != nil {
 		h.revokeToken(ctx, refreshed.JTI)
 		return err
 	}

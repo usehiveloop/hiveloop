@@ -66,16 +66,15 @@ func (h *EmployeeMemoryRefreshHandler) refresh(ctx context.Context, payload Empl
 	if err != nil {
 		return fmt.Errorf("decrypt employee runtime secret: %w", err)
 	}
-	def, err := employeeruntime.Compile(ctx, h.compileDeps, &agent)
+	configUpdate, _, err := employeeruntime.BuildEmployeeRuntimeConfigUpdate(ctx, h.compileDeps, &agent, sb, apiKey)
 	if err != nil {
-		return fmt.Errorf("compile employee config for memory refresh: %w", err)
+		return fmt.Errorf("build employee runtime config for memory refresh: %w", err)
 	}
-	def.OutboundChannels = employeeruntime.ControlPlaneOutboundChannels(h.compileDeps.Cfg, sb.ID)
 	client := employeeruntime.NewClient(sb.RuntimeURL, apiKey)
 	if err := client.Healthz(ctx); err != nil {
 		return fmt.Errorf("employee runtime healthz: %w", err)
 	}
-	if _, err := client.PutConfig(ctx, def); err != nil {
+	if _, err := client.PutRuntimeConfig(ctx, configUpdate); err != nil {
 		return fmt.Errorf("employee runtime put config: %w", err)
 	}
 	if err := client.Readyz(ctx); err != nil {
